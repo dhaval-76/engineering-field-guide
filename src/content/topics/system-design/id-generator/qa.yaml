@@ -1,0 +1,39 @@
+questions:
+  - q: 'Design id generation for a payment platform: 100,000 transactions per second across several regions, ids must be unique, roughly time-sortable for range queries, fit in 64 bits, and must not need a network call per id. Random UUIDs are currently fragmenting the primary-key index.'
+    think: 64-bit and sortable without coordination per id points at one scheme. What can make it produce duplicates?
+    answer: |
+      Use a **Snowflake-style** generator embedded in each service instance: 41 bits of milliseconds since a custom epoch, 10 bits of worker id (e.g. 4 region + 6 instance bits), 12 bits of sequence. That's ~4 million ids/s per worker with no network call, and ids are k-sorted by time, so inserts append to the right of the B-tree instead of splitting random pages.
+
+      Make the risks explicit: **worker ids** must be unique — derive from a StatefulSet ordinal per region, or lease them from etcd/the database with expiry and renewal, and stop generating if the lease is lost. **Clock rollback**: wait for small backward jumps, refuse and alert on large ones; run chrony/NTP with slewing. **Exhaustion**: wait for the next millisecond. Send ids to JavaScript clients as strings. If 128-bit were acceptable, UUID v7 would remove worker-id management entirely.
+followUps:
+  - q: Why do random UUIDs hurt database performance?
+    intuition: Where in the index does each new key land?
+    approach: |
+      B-tree indexes keep keys sorted. Random keys land on random leaf pages, so every insert may touch a page that isn't cached and causes page splits — more I/O, larger and fragmented indexes. In InnoDB the table itself is clustered by primary key, so the whole row placement is random. Time-ordered ids (sequence, Snowflake, UUID v7) append near the right edge, keeping hot pages in memory.
+  - q: How do you assign unique worker ids to Snowflake generators?
+    intuition: Who guarantees no two live generators share one?
+    approach: |
+      Use something that is already unique per instance (a StatefulSet ordinal, a statically configured id) or a lease: claim an id in etcd/ZooKeeper (ephemeral node) or a database row with an expiry, renew it periodically, and stop issuing ids if renewal fails. Include the region in the bits for multi-region setups. Monitor for duplicate worker ids.
+  - q: UUID v7 vs ULID vs Snowflake?
+    intuition: Size, coordination and ecosystem.
+    approach: |
+      All are time-ordered. UUID v7 and ULID are 128-bit and need no coordination; UUID v7 is a standard UUID (database types, libraries, RFC 9562), ULID has a compact base32 string form. Snowflake is 64-bit (half the index size, a plain `bigint`) but needs unique worker ids and careful clock handling. Default to UUID v7 unless 64-bit integers matter.
+practice:
+  - task: Implement a thread-safe Snowflake generator with 41-bit time, 10-bit worker and 12-bit sequence, handling sequence overflow and clock rollback.
+    hint: Track lastMs and sequence under a lock; same ms → increment and wait for the next ms on overflow; new ms → reset; earlier ms → wait if small, otherwise fail.
+    solution: |
+      Keep `lastMs` and `sequence` guarded by a lock. Read the current time; if it's earlier than `lastMs` by more than a small threshold, throw (and alert); otherwise wait until it passes. If it equals `lastMs`, increment the sequence masked to 12 bits and, if it wrapped to 0, spin until the next millisecond. Otherwise reset the sequence. Compose `(now − epoch) << 22 | worker << 12 | sequence`. Provide decoders for debugging, and test uniqueness with many threads generating millions of ids.
+    solutionCode: snowflake
+quiz:
+  - q: How many ids per millisecond can one Snowflake worker generate with a 12-bit sequence?
+    options: ['1,024', '4,096', '65,536', 'Unlimited']
+    correct: 1
+    why: 2¹² = 4,096; beyond that it waits for the next millisecond.
+  - q: Which id scheme is time-ordered, needs no coordination and fits standard UUID columns?
+    options: [UUID v4, UUID v7, Auto-increment, Snowflake]
+    correct: 1
+    why: UUID v7 puts a millisecond timestamp in its leading bits.
+  - q: Why send 64-bit ids to browsers as strings?
+    options: [Strings compress better, JavaScript numbers lose precision above 2⁵³, JSON can't hold numbers, For security]
+    correct: 1
+    why: Numbers are IEEE-754 doubles; large integers get rounded.

@@ -1,0 +1,84 @@
+---
+title: Scaling to Millions of Requests
+summary: How a system grows from one server to millions of users — stateless servers behind load balancers, caching, database replicas and partitioning, CDNs, queues, rate limits — and which bottleneck each step removes.
+track: system-design
+order: 20
+tags: [system-design, scalability, performance, caching, load-balancing]
+aliases: [scalability, scaling, horizontal scaling, vertical scaling, stateless, load balancer, sticky sessions, autoscaling, cdn, read replicas, caching layers, async processing, message queue, load shedding, rate limiting, multi region, handling millions of requests, high traffic]
+prerequisites: [system-design/approach-and-estimation]
+related: [databases/caching-strategies, databases/replication, databases/sharding, architecture/resilience-patterns]
+quickRef:
+  points:
+    - '**Measure first**: find the layer closest to saturation; scaling the wrong layer changes nothing.'
+    - 'Make app servers **stateless** (sessions in Redis/tokens) so you can add instances behind a load balancer and autoscale.'
+    - '**Cache** at every level that helps — CDN, in-process, Redis — for read-heavy data with acceptable staleness.'
+    - 'Scale the database: indexes and pooling → **read replicas** → partitioning/sharding; keep long work out of request paths.'
+    - 'Move slow or bursty work to **queues**; protect the core with **rate limits and load shedding**.'
+    - 'Each step adds moving parts — take it when the numbers say so, not before.'
+  useWhen: '"How would you scale this?" — in interviews, and when a service starts to struggle under growth.'
+lastReviewed: 2026-10-30
+---
+
+## Why it matters
+
+"How would you handle millions of requests?" isn't answered by "add more servers". Each layer of a system has a different limit — CPU on app servers, connections and writes on the database, bandwidth for media, latency across regions — and each scaling technique removes one specific bottleneck while adding complexity. A strong answer walks through the layers in order, tied to measurements.
+
+<Callout type="analogy">
+A popular café. First, hire more baristas (app servers) — easy, because any barista can serve any customer if the order slips are shared (stateless). Next, pre-bake the popular pastries (cache). Then the single till becomes the queue (database) — add a second till for takeaway orders only (read replicas). Finally, open branches in other neighbourhoods (regions, CDN) so customers don't all travel to one shop.
+</Callout>
+
+## From one server to millions
+
+<Walkthrough id="scaling-journey" />
+
+<Diagram id="scaled-architecture" caption="A typical scaled web architecture: each layer removes a different bottleneck." />
+
+## Layer by layer
+
+| Layer | Technique | Removes | Adds |
+|---|---|---|---|
+| Edge | CDN for static assets, images, cacheable API responses; compression; HTTP/2–3 | bandwidth and latency to distant users | cache invalidation, cost |
+| Load balancing | L4/L7 load balancers, health checks, autoscaling groups | single-server CPU and failure | need for statelessness |
+| Application | stateless instances; sessions in Redis or signed tokens; connection pools; async I/O or virtual threads | per-instance limits | shared-state stores |
+| Caching | in-process (Caffeine) + distributed (Redis) | repeated reads, slow queries | staleness, invalidation ([Caching](../../databases/caching-strategies/)) |
+| Database | indexes, query fixes, pooling → read replicas → partitioning → sharding | read load, then write load and size | lag, routing, cross-shard queries ([Replication](../../databases/replication/), [Sharding](../../databases/sharding/)) |
+| Async work | queues/streams for emails, images, reports, fan-out | slow work in request paths, bursts | eventual consistency, idempotent consumers |
+| Protection | rate limiting, load shedding, bulkheads, timeouts | overload and cascading failure | rejected requests by design ([Resilience](../../architecture/resilience-patterns/)) |
+| Geography | multi-zone, then multi-region (read-local, or partition users by home region) | zone/region outages, global latency | data replication and consistency choices |
+| Observability | metrics, traces, logs, load tests | guessing | instrumentation effort |
+
+<CodeTabs id="scaling-layers" title="Several layers in one Spring service: local + Redis cache, async work, a rate limit" />
+
+## Vertical vs horizontal
+
+- **Vertical** (bigger machine): no code changes, works surprisingly far for databases; limited by the largest instance and a single point of failure.
+- **Horizontal** (more machines): near-unlimited for stateless tiers; requires statelessness, load balancing, and for data, replication and partitioning.
+- Typical path: scale app servers horizontally early; scale the database vertically plus replicas for as long as possible; partition when writes or size demand it.
+
+## Finding the bottleneck
+
+1. Look at the **golden signals** per component: traffic, errors, latency (p50/p99), saturation (CPU, connections, queue depth).
+2. Find the component nearest its limit; check what requests are spending time on (traces, slow-query logs).
+3. Fix the cheapest high-leverage thing first: a missing index, an N+1 query, a missing cache, a synchronous call that could be async ([Debugging a slow API](../../backend/debugging-slow-api/)).
+4. **Load test** at expected peak before the event, not during it.
+
+<Pitfalls>
+
+- **Scaling app servers when the database is the bottleneck** — more instances just open more connections.
+- **Server-side session state** without a shared store — sticky sessions break on scale-down and failover.
+- **Caching without measuring hit rate** or without invalidation.
+- **Doing slow work inside requests** (emails, PDFs, image processing, third-party calls).
+- **No rate limits** — one client or bot can take everyone down.
+- **Autoscaling on CPU** for I/O-bound services — scale on concurrency, latency or queue lag.
+- **Sharding before exhausting indexes, replicas and vertical scaling.**
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- Measure, find the saturated layer, and apply the technique that removes that bottleneck.
+- Stateless app tier + load balancer + autoscaling is the foundation.
+- Cache read-heavy data; replicate, then partition, the database; push slow work to queues.
+- Protect the system with rate limits and load shedding; add regions when latency or availability demands it.
+
+</KeyTakeaways>

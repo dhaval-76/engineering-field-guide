@@ -1,0 +1,130 @@
+---
+title: System Design Method and Estimation
+summary: A repeatable way through any system design question — requirements, estimates, API, data model, high-level design, deep dives and trade-offs — plus the numbers and back-of-the-envelope arithmetic that turn guesses into decisions.
+track: system-design
+order: 10
+tags: [system-design, estimation, interviews, capacity-planning]
+aliases: [system design interview, hld, high level design, back of the envelope, back-of-envelope, capacity estimation, qps, rps, storage estimation, bandwidth estimation, latency numbers, powers of two, peak traffic, read write ratio, functional requirements, non-functional requirements, sla, slo]
+prerequisites: []
+related: [system-design/scaling-to-millions, interviews/trade-off-vocabulary, interviews/how-interviews-work]
+quickRef:
+  points:
+    - 'Order: **requirements → estimates → API → data model → high-level design → deep dives → trade-offs and wrap-up**.'
+    - 'Split requirements into **functional** (what it does) and **non-functional** (scale, latency, availability, consistency, cost).'
+    - '1 day ≈ **10⁵ seconds**. QPS = daily requests ÷ 10⁵; peak ≈ 2–5× average.'
+    - 'Storage = items per day × size × retention × replication. Bandwidth = QPS × response size.'
+    - 'Round hard, state assumptions, and **use the numbers to make decisions** ("10 GB fits in one Redis node").'
+    - 'Memory ~100 ns, SSD read ~20 µs, same-zone round trip ~0.5 ms, cross-continent ~150 ms.'
+  useWhen: Starting any system design — in an interview, a design doc or capacity planning.
+lastReviewed: 2026-10-30
+---
+
+## Why it matters
+
+System design questions are deliberately vague ("design a chat app"). Without a method, it's easy to spend twenty minutes on one component or to draw a generic diagram that answers nothing. A fixed sequence makes sure you cover what matters, lets the interviewer steer you to the interesting parts, and turns the conversation into a series of reasoned decisions. Estimation is the part most candidates skip — and the part that most often justifies (or kills) a design choice.
+
+<Callout type="analogy">
+An architect doesn't start by drawing a skyscraper. They ask how many people will live there, what the budget is and what the ground can bear — then a sketch, then the structural details that are actually risky.
+</Callout>
+
+## The method
+
+<Steps>
+
+1. **Requirements (≈5 min).** Functional: the 3–5 core use cases, and what's out of scope. Non-functional: users and traffic, read/write ratio, latency targets, availability, consistency needs, data retention, geography. Write them down.
+2. **Estimates (≈5 min).** Requests per second (average and peak), storage growth, bandwidth, memory for caches. Say what each number implies.
+3. **API (≈3 min).** The key endpoints or events with their main parameters — it fixes the boundaries of the system.
+4. **Data model (≈5 min).** Entities, access patterns, and the storage choice that fits them ([SQL vs NoSQL](../../databases/sql-vs-nosql/)).
+5. **High-level design (≈10 min).** Components and how a request flows through them; start simple and correct.
+6. **Deep dives (≈15 min).** The hardest parts for *this* problem: scaling the hot path, consistency, fan-out, failure handling, hot keys. Usually chosen with the interviewer.
+7. **Wrap-up (≈2–5 min).** Bottlenecks at 10× scale, failure modes, monitoring, cost, what you'd do next.
+
+</Steps>
+
+## Numbers worth knowing
+
+<Chart
+  type="bar"
+  title="Approximate latencies, in nanoseconds (log scale)"
+  log
+  bars={[
+    ['L1 cache reference', 1, 'ok'],
+    ['Main memory reference', 100, 'ok'],
+    ['Read 1 MB from memory', 10000, 'info'],
+    ['SSD random read', 20000, 'info'],
+    ['Round trip, same zone', 500000, 'warn'],
+    ['Read 1 MB from SSD', 1000000, 'warn'],
+    ['Disk (HDD) seek', 5000000, 'bad'],
+    ['Round trip, Europe ↔ US', 80000000, 'bad'],
+    ['Round trip, Europe ↔ India/Asia', 150000000, 'bad'],
+  ]}
+  caption="Orders of magnitude matter, not exact values: memory is ~1000× faster than a network hop; crossing continents costs ~100+ ms per round trip."
+/>
+
+| Quantity | Value |
+|---|---|
+| Seconds per day | 86,400 ≈ 10⁵ |
+| Seconds per month / year | ≈ 2.5 × 10⁶ / ≈ 3 × 10⁷ |
+| 1 million requests/day | ≈ 12 per second |
+| 1 billion requests/day | ≈ 12,000 per second |
+| KB / MB / GB / TB / PB | 10³ / 10⁶ / 10⁹ / 10¹² / 10¹⁵ bytes |
+| A 64-bit id, a timestamp | 8 bytes |
+| A short text row (id, user, text, timestamps) | ~200–500 bytes |
+| A compressed photo / thumbnail | ~200 KB–2 MB / ~10–30 KB |
+| One minute of 1080p video (streaming bitrate) | ~40–60 MB |
+| A single modern server | tens of cores, 100s of GB RAM, 10–25 Gbps NIC |
+| A well-indexed PostgreSQL primary | thousands to tens of thousands of simple writes/s (hardware-dependent) |
+| One Redis node | ~100,000+ simple ops/s |
+| One Kafka partition | ~10 MB/s+ sustained writes |
+
+Treat capacities as order-of-magnitude starting points to state as assumptions, not facts.
+
+## Back-of-the-envelope arithmetic
+
+<CodeTabs id="estimation-sheet" title="Formulas and a worked example: a URL shortener" />
+
+<CodeTabs id="estimate-calculator" title="The same arithmetic as a tiny calculator" />
+
+Make each number earn its place by drawing a conclusion from it:
+
+| Estimate | Conclusion it supports |
+|---|---|
+| 1,200 writes/s | one relational primary is fine; no sharding needed yet |
+| 120,000 reads/s, 100:1 read/write | caching and replicas matter more than write scaling |
+| 10 GB hot set | fits in one Redis node's memory (replicated for availability) |
+| 90 TB over 5 years | plan partitioning/archival; one machine's disk won't do |
+| 2 GB/s of images | serve from a CDN, not from application servers |
+
+## Deep-dive menu
+
+Pick the parts that are hard *for this problem* — a chat system's hard part is delivery and presence; a URL shortener's is key generation and read scaling; a payment system's is correctness and idempotency.
+
+| Concern | Questions to address |
+|---|---|
+| Hot path scaling | caching, replicas, partitioning, CDN |
+| Write path | queues, batching, idempotency, ordering |
+| Consistency | which reads must be fresh; transactions; conflict handling |
+| Fan-out | push vs pull, celebrities, notifications |
+| Failure | timeouts, retries, circuit breakers, degradation, data loss (RPO) |
+| Hot spots | skewed keys, celebrity users, thundering herds |
+| Operations | monitoring, alerts, deploys, cost |
+
+<Pitfalls>
+
+- **Designing before clarifying** — solving a different problem from the one asked.
+- **Estimates that never get used** — numbers are only useful if they drive a decision.
+- **Precise arithmetic** — round to powers of ten; speed matters more than accuracy.
+- **A generic diagram** (LB → app → DB → cache) with nothing specific to the problem.
+- **Going deep too early** on one component and running out of time.
+- **Ignoring failure, consistency and cost** — they distinguish a design from a drawing.
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- Follow the sequence; spend most time on the problem's hard parts.
+- Estimate QPS, storage, bandwidth and memory — and say what each implies.
+- Know latency orders of magnitude and rough capacities of common components.
+- Finish with bottlenecks, failure modes and trade-offs.
+
+</KeyTakeaways>

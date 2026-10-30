@@ -1,0 +1,37 @@
+questions:
+  - q: '"Your service handles 1,000 requests per second. Marketing expects 50× for a launch next month. What do you do?"'
+    think: Which layer breaks first at 50,000 rps, and how would you know?
+    answer: |
+      **Measure and load test first**: replay realistic traffic at increasing rates in a staging environment sized like production to find the first bottleneck. Typical sequence: app servers saturate (fix: stateless instances + autoscaling, tuned pools); then the database — reads (fix: cache hot data in Redis with jittered TTLs and stampede protection, read replicas for read-heavy endpoints, fix slow queries) and connections (fix: right-size pools; PgBouncer). Move slow work (emails, image processing, third-party calls) to queues. Serve static and cacheable responses from a CDN. Add per-client rate limits and load shedding so overload degrades gracefully, with priorities (checkout over recommendations). Pre-scale before the launch rather than relying on autoscaling reacting in time, prepare runbooks and dashboards, and have a kill switch for expensive features.
+  - q: Why must application servers be stateless to scale horizontally?
+    think: What happens to a user whose next request lands on another instance?
+    answer: |
+      If an instance keeps session or request state in memory, the user's next request must hit the same instance (sticky sessions). That defeats even load balancing, and the state is lost when the instance is scaled down, redeployed or fails. Moving state to a shared store (Redis sessions, the database) or into the client (signed tokens) means any instance can serve any request, so instances can be added, removed and replaced freely.
+followUps:
+  - q: Vertical or horizontal scaling for the database?
+    intuition: How far does one machine go, and what does splitting cost?
+    approach: |
+      Scale vertically (bigger instance) and add read replicas for as long as it works — it keeps transactions, joins and simple operations, and modern machines are large. Move to partitioning/sharding when write throughput, storage or failure blast radius require it, accepting cross-shard complexity. Before either: indexes, query fixes, caching and archiving often buy more than hardware.
+  - q: What should autoscaling be based on?
+    intuition: What actually saturates?
+    approach: |
+      CPU works for CPU-bound services. I/O-bound services saturate on concurrency (in-flight requests), latency or downstream limits, so scale on request concurrency, p95 latency or, for workers, queue lag. Keep minimum replicas for baseline and zone redundancy, scale up quickly and down slowly, and remember the database doesn't autoscale with the app — cap app instances or connection pools accordingly.
+  - q: When do you add a CDN?
+    intuition: Is the bottleneck distance or bandwidth?
+    approach: |
+      When serving static assets, media or cacheable responses to users far from your servers, or when egress bandwidth dominates. A CDN moves bytes close to users, offloads the origin, and absorbs traffic spikes; dynamic, personalised API responses benefit less (though CDNs can still terminate TLS and route).
+practice:
+  - task: 'Design the data layer for a leaderboard: 10,000 score updates per second, every user fetching the top 100 every 30 seconds, and results accurate within 5 seconds.'
+    hint: A sorted set for updates; cache the top-100 response for the accuracy window; persist asynchronously.
+    solution: |
+      Write path: `ZINCRBY leaderboard <points> <user>` in Redis (O(log n)); also publish the score event to Kafka, and a consumer batches writes to the database for durability and history. Read path: compute `ZRANGE leaderboard 0 99 REV WITHSCORES` at most once per few seconds and cache the serialized result (`leaderboard:top100`, TTL 5 s, single-flight refresh) — so millions of readers cause one Redis range read per 5 s per instance group. Use Redis with replication and AOF; rebuild from the database if lost. For many leaderboards (daily, weekly, per region), keep separate sorted sets with TTLs.
+    solutionCode: scaling-layers
+quiz:
+  - q: Adding app instances didn't improve throughput; database CPU is at 100%. Next step?
+    options: [Add more app instances, Fix slow queries and add caching/read replicas, Increase the load balancer size, Add a CDN]
+    correct: 1
+    why: The database is the bottleneck; more app instances only add load and connections.
+  - q: What breaks when sessions are stored in app-server memory and you scale horizontally?
+    options: [Nothing, Users lose sessions when routed to another instance or when instances are removed, The database, The CDN]
+    correct: 1
+    why: State tied to one instance requires sticky routing and vanishes on scale-down or failure.

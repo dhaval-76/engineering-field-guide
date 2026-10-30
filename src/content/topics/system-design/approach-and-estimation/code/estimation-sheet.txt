@@ -1,0 +1,22 @@
+FORMULAS
+  QPS (average)   = requests per day ÷ 86,400            (≈ ÷ 10⁵)
+  QPS (peak)      = average × 2–5                         (state your factor)
+  Storage / year  = new items per day × bytes per item × 365 × replication factor
+  Bandwidth       = QPS × bytes per response              (in and out separately)
+  Cache memory    = hot items × bytes per item            (often "20% of items serve 80% of reads")
+  Servers         = peak QPS ÷ QPS per server (measured or assumed) × headroom (1.5–2)
+
+WORKED EXAMPLE — URL SHORTENER
+  Assumptions: 100 M new links/day, 100:1 reads:writes, 500 B per record, keep 5 years.
+
+  Writes   100 M ÷ 10⁵            ≈ 1,000/s     peak ≈ 3,000/s
+  Reads    10 B ÷ 10⁵             ≈ 100,000/s   peak ≈ 300,000/s
+  Storage  100 M × 500 B          = 50 GB/day   → 18 TB/year → 90 TB over 5 years (×3 replicas ≈ 270 TB raw)
+  Cache    20% of a day's links    = 20 M × 500 B = 10 GB → one Redis node (plus a replica)
+  Egress   300,000/s × ~500 B      ≈ 150 MB/s at peak → a handful of servers, no CDN needed for redirects
+  Servers  300,000 ÷ ~10,000 per instance (cache hits are cheap) ≈ 30, ×1.5 headroom → ~45
+
+  What follows:
+  - Reads dominate → cache-aside in Redis + read replicas; writes fit one primary.
+  - 90 TB → partition by id range or hash, or a store that partitions for you (DynamoDB/Cassandra).
+  - Key space: 7 base62 characters = 62⁷ ≈ 3.5 × 10¹² codes ≫ 180 B links in 5 years.

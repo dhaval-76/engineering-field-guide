@@ -1,0 +1,10 @@
+flowchart TD
+  U[Users] --> CDN[CDN<br/>static · media · cacheable GETs]
+  CDN --> LB[Load balancer<br/>TLS · health checks · rate limits]
+  LB --> A[App instances × N<br/>stateless · autoscaled]
+  A --> R[(Redis<br/>cache · sessions · limits)]
+  A -- writes --> P[(Primary DB)]
+  A -. reads .-> RR[(Read replicas)]
+  P -. replication .-> RR
+  A -- events --> Q{{Queue / stream}}
+  Q --> W[Workers<br/>email · images · reports]

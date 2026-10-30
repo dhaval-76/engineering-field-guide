@@ -1,0 +1,39 @@
+questions:
+  - q: 'Estimate the load for a notification system: 100 M users, each receiving 10 push notifications, 2 emails and 1 SMS per day. What do the numbers imply?'
+    think: Estimate each channel separately — they have different providers, costs and limits.
+    answer: |
+      **Push**: 100 M × 10 = 1 B/day ≈ 12,000/s average, ~50,000/s at a 4× peak. **Email**: 200 M/day ≈ 2,300/s. **SMS**: 100 M/day ≈ 1,200/s.
+
+      Implications: tens of thousands of sends per second can't be synchronous calls from the request path — producers put notifications on a queue/log (Kafka), and channel-specific workers send in batches to providers (FCM/APNs, an email service, an SMS gateway). Providers impose rate limits and SMS costs real money per message, so per-channel rate limiting, batching and user preferences/deduplication matter. History: 1.3 B notifications/day × ~500 B × 30 days ≈ 20 TB — a write-heavy, time-ordered store (Cassandra/DynamoDB) or partitioned Postgres with retention. Peaks are bursty (campaigns), so workers autoscale on queue lag.
+  - q: 'You have 45 minutes to design "a ride-hailing app". How do you use the first ten?'
+    think: What must you know before any component makes sense?
+    answer: |
+      Clarify scope: core flows (request a ride, match a driver, track the trip, pay) and what's out (pooling, food delivery). Non-functional: number of cities and daily rides, how often drivers send locations, matching latency target, availability, consistency for payments. Then estimate: e.g. 1 M active drivers sending a location every 4 s ≈ 250,000 writes/s — clearly the hot path, which tells you location updates need an in-memory geospatial index partitioned by region, not a relational table. 20 M rides/day ≈ 230/s — the trip and payment path is low volume but must be correct. Summarise these conclusions before drawing anything.
+followUps:
+  - q: How many servers do you need for 100,000 requests per second?
+    intuition: It depends on the work per request — state an assumption.
+    approach: |
+      Say what a request does and assume a per-instance throughput — e.g. "an I/O-bound Spring service doing one cached read handles ~2,000–5,000 requests/s on 2 vCPUs; let's assume 2,000". 100,000 ÷ 2,000 = 50 instances; add headroom for peaks, deploys and a zone failure (×1.5–2) → ~80–100. Then note what really limits it — often the database or cache behind the servers — and that the number should be validated with a load test.
+  - q: What are the usual bottlenecks, in the order they tend to appear?
+    intuition: Stateless servers scale easily; state doesn't.
+    approach: |
+      Usually the database first (write throughput, connections, lock contention, slow queries), then hot keys or partitions in caches and stores, then network bandwidth for large payloads (fixed with CDNs), then fan-out work (notifications, feeds). Find the first by estimating utilisation per layer and confirming with metrics.
+practice:
+  - task: 'Estimate a URL shortener with 100 M new links/day and 100:1 reads: QPS, 5-year storage, cache size for the hot 20%, peak egress, and number of instances — then state what each number implies for the design.'
+    hint: Divide by 10⁵ for per-second rates; multiply by 365 and 5 for storage; 500 bytes per record.
+    solution: |
+      Writes ≈ 1,000/s (peak ~3,000), reads ≈ 100,000/s (peak ~300,000). Storage ≈ 50 GB/day → ~90 TB over five years before replication — partition or use a horizontally scaling store. Hot set ≈ 20 M × 500 B = 10 GB → one Redis node with a replica, serving most reads. Egress ≈ 300,000 × 500 B ≈ 150 MB/s at peak → modest. Instances ≈ 300,000 ÷ ~10,000 per instance ×1.5 → ~45. So: read-optimised with caching, a single write primary is fine, storage is the long-term scaling concern, and 7-character base62 keys give ample space.
+    solutionCode: estimation-sheet
+quiz:
+  - q: About how many requests per second is 1 billion requests per day?
+    options: ['1,200', '12,000', '120,000', '1.2 million']
+    correct: 1
+    why: 10⁹ ÷ ~10⁵ seconds ≈ 10⁴ — about 12,000 per second on average.
+  - q: Which is closest to a network round trip within one cloud availability zone?
+    options: [100 nanoseconds, 0.5 milliseconds, 50 milliseconds, 1 second]
+    correct: 1
+    why: Same-zone round trips are typically a few hundred microseconds.
+  - q: What should come immediately after clarifying requirements?
+    options: [Choosing a database, Drawing microservices, Estimating load and storage, Writing the API code]
+    correct: 2
+    why: Estimates shape every later choice — caching, storage, partitioning.
