@@ -1,0 +1,84 @@
+---
+title: Backtracking
+summary: Systematically exploring every candidate with choose–explore–unchoose — subsets, permutations, combination sums, pruning to cut the search, grid word search and N-Queens — plus how to estimate the cost of exponential searches.
+track: dsa
+order: 140
+tags: [dsa, backtracking, recursion, search, patterns]
+aliases: [backtracking, recursion, decision tree, subsets, power set, permutations, combinations, combination sum, n queens, word search, sudoku solver, palindrome partitioning, generate parentheses, letter combinations of a phone number, pruning, choose explore unchoose, state space search]
+prerequisites: [dsa/trees-and-bst, cs-foundations/complexity]
+related: [dsa/graphs-bfs-dfs]
+quickRef:
+  points:
+    - 'Template: **choose** an option, **explore** recursively, **unchoose** (undo) — a DFS over a decision tree.'
+    - 'Subsets: include/exclude each item → 2ⁿ. Permutations: pick any unused item → n!. Combinations: pick items after a start index.'
+    - '**Prune** branches that can''t succeed (sum already too big, invalid board) — often the difference between passing and timing out.'
+    - 'Avoid duplicate results with input duplicates: **sort**, then skip equal siblings at the same depth.'
+    - 'Copy the current path when recording a result — the list keeps changing.'
+  complexity: 'Exponential: O(2ⁿ · n) subsets, O(n! · n) permutations; feasible only for small n (≈ 10–20).'
+  useWhen: '"Generate all…", "find every combination/arrangement", constraint puzzles, or when n is small and no DP structure exists.'
+lastReviewed: 2026-10-30
+---
+
+## Recognise it
+
+- "Return **all** subsets / permutations / combinations / partitions / valid arrangements."
+- Constraint satisfaction: N-Queens, Sudoku, word search in a grid.
+- Small n (≤ ~20) — a hint that exponential search is intended.
+- If the question asks only for a **count** or **best value** and subproblems repeat, consider [dynamic programming](../dynamic-programming/) instead.
+
+<Callout type="analogy">
+Finding your way through a maze by trying a corridor, and when it dead-ends, walking back to the last junction and trying the next corridor. Chalk marks (the "unchoose" step) make sure you leave the maze as you found it for the next attempt.
+</Callout>
+
+<Walkthrough id="subsets-tree" />
+
+## The template
+
+<CodeTabs id="dsa-backtrack-template" title="Choose → explore → unchoose" />
+
+## Worked problems
+
+<CodeTabs id="dsa-subsets-permutations" title="Subsets and permutations" />
+
+### Combination sum with pruning
+
+Each candidate may be used repeatedly. Sort the candidates so the loop can stop as soon as one exceeds the remaining target.
+
+<CodeTabs id="dsa-combination-sum" title="Combination sum — reuse allowed, prune on sorted input" />
+
+### Word search in a grid
+
+DFS from every cell, marking cells on the current path so they aren't reused, and restoring them when backtracking.
+
+<CodeTabs id="dsa-word-search" title="Word search — grid DFS with in-place marking" />
+
+### N-Queens
+
+Place one queen per row; track used columns and both diagonals in sets (`row − col` and `row + col` identify diagonals) so each placement check is O(1).
+
+<CodeTabs id="dsa-n-queens" title="N-Queens — rows by recursion, columns and diagonals in sets" />
+
+| Problem | Branching | Size of the search |
+|---|---|---|
+| Subsets | include / exclude | 2ⁿ |
+| Permutations | any unused element | n! |
+| Combinations (k of n) | elements after the last pick | C(n, k) |
+| N-Queens | safe columns in the next row | far fewer than nⁿ thanks to pruning |
+
+<Pitfalls>
+
+- **Forgetting to undo** a choice — state leaks into sibling branches.
+- **Adding the live path** to results instead of a copy.
+- **Duplicates** from repeated input values — sort and skip `nums[i] == nums[i−1]` at the same depth.
+- **Weak pruning** — exploring branches that are already invalid.
+- **Using backtracking for counting problems with overlapping subproblems** — exponential where DP would be polynomial.
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- Backtracking = DFS over choices with undo.
+- Subsets 2ⁿ, permutations n!, combinations C(n, k) — small inputs only.
+- Prune early, skip duplicate siblings, and copy results.
+
+</KeyTakeaways>

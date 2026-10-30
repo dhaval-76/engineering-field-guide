@@ -1,0 +1,31 @@
+title: Merging intervals sorted by start
+frames:
+  - caption: 'Input `[[1,3],[8,10],[2,6],[15,18]]` sorted by start: `[1,3] [2,6] [8,10] [15,18]`. Start the result with [1,3].'
+    panels:
+      - kind: array
+        label: sorted
+        items: [{ v: '1–3', tone: accent }, '2–6', '8–10', '15–18']
+      - kind: rows
+        label: merged
+        items: ['[1, 3]']
+  - caption: '[2,6] starts at 2 ≤ 3 (the current end) → overlap. Extend the current interval to end at max(3, 6) = 6.'
+    panels:
+      - kind: array
+        label: sorted
+        items: ['1–3', { v: '2–6', tone: accent }, '8–10', '15–18']
+      - kind: rows
+        label: merged
+        items: [{ v: '[1, 6]', tone: info }]
+  - caption: '[8,10] starts at 8 > 6 → no overlap. Start a new interval.'
+    panels:
+      - kind: array
+        label: sorted
+        items: ['1–3', '2–6', { v: '8–10', tone: accent }, '15–18']
+      - kind: rows
+        label: merged
+        items: ['[1, 6]', { v: '[8, 10]', tone: info }]
+  - caption: '[15,18] also starts after 10. Result: `[[1,6],[8,10],[15,18]]` — one sort plus one pass, O(n log n).'
+    panels:
+      - kind: rows
+        label: merged
+        items: ['[1, 6]', '[8, 10]', { v: '[15, 18]', tone: ok }]

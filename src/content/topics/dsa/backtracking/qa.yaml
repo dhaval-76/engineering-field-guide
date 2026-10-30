@@ -1,0 +1,33 @@
+questions:
+  - q: 'Return all subsets of a list of distinct integers. Then: what changes if the list contains duplicates?'
+    think: Draw the decision tree. Where do duplicate subsets come from?
+    answer: |
+      Backtrack with a start index: at each call, record the current path (every node is a subset), then for each `i ≥ start` add `nums[i]`, recurse with `i + 1`, and remove it. That yields 2ⁿ subsets in O(n · 2ⁿ) time. With duplicates, sort first and, inside the loop, skip `nums[i]` when `i > start && nums[i] == nums[i − 1]` — choosing the second of two equal values at the same depth would produce the same subsets as choosing the first.
+  - q: 'Find all combinations of candidates (each usable repeatedly) that sum to a target.'
+    think: How do you avoid both duplicates like [2,3] vs [3,2] and wasted branches?
+    answer: |
+      Sort the candidates and backtrack with a start index so combinations are built in non-decreasing order (no reorderings). Recurse with the same index to allow reuse. When `remaining == 0`, record a copy; when the current candidate exceeds `remaining`, break — every later candidate is larger. The search is exponential in the worst case, but pruning keeps it practical.
+followUps:
+  - q: Backtracking or dynamic programming?
+    intuition: Do you need every solution, or a count/optimum?
+    approach: |
+      If the output is the list of all solutions, its size is itself exponential, so backtracking is appropriate. If only the number of solutions or the best one is required and subproblems repeat (same remaining target and index reached by different paths), memoise them — that's dynamic programming and is usually polynomial.
+  - q: How do you make N-Queens checks O(1)?
+    intuition: How can you identify a diagonal with a single number?
+    approach: |
+      Place one queen per row (rows are implicitly distinct). Cells on the same "\" diagonal share `row − col`; on the same "/" diagonal they share `row + col`. Keep three sets (or boolean arrays / bitmasks) for used columns and both diagonal types; a column is safe if none contains it.
+practice:
+  - task: Determine whether a word can be traced in a grid of letters through adjacent cells without reusing a cell.
+    hint: DFS from each cell; mark the cell while it's on the current path; restore it when returning.
+    solution: |
+      For each starting cell, run `match(i, r, c)`: fail if out of bounds or the letter doesn't match `word[i]`; succeed if `i` reaches the word's length. Temporarily replace the cell with a marker so the path can't reuse it, try the four neighbours for `i + 1`, then restore the letter. Worst case O(R·C·4^L); pruning by first letter, or checking letter counts first, speeds it up.
+    solutionCode: dsa-word-search
+quiz:
+  - q: How many permutations does a list of 8 distinct elements have?
+    options: ['256', '40,320', '64', '8']
+    correct: 1
+    why: 8! = 40,320.
+  - q: What is the "unchoose" step for?
+    options: [Speed, Restoring state so sibling branches start clean, Recording results, Sorting]
+    correct: 1
+    why: Without it, choices from one branch leak into the next.

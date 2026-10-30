@@ -1,0 +1,72 @@
+---
+title: Intervals
+summary: Problems about ranges in time or space — sorting by start to merge overlaps, inserting into sorted intervals, choosing the most non-overlapping intervals by earliest end, and counting rooms with a heap or a sweep line.
+track: dsa
+order: 130
+tags: [dsa, intervals, sorting, sweep-line, greedy, patterns]
+aliases: [intervals, merge intervals, insert interval, overlapping intervals, non overlapping intervals, meeting rooms, meeting rooms ii, minimum meeting rooms, sweep line, line sweep, interval scheduling, calendar booking, employee free time, interval intersection, minimum arrows to burst balloons]
+prerequisites: [dsa/heaps-and-top-k]
+related: [dsa/greedy, low-level-design/meeting-room]
+quickRef:
+  points:
+    - 'Two intervals `[a, b]` and `[c, d]` overlap iff `a < d && c < b` (adjust `<`/`<=` for touching endpoints).'
+    - '**Sort by start** to merge or insert: an interval overlaps the previous merged one iff its start ≤ the current end.'
+    - '**Sort by end** to keep the most non-overlapping intervals (greedy: always take the one that finishes first).'
+    - '**Rooms needed** = maximum overlap: min-heap of end times, or a **sweep line** of +1 at starts and −1 at ends.'
+    - 'Decide up front whether `[1,2]` and `[2,3]` overlap — problems differ.'
+  complexity: 'O(n log n) for sorting; the scans are O(n).'
+  useWhen: 'Meetings, bookings, time ranges, segments on a line — anything with starts and ends.'
+lastReviewed: 2026-10-30
+---
+
+## Recognise it
+
+- Input is a list of `[start, end]` pairs: meetings, reservations, ranges.
+- Questions: merge overlaps, insert a new range, minimum removals to avoid overlap, how many resources at once, free gaps.
+
+<Callout type="analogy">
+A shared calendar. To merge busy blocks, read them in order of start time and extend the current block while the next one starts before it ends. To count how many rooms you need, walk through the day and note how many meetings are running at each moment — the peak is the answer.
+</Callout>
+
+<Walkthrough id="merge-intervals" />
+
+## Worked problems
+
+<CodeTabs id="dsa-merge-intervals" title="Merge overlapping intervals — sort by start" />
+
+<CodeTabs id="dsa-insert-interval" title="Insert an interval into a sorted, non-overlapping list — O(n)" />
+
+### Keep the most non-overlapping intervals
+
+To remove the fewest intervals, keep as many as possible: sort by **end** and greedily take each interval that starts after the last kept one ends. Finishing early leaves the most room for the rest.
+
+<CodeTabs id="dsa-non-overlapping" title="Non-overlapping intervals — earliest end first" />
+
+### How many rooms?
+
+<CodeTabs id="dsa-meeting-rooms" title="Minimum meeting rooms — min-heap of end times, and sweep line" />
+
+| Problem | Sort by | Technique |
+|---|---|---|
+| Merge intervals | start | extend current end |
+| Insert interval | (already sorted) | three phases: before, overlapping, after |
+| Max non-overlapping / min removals | end | greedy earliest finish |
+| Min rooms / max overlap | start (heap) or event time (sweep) | min-heap of ends / ±1 events |
+| Intersections of two lists | (both sorted) | two pointers |
+
+<Pitfalls>
+
+- **Sorting by end when merging** (or by start for max non-overlapping) — the greedy argument breaks.
+- **Touching endpoints** — `[1,2]` and `[2,3]`: overlapping for merging in most problems, not for meetings (a room frees at 2).
+- **Mutating input intervals** that the caller still uses.
+- **Sweep-line tie order** — process ends before starts at the same time when touching isn't overlap.
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- Sort first: by start for merging, by end for maximum selection.
+- Max simultaneous overlap = rooms needed: heap of ends or ±1 sweep.
+- Pin down the endpoint convention before coding.
+
+</KeyTakeaways>

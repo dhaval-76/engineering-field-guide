@@ -1,0 +1,33 @@
+questions:
+  - q: 'Merge all overlapping intervals.'
+    think: In what order should you look at them so that overlaps are adjacent?
+    answer: |
+      Sort by start. Walk through, keeping the last merged interval: if the next starts at or before its end, extend the end to the maximum of both ends; otherwise start a new interval. Sorting makes overlapping intervals consecutive, so one pass suffices: O(n log n) time, O(n) for the output.
+  - q: 'Given meeting times, what is the minimum number of rooms needed?'
+    think: At which moment is the demand highest?
+    answer: |
+      The answer is the maximum number of meetings running at the same time. Sort by start and keep a min-heap of end times of rooms in use: for each meeting, if the earliest-ending room is free by its start, reuse it (pop); push the new end. The heap's final size is the answer. Equivalently, sweep sorted starts and ends, +1 at starts and −1 at ends (ends first on ties), tracking the peak. O(n log n).
+followUps:
+  - q: Why sort by end time to maximise the number of non-overlapping intervals?
+    intuition: Which choice leaves the most room for the rest?
+    approach: |
+      Exchange argument: among intervals compatible with what you've chosen, picking the one that finishes earliest never hurts — any optimal solution's next interval can be swapped for it without creating conflicts, since it ends no later. Sorting by start fails: an early-starting long interval can block many short ones.
+  - q: How would you build a calendar that rejects double bookings as events arrive one at a time?
+    intuition: Ordered structure keyed by start.
+    approach: |
+      Keep booked intervals in a balanced BST/TreeMap keyed by start. For a new `[s, e)`, check the floor entry (the latest start ≤ s) ends at or before `s`, and the ceiling entry (the earliest start ≥ s) starts at or after `e`. Both O(log n). In a database, an exclusion constraint does the same atomically (see Transactions).
+practice:
+  - task: Insert a new interval into a sorted list of non-overlapping intervals, merging where necessary.
+    hint: Three phases — copy those entirely before, absorb overlapping ones into the new interval, copy the rest.
+    solution: |
+      Append every interval ending before the new one starts; then, while intervals start at or before the new interval's end, expand the new interval to cover them; append the merged interval; append the remaining intervals. O(n) time, no sorting since the input is already ordered.
+    solutionCode: dsa-insert-interval
+quiz:
+  - q: To minimise removals so intervals don't overlap, sort by…
+    options: [Start time, End time, Length, Input order]
+    correct: 1
+    why: Earliest-finish-first keeps the maximum number of intervals.
+  - q: Two meetings [1, 3] and [3, 5]. With a room freed at 3 reusable at 3, how many rooms?
+    options: ['1', '2', '3', '0']
+    correct: 0
+    why: The first ends exactly when the second starts.

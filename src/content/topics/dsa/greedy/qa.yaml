@@ -1,0 +1,33 @@
+questions:
+  - q: 'Each element of an array is the maximum jump length from that position. Can you reach the last index? What is the minimum number of jumps?'
+    think: What single number summarises everything reachable so far?
+    answer: |
+      Reachability: scan once tracking the farthest reachable index; if the current index ever exceeds it, return false. O(n). Minimum jumps: treat it like BFS by levels — the indices reachable with k jumps form a contiguous range; track the end of the current range and the farthest next range; when you reach the end of the current range, take another jump and extend it. O(n), O(1) space. (A DP over all jumps would be O(n²).)
+  - q: 'Gas stations on a circle: gas[i] available, cost[i] to reach the next. Find a start that completes the circuit.'
+    think: If you run out between start and i, could any station in between work as a start?
+    answer: |
+      If the total gas is less than the total cost, it's impossible. Otherwise scan once with a running tank: when it goes negative at i, no station from the current start to i can be a valid start (each would arrive at i with even less fuel), so reset start to i + 1 and the tank to 0. The final start is the answer — O(n) time, O(1) space.
+followUps:
+  - q: How do you convince an interviewer a greedy choice is correct?
+    intuition: Exchange argument or "stays ahead".
+    approach: |
+      Exchange argument: take any optimal solution that differs from the greedy one at the first choice; swap in the greedy choice and show the result is still feasible and no worse. Repeating this transforms it into the greedy solution. Alternatively show greedy "stays ahead": after each step its partial solution is at least as good as any other's. And test small counter-examples first.
+  - q: Why does greedy fail for coin change?
+    intuition: Try coins {1, 3, 4} and amount 6.
+    approach: |
+      Largest-coin-first takes 4, then 1, 1 (three coins), but 3 + 3 uses two. Choosing 4 blocks the better combination, and greedy never revisits. With canonical coin systems (like 1, 2, 5, 10…) greedy happens to work; in general use DP over amounts.
+practice:
+  - task: Split a string into as many parts as possible so each letter appears in only one part.
+    hint: Record each letter's last index; extend the current part's end to cover the last occurrence of every letter inside it.
+    solution: |
+      First pass: last occurrence of each letter. Second pass: for each index, set `end = max(end, last[s[i]])`; when `i == end`, every letter in the current part has ended within it, so close the part (size `end − start + 1`) and start the next. Closing at the earliest possible point maximises the number of parts. O(n) time, O(alphabet) space.
+    solutionCode: dsa-partition-labels
+quiz:
+  - q: For which problem is greedy by value/weight ratio optimal?
+    options: [0/1 knapsack, Fractional knapsack, Coin change with arbitrary coins, Longest path]
+    correct: 1
+    why: Items can be split, so taking the best ratio first is optimal.
+  - q: 'Tasks A×3, B×3, cooldown 2. Minimum slots?'
+    options: ['6', '7', '8', '9']
+    correct: 2
+    why: (3 − 1) × (2 + 1) + 2 = 8 — A B idle A B idle A B.

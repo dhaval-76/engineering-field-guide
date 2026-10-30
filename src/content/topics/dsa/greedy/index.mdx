@@ -1,0 +1,72 @@
+---
+title: Greedy Algorithms
+summary: Making the locally best choice and proving it never hurts — exchange arguments, jump game reach, gas station, partition labels, task scheduling with cooldowns, and recognising when greedy fails and dynamic programming is needed.
+track: dsa
+order: 150
+tags: [dsa, greedy, patterns, proofs]
+aliases: [greedy, greedy algorithm, exchange argument, greedy choice property, jump game, jump game ii, gas station, partition labels, task scheduler cooldown, assign cookies, minimum number of arrows, activity selection, huffman coding, coin change greedy, when greedy fails]
+prerequisites: [dsa/intervals]
+related: [dsa/intervals, dsa/heaps-and-top-k]
+quickRef:
+  points:
+    - 'Greedy = commit to the locally best choice, never revisit. Fast (often O(n) or O(n log n)) but **must be justified**.'
+    - 'Justify with an **exchange argument**: any optimal solution can be changed to include the greedy choice without getting worse.'
+    - 'Typical signals: sort then sweep, "maximum reach so far", earliest deadline/end first, largest/most frequent first.'
+    - 'Counter-examples kill greedy: coin change with coins {1, 3, 4} for 6 (greedy 4+1+1, optimal 3+3) → use DP.'
+    - 'Try small cases by hand before trusting a greedy rule.'
+  complexity: 'Usually O(n) or O(n log n) (dominated by sorting).'
+  useWhen: 'An optimisation where a simple local rule provably leads to a global optimum.'
+lastReviewed: 2026-10-30
+---
+
+## Recognise it
+
+- A sort-then-scan feels natural: intervals by end, tasks by deadline, items by ratio.
+- You can track a single summary of the past ("farthest reachable index", "current fuel") instead of all options.
+- Choosing the extreme option (earliest, largest, most frequent) leaves the most freedom for the rest.
+
+<Callout type="analogy">
+Packing for a flight with a weight limit when every item is equally useful: take the lightest items first and you fit the most. That simple rule is provably best here — but if items had different values, "lightest first" could leave the most valuable thing behind, and you'd need to compare combinations (dynamic programming).
+</Callout>
+
+<Walkthrough id="jump-game" />
+
+## Worked problems
+
+<CodeTabs id="dsa-jump-game" title="Jump game I and II — track the farthest reach" />
+
+<CodeTabs id="dsa-gas-station" title="Gas station — reset the start when the tank goes negative" />
+
+<CodeTabs id="dsa-partition-labels" title="Partition labels — extend each part to the last occurrence" />
+
+### Task scheduler with cooldown
+
+Identical tasks must be at least n slots apart. The most frequent task dictates the frame: `(maxCount − 1)` gaps of size `n + 1`, plus the tasks tied for the maximum in the final slot. If there are enough other tasks to fill every gap, no idling is needed and the answer is simply the number of tasks.
+
+<CodeTabs id="dsa-task-scheduler" title="Task scheduler — counting formula from the most frequent task" />
+
+## When greedy fails
+
+| Problem | Tempting greedy | Why it fails | Use |
+|---|---|---|---|
+| Coin change (arbitrary coins) | largest coin first | {1, 3, 4}, amount 6 → 3 coins vs optimal 2 | DP |
+| 0/1 knapsack | best value/weight first | can't take fractions; ratios mislead | DP |
+| Longest path | always take the longest next edge | local choices block better routes | DP on DAGs / search |
+| Fractional knapsack | best value/weight first | — works, items are divisible | greedy ✓ |
+
+<Pitfalls>
+
+- **Assuming greedy works** without an argument or a counter-example search.
+- **Sorting by the wrong key** (start instead of end for interval scheduling).
+- **Ignoring ties** that affect correctness.
+- **Overflow** in running sums.
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- Greedy commits to local choices; prove them with exchange arguments.
+- Track compact state: farthest reach, running balance, last occurrence.
+- Test small counter-examples; fall back to DP when choices interact.
+
+</KeyTakeaways>

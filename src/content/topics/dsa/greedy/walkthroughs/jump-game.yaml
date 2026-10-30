@@ -1,0 +1,30 @@
+title: Can we reach the end? Track the farthest reach
+frames:
+  - caption: '`nums[i]` is the maximum jump from i. Instead of exploring every jump, keep one number: the **farthest index reachable** so far.'
+    panels:
+      - kind: array
+        label: nums
+        items: [{ v: '2', tone: accent }, '3', '1', '1', '4']
+      - kind: kv
+        label: State
+        pairs: [[farthest, '0 + 2 = 2']]
+  - caption: 'i = 1 is within reach (1 ≤ 2). From here we can get to 1 + 3 = 4 — the last index. Farthest = 4.'
+    panels:
+      - kind: array
+        label: nums
+        items: ['2', { v: '3', tone: accent }, '1', '1', '4']
+      - kind: kv
+        label: State
+        pairs: [[farthest, { v: '4', tone: ok }]]
+  - caption: 'Farthest ≥ last index → reachable. One pass, O(n), no backtracking.'
+    panels:
+      - kind: note
+        text: 'Answer: true'
+  - caption: 'Contrast `[3, 2, 1, 0, 4]`: farthest stays 3 through i = 3 (where nums is 0). At i = 4 we find 4 > farthest — index 4 can''t be reached. Answer: false.'
+    panels:
+      - kind: array
+        label: nums
+        items: ['3', '2', '1', { v: '0', tone: bad }, { v: '4', tone: muted }]
+      - kind: kv
+        label: State
+        pairs: [[farthest, { v: '3 — stuck', tone: bad }]]

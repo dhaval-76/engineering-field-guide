@@ -1,0 +1,34 @@
+title: Generating subsets of [1, 2, 3]
+frames:
+  - caption: 'Each level decides one element: take it or skip it. Start with an empty path at depth 0.'
+    panels:
+      - kind: stack
+        label: path
+        items: []
+      - kind: rows
+        label: results
+        items: []
+  - caption: 'Choose 1 → choose 2 → choose 3: path [1, 2, 3] reaches the bottom and is recorded (as a copy).'
+    panels:
+      - kind: stack
+        label: path
+        items: ['1', '2', { v: '3', tone: accent }]
+      - kind: rows
+        label: results
+        items: [{ v: '[1, 2, 3]', tone: ok }]
+  - caption: '**Unchoose** 3 and take the "skip 3" branch: record [1, 2]. Then undo 2 and try paths without it: [1, 3], [1].'
+    panels:
+      - kind: stack
+        label: path
+        items: ['1']
+      - kind: rows
+        label: results
+        items: ['[1, 2, 3]', '[1, 2]', '[1, 3]', { v: '[1]', tone: ok }]
+  - caption: 'Undo 1 and explore every subset without it: [2, 3], [2], [3], []. Total 2³ = 8 leaves — each is one subset.'
+    panels:
+      - kind: stack
+        label: path
+        items: []
+      - kind: rows
+        label: results
+        items: ['[1, 2, 3]', '[1, 2]', '[1, 3]', '[1]', '[2, 3]', '[2]', '[3]', { v: '[]', tone: ok }]
