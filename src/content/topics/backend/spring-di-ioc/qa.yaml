@@ -1,0 +1,45 @@
+questions:
+  - q: A developer uses @Autowired on fields and says it works the same as constructor injection. What are the real differences, and show a case where field injection hurts.
+    think: When does injection happen, can fields be final, and how do you build the object in a unit test?
+    answer: |
+      Field injection sets fields by reflection after construction: the fields can't be `final`, the object can exist half-initialised, dependencies are invisible from the outside, and `new OrderService()` in a plain unit test leaves them `null` (NPE) unless you use Mockito's `@InjectMocks` or a Spring context. Constructor injection makes dependencies required and explicit, allows `final` fields (safe publication, immutability), makes tests trivial (`new OrderService(mockRepo, mockClient)`), and a constructor with eight parameters makes "this class does too much" obvious. Setter injection remains useful for genuinely optional dependencies.
+  - q: '@Bean vs @Component — when do you use each?'
+    answer: |
+      `@Component` (and `@Service`, `@Repository`, `@Controller`) marks your own classes for component scanning; Spring calls the constructor. `@Bean` is a factory method in a `@Configuration` class where you write the construction yourself: for third-party classes you can't annotate (an `HttpClient`, `ObjectMapper`), when construction needs logic or configuration, for conditional beans, and for several differently configured instances of the same type (picked with `@Qualifier` or `@Primary`). `@Repository` additionally enables exception translation into Spring's `DataAccessException` hierarchy.
+followUps:
+  - q: Explain bean scopes. What happens when you inject a prototype bean into a singleton?
+    intuition: When does the container create the prototype instance?
+    approach: |
+      Singleton: one shared instance (default). Prototype: a new instance every time the container is asked. Request/session: one per HTTP request/session. A prototype injected into a singleton is created once — when the singleton is built — so the singleton keeps the same instance forever. Ask the container each time with `ObjectProvider<T>.getObject()`, `@Lookup` method injection, or a scoped proxy.
+  - q: How does Spring handle circular dependencies?
+    intuition: Who can be built first if A needs B and B needs A?
+    approach: |
+      With constructor injection it's impossible: neither can be constructed first, so startup fails with `BeanCurrentlyInCreationException`. Historically, field/setter injection worked by exposing an early reference to a half-built singleton; Spring Boot 2.6+ disables that by default. The right fix is design: extract the shared logic into a third bean, invert one direction with an event or an interface, or merge responsibilities. `@Lazy` on one parameter is a stopgap.
+  - q: How does Spring Boot auto-configuration work?
+    intuition: How does adding a starter produce a DataSource or a web server without any configuration?
+    approach: |
+      `@SpringBootApplication` includes `@EnableAutoConfiguration`, which loads auto-configuration classes listed in each jar's `AutoConfiguration.imports` file. Each class is guarded by conditions — classes on the classpath, properties set, beans missing — and creates beans with defaults bound from properties. Because most use `@ConditionalOnMissingBean`, declaring your own bean replaces the default. `--debug` or `/actuator/conditions` shows which configurations matched and why.
+  - q: What's the bean lifecycle, and where are AOP proxies created?
+    intuition: Why doesn't @Transactional work inside @PostConstruct?
+    approach: |
+      Definition → instantiation (constructor injection) → property population (setter/field injection) → Aware callbacks → BeanPostProcessors (before init) → `@PostConstruct` / `afterPropertiesSet` / init-method → BeanPostProcessors (after init), where AOP proxies for `@Transactional`, `@Async`, `@Cacheable`, security are created → ready → `@PreDestroy` / destroy on shutdown. `@PostConstruct` runs on the raw object before proxying, so proxy-based behaviour doesn't apply there.
+practice:
+  - task: Register a third-party HTTP client as a singleton bean whose base URL and timeouts come from validated application properties, and make startup fail if they're missing.
+    hint: A @ConfigurationProperties record with @Validated, and a @Bean method in a @Configuration class.
+    solution: |
+      Bind `partner.base-url`, `partner.connect-timeout` and `partner.retries` into a validated `PartnerProperties` record (`@NotNull`, `@Min/@Max`), enable it with `@ConfigurationPropertiesScan`, and create the client in a `@Bean` method that takes the properties as a parameter. Missing or invalid values fail startup with a clear binding error.
+    solutionCode: config-properties
+  - task: Refactor a service using field injection to constructor injection and write a unit test that runs without any Spring context.
+    hint: Final fields, one constructor, Mockito mocks passed in directly.
+    solution: |
+      Make the dependencies `private final`, add a single constructor (no `@Autowired` needed), and in the test construct the service with `@Mock` collaborators under `MockitoExtension`. The test starts no container and runs in milliseconds.
+    solutionCode: di-unit-test
+quiz:
+  - q: Which annotation adds persistence-exception translation in addition to registering the bean?
+    options: ['@Service', '@Component', '@Repository', '@Controller']
+    correct: 2
+    why: '@Repository beans get SQL exceptions translated into DataAccessException.'
+  - q: A singleton service stores the current user's id in a field during each request. What goes wrong?
+    options: [Nothing — each request gets its own service, 'Requests on different threads overwrite each other''s value', Spring creates a new instance per request, It fails at startup]
+    correct: 1
+    why: Singletons are shared across threads; request data belongs in parameters or request-scoped context.

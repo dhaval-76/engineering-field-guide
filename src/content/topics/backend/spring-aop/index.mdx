@@ -1,0 +1,83 @@
+---
+title: Spring AOP, Proxies and @Transactional
+summary: How Spring adds behaviour around your methods with proxies — aspects, pointcuts and advice, why @Transactional, @Async and @Cacheable silently stop working on self-calls and private methods, and using events for decoupled side effects.
+track: backend
+order: 80
+tags: [backend, spring, aop, proxies, transactions]
+aliases: [aspect oriented programming, spring aop, pointcut, around advice, self invocation transactional, transactional not working, jdk proxy vs cglib, transactionaleventlistener]
+prerequisites: [backend/spring-di-ioc]
+related: [oop-patterns/decorator-adapter-facade-proxy, backend/connection-pooling, backend/exception-handling]
+quickRef:
+  points:
+    - '**Cross-cutting concerns** (transactions, security, caching, metrics, retries) live in aspects instead of every method.'
+    - 'Spring wraps a bean in a **proxy**; callers go through the proxy, which runs the advice and then the real method.'
+    - '**Only external calls through the proxy are advised**: `this.method()`, private/final/static methods and `@PostConstruct` get no transaction, async, caching or security.'
+    - '`@Around` can do everything (`proceed()`); `@Before`, `@AfterReturning`, `@AfterThrowing`, `@After` are narrower.'
+    - 'Domain events + `@TransactionalEventListener(AFTER_COMMIT)` decouple side effects; use an outbox when they must not be lost.'
+  useWhen: Writing aspects, or debugging "why didn't my @Transactional / @Async / @Cacheable apply?"
+lastReviewed: 2026-10-30
+---
+
+## Why it matters
+
+Some concerns cut across every layer: start a transaction, check permissions, time the call, cache the result, retry on failure. Writing them inside each method buries business logic and invites copy-paste mistakes. **Aspect-oriented programming** declares them once and applies them to many methods. Spring uses it for its own core features — `@Transactional`, `@Async`, `@Cacheable`, `@PreAuthorize`, `@Retryable` are all proxies — so understanding proxies explains a classic production bug: an annotation that silently does nothing.
+
+<Callout type="analogy">
+A receptionist in front of an office. Visitors talk to the receptionist, who signs them in, checks their badge and notes the time before showing them through — the person they're visiting doesn't do any of that. But a colleague walking over from the next desk never passes reception: no sign-in, no badge check. That's a self-call.
+</Callout>
+
+## How the proxy works
+
+<Diagram id="aop-proxy" caption="The caller holds a proxy. Advice runs around the real call; calls inside the bean skip the proxy." />
+
+<CodeTabs id="aop-proxy-idea" title="The proxy idea by hand — Java dynamic proxy, JavaScript Proxy, Python decorator" />
+
+| Term | Meaning |
+|---|---|
+| **Aspect** | A class holding cross-cutting logic (`@Aspect`) |
+| **Join point** | A point where advice can run — in Spring AOP, a method execution |
+| **Pointcut** | An expression selecting join points (`execution(...)`, `@annotation(...)`, `within(...)`) |
+| **Advice** | The code to run: `@Before`, `@AfterReturning`, `@AfterThrowing`, `@After`, `@Around` |
+| **Weaving** | Applying aspects — Spring does it at runtime with proxies (JDK dynamic proxies for interfaces, CGLIB subclasses by default in Boot); AspectJ can weave at compile or load time |
+
+## Writing an aspect
+
+<CodeTabs id="aop-aspect" title="Timing every service call and auditing annotated methods" />
+
+Use aspects for genuinely cross-cutting, technical concerns. Business rules hidden in aspects are hard to find and test.
+
+## When advice silently doesn't apply
+
+<CodeTabs id="aop-self-invocation" title="Self-invocation and its fixes" />
+
+Other `@Transactional` details that cause surprises:
+
+- **Rollback rules**: by default only unchecked exceptions (`RuntimeException`, `Error`) roll back; checked exceptions commit unless you set `rollbackFor`.
+- **Catching the exception inside the transaction** and continuing — the transaction may already be marked rollback-only, giving `UnexpectedRollbackException` at commit.
+- **Propagation**: `REQUIRED` (default) joins an existing transaction; `REQUIRES_NEW` suspends it and starts another (use for audit logs that must survive a rollback) — it needs a second connection.
+- **`readOnly = true`** lets Hibernate skip dirty checking and lets drivers route to replicas; it doesn't stop writes by itself on every database.
+- **Exceptions thrown from `@Async` methods** don't reach the caller; return a `CompletableFuture` or configure an `AsyncUncaughtExceptionHandler`.
+
+## Events for decoupled side effects
+
+<CodeTabs id="aop-events" title="Publish an event, react after commit" />
+
+<Pitfalls>
+
+- **Self-invocation**, private or final methods — the annotation does nothing, without an error.
+- **Swallowing exceptions in `@Around`** — callers think the call succeeded.
+- **Overly broad pointcuts** (`execution(* *(..))`) advising framework beans and slowing everything.
+- **Expecting checked exceptions to roll back**.
+- **Long `@Transactional` methods** with remote calls inside (see [connection pooling](../connection-pooling/)).
+- **Implementing authentication with a homemade aspect** instead of Spring Security's filters and method security.
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- Spring AOP = runtime proxies around beans; advice runs only for calls through the proxy.
+- `@Transactional`, `@Async`, `@Cacheable`, `@PreAuthorize` follow the same rules.
+- Move advised methods to another bean or make them the entry point; mind rollback rules and propagation.
+- Events + after-commit listeners decouple side effects; outbox for guaranteed delivery.
+
+</KeyTakeaways>

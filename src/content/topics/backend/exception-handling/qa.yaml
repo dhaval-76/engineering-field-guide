@@ -1,0 +1,33 @@
+questions:
+  - q: A security researcher reports that your payment API returns raw Java stack traces revealing framework versions, class names and table names. Error formats also differ by endpoint — JSON, plain strings, HTML. Fix both without editing every controller.
+    think: Where can you intercept every exception thrown by controllers, and what should an error response contain?
+    answer: |
+      Add one `@RestControllerAdvice` (extending `ResponseEntityExceptionHandler` so Spring MVC's own exceptions are covered) that maps domain exceptions to statuses and returns `ProblemDetail` (`application/problem+json`, RFC 9457) with a stable `type`/`code`, a human `detail`, and a trace id. A catch-all `@ExceptionHandler(Exception.class)` logs the full stack trace server-side and returns a generic 500 message. Turn off `server.error.include-stacktrace`/`include-message`, enable `spring.mvc.problemdetails.enabled`, and make the security entry point and access-denied handler emit the same format. Add tests asserting status, content type and that no internals appear in bodies.
+followUps:
+  - q: When does a @ControllerAdvice not catch an exception?
+    intuition: Which code runs outside the DispatcherServlet or on other threads?
+    approach: |
+      Exceptions thrown in servlet filters (they run before the DispatcherServlet) — including Spring Security, which uses its `AuthenticationEntryPoint` and `AccessDeniedHandler`; exceptions on other threads — `@Async`, `@Scheduled`, executor tasks, message listeners; and errors after the response is committed (e.g. while streaming). Handle those with filter-level handling or the `/error` controller, async exception handlers, and listener error handlers.
+  - q: How do you validate a complex request body, and what happens when validation fails?
+    intuition: When does validation run relative to your controller method?
+    approach: |
+      Put `@Valid` on the `@RequestBody` parameter and constraints on the DTO (`@NotBlank`, `@Size`, `@Positive`, `@Valid` on nested objects and list elements). Validation runs before the method body; failures throw `MethodArgumentNotValidException`, which the global handler turns into 400 with every field error. Custom rules use a `ConstraintValidator`; cross-field rules use a class-level constraint or an `@AssertTrue` method. Parameters (`@PathVariable`, `@RequestParam`) are validated with method validation (`@Validated`, built in from Spring 6.1).
+  - q: 400 vs 422 vs 409 for business errors?
+    intuition: Is the request malformed, semantically invalid, or in conflict with current state?
+    approach: |
+      400 when the request is malformed or fails basic validation. 422 when it's well-formed but violates a business rule given its own content (end date before start). 409 when it conflicts with the resource's current state (already cancelled, duplicate, version mismatch). Consistency matters more than the exact choice — document it.
+practice:
+  - task: Build error handling for an orders API — NotFound (404), a business rule with extra details (422), request validation (400 with every field error), and a catch-all that hides internals — and test all four paths.
+    hint: A sealed domain exception hierarchy, a ResponseEntityExceptionHandler subclass, and @WebMvcTest with MockMvc and jsonPath assertions.
+    solution: |
+      See the handler and tests: domain exceptions carry codes and details; the advice builds `ProblemDetail`s with type, code and trace id; validation returns an `errors` list; the catch-all logs and returns a generic message; `@WebMvcTest` asserts status, content type, codes and absence of internals.
+    solutionCode: error-handler-test
+quiz:
+  - q: An exception is thrown inside a custom servlet filter. Will @RestControllerAdvice handle it?
+    options: [Yes, 'No — filters run before the DispatcherServlet', Only if annotated @Order, Only for RuntimeExceptions]
+    correct: 1
+    why: Controller advice only applies to exceptions raised during handler execution.
+  - q: What should a 500 response body contain?
+    options: [The exception message and stack trace, The SQL that failed, 'A generic message, an error code and a trace id', Nothing — an empty body]
+    correct: 2
+    why: Enough for support to find the logs, nothing an attacker can use.

@@ -1,0 +1,84 @@
+---
+title: API Error Handling and Validation
+summary: Turning exceptions into consistent, safe HTTP errors — a domain exception hierarchy, one global handler producing Problem Details, request validation with field-level errors, and the places a controller advice can't reach.
+track: backend
+order: 90
+tags: [backend, spring, error-handling, validation, rest]
+aliases: [controlleradvice, restcontrolleradvice, exceptionhandler, problemdetail, rfc 9457, bean validation, valid annotation, global exception handler, express error middleware]
+prerequisites: [java-runtime/exceptions, backend/rest-api-design]
+related: [backend/spring-aop, backend/authn-authz]
+quickRef:
+  points:
+    - 'Services throw **domain exceptions** with stable codes; they don''t know about HTTP.'
+    - 'One `@RestControllerAdvice` maps them to status codes and **`application/problem+json`** (RFC 9457) — never per-controller try/catch.'
+    - '`@Valid` on bodies → `MethodArgumentNotValidException` → 400 with **all** field errors. Custom constraints for reusable rules.'
+    - 'The catch-all logs the stack trace with a trace id and returns a **generic** message — no stack traces, SQL or class names.'
+    - 'Advice doesn''t see exceptions from **filters** (incl. security → entry point / access-denied handler) or **`@Async`/`@Scheduled`** threads.'
+  useWhen: Building any HTTP API, or fixing inconsistent or leaky error responses.
+lastReviewed: 2026-10-30
+---
+
+## Why it matters
+
+Without a deliberate design, every controller handles errors its own way: some return strings, some JSON, some HTML error pages; some leak stack traces revealing framework versions, class names and SQL. Clients can't tell "fix your input" from "try again later", and attackers learn your internals. A small amount of structure — domain exceptions, one global handler, one error format — fixes all of it. (For checked vs unchecked exceptions and `try`/`finally` in the language itself, see [Exceptions](../../java-runtime/exceptions/).)
+
+<Callout type="analogy">
+A shop's returns desk. However a product failed — wrong size, broken, never arrived — customers get the same form with a reason code and a reference number. The warehouse investigates internally; the customer is never handed the warehouse's internal incident log.
+</Callout>
+
+## Where exceptions go
+
+<Diagram id="error-path" caption="Controller exceptions reach the advice; filter, security and async exceptions take other paths." />
+
+## Domain exceptions
+
+<CodeTabs id="domain-exceptions" title="A small hierarchy with stable error codes" />
+
+- **Stable codes** (`insufficient_funds`) are the contract; messages can change.
+- Use unchecked exceptions for business failures in Spring services (and remember they roll back transactions).
+- Don't throw exceptions for normal control flow such as "no results" — return an empty list.
+
+## One global handler
+
+<CodeTabs id="global-handler" title="Mapping exceptions to Problem Details — Spring, Express, FastAPI" />
+
+| Exception | Status | Body |
+|---|---|---|
+| Validation failure | 400 | `errors[]` with field and message |
+| Not found | 404 | code, detail |
+| Conflict / duplicate / stale version | 409 (412 for `If-Match`) | code, detail |
+| Business rule (insufficient funds) | 422 | code, detail, extra fields |
+| Unauthenticated / forbidden | 401 / 403 | from the security layer |
+| Rate limited | 429 + `Retry-After` | code |
+| Unexpected | 500 | generic message + trace id |
+| Dependency down / circuit open | 503 (+ `Retry-After`) | code |
+
+## Validation
+
+<CodeTabs id="custom-validation" title="Custom and cross-field constraints, validated parameters" />
+
+Validate syntax and simple constraints at the edge with Bean Validation (`@NotBlank`, `@Size`, `@Positive`, `@Email`, `@Valid` on nested objects); enforce rules that need data (stock available, account active) in the service and report them as domain exceptions.
+
+## Errors outside controllers
+
+<CodeTabs id="errors-outside-controllers" title="Filters, Spring Security and @Async" />
+
+<Pitfalls>
+
+- **Stack traces or exception messages in responses** — `server.error.include-stacktrace` and `include-message` should stay off in production.
+- **`Collectors.toMap` over field errors** — throws when a field has two violations; return a list.
+- **Catching `Exception` in controllers** and returning 200 with an error flag.
+- **Swallowing exceptions** in services (log and continue) so the client sees success.
+- **Logging the same exception at every layer** — log once, where it's handled.
+- **Using 500 for client mistakes** or 400 for server bugs — it breaks client retry logic and alerting.
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- Domain exceptions with stable codes; one global handler; Problem Details everywhere.
+- Field-level validation errors in a list; business rules as 409/422.
+- Log unexpected errors with a trace id; reveal nothing internal.
+- Handle filter, security and async errors on their own paths.
+
+</KeyTakeaways>

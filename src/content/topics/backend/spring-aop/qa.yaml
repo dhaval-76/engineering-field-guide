@@ -1,0 +1,36 @@
+questions:
+  - q: A method annotated @Transactional saves an order and then fails, but the order stays in the database. The method is called from another method in the same class. Why?
+    think: How does Spring implement @Transactional, and does an internal call go through it?
+    answer: |
+      `@Transactional` is implemented by a proxy around the bean. External callers hold the proxy, which begins and commits/rolls back the transaction around the call. A call from inside the same object (`this.saveOrder()`) goes straight to the target, skipping the proxy — so no transaction was started, each repository call auto-committed, and nothing rolled back. Fixes: move the transactional method to another bean, make the public entry method the transactional boundary, or use `TransactionTemplate` programmatically. Also check: the method must be public and not final, and checked exceptions don't trigger rollback unless `rollbackFor` says so.
+  - q: Order placement must also reserve inventory, generate an invoice and send an email, owned by different teams. How do you keep OrderService from knowing about all of them?
+    answer: |
+      Publish a domain event (`OrderPlaced`) from `OrderService` inside its transaction. Each team adds a listener with `@TransactionalEventListener(phase = AFTER_COMMIT)` so it reacts only if the order actually committed, and `@Async` if it shouldn't delay the response. Cross-cutting concerns (timing, auditing) stay in aspects. Caveat: in-process events are lost if the process crashes between commit and listener; for effects that must happen (inventory, invoices), write an outbox row in the same transaction and publish it to a broker, with idempotent consumers.
+followUps:
+  - q: JDK dynamic proxies vs CGLIB — what's the difference?
+    intuition: Interface-based vs subclass-based.
+    approach: |
+      JDK dynamic proxies implement the bean's interfaces, so only interface methods are advised and you must inject the interface type. CGLIB generates a subclass at runtime, so it works without interfaces but can't override final methods or subclass final classes. Spring Boot defaults to CGLIB (`proxyTargetClass=true`). Either way, self-calls bypass the proxy.
+  - q: Which advice type would you use for timing, auditing successful operations and translating exceptions?
+    intuition: Does the advice need to control the call or only observe it?
+    approach: |
+      Timing: `@Around` (start before `proceed()`, stop in `finally`). Auditing only on success: `@AfterReturning` (can read the return value). Translating exceptions: `@AfterThrowing` can observe, but to replace the exception use `@Around` with try/catch — or better, keep translation in a `@ControllerAdvice` at the web edge.
+  - q: Why do checked exceptions not roll back a Spring transaction by default?
+    intuition: EJB heritage — what did checked exceptions mean there?
+    approach: |
+      Spring follows the convention that checked exceptions represent expected business outcomes the caller may handle, while unchecked ones represent failures. So the default rolls back on `RuntimeException` and `Error` only. Use `@Transactional(rollbackFor = Exception.class)` or unchecked domain exceptions if a failure must roll back.
+practice:
+  - task: Implement a @RateLimited(perMinute = 60) annotation enforced by an aspect, per caller and per method, rejecting excess calls with an exception mapped to 429.
+    hint: '@Before advice binding the annotation; a token bucket per key in a cache with expiry; per-instance only — note how you would make it distributed.'
+    solution: |
+      The aspect builds a key from the authenticated user and the method signature, gets or creates a token bucket in a Caffeine cache that evicts idle keys, and throws `RateLimitExceededException` when no token is available; a `@ControllerAdvice` maps it to 429 with `Retry-After`. Across instances, store buckets in Redis with an atomic script.
+    solutionCode: aop-rate-limit
+quiz:
+  - q: Which call runs inside a transaction? (saveOrder is @Transactional on OrderService.)
+    options: ['this.saveOrder() from placeOrder() in OrderService', 'orderService.saveOrder() from a controller', 'saveOrder() called from @PostConstruct of OrderService', 'A private @Transactional method called from a public one']
+    correct: 1
+    why: Only calls entering through the proxy are advised.
+  - q: A @Transactional method throws IOException (checked). With default settings, what happens?
+    options: [Rollback, 'Commit — checked exceptions don''t trigger rollback by default', The exception is swallowed, Spring retries]
+    correct: 1
+    why: Default rollback rules cover RuntimeException and Error only.

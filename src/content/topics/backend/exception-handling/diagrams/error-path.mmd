@@ -1,0 +1,10 @@
+flowchart TD
+  R[Request] --> F[Servlet filters<br/>security, logging]
+  F --> D[DispatcherServlet]
+  D --> C[Controller → Service → Repository]
+  C -- throws --> H{"@RestControllerAdvice<br/>@ExceptionHandler match?"}
+  H -- yes --> P[ProblemDetail response<br/>status + type + detail]
+  H -- no --> E[/error → BasicErrorController/]
+  F -- throws --> E
+  F -. "auth failures" .-> S[Spring Security<br/>entry point 401 / access denied 403]
+  A["@Async / @Scheduled thread"] -- throws --> U[AsyncUncaughtExceptionHandler / logs<br/>never reaches the client]

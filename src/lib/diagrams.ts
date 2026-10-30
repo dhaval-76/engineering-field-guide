@@ -12,7 +12,7 @@ for (const [path, svg] of Object.entries(files)) {
     .pop()!
     .replace(/\.svg$/, '');
   if (index.has(id)) throw new Error(`Duplicate diagram id "${id}": ${path}`);
-  index.set(id, svg);
+  index.set(id, withNaturalWidth(svg));
 }
 
 export function getDiagram(id: string): string {
@@ -22,4 +22,11 @@ export function getDiagram(id: string): string {
       `Diagram "${id}" not found. Add diagrams/${id}.svg or diagrams/${id}.mmd and run npm run diagrams.`,
     );
   return svg;
+}
+
+/** Exposes the viewBox width as --w so CSS can show the diagram at its natural size instead of stretching it. */
+function withNaturalWidth(svg: string): string {
+  const w = /<svg\b[^>]*\bviewBox="[\d.-]+ [\d.-]+ ([\d.]+) [\d.]+"/.exec(svg)?.[1];
+  if (!w) return svg;
+  return svg.replace(/<svg\b/, `<svg style="--w:${Math.round(Number(w))}px"`);
 }

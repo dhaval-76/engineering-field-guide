@@ -16,7 +16,7 @@ import { createRequire } from 'node:module';
 import { basename, dirname, join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
-const RENDERER_VERSION = '5';
+const RENDERER_VERSION = '6';
 const root = new URL('../', import.meta.url).pathname;
 const args = new Set(process.argv.slice(2));
 
@@ -37,6 +37,7 @@ const themeCss = (id: string) => `
 #${id} .node.warn rect,#${id} .node.warn polygon,#${id} .node.warn path{fill:var(--d-warn-soft);stroke:var(--d-warn);}
 #${id} .node.bad rect,#${id} .node.bad polygon,#${id} .node.bad path{fill:var(--d-bad-soft);stroke:var(--d-bad);}
 #${id} .node.muted rect,#${id} .node.muted polygon{fill:transparent;stroke:var(--d-line);stroke-dasharray:3 3;}
+#${id} .messageText,#${id} text.actor,#${id} text.actor>tspan,#${id} .noteText,#${id} .noteText>tspan,#${id} .sequenceNumber{fill:var(--d-text);stroke:none;}
 #${id} .actor-line{stroke:var(--d-line);}
 #${id} .activation0,#${id} .activation1,#${id} .activation2{fill:var(--d-accent-soft);stroke:var(--d-accent);}
 #${id} .loopLine{stroke:var(--d-line);}

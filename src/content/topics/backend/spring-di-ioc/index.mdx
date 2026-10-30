@@ -1,0 +1,98 @@
+---
+title: Spring IoC and Dependency Injection
+summary: What the Spring container does — constructor injection and why it beats field injection, @Bean vs @Component, scopes, the bean lifecycle, circular dependencies, typed configuration and how Boot auto-configuration decides what to create.
+track: backend
+order: 70
+tags: [backend, spring, spring-boot, dependency-injection, ioc]
+aliases: [inversion of control, dependency injection, bean vs component, constructor vs field injection, bean scopes, bean lifecycle, circular dependency spring, auto configuration, configurationproperties]
+prerequisites: [oop-patterns/solid]
+related: [oop-patterns/singleton, oop-patterns/factory]
+quickRef:
+  points:
+    - '**IoC**: the container creates objects and wires them; your classes just declare what they need. It''s the Dependency Inversion Principle, automated.'
+    - '**Constructor injection**: final fields, explicit dependencies, plain unit tests. Avoid field injection.'
+    - '`@Component` (and `@Service`, `@Repository`, `@RestController`) for your classes; `@Bean` methods for third-party types, conditional or multiple instances.'
+    - 'Singleton is the default scope — beans must be stateless or thread-safe. Prototypes into singletons need `ObjectProvider`.'
+    - 'Circular dependencies fail at startup (Boot 2.6+). Fix the design: extract a shared bean or use events.'
+    - 'Typed config with `@ConfigurationProperties` + validation; auto-configuration backs off via `@ConditionalOnMissingBean`.'
+  useWhen: Structuring any Spring application, reading startup errors, or answering "@Bean vs @Component" and "why constructor injection".
+lastReviewed: 2026-10-30
+---
+
+## Why it matters
+
+In a service of any size, objects depend on other objects: controllers on services, services on repositories and clients, clients on configuration. If every class constructs its own collaborators with `new`, the dependencies are hard-wired — you can't swap Stripe for a fake in tests or configure a timeout per environment. **Inversion of control** hands construction and wiring to a container, so classes only declare what they need. Spring's container is the backbone of every Spring Boot application, and its behaviour explains most confusing startup errors and many production bugs (shared state in singletons, transactions that silently don't apply).
+
+<Callout type="analogy">
+A restaurant kitchen. A chef doesn't grow vegetables or forge knives; they list what they need, and the restaurant supplies it. Change supplier and the recipe still works. Dependency injection is the chef listing ingredients in the recipe (the constructor) instead of fetching them from a specific farm.
+</Callout>
+
+## Injecting dependencies
+
+<CodeTabs id="di-constructor" title="Constructor injection — in Spring, plain JavaScript and FastAPI" />
+
+| | Constructor | Setter | Field (`@Autowired`) |
+|---|---|---|---|
+| Final / immutable | ✓ | | |
+| Dependencies visible | ✓ signature | partly | hidden |
+| Usable without Spring | ✓ `new` | ✓ | needs reflection |
+| Optional dependencies | via `ObjectProvider` / `Optional` | ✓ | ✓ |
+| Too many dependencies obvious | ✓ long constructor | | |
+
+<CodeTabs id="di-unit-test" title="Unit-testing with constructor injection" />
+
+## @Component or @Bean
+
+<CodeTabs id="bean-vs-component" title="Stereotypes, @Bean methods and choosing between several beans" />
+
+## Scopes
+
+<CodeTabs id="bean-scopes" title="Singleton, prototype and request scope" />
+
+| Scope | Instances | Watch out for |
+|---|---|---|
+| `singleton` (default) | One per container | Shared by all threads — no mutable request state in fields |
+| `prototype` | New per request to the container | Injected once into a singleton = one instance forever; Spring doesn't destroy prototypes |
+| `request` / `session` | One per HTTP request / session | Needs a scoped proxy when injected into singletons |
+| `application` | One per `ServletContext` | Rarely needed |
+
+## Lifecycle
+
+<Diagram id="bean-lifecycle" caption="From definition to destruction. AOP proxies (transactions, security, caching) wrap the bean after initialisation." />
+
+<CodeTabs id="bean-lifecycle" title="Initialisation and shutdown hooks" />
+
+`ApplicationContext` is the container you use; it extends the basic `BeanFactory` with eager singleton creation, events, internationalisation, environment and resource loading — and the post-processors that make annotations, AOP and `@Transactional` work.
+
+## Circular dependencies
+
+<CodeTabs id="circular-deps" title="Why A ↔ B fails at startup, and how to fix it" />
+
+## Configuration
+
+<CodeTabs id="config-properties" title="Typed, validated configuration" />
+
+<CodeTabs id="auto-configuration" title="How auto-configuration decides what to create" />
+
+Starters bring libraries plus auto-configurations; each applies only when its conditions hold (`@ConditionalOnClass`, `@ConditionalOnProperty`, `@ConditionalOnMissingBean`), so defining your own bean replaces the default.
+
+<Pitfalls>
+
+- **Mutable fields in singleton beans** (e.g. storing the current user) — a concurrency bug across requests.
+- **Field injection** hiding ten dependencies — a class doing too much.
+- **Prototype injected directly into a singleton**, expecting fresh instances.
+- **Calling `@Transactional` / `@Async` methods from `@PostConstruct`** or from the same class — no proxy, no behaviour (see [AOP](../spring-aop/)).
+- **`@Value` strings scattered everywhere** instead of typed properties.
+- **Enabling circular references** to make startup pass.
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- The container builds and wires beans; constructor injection keeps classes honest and testable.
+- `@Component` for your classes, `@Bean` for others' or special construction.
+- Singletons are shared: keep them stateless.
+- Lifecycle: instantiate → inject → init → proxy → use → destroy.
+- Cycles mean a design problem; typed config and conditional auto-configuration keep setup explicit.
+
+</KeyTakeaways>

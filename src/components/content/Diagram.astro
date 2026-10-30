@@ -31,8 +31,9 @@ const svg = getDiagram(id);
   .canvas :global(svg) {
     display: block;
     margin: 0 auto;
+    width: var(--w, 100%);
     height: auto;
-    min-width: 520px;
+    min-width: min(var(--w, 520px), 520px);
     max-width: 100%;
     font-family: var(--font-sans);
   }

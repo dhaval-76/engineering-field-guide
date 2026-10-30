@@ -1,0 +1,9 @@
+flowchart TD
+  A[Scan @Component classes<br/>+ @Configuration @Bean methods<br/>+ auto-configurations] --> B[Bean definitions]
+  B --> C[Instantiate<br/>constructor injection]
+  C --> D[Populate<br/>setter / field injection]
+  D --> E[Aware callbacks<br/>BeanPostProcessor before]
+  E --> F["@PostConstruct<br/>afterPropertiesSet"]
+  F --> G[BeanPostProcessor after<br/>AOP proxies created here]
+  G --> H[Ready: injected<br/>into other beans]
+  H --> I["Shutdown: @PreDestroy<br/>destroy()"]

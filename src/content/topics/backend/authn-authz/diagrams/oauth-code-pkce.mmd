@@ -1,16 +1,16 @@
 sequenceDiagram
-  participant U as User's browser
-  participant App as Your app (client)
-  participant AS as Authorization server (Google, Keycloak, Okta)
-  participant API as Resource server (your API)
-  U->>App: Click "Sign in"
-  App->>App: create code_verifier, code_challenge = SHA256(verifier), state
-  App->>U: Redirect to AS /authorize?client_id&redirect_uri&scope=openid email&state&code_challenge
-  U->>AS: Log in (password, passkey, MFA) and consent
-  AS->>U: Redirect to redirect_uri?code=abc&state
-  U->>App: GET /callback?code=abc&state  (app checks state)
-  App->>AS: POST /token code + code_verifier (+ client secret if confidential)
-  AS-->>App: access_token (often a JWT), refresh_token, id_token (OIDC)
-  App->>API: GET /orders  Authorization: Bearer access_token
-  API->>API: verify signature with AS public key (JWKS), iss, aud, exp, scopes
-  API-->>App: 200 orders
+  participant U as Browser
+  participant App as Your app
+  participant AS as Auth server
+  participant API as Your API
+  U->>App: Sign in
+  App->>App: verifier, challenge = SHA256(verifier), state
+  App->>U: redirect to /authorize<br/>client_id, scope, state, challenge
+  U->>AS: log in + consent
+  AS->>U: redirect to /callback?code&state
+  U->>App: code + state (app checks state)
+  App->>AS: POST /token: code + verifier
+  AS-->>App: access, refresh, id tokens
+  App->>API: Bearer access_token
+  API->>API: verify signature (JWKS),<br/>iss, aud, exp, scope
+  API-->>App: 200
