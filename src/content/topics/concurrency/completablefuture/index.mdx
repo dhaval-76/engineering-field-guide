@@ -1,0 +1,81 @@
+---
+title: CompletableFuture
+summary: Composing asynchronous work in Java — running independent calls in parallel, chaining dependent steps, handling failures and timeouts, and choosing the right executor so callbacks never starve the common pool.
+track: concurrency
+order: 50
+tags: [concurrency, completablefuture, async, futures, promises]
+aliases: [completable future, allof, thenapply vs thencompose, thenapplyasync, async java, parallel api calls, promise.all java]
+prerequisites: [concurrency/executors-thread-pools]
+related: [java-runtime/streams-and-lambdas, concurrency/threads-and-race-conditions]
+quickRef:
+  points:
+    - '`supplyAsync(fn, executor)` starts work; **always pass an executor** for blocking I/O — the default is the shared common pool.'
+    - '`thenApply` = map, `thenCompose` = flatMap (next step is async), `thenCombine` = join two, `allOf` / `anyOf` = many.'
+    - 'Failures skip ahead to `exceptionally` / `handle`; add `orTimeout` or `completeOnTimeout` to every remote call (Java 9+).'
+    - '`join()` throws unchecked `CompletionException`; `get()` throws checked `ExecutionException` — unwrap `getCause()`.'
+    - Non-`Async` callbacks run on whichever thread completed the previous stage; use `…Async(fn, executor)` for slow callbacks.
+  useWhen: Fanning out to several services, or chaining non-blocking steps without tying up a thread per request.
+lastReviewed: 2026-10-30
+---
+
+## Why it matters
+
+A page that calls three services one after another pays the sum of their latencies. The calls don't depend on each other, so they can run at the same time and the page pays only for the slowest. `Future` from an executor can do the "at the same time" part, but you can only block on `get()`. `CompletableFuture` (Java 8) adds what's missing: chaining, combining, error recovery and timeouts — the Java equivalent of JavaScript promises.
+
+<Callout type="analogy">
+Ordering at a food court. Instead of queueing at the pizza stall, waiting, then queueing for drinks, you place both orders, get two buzzers, and collect when both go off. `allOf` is "tell me when every buzzer has gone off"; `thenCompose` is "when the pizza is ready, then order dessert"; `exceptionally` is "if the drinks stall is closed, take water".
+</Callout>
+
+## Fan out, then combine
+
+<Diagram id="cf-fanout" caption="Three 300 ms calls: about 900 ms in sequence, about 300 ms in parallel plus a tiny combine step." />
+
+<CodeTabs id="cf-parallel" title="Parallel calls with timeouts and a fallback — Java, JavaScript, Python" />
+
+`allOf` returns `CompletableFuture<Void>`; read the individual results inside `thenApply` with `join()`, which doesn't block there because every future has already finished.
+
+## Chaining
+
+<CodeTabs id="cf-compose" title="Transform, chain, combine, race" />
+
+| Method | Analogy | Use when |
+|---|---|---|
+| `thenApply(fn)` | `map` | Transform the result synchronously |
+| `thenCompose(fn)` | `flatMap` | The next step returns its own future |
+| `thenCombine(other, fn)` | zip | Two independent results are both needed |
+| `thenAccept` / `thenRun` | forEach | Side effect only |
+| `allOf(...)` | `Promise.all` | Wait for many (then `join` each) |
+| `anyOf(...)` | `Promise.race` | First result wins |
+
+## Errors and timeouts
+
+<CodeTabs id="cf-errors" title="exceptionally, handle and whenComplete" />
+
+A failed stage skips every following transformation until something handles it — like a `catch` further down. Without `orTimeout`, a hung downstream holds the future (and often a thread) forever.
+
+## Which thread runs my callback?
+
+- `supplyAsync(fn)` **without** an executor uses `ForkJoinPool.commonPool()` — sized to CPU cores − 1 and shared by the whole JVM (parallel streams too). Blocking I/O there starves everyone.
+- `thenApply(fn)` runs on the thread that completed the previous stage — or immediately on the caller's thread if the future is already done. Fine for quick transforms.
+- `thenApplyAsync(fn, executor)` hands the callback to your executor. Use it for anything slow.
+- With **virtual threads** (Java 21+), plain blocking code in `newVirtualThreadPerTaskExecutor` is often simpler than long callback chains; `CompletableFuture` is still useful for combining and timeouts. Structured concurrency (`StructuredTaskScope`, preview) aims at the same fan-out-and-join problem.
+
+<Pitfalls>
+
+- **Blocking work on the common pool** via `supplyAsync` without an executor.
+- **Calling `join()` early** inside a chain, turning async code back into blocking code.
+- **Forgetting timeouts** on remote calls.
+- **Swallowed failures**: a future nobody reads or handles fails silently.
+- **`thenApply` returning a future** — you get `CompletableFuture<CompletableFuture<T>>`; use `thenCompose`.
+- **Losing context**: ThreadLocal values (trace ids, security context) don't follow callbacks to other threads unless propagated.
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- Independent calls → start all, `allOf`, combine: latency becomes the slowest call.
+- `thenApply` maps, `thenCompose` chains async steps, `thenCombine` joins two.
+- Every remote call gets a timeout and a fallback or an explicit failure.
+- Pass a dedicated executor for blocking work; keep the common pool for CPU work.
+
+</KeyTakeaways>

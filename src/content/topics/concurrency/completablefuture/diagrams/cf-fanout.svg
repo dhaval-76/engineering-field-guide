@@ -1,0 +1,28 @@
+<svg viewBox="0 0 720 250" xmlns="http://www.w3.org/2000/svg" font-family="var(--font-sans)" font-size="12">
+  <g stroke="var(--d-line)" stroke-dasharray="3 4">
+    <line x1="130" y1="14" x2="130" y2="220"/><line x1="310" y1="14" x2="310" y2="220"/>
+    <line x1="490" y1="14" x2="490" y2="220"/><line x1="670" y1="14" x2="670" y2="220"/>
+  </g>
+  <g fill="var(--d-muted)" font-size="11" text-anchor="middle">
+    <text x="130" y="238">0 ms</text><text x="310" y="238">300 ms</text><text x="490" y="238">600 ms</text><text x="670" y="238">900 ms</text>
+  </g>
+
+  <text x="10" y="22" fill="var(--d-muted)" font-weight="600" letter-spacing=".05em">ONE AFTER ANOTHER</text>
+  <g font-size="11">
+    <rect x="130" y="34" width="180" height="24" rx="4" fill="var(--d-info-soft)" stroke="var(--d-info)"/><text x="140" y="50" fill="var(--d-text)">product</text>
+    <rect x="310" y="34" width="180" height="24" rx="4" fill="var(--d-info-soft)" stroke="var(--d-info)"/><text x="320" y="50" fill="var(--d-text)">inventory</text>
+    <rect x="490" y="34" width="180" height="24" rx="4" fill="var(--d-info-soft)" stroke="var(--d-info)"/><text x="500" y="50" fill="var(--d-text)">pricing</text>
+  </g>
+  <text x="10" y="50" fill="var(--d-text)">≈ 900 ms</text>
+
+  <text x="10" y="94" fill="var(--d-muted)" font-weight="600" letter-spacing=".05em">IN PARALLEL — allOf</text>
+  <g font-size="11">
+    <rect x="130" y="106" width="180" height="24" rx="4" fill="var(--d-accent-soft)" stroke="var(--d-accent)"/><text x="140" y="122" fill="var(--d-text)">product</text>
+    <rect x="130" y="136" width="168" height="24" rx="4" fill="var(--d-accent-soft)" stroke="var(--d-accent)"/><text x="140" y="152" fill="var(--d-text)">inventory</text>
+    <rect x="130" y="166" width="150" height="24" rx="4" fill="var(--d-accent-soft)" stroke="var(--d-accent)"/><text x="140" y="182" fill="var(--d-text)">pricing</text>
+    <rect x="310" y="196" width="14" height="18" rx="3" fill="var(--d-ok-soft)" stroke="var(--d-ok)"/><text x="332" y="209" fill="var(--d-text)">combine</text>
+  </g>
+  <text x="10" y="152" fill="var(--d-text)">≈ 300 ms</text>
+  <text x="400" y="152" fill="var(--d-muted)">total = the slowest call,</text>
+  <text x="400" y="168" fill="var(--d-muted)">not the sum</text>
+</svg>

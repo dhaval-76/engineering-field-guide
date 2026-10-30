@@ -1,0 +1,37 @@
+questions:
+  - q: An API calls UserService, InventoryService and PricingService one after another; each takes about 150 ms, so the response takes 450 ms. Get it under 200 ms without changing the services.
+    think: Do the calls depend on each other? What does the total become if they run at the same time?
+    answer: |
+      They're independent, so start all three with `supplyAsync(..., ioPool)` and combine with `allOf(...).thenApply(v -> new Page(a.join(), b.join(), c.join()))`. Wall time becomes the slowest call (≈150 ms) plus a little overhead. Production details: a dedicated, bounded executor for I/O (not the common pool), `orTimeout` on each call, and a deliberate failure policy per dependency — fail the request if the price is missing, but show "stock unknown" if inventory times out.
+  - q: A product page's three 300 ms calls blow a 500 ms SLA under load even after you parallelised them with supplyAsync. What's wrong?
+    think: Which pool runs supplyAsync without an executor, and how big is it?
+    answer: |
+      Without an executor, `supplyAsync` uses `ForkJoinPool.commonPool()`, which has about one thread per core. Each page load blocks three of those threads on network I/O; with 20 concurrent page loads, 60 blocking calls queue behind 8 threads and latency climbs. Pass a dedicated I/O executor sized for the concurrency (or a virtual-thread executor), add timeouts, and watch its queue depth.
+followUps:
+  - q: What's the difference between thenApply and thenCompose?
+    intuition: What does your function return — a value or another future?
+    approach: |
+      `thenApply(fn)` maps the result with a function returning a value. If `fn` returns a `CompletableFuture`, you end up with a nested future. `thenCompose(fn)` is for functions that return a future: it flattens, so the chain completes when the inner future completes — the same as `flatMap`, or returning a promise inside `.then` in JavaScript.
+  - q: thenApply vs thenApplyAsync — when does thenApply cause problems?
+    intuition: Which thread runs a non-async callback?
+    approach: |
+      `thenApply` runs on the thread that completed the previous stage (or the caller, if already complete). If that's a pool thread and the callback blocks, you're holding that pool's thread — on the common pool this starves unrelated work. Use plain `thenApply` for quick transforms and `thenApplyAsync(fn, executor)` for slow or blocking callbacks.
+  - q: How do you handle a failure in one of several parallel calls?
+    intuition: Should one failure fail everything?
+    approach: |
+      Decide per dependency. Attach `exceptionally`/`handle` with a fallback to optional ones (and `completeOnTimeout` for slow ones) so `allOf` still completes; let required ones fail, so the combined future fails fast and you return an error. `allOf` itself completes exceptionally if any input does, but only after all of them finish.
+practice:
+  - task: Build an OrderSummaryService that, for every item in an order, fetches the current price and checks stock in parallel. An item whose price or stock check fails or times out is marked UNAVAILABLE; the whole response must never fail because of one item.
+    hint: Per item, thenCombine two supplyAsync calls, each with orTimeout, then exceptionally to an UNAVAILABLE view. Collect all item futures with allOf.
+    solution: |
+      Build one `CompletableFuture<ItemView>` per item from `price.thenCombine(inStock, …)` with `exceptionally(ex -> unavailable(item))`, then `allOf` over the list and map each to `join()`. Use a dedicated executor and per-call timeouts.
+    solutionCode: cf-order-summary
+quiz:
+  - q: Your function passed to the next stage returns CompletableFuture<Order>. Which method should you use?
+    options: [thenApply, thenCompose, thenAccept, thenRun]
+    correct: 1
+    why: thenCompose flattens a function that itself returns a future.
+  - q: What executor does supplyAsync(fn) use when you don't pass one?
+    options: [A new thread per task, ForkJoinPool.commonPool(), The caller's thread, A cached thread pool]
+    correct: 1
+    why: The shared common pool, sized to roughly the number of cores — wrong for blocking I/O.
