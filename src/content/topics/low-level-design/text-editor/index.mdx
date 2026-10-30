@@ -1,0 +1,97 @@
+---
+title: Design a Text Editor with Undo/Redo
+summary: Undo/redo with the Command pattern and two stacks, merging keystrokes into one undo step, composite commands and macros, and the buffer structures real editors use — gap buffers, ropes and piece tables.
+track: low-level-design
+order: 31
+tags: [lld, text-editor, command-pattern, undo-redo, piece-table, rope]
+aliases: [undo redo design, text editor lld, command pattern undo, piece table, rope data structure, gap buffer]
+prerequisites: [low-level-design/lld-method, oop-patterns/design-patterns-map]
+related: [low-level-design/spreadsheet, low-level-design/chess]
+quickRef:
+  points:
+    - Every edit is a **Command** with `execute()` and `undo()`; a delete remembers what it removed.
+    - '**Two stacks**: apply → push undo, clear redo; undo → pop undo, `undo()`, push redo; redo → pop redo, `execute()`, push undo.'
+    - Merge rapid consecutive keystrokes into one command so undo removes a word, not a letter.
+    - '**Composite command** = one undo step for many actions (macros, replace-all).'
+    - 'Buffer: `StringBuilder` is O(n) per middle insert; editors use a **gap buffer**, **rope** or **piece table** (VS Code) for large files.'
+  complexity: 'Undo/redo O(1) stack operations plus the cost of the buffer edit.'
+  useWhen: 'Any app with undo: editors, drawing tools, form builders, spreadsheets, games ("take back").'
+lastReviewed: 2026-10-30
+---
+
+## Why it matters
+
+Undo/redo is the textbook application of the **Command pattern**, and "design a text editor" checks whether you can model actions as reversible objects, keep history consistent, and pick a buffer that doesn't fall over on a 50 MB file. The same history machinery shows up in drawing apps, form builders and spreadsheets.
+
+<Callout type="analogy">
+Every change you make is written on an index card that says how to do it and how to reverse it. Cards go on one pile as you work. Undo moves the top card to a second pile and reverses it; redo moves it back. Doing something new throws the second pile away.
+</Callout>
+
+## Clarify
+
+- Plain text or rich text? (Plain first.)
+- Single user or collaborative? (Single; collaborative editing uses OT/CRDTs — a system-design topic.)
+- File sizes? (Up to tens of MB — buffer choice matters.)
+- History limits? (Cap at, say, 1,000 steps.)
+
+## Commands and the history stacks
+
+<CodeTabs id="editor-commands" title="Insert/delete commands, keystroke merging and the editor history" />
+
+<Walkthrough id="undo-redo" />
+
+Rules that keep history correct:
+
+- A command must capture **everything needed to reverse it** at execution time — a delete stores the removed text.
+- **New edits clear the redo stack.** After undo + new typing, the undone branch can't be redone (editors that keep branches build an undo *tree*).
+- Commands are applied in strict order; undo works only because each command sees exactly the document state it was created against.
+
+## One undo step for many actions
+
+Users expect "replace all" or a pasted block to undo in one go, and macro recording replays a sequence. Both are a **composite command**: a command made of commands, executed in order and undone in reverse order.
+
+<CodeTabs id="editor-macro" title="Composite command and macro recording" />
+
+Coalescing keystrokes is the inverse problem: many tiny commands should become one step. The `absorb` hook merges an insert into the previous one if it continues at the same position within a short time and doesn't start a new word.
+
+## The text buffer
+
+A `StringBuilder` works for small documents, but inserting in the middle of a 50 MB file shifts 25 MB of characters on every keystroke.
+
+| Structure | Idea | Insert/delete at cursor | Used by |
+|---|---|---|---|
+| Plain string / array | Contiguous characters | O(n) | Small text fields |
+| **Gap buffer** | Array with an empty gap at the cursor | O(1) near the cursor, O(n) to move the gap far | Emacs |
+| **Rope** | Balanced tree of string chunks | O(log n) | Many editors, Xi |
+| **Piece table** | Read-only original + append-only add buffer + list of pieces | O(log pieces) with a tree | VS Code, historically Word |
+
+<Diagram id="piece-table" caption="A piece table never edits text in place: inserts append to the add buffer and split pieces." />
+
+<CodeTabs id="editor-piece-table" title="A minimal piece table (list of pieces; real editors use a balanced tree)" />
+
+The piece table also makes undo cheap: since buffers are never modified, a previous version is just a previous list of pieces.
+
+## Extensions
+
+- **Cursor and selection** — cursor offsets must be adjusted when edits happen before them; store the cursor/selection with each command to restore it on undo.
+- **Find and replace** — search over the buffer; replace-all as one composite command.
+- **Autosave and crash recovery** — persist the command log (or periodic snapshots + log) and replay it.
+- **Collaboration** — concurrent edits need operational transformation or CRDTs so positions stay valid across users.
+
+<Pitfalls>
+
+- **Delete commands that don't store the removed text** — undo has nothing to put back.
+- **Forgetting to clear redo** after a new edit — redo then applies an edit against the wrong document.
+- **One undo step per keystroke** — technically correct, frustrating to use.
+- **Unbounded history** — memory grows forever; cap it or snapshot.
+- **Using a plain string for huge files** — every keystroke copies megabytes.
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- Commands encapsulate do and undo; two stacks give undo/redo in O(1).
+- Clear redo on new edits; merge keystrokes; group multi-step actions with composite commands.
+- Use a gap buffer, rope or piece table for large documents.
+
+</KeyTakeaways>

@@ -1,0 +1,33 @@
+questions:
+  - q: A user types 1,000 characters, presses undo 1,000 times, then redo 500 times. Each operation must take under a millisecond. How do you implement it?
+    think: Two stacks and reversible command objects. Where is the expensive part?
+    answer: |
+      Command pattern with `execute()`/`undo()`; an undo stack and a redo stack. Apply → execute, push undo, clear redo. Undo → pop, `undo()`, push redo. Redo → pop, `execute()`, push undo. Stack operations are O(1); the cost is the buffer edit, so use a gap buffer/rope/piece table so each edit is O(1)–O(log n) rather than O(n). Coalesce keystrokes so 1,000 characters are a few dozen undo steps, and cap history size.
+followUps:
+  - q: StringBuilder insert in the middle is O(n). How do real editors handle large files?
+    intuition: Avoid shifting the whole document on every keystroke.
+    approach: |
+      **Gap buffer** keeps an empty region at the cursor so typing there is O(1). **Rope** stores text in a balanced tree of chunks, making insert/delete/index O(log n). **Piece table** keeps the original file read-only and an append-only buffer for new text; the document is a sequence of pieces, and edits split or remove pieces (VS Code uses a piece tree). Piece tables also make undo cheap and loading huge files instant.
+  - q: How would you implement macro recording?
+    intuition: A macro is a list of commands you can replay.
+    approach: |
+      While recording, capture each command applied. On stop, wrap the list in a composite command whose `execute` runs them in order and `undo` reverses them in reverse order. Playing the macro applies the composite once, so a single undo reverts the whole macro. Commands that depend on absolute positions may need to be recorded relative to the cursor to replay sensibly elsewhere.
+  - q: How do you make "replace all" undo in one step?
+    intuition: Many edits, one user action.
+    approach: |
+      Collect the individual replace commands into a composite command and push only the composite. Apply replacements from the end of the document towards the start (or adjust offsets) so earlier edits don't shift the positions of later ones.
+practice:
+  - task: Implement insert and delete commands with undo/redo, and make consecutive typing within one second merge into a single undo step.
+    hint: Give commands an `absorb(next)` method; the editor tries to merge into the top of the undo stack before pushing.
+    solution: |
+      `InsertText.absorb` accepts an insert that starts exactly where the previous one ended, within the time window and without a space, by appending its text. `Editor.apply` executes the command, then merges or pushes, and always clears redo.
+    solutionCode: editor-commands
+quiz:
+  - q: After undo, the user types a new character. What happens to the redo stack?
+    options: [It is kept, It is cleared, It is merged into undo, It is reversed]
+    correct: 1
+    why: The new edit starts a new branch of history; the old redo entries no longer apply to the document.
+  - q: What must a DeleteText command store to be undoable?
+    options: [Only the position, The position and the removed text, The whole document, Nothing]
+    correct: 1
+    why: Undo re-inserts exactly what was removed at the same position.

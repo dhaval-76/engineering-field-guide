@@ -1,0 +1,25 @@
+<svg viewBox="0 0 720 220" xmlns="http://www.w3.org/2000/svg" font-family="var(--font-sans)" font-size="12">
+  <text x="20" y="18" fill="var(--d-muted)" font-weight="600" letter-spacing=".05em">PIECE TABLE AFTER INSERTING "brown " INTO "the quick fox"</text>
+  <text x="20" y="48" fill="var(--d-muted)">original (read-only)</text>
+  <g font-family="var(--font-mono)" font-size="13">
+    <rect x="160" y="32" width="250" height="26" rx="4" fill="var(--d-fill)" stroke="var(--d-stroke)"/>
+    <text x="172" y="50" fill="var(--d-text)">the quick fox</text>
+    <text x="20" y="92" fill="var(--d-muted)" font-family="var(--font-sans)" font-size="12">add (append-only)</text>
+    <rect x="160" y="76" width="130" height="26" rx="4" fill="var(--d-accent-soft)" stroke="var(--d-accent)"/>
+    <text x="172" y="94" fill="var(--d-text)">brown </text>
+  </g>
+  <text x="20" y="140" fill="var(--d-muted)">pieces (in order)</text>
+  <g font-family="var(--font-mono)" font-size="12">
+    <rect x="160" y="124" width="150" height="34" rx="4" fill="var(--d-fill)" stroke="var(--d-stroke)"/>
+    <text x="235" y="140" text-anchor="middle" fill="var(--d-text)">orig 0..10</text>
+    <text x="235" y="153" text-anchor="middle" fill="var(--d-muted)">"the quick "</text>
+    <rect x="320" y="124" width="150" height="34" rx="4" fill="var(--d-accent-soft)" stroke="var(--d-accent)"/>
+    <text x="395" y="140" text-anchor="middle" fill="var(--d-text)">add 0..6</text>
+    <text x="395" y="153" text-anchor="middle" fill="var(--d-muted)">"brown "</text>
+    <rect x="480" y="124" width="150" height="34" rx="4" fill="var(--d-fill)" stroke="var(--d-stroke)"/>
+    <text x="555" y="140" text-anchor="middle" fill="var(--d-text)">orig 10..13</text>
+    <text x="555" y="153" text-anchor="middle" fill="var(--d-muted)">"fox"</text>
+  </g>
+  <text x="20" y="190" fill="var(--d-text)">Read the pieces left to right: "the quick brown fox". The insert didn't move a single character of the original text —</text>
+  <text x="20" y="208" fill="var(--d-text)">it appended to the add buffer and split one piece into three. Undo can simply restore the previous piece list.</text>
+</svg>

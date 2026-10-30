@@ -1,0 +1,42 @@
+title: Undo and redo with two stacks
+frames:
+  - caption: Type "Hello" (merged into one step), then " world". Each command is pushed onto the **undo** stack after it runs.
+    panels:
+      - kind: note
+        text: 'Document: "Hello world"'
+      - kind: stack
+        label: Undo stack (top first)
+        items: [{ v: 'Insert " world"', tone: accent }, 'Insert "Hello"']
+      - kind: stack
+        label: Redo stack
+        items: []
+  - caption: '**Undo** pops the top command, calls its `undo()`, and pushes it to the **redo** stack.'
+    panels:
+      - kind: note
+        text: 'Document: "Hello"'
+      - kind: stack
+        label: Undo stack
+        items: ['Insert "Hello"']
+      - kind: stack
+        label: Redo stack
+        items: [{ v: 'Insert " world"', tone: info }]
+  - caption: '**Redo** pops from redo, calls `execute()` again, and pushes it back to undo.'
+    panels:
+      - kind: note
+        text: 'Document: "Hello world"'
+      - kind: stack
+        label: Undo stack
+        items: [{ v: 'Insert " world"', tone: accent }, 'Insert "Hello"']
+      - kind: stack
+        label: Redo stack
+        items: []
+  - caption: 'Undo once more, then type "!" — a **new** edit. The redo stack is **cleared**: the " world" branch of history is gone, exactly as in real editors.'
+    panels:
+      - kind: note
+        text: 'Document: "Hello!"'
+      - kind: stack
+        label: Undo stack
+        items: [{ v: 'Insert "!"', tone: accent }, 'Insert "Hello"']
+      - kind: stack
+        label: Redo stack
+        items: [{ v: 'cleared', tone: muted }]

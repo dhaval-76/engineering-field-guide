@@ -1,0 +1,105 @@
+---
+title: Design a Spreadsheet
+summary: Cells, formulas parsed into expression trees, a dependency graph with cycle detection before any change is applied, and recalculation in topological order (Kahn's algorithm) — or lazily, on read.
+track: low-level-design
+order: 32
+tags: [lld, spreadsheet, graph, topological-sort, cycle-detection, parser]
+aliases: [excel design, google sheets lld, spreadsheet formula engine, dependency graph, circular reference]
+prerequisites: [low-level-design/lld-method]
+related: [low-level-design/text-editor, oop-patterns/design-patterns-map]
+quickRef:
+  points:
+    - A formula is parsed into an **expression tree**; its cell references are the cell's **dependencies**.
+    - Keep a reverse map **dependents** (A1 → cells that read A1) to know what to recompute.
+    - '**Detect cycles before mutating**: DFS from the new references; if you reach the edited cell, reject.'
+    - 'Recompute the affected subgraph in **topological order** (Kahn: in-degrees within the subgraph). Plain BFS can read stale values.'
+    - 'Alternative: mark dependents **dirty** on write and recompute on read; incremental SUM updates in O(1).'
+  complexity: 'Edit + recalc O(V + E) over the affected subgraph only; cycle check O(V + E) of the new dependencies.'
+  useWhen: Spreadsheets, build systems, reactive UIs, data pipelines — anything where derived values depend on others.
+lastReviewed: 2026-10-30
+---
+
+## Why it matters
+
+A spreadsheet is a **graph problem** dressed up as a grid. Every formula adds edges from the cells it reads to the cell it defines; changing a value means recomputing everything downstream, in an order that never reads a stale input; and a formula that refers back to itself must be rejected. The same machinery powers build tools (rebuild what depends on a changed file), reactive frameworks (recompute derived state) and data pipelines.
+
+<Callout type="analogy">
+A row of dominoes where some dominoes are pushed by more than one other. When one falls, you must wait for every domino that leans on a given piece to fall before that piece can fall. If the chain ever loops back to the start, it can never settle — that's a circular reference.
+</Callout>
+
+## Clarify
+
+- Values: numbers only, or text/dates too? (Numbers first.)
+- Formula language: arithmetic, references, `SUM(range)`? Yes; more functions as extensions.
+- Sheet size: up to a million cells — so recompute only what changed.
+- Errors: circular references, bad formulas, division by zero — shown in the cell, not crashing the sheet.
+
+## Model
+
+- **Cell** — id (`B3`), parsed expression, the set of cells it references, cached value.
+- **Expression** — a small tree: number, reference, binary operation, range function.
+- **Sheet** — cells plus the **dependents** index (reverse edges).
+
+<Diagram id="sheet-deps" caption="Edges point from an input to the cells that read it. Changing A1 affects B1, C1 and D1; C1 must wait for B1." />
+
+## Parsing formulas
+
+A recursive-descent parser turns `A1 + B1 * 2` into a tree that respects operator precedence and can list its references.
+
+<CodeTabs id="sheet-expr" title="Expression tree and a recursive-descent parser" />
+
+## Setting a cell, safely
+
+<CodeTabs id="sheet-core" title="Cycle check first, then update edges, then recalculate in topological order" />
+
+<Steps>
+
+1. **Parse** the input; collect references.
+2. **Cycle check before any change**: walk from the new references through what they read; if you reach the edited cell, the formula would create a loop — reject and leave the sheet untouched. (Mutating the graph first and then discovering the cycle leaves it in a broken half-updated state.)
+3. **Update edges**: remove the cell from its old inputs' dependents, add it to the new ones.
+4. **Recalculate downstream** in topological order.
+
+</Steps>
+
+## Why topological order matters
+
+<Walkthrough id="sheet-kahn" />
+
+Kahn's algorithm, restricted to the affected cells, guarantees each cell is evaluated only after all of its inputs in the affected set have their new values. Breadth-first order from the changed cell **does not** guarantee this when paths of different lengths meet (C1 is one hop from A1 directly and two hops via B1).
+
+## Eager vs lazy recalculation
+
+| Strategy | On write | On read | Good when |
+|---|---|---|---|
+| Eager (above) | Recompute the affected subgraph in topological order | Return cached value | Results are viewed right away; formulas are cheap |
+| Lazy (dirty flags) | Mark the affected subgraph dirty | Recompute dirty cells recursively, pulling dirty inputs first | Huge sheets where most cells aren't on screen |
+
+<CodeTabs id="sheet-lazy" title="Dirty marking and recompute-on-read" />
+
+Real spreadsheets combine both: they recompute visible and volatile cells eagerly, use incremental updates for aggregates (`SUM` changes by `new − old` when one input changes), and parallelise independent branches of the graph.
+
+## Extensions
+
+- **Range references** (`SUM(A:A)`) — store range dependencies compactly rather than one edge per cell, and test membership on change.
+- **Copy/paste of formulas** — relative vs absolute references (`$A$1`) adjusted when copying.
+- **Undo** — reuse the Command pattern: a cell edit command stores the previous input.
+- **Errors as values** — `#DIV/0!`, `#REF!`, `#CYCLE!` propagate to dependents instead of throwing.
+- **Collaboration** — per-cell edits as operations; conflicts are rarer than in text but still need ordering.
+
+<Pitfalls>
+
+- **BFS order as recalculation order** — stale reads on diamond-shaped dependencies.
+- **Detecting cycles after mutating the graph** — leaves corrupted edges when rejecting.
+- **Not removing old edges** when a formula changes — cells keep recomputing for inputs they no longer read.
+- **Recomputing the whole sheet** on every edit.
+- **Recursive evaluation without memoisation** — the same cell recomputed once per path.
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- Formulas → expression trees; references → dependency edges; keep a reverse "dependents" index.
+- Reject cycles before changing anything.
+- Recompute only the affected subgraph, in topological order (Kahn); or mark dirty and compute on read.
+
+</KeyTakeaways>

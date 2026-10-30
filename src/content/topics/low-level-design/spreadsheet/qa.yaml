@@ -1,0 +1,41 @@
+questions:
+  - q: 'C1 = A1 + B1, A1 = D1 * 2, and the user now sets D1 = C1 + 1. What should happen?'
+    think: Draw the edges. Does D1 end up depending on itself?
+    answer: |
+      D1 would read C1, which reads A1, which reads D1 — a cycle. Before changing anything, run a DFS from D1's new references (C1 → A1, B1 → D1 …); reaching D1 proves the cycle. Reject the edit with a "circular reference" error and leave the graph and values unchanged. Without the check, recalculation would loop forever or overflow the stack.
+  - q: When A1 changes, which cells recalculate, and in what order?
+    answer: |
+      Exactly the cells reachable from A1 through the dependents index. Evaluate them in topological order of that subgraph — Kahn's algorithm with in-degrees counted only inside the affected set — so every cell sees fresh inputs. Unaffected cells keep their cached values.
+followUps:
+  - q: Why isn't BFS order from the changed cell enough?
+    intuition: Look for two paths of different lengths that meet.
+    approach: |
+      With A1 → B1 → C1 and A1 → C1, BFS from A1 visits B1 and C1 at the same depth and may evaluate C1 before B1, reading B1's old value. Topological order guarantees B1 first. (BFS happens to be correct only on trees, not on DAGs with converging paths.)
+  - q: A sheet has a million rows; C2:C1000001 each depend on all of column A via SUM. How do you avoid recomputing everything when one A cell changes?
+    intuition: Most of that work recomputes the same sum.
+    approach: |
+      Share and update aggregates incrementally: compute `SUM(A:A)` once as a node, update it in O(1) with `old − previous + new` on a single-cell change, and let the dependents read that node. Recompute lazily (dirty flags) so only visible cells evaluate immediately. Represent range dependencies as ranges rather than a million individual edges.
+practice:
+  - task: Implement `set(cell, input)` with formula parsing, cycle rejection and topological recalculation, and test it on a diamond-shaped dependency.
+    hint: Parse first; DFS for cycles before touching edges; then Kahn on the affected subgraph.
+    solution: |
+      The `Sheet` above. Test: A1=10, B1=A1*2, C1=A1+B1 (30); set A1=20 → B1=40, C1=60. Then set A1=C1 and assert a circular-reference error and that B1/C1 still read 40/60.
+    solutionCode: sheet-core
+  - task: Implement dirty-marking with recompute-on-read.
+    hint: Writes mark all reachable dependents dirty; reads recompute a dirty cell after recursively reading its inputs.
+    solution: |
+      `markDirty` walks dependents with a stack; `get` clears the cell's dirty flag and evaluates its expression with `this::get`, which pulls dirty inputs first. Each cell computes at most once per change.
+    solutionCode: sheet-lazy
+quiz:
+  - q: When should a spreadsheet check for circular references?
+    options:
+      - After recalculation finishes
+      - Before modifying the dependency graph for the new formula
+      - Only when the sheet is saved
+      - Never; cycles are allowed
+    correct: 1
+    why: Checking first lets you reject the edit without leaving the graph in a broken state.
+  - q: Which algorithm gives a valid recalculation order for a DAG of dependencies?
+    options: [Breadth-first search from the changed cell, Topological sort (e.g. Kahn's algorithm), Binary search, Dijkstra's algorithm]
+    correct: 1
+    why: Topological order ensures every cell's inputs are evaluated before the cell.

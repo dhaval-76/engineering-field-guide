@@ -1,0 +1,31 @@
+title: Recalculating after A1 changes from 10 to 20
+frames:
+  - caption: 'Affected cells = A1 and everything reachable from it: B1, C1, D1. Count, for each, how many of its inputs are **inside** that set (in-degree).'
+    panels:
+      - kind: kv
+        label: In-degree (within affected set)
+        pairs: [[A1, { v: '0', tone: accent }], [B1, '1  (A1)'], [C1, '2  (A1, B1)'], [D1, '3  (A1, B1, C1)']]
+      - kind: queue
+        label: Ready queue
+        items: [{ v: A1, tone: accent }]
+  - caption: Evaluate **A1 = 20**. Decrement the in-degree of every cell that reads A1. B1 drops to 0 and becomes ready; C1 and D1 still wait.
+    panels:
+      - kind: kv
+        label: In-degree
+        pairs: [[A1, { v: 'done = 20', tone: ok }], [B1, { v: '0', tone: accent }], [C1, '1'], [D1, '2']]
+      - kind: queue
+        label: Ready queue
+        items: [{ v: B1, tone: accent }]
+  - caption: Evaluate **B1 = 40**. C1 and D1 each lose one waiting input. C1 is ready.
+    panels:
+      - kind: kv
+        label: In-degree
+        pairs: [[A1, '20'], [B1, { v: 'done = 40', tone: ok }], [C1, { v: '0', tone: accent }], [D1, '1']]
+      - kind: queue
+        label: Ready queue
+        items: [{ v: C1, tone: accent }]
+  - caption: 'Evaluate **C1 = 60** (it sees the **new** B1), then D1 = SUM(20, 40, 60) = **120**. A plain BFS from A1 queues B1, C1 and D1 together and can evaluate C1 before B1 — using the stale B1 = 20 and producing C1 = 40.'
+    panels:
+      - kind: kv
+        label: Values
+        pairs: [[A1, '20'], [B1, '40'], [C1, { v: '60', tone: ok }], [D1, { v: '120', tone: ok }]]
