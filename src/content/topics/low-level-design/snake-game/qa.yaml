@@ -1,0 +1,34 @@
+questions:
+  - q: Design the Snake game. What classes, what state, and what happens each tick?
+    think: Which operations happen every tick, and what structure makes each O(1)?
+    answer: |
+      `SnakeGame` (board size, body deque, occupied set, direction, food, score, status), `Direction` enum with deltas, `Cell` value type, and an injectable `FoodSpawner`.
+      Each tick: apply the buffered direction; compute the next head; wall → game over; if not eating, remove the tail from deque and set; if the next cell is occupied → game over; push the new head; if eating, increment score and spawn food on a free cell (win when the board is full). Everything is O(1) per tick except food placement on a nearly full board.
+followUps:
+  - q: Why keep a hash set alongside the deque?
+    intuition: How would you check self-collision with only the deque?
+    approach: |
+      Without the set you'd scan the body every tick — O(length), which gets slow as the snake grows. The set answers "is this cell occupied?" in O(1). It must be updated in lockstep with the deque: remove the tail cell when the tail moves, add the head cell when it's pushed.
+  - q: How would you make Snake multiplayer over the network?
+    intuition: Who decides what really happened when two snakes move at once?
+    approach: |
+      The server owns the game state and runs the tick. Clients send direction inputs (tagged with the tick they're meant for); the server applies the latest input per player each tick, moves all snakes, resolves collisions (head-to-head kills both, head into another body kills the mover), then broadcasts the new state (or a diff) over WebSockets. Clients render and may predict locally, correcting when the server's state arrives.
+  - q: How would you implement undo by one tick?
+    intuition: What exactly did a tick change?
+    approach: |
+      Record a `TickRecord(addedHead, removedTail or null, ateFood, previousFood, previousScore)` per tick on a stack (Command pattern). Undo pops a record, removes the head from deque and set, restores the tail if one was removed, and restores food and score.
+practice:
+  - task: Implement the game and tests for normal movement, eating and growing, wall collision, self-collision, and moving into the cell the tail is leaving.
+    hint: Use a fixed food sequence or a seeded random spawner; build the curled-square position for the tail test.
+    solution: |
+      With the implementation above: a test curls a 4-cell snake into a 2×2 square and turns into the tail cell — the status must be MOVED, not GAME_OVER. A second test places food in that cell first, so the tail doesn't move, and expects GAME_OVER.
+    solutionCode: snake-game
+quiz:
+  - q: The snake (not eating) moves into the cell currently occupied by its own tail. What should happen?
+    options: [Game over, The move is legal because the tail leaves that cell this tick, The snake grows, The move is ignored]
+    correct: 1
+    why: The tail vacates its cell during the same tick, so the head can enter it.
+  - q: What structure gives O(1) add-at-head and remove-at-tail?
+    options: [ArrayList, Deque, TreeSet, HashMap]
+    correct: 1
+    why: A double-ended queue supports constant-time operations at both ends.

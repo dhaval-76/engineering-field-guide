@@ -1,0 +1,100 @@
+---
+title: Design the Snake Game
+summary: A small LLD problem with sharp edges — the body as a deque plus a set for O(1) collisions, the tail-cell rule most solutions get wrong, buffered input, food placement, and a deterministic tick loop.
+track: low-level-design
+order: 35
+tags: [lld, game, deque, hashset, simulation]
+aliases: [snake game design, snake game lld, design snake game leetcode, game loop design]
+prerequisites: [low-level-design/lld-method]
+related: [low-level-design/chess, low-level-design/elevator]
+quickRef:
+  points:
+    - 'Body = **deque** (head at the front): move = add new head, remove tail; grow = add head, keep tail. Both O(1).'
+    - A **set of occupied cells** makes self-collision O(1) instead of scanning the body.
+    - '**Tail rule**: if not eating, remove the tail **before** checking collision — moving into the cell the tail is leaving is legal.'
+    - Buffer direction changes and ignore a direct reversal; apply one per tick.
+    - Inject the food spawner (seeded random) and drive the game with `tick()` for deterministic tests.
+  complexity: 'Each tick O(1); food placement O(1) expected (rejection sampling) until the board is nearly full.'
+  useWhen: '"Design Snake" (LeetCode 353), and as a template for grid games with a tick loop.'
+lastReviewed: 2026-10-30
+---
+
+## Why it matters
+
+Snake is small enough to code completely in an interview, which is exactly why it's asked: the interviewer can see whether your data structures fit the access pattern and whether you get the edge cases right. One edge case in particular — moving into the cell your own tail is vacating — catches a large share of candidates, including many published solutions.
+
+<Callout type="analogy">
+A line of people walking through a corridor. Each step, a new person joins at the front and the last person leaves at the back. If someone at the front steps into the spot the last person is just leaving, nobody collides — the space is free by the time they arrive.
+</Callout>
+
+## Clarify
+
+- Board size, walls (game over) or wrap-around? Walls.
+- Food: one at a time, random free cell (or a given sequence, as in LeetCode 353).
+- Speed: fixed tick; input buffered between ticks.
+- Win condition: snake fills the board.
+
+## Data structures
+
+| Need | Structure | Why |
+|---|---|---|
+| Add head, remove tail every tick | Deque | O(1) at both ends |
+| "Is this cell part of the body?" | Hash set of cells | O(1) instead of O(length) |
+| Next food position | Random free cell | Rejection sampling, fallback to a scan when crowded |
+
+## The tick
+
+<CodeTabs id="snake-game" title="Deque + set, with the tail rule and buffered input" />
+
+<Steps>
+
+1. Apply the buffered direction (ignore an immediate reversal, which would be instant death).
+2. Compute the next head cell; leaving the board ends the game.
+3. If the snake is **not** eating, remove the tail from the deque and the set **now**.
+4. If the next cell is occupied, it's a self-collision.
+5. Add the new head to the deque and the set.
+6. If it ate: score, check for a full board (win), spawn new food.
+
+</Steps>
+
+## The tail rule
+
+<Walkthrough id="snake-tail" />
+
+Two related bugs, both from doing things in the wrong order:
+
+- Checking collision **before** removing the tail rejects a legal move into the tail's cell.
+- Adding the new head to the set **before** removing the tail, when they're the same cell, then deletes the head from the set — later collisions with it go undetected.
+
+Removing the tail first (unless eating), then checking, then adding fixes both.
+
+## Testability
+
+- **Inject the food spawner** with a seeded `Random` (or a fixed sequence) so tests are reproducible.
+- **`tick()` instead of a timer thread** — tests call `turn(UP)` and `tick()` and assert positions. A real game calls `tick()` from its render loop or a scheduler.
+- Keep rendering separate: the game exposes `body()`, food and score; a UI (console, canvas, terminal) draws them.
+
+## Extensions
+
+- **Wrap-around walls** — `next = ((r + dr) mod rows, (c + dc) mod cols)`.
+- **Obstacles / levels** — pre-filled cells in the occupied set.
+- **Undo** — record (added head, removed tail, ate) per tick as a command and reverse it.
+- **Multiplayer** — each snake has its own deque and set on a shared board; the server runs the authoritative tick, applies all inputs, resolves head-to-head collisions, then broadcasts state to clients.
+
+<Pitfalls>
+
+- **Checking collision before the tail moves** — false game over.
+- **Scanning the body for collisions** — O(n) per tick as the snake grows.
+- **Applying several key presses in one tick** — lets players reverse into themselves.
+- **Food spawning on the snake** — always check against the occupied set.
+- **Random without a seed in tests** — flaky tests.
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- Deque for the body, set for collisions — both O(1) per tick.
+- Remove the tail before checking (unless eating), then add the head.
+- Buffer input, inject randomness, drive with `tick()`.
+
+</KeyTakeaways>

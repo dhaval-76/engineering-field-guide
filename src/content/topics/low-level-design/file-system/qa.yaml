@@ -1,0 +1,39 @@
+questions:
+  - q: Design a Unix-like in-memory file system with `find /home -name "*.java" -size +100k`. How do you represent the tree and the query?
+    think: What do files and directories have in common? How do you avoid one giant find method with a flag per option?
+    answer: |
+      **Tree**: a `Node` base type with `FileNode` (content, size) and `DirNode` (map name → child, recursive size) — the Composite pattern. Parent pointers support `..` and `pwd`.
+      **Query**: each option is a predicate (`name(glob)`, `sizeAtLeast(bytes)`, `type(dir)`, `modifiedWithin(d)`), combined with `and/or/not` (Specification pattern). The command parser turns arguments into one composed filter; `find` runs an iterative DFS from the start directory and collects nodes that match. New options are new predicates; nothing else changes.
+followUps:
+  - q: How do you stop find from looping forever on symbolic links?
+    intuition: A link can point to one of its own ancestors.
+    approach: |
+      By default don't follow symlinks — report the link itself (that's what `find` does without `-L`). If following is required, keep a set of visited directory identities (inode numbers, or canonical paths) and skip any directory already seen.
+  - q: How would you add `-mtime -7` (modified in the last seven days) without changing existing code?
+    intuition: Open/Closed — new behaviour as a new class.
+    approach: |
+      Add a `modifiedWithin(Duration, Clock)` predicate and one entry in the argument parser that maps `-mtime` to it. The traversal, the other predicates and the composition operators are untouched. Inject the clock so tests are deterministic.
+  - q: How would you make the file system safe for concurrent users?
+    intuition: Many reads, fewer writes; operations touch several directories (move).
+    approach: |
+      A `ReadWriteLock` per directory: readers (ls, find) take read locks, writers (create, delete) take the parent's write lock. Operations touching two directories (move/rename) acquire locks in a consistent order (e.g. by path or node id) to avoid deadlock. For simplicity a single global read-write lock is acceptable in an interview if you name the trade-off.
+practice:
+  - task: Implement `mkdir -p`, `cd` (with `..`, `.` and `-`), `pwd` and `ls`.
+    hint: Resolve paths segment by segment from root or cwd. For `-p`, create a directory whenever a segment is missing.
+    solution: |
+      See the shell: `resolve` handles absolute/relative paths and `..` at root; `mkdirs` creates missing levels and fails if a segment is a file; `cd -` swaps current and previous; `ls` lists sorted children with `/` after directories.
+    solutionCode: fs-shell
+  - task: Implement find with name (glob), type and size filters combinable with and/or/not.
+    hint: Represent filters as a functional interface with default `and/or/negate` methods; convert globs carefully.
+    solution: |
+      `Filter` is a functional interface with combinators; `Glob.toRegex` escapes literals and maps wildcards; `Find.find` runs an iterative DFS with a depth limit.
+    solutionCode: fs-find
+quiz:
+  - q: Which pattern lets `size()` work the same on a file and a whole directory tree?
+    options: [Observer, Composite, Adapter, Singleton]
+    correct: 1
+    why: Files and directories share a type, and directories compute size by delegating to their children.
+  - q: What should `cd ..` do at the root?
+    options: [Throw an error, Stay at the root, Go to the last directory, Exit the shell]
+    correct: 1
+    why: Root's parent is itself in Unix semantics.

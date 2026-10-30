@@ -1,0 +1,95 @@
+---
+title: Design an In-Memory File System and find
+summary: Files and directories as a Composite tree, path resolution with . and .., mkdir -p, cd -, and a Unix-style find built from small composable filters — plus the details that trip people up, like glob escaping and symlink loops.
+track: low-level-design
+order: 33
+tags: [lld, file-system, composite, specification, tree, dfs]
+aliases: [unix find command design, in-memory file system, composite pattern file system, file system lld, find command]
+prerequisites: [low-level-design/lld-method, oop-patterns/design-patterns-map]
+related: [low-level-design/autocomplete, oop-patterns/solid]
+quickRef:
+  points:
+    - '**Composite**: `FileNode` and `DirNode` share a `Node` type; `DirNode.size()` sums its children recursively.'
+    - Children in a map keyed by name (sorted for `ls`); parent pointers for `..` and `pwd`.
+    - '**Path resolution**: start at root (absolute) or cwd (relative); `.` = stay, `..` = parent (root''s parent is root).'
+    - '**find** = DFS over the tree with a filter built from small predicates combined with `and/or/not` (Specification pattern).'
+    - Convert globs safely (escape regex characters, map `*` and `?`); track visited nodes if symlinks exist.
+  complexity: 'Path resolution O(depth); find O(nodes visited); ls O(children).'
+  useWhen: '"Design a file system / find command", and any tree of containers and leaves (menus, org charts, bundles).'
+lastReviewed: 2026-10-30
+---
+
+## Why it matters
+
+A file system is the canonical **Composite**: a directory contains files and other directories, and most operations (size, search, delete) should work the same on a single file or a whole subtree. `find` adds a second lesson — build a query language out of tiny, composable predicates instead of one giant method with a flag for every option. Interviewers like it because it's concrete, has many edge cases (`..` at root, `mkdir -p`, globs) and extends naturally.
+
+<Callout type="analogy">
+A box that can contain items or smaller boxes. To weigh a box, you add up whatever is inside — and if something inside is a box, it weighs its own contents the same way. You never need a special case for "box of boxes".
+</Callout>
+
+## Clarify
+
+- Operations: `mkdir` (with `-p`), create/write/read files, `ls`, `cd`, `pwd`, `rm`, `find`.
+- Persistence? In-memory only.
+- Permissions, links? Out of scope initially; symlinks discussed as an extension.
+- Concurrency? Single user first; mention a read-write lock per directory if needed.
+
+## The tree
+
+<Diagram id="fs-tree" caption="Directories hold named children; files are leaves with content and size." />
+
+<CodeTabs id="fs-model" title="Composite nodes with parent pointers and name-keyed children" />
+
+- Children live in a **map keyed by name** (a `TreeMap`, so `ls` is sorted for free) — O(log k) lookup and no duplicate names.
+- **Parent pointers** make `..` and `pwd` trivial.
+- `size()` on a directory is recursive by composition; for very large trees cache sizes and update them on writes.
+
+## Paths, mkdir -p and cd -
+
+<CodeTabs id="fs-shell" title="Resolving paths, creating intermediate directories, and switching back with cd -" />
+
+Edge cases to handle explicitly:
+
+- `..` at the root stays at the root.
+- Empty segments (`/a//b`) and trailing slashes are ignored.
+- Walking *through* a file (`/notes.txt/x`) is an error, not a crash.
+- `mkdir -p a/b/c` creates every missing level and succeeds if they already exist.
+- `cd -` swaps current and previous directories.
+
+## find with composable filters
+
+<CodeTabs id="fs-find" title="Small predicates combined with and/or/not, and an iterative DFS" />
+
+Each `find` option (`-name`, `-type`, `-size`, `-mtime`) is a small object that answers one question about a node. A command line becomes a composed filter: `-name "*.java" -size +1k ! -name "*Test*"` is `name("*.java").and(sizeAtLeast(1024)).and(name("*Test*").negate())`. Adding `-mtime` is one new factory method — the traversal and the other predicates don't change (Open/Closed).
+
+<Callout type="warning" title="Glob to regex">
+Turning `*.java` into a regex by replacing `*` with `.*` breaks on names containing regex characters (`a+b.java`, `x(1).txt`). Escape every literal character, then map `*` → `[^/]*` and `?` → `[^/]`.
+</Callout>
+
+The traversal is an **iterative** DFS with an explicit stack, so very deep trees can't overflow the call stack, and a depth counter supports `-maxdepth`.
+
+## Extensions
+
+- **Symlinks** — a link can point to an ancestor and create a cycle. Either don't follow links (the default in `find`), or track visited node identities (inode numbers) and skip repeats.
+- **Permissions** — owner, group, mode bits checked on each operation; a protection-proxy layer is a clean place for it.
+- **Concurrency** — a read-write lock per directory (many readers, one writer), always acquired top-down to avoid deadlocks on moves.
+- **Large files** — store content as fixed-size blocks rather than one array; append allocates new blocks.
+- **Persistent storage** — inodes and directory entries on disk; that's how real file systems separate names from data.
+
+<Pitfalls>
+
+- **Separate `File`/`Directory` handling everywhere** instead of a shared node type.
+- **Recursive DFS on unbounded trees** — stack overflow on deep hierarchies.
+- **Naive glob conversion** — wrong matches for names with regex metacharacters.
+- **Ignoring `..` at root** and walking into files.
+- **Following symlinks without loop detection.**
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- Composite: one node type, directories delegate size and traversal to children.
+- Resolve paths segment by segment with explicit rules for `.`, `..` and root.
+- find = traversal + a filter composed from small predicates; new options are new predicates.
+
+</KeyTakeaways>

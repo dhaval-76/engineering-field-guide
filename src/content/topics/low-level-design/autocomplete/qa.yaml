@@ -1,0 +1,43 @@
+questions:
+  - q: You need autocomplete for 10 million terms with results within 100 ms of each keystroke. A linear scan takes 2 seconds. How do you make it fast?
+    think: The query is "best K terms starting with this prefix". Which structure groups terms by prefix, and how do you avoid sorting thousands of completions per keystroke?
+    answer: |
+      Build a trie of the terms and cache the top K completions (by popularity) at every node. A query walks the prefix (a handful of steps) and returns the cached list — independent of the number of terms. Updates (new searches) increment a term's score and refresh caches along its path, removing the old entry for that term.
+      For memory, use a compressed trie and cap K. For very large or distributed systems, precompute top-K per prefix offline and serve from a key-value store, with a streaming layer for trending terms.
+followUps:
+  - q: How does a search engine's typeahead work at billions of queries?
+    intuition: Separate building the suggestions from serving them.
+    approach: |
+      Offline: aggregate recent query logs (MapReduce/Spark), filter unsafe or spammy terms, compute top-K per prefix, and write to a distributed key-value store keyed by prefix. Online: the API does a single lookup per keystroke, results are cached at CDN/edge and in the browser. A streaming pipeline (Kafka → Flink) adjusts scores for trending queries between batch runs; personalisation merges the user's history. The trie lives in the build step, not the request path.
+  - q: How would you add spelling tolerance ("javscript" → "javascript")?
+    intuition: Combine the trie walk with edit distance.
+    approach: |
+      DFS the trie while maintaining one row of the Levenshtein DP table per depth (the row for the current prefix against the query). If the minimum value in the row exceeds the allowed distance (1–2), prune that subtree. When a node ends a word and the last cell is within the distance, it's a candidate; rank candidates by distance then popularity.
+  - q: How do you delete a word from a trie without breaking other words?
+    intuition: Some nodes on the path are shared.
+    approach: |
+      Walk to the word's end node and clear the end flag. On the way back up, remove a child only if it is not the end of another word and has no children. Shared prefixes stay intact.
+practice:
+  - task: 'Build a dictionary app: `addWord(word, meaning)`, `meaning(word)`, `wordsWithPrefix(prefix)`, `deleteWord(word)`.'
+    hint: Store the meaning on the end node; prefix listing is a DFS; deletion prunes upward.
+    solution: |
+      The basic trie above with a `meaning` field on nodes. `wordsWithPrefix` walks to the prefix and DFSes in sorted order; `deleteWord` clears the flag and meaning and prunes empty branches.
+    solutionCode: trie-basic
+  - task: Implement ranked suggestions where each search increments a phrase's score and the top 5 suggestions for any prefix are returned in O(prefix length).
+    hint: Keep a small sorted list at each node; on update, remove the phrase's old entry, add the new one, sort, trim to K.
+    solution: |
+      `RankedAutocomplete.record` updates the global score and refreshes every node on the phrase's path; `suggest` walks the prefix and returns that node's list.
+    solutionCode: trie-topk
+quiz:
+  - q: What is the time to check whether any word starts with a prefix of length L in a trie?
+    options: ['O(number of words)', 'O(L)', 'O(L log n)', 'O(1)']
+    correct: 1
+    why: You follow one edge per character of the prefix.
+  - q: Why cache the top K completions at each node?
+    options:
+      - To save memory
+      - So short prefixes don't require collecting and sorting thousands of completions on every keystroke
+      - Because tries can't store frequencies
+      - To support deletion
+    correct: 1
+    why: The cached list turns a ranked query into a constant amount of work after walking the prefix.

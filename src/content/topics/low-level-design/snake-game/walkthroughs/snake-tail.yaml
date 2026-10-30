@@ -1,0 +1,26 @@
+title: Moving into the cell your tail is leaving
+frames:
+  - caption: 'A 4-cell snake curled into a square. The head turns **UP**, into the cell currently holding the **tail**.'
+    panels:
+      - kind: array
+        label: Body (head → tail)
+        items: [{ v: '(1,1)', tone: accent, tag: head }, '(1,2)', '(0,2)', { v: '(0,1)', tone: warn, tag: tail }]
+      - kind: note
+        text: 'The head is at (1,1) and turns UP. The next cell, (0,1), is exactly where the tail is right now.'
+  - caption: 'Wrong order: check "is the next cell occupied?" **before** removing the tail → it finds the tail there and reports a collision. False game over.'
+    panels:
+      - kind: list
+        label: Naive order
+        items: ['next = (0,1)', { v: 'occupied? yes (tail)', tone: bad }, { v: 'GAME OVER ✗', tone: bad }]
+  - caption: 'Right order: if not eating, **remove the tail first** (it moves away during this tick), then check the next cell. It''s free, so the move is legal.'
+    panels:
+      - kind: list
+        label: Correct order
+        items: ['remove tail (0,1)', { v: 'occupied? no', tone: ok }, { v: 'add head (0,1)', tone: ok }]
+      - kind: array
+        label: Body after the move
+        items: [{ v: '(0,1)', tone: accent, tag: head }, '(1,1)', '(1,2)', { v: '(0,2)', tone: warn, tag: tail }]
+  - caption: 'When the snake **eats**, the tail does not move, so the same cell would be a real collision. The order "remove tail unless eating, then check" handles both cases with one rule.'
+    panels:
+      - kind: note
+        text: 'Also: remove the tail from the occupied set BEFORE adding the new head — otherwise, when head and old tail are the same cell, removing the tail would delete the new head from the set.'

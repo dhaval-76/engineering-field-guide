@@ -1,0 +1,93 @@
+---
+title: Design Autocomplete with a Trie
+summary: Prefix search with a trie — insert, lookup, completion and deletion — then ranked suggestions by caching the top K at every node, a phone-directory variant, and how large-scale typeahead differs.
+track: low-level-design
+order: 34
+tags: [lld, trie, prefix-search, autocomplete, top-k, typeahead]
+aliases: [trie, prefix tree, typeahead, search suggestions, phone directory, dictionary app]
+prerequisites: [low-level-design/lld-method]
+related: [low-level-design/file-system, low-level-design/lru-cache]
+quickRef:
+  points:
+    - A **trie** stores strings character by character; all words sharing a prefix share a path. Lookup is O(length of the prefix).
+    - 'Completions: walk to the prefix node, then DFS below it (sorted children → alphabetical results).'
+    - '**Ranked suggestions**: cache the top K (word, score) at every node on the path; queries read the cache in O(prefix).'
+    - Updating a score refreshes caches along one path; avoid duplicate entries for the same word.
+    - 'At web scale: precompute top-K per prefix offline from logs and serve from a key-value store; the trie is the build-time structure.'
+  complexity: 'Insert/lookup O(L); completion O(L + output); ranked query O(L) with cached top-K; memory O(total characters × alphabet).'
+  useWhen: Search boxes, command palettes, contact search, spell-check candidates, IP routing (longest prefix match).
+lastReviewed: 2026-10-30
+---
+
+## Why it matters
+
+Typing "ja" and instantly seeing "java", "javascript", "jar" is a **prefix query**. Scanning ten million terms for every keystroke is far too slow; a hash map can't answer "everything starting with" at all. A **trie** organises strings by their prefixes so the answer is found by walking a few nodes. Interviews use it both as a data-structure question and as the core of "design autocomplete".
+
+<Callout type="analogy">
+A printed dictionary's thumb tabs. You flip to "J", then to the "JA" pages, and everything that starts with "JA" is right there together. You never look at the "K" section.
+</Callout>
+
+## The trie
+
+Each node represents a prefix; edges are characters; a flag marks nodes where a complete word ends.
+
+<CodeTabs id="trie-basic" title="Insert, lookup, completion and deletion" />
+
+Implementation choices:
+
+- **Children**: an array of 26 (fast, wasteful for sparse nodes) vs a hash map (compact, flexible alphabets including Unicode).
+- **Completions in order**: visit children in sorted order (or use a sorted map) so results come out alphabetically.
+- **Deletion**: unset the end flag and prune nodes that no longer lead to any word, walking back up.
+- **Memory**: tries can be large. A **compressed (radix) trie** merges chains of single-child nodes into one edge labelled with a substring.
+
+## Ranked suggestions: top K at every node
+
+Alphabetical completions aren't what users want; they want the **most popular** ones. Collecting every completion under "a" and sorting them on each keystroke is slow for short prefixes. Instead, each node caches the best K completions beneath it.
+
+<Walkthrough id="trie-topk" />
+
+<CodeTabs id="trie-topk" title="Score updates refresh the cached top-K along the path" />
+
+- **Query**: walk the prefix, return the cached list — O(prefix length).
+- **Update**: recompute the score, then refresh the cache on each node of the phrase's path — O(length × K). Remove the word's old entry first so it never appears twice.
+- **Score decreases** are the hard case: a node may have evicted the item that should now take the freed slot. Either refill from the subtree, or rebuild caches periodically.
+
+## Phone directory variant
+
+Digits-only keys make the alphabet tiny, so an array of 10 children is ideal. Store the contact at the end node; prefix search returns contacts in order.
+
+<CodeTabs id="trie-phone" title="Digit trie for prefix contact search" />
+
+## Autocomplete at large scale
+
+A single in-memory trie with live updates works for a product catalogue or an IDE. Search-engine-scale typeahead is built differently:
+
+- **Offline aggregation**: batch jobs count queries from recent logs, apply filters (spam, offensive terms), and compute the top K completions for every popular prefix.
+- **Serving**: results are stored in a key-value store keyed by prefix (`"ja" → [...]`) and cached at the edge; serving is a single lookup.
+- **Freshness**: a streaming layer boosts trending queries between batch runs.
+- **Personalisation**: merge the global list with the user's own recent searches on the server or client.
+- **Client side**: debounce keystrokes, cancel stale requests, cache results per prefix in the browser.
+
+## Extensions
+
+- **Fuzzy matching** — walk the trie while computing one row of the edit-distance table per level, pruning branches whose minimum exceeds the allowed distance.
+- **Middle-of-word matches** — index every word of a phrase (or suffixes) as separate entries pointing to the phrase.
+- **Longest prefix match** — the same structure answers "which route/prefix applies to this IP/string?".
+
+<Pitfalls>
+
+- **Scanning all words per keystroke** instead of using a prefix structure.
+- **Collecting all completions for short prefixes** and sorting them each time — use cached top-K.
+- **Duplicate entries** in top-K lists after score updates.
+- **Unbounded memory** — no limits on node count or phrase length, and no compression.
+- **Case and Unicode handling** — normalise (lower-case, strip accents per locale) consistently on insert and query.
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- A trie answers prefix queries in O(prefix length); completions come from a DFS below the prefix node.
+- Cache top-K per node for ranked suggestions; refresh along one path on updates.
+- At scale, precompute top-K per prefix offline and serve from a key-value store.
+
+</KeyTakeaways>

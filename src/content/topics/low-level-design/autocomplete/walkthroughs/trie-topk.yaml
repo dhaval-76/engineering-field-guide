@@ -1,0 +1,24 @@
+title: A trie that caches the top suggestions at every prefix
+frames:
+  - caption: 'Searches so far: **java** (50), **javascript** (80), **jar** (20). Each node on a word''s path keeps the best K completions beneath it.'
+    panels:
+      - kind: kv
+        label: Cached top-3 by prefix
+        pairs: [['j', 'javascript 80 · java 50 · jar 20'], ['ja', 'javascript 80 · java 50 · jar 20'], ['jav', 'javascript 80 · java 50'], ['jar', 'jar 20']]
+  - caption: 'The user types **"ja"**. Walk 2 nodes (j → a) and return the cached list. The cost depends on the prefix length, not on how many words exist.'
+    panels:
+      - kind: list
+        label: Path walked
+        items: [root, { v: j, tone: info }, { v: a, tone: accent, tag: read cache }]
+      - kind: list
+        label: Suggestions
+        items: [{ v: javascript, tone: ok }, java, jar]
+  - caption: 'Someone searches **"java"** 40 more times (score 90). Only nodes on the path j → a → v → a are updated: java moves above javascript.'
+    panels:
+      - kind: kv
+        label: Cached top-3 by prefix
+        pairs: [['j', { v: 'java 90 · javascript 80 · jar 20', tone: accent }], ['ja', { v: 'java 90 · javascript 80 · jar 20', tone: accent }], ['jav', { v: 'java 90 · javascript 80', tone: accent }], ['jar', 'jar 20']]
+  - caption: 'Trade-off: every node stores K entries (more memory) and every update touches the whole path (more write work) — in exchange, reads are instant. At large scale the caches are rebuilt offline from search logs instead of updated per search.'
+    panels:
+      - kind: note
+        text: 'Read O(prefix) · update O(length × K) · memory O(nodes × K)'
