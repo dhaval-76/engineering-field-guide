@@ -1,0 +1,97 @@
+---
+title: Modern Java (17, 21, 25)
+summary: The language and platform features that changed how Java is written since Java 8 — records, sealed types, pattern matching, switch expressions, text blocks, sequenced collections, virtual threads, scoped values and stream gatherers — and when to use each.
+track: java-runtime
+order: 46
+tags: [java, java-17, java-21, java-25, records, sealed, pattern-matching, virtual-threads]
+aliases: [java 17 features, java 21 features, java 25 features, sealed classes, pattern matching switch, virtual threads, record patterns, lts java]
+prerequisites: [java-runtime/immutability, java-runtime/streams-and-lambdas]
+related: [java-runtime/optional, oop-patterns/strategy-and-state]
+quickRef:
+  points:
+    - 'LTS releases: **17** (2021), **21** (2023), **25** (2025). Most enterprise code targets 17 or 21.'
+    - '**Records** (16) for data; **sealed** interfaces (17) for closed hierarchies; **pattern matching** for `instanceof` (16) and `switch` with **record patterns** (21).'
+    - '**Switch expressions** (14), **text blocks** (15), `var` (10), `Stream.toList()` (16), **sequenced collections** (21), unnamed `_` variables (22).'
+    - '**Virtual threads** (21): blocking code that scales to huge concurrency for I/O-bound work.'
+    - '**Stream gatherers** (24) and **scoped values** (25) round out streams and per-request context.'
+  useWhen: Writing new Java code, modernising a Java 8 codebase, or answering "what's new in Java 17/21?"
+lastReviewed: 2026-10-30
+---
+
+## Why it matters
+
+Java changed more between 8 and 21 than in the decade before. Interviews for Java roles now expect you to know at least records, sealed types, pattern matching and virtual threads — and why they exist. They also make everyday code shorter and safer: algebraic data types with exhaustive `switch`, data classes in one line, and simple blocking code that scales.
+
+<Callout type="analogy">
+Upgrading from a manual toolbox to power tools. The old tools still work, and you can build the same things — but jobs that took a page of careful work now take a line, and the new tools have safety guards built in.
+</Callout>
+
+## Modelling data: records, sealed types, pattern matching
+
+<CodeTabs id="modern-sealed-patterns" title="A closed result hierarchy, deconstructed with an exhaustive switch" />
+
+Together these give Java **algebraic data types**:
+
+- **Records** are concise immutable data carriers.
+- **Sealed** interfaces list every permitted implementation, so the compiler knows the full set.
+- **Pattern matching `switch`** with **record patterns** deconstructs values and must be **exhaustive** over a sealed type — add a new case and every switch that doesn't handle it stops compiling.
+
+This is often a cleaner alternative to the Visitor pattern, or to a class hierarchy where behaviour belongs outside the types (rendering, serialisation, reporting). Keep polymorphic methods when the behaviour belongs *with* each type (Strategy/State).
+
+## Everyday improvements
+
+<CodeTabs id="modern-everyday" title="Smaller features you'll use daily" />
+
+| Feature | Version | Use it for |
+|---|---|---|
+| `var` | 10 | Local variables where the type is obvious from the right-hand side |
+| Switch expressions | 14 | Value-producing switches with no fall-through bugs |
+| Helpful NPE messages | 14 | Exactly which reference was null |
+| Text blocks | 15 | Multi-line JSON, SQL, HTML in code |
+| `Stream.toList()` | 16 | Unmodifiable list from a stream |
+| Sequenced collections | 21 | `getFirst/getLast/reversed` on lists, deques, linked sets/maps |
+| Unnamed variables `_` | 22 | Ignored catch parameters and lambda arguments |
+
+## Concurrency: virtual threads
+
+<CodeTabs id="modern-virtual-threads" title="Thousands of blocking calls on virtual threads" />
+
+A **virtual thread** is a thread managed by the JVM rather than the OS. When it blocks on I/O, the JVM unmounts it from its carrier (platform) thread, which runs other virtual threads meanwhile. You keep simple, sequential blocking code — no callback chains — and handle tens of thousands of concurrent requests.
+
+- **Good for**: I/O-bound work — HTTP calls, database queries, message handling.
+- **Not for**: CPU-bound work (it still needs cores) — keep bounded platform pools there.
+- **Don't pool** virtual threads; create one per task. Limit concurrency to fragile downstreams with a semaphore, not a small pool.
+- Since Java 24, `synchronized` no longer pins a virtual thread to its carrier; on 21–23 prefer `ReentrantLock` around blocking calls.
+
+## Newer stream and context APIs
+
+<CodeTabs id="modern-gatherers" title="Gatherers for batching and windows; scoped values for request context" />
+
+- **Stream gatherers** (24) let you write custom intermediate operations; built-ins include fixed and sliding windows, folds and scans.
+- **Scoped values** (25) pass immutable per-request data (user, trace id) down a call tree — and to child tasks — without `ThreadLocal`'s mutability and leak risks.
+- **Structured concurrency** (preview in 25) treats a group of concurrent subtasks as one unit with shared cancellation and error handling.
+
+## Upgrading from Java 8
+
+- Move to 17 or 21 first (both LTS); 25 is the newest LTS.
+- Expect work around the module system (strong encapsulation of JDK internals), removed APIs (Java EE modules like JAXB were removed in 11), and library upgrades (Spring Boot 3 requires 17+).
+- Adopt features gradually: records for DTOs, switch expressions, text blocks, then sealed types and virtual threads where they fit.
+
+<Pitfalls>
+
+- **`var` everywhere** — hides types where the right-hand side doesn't make them obvious.
+- **Records for JPA entities** — entities need mutability and no-arg constructors; use records for DTOs and value objects.
+- **Pooling virtual threads or running CPU-bound work on them.**
+- **`default` branches on sealed switches** — they defeat the exhaustiveness check you wanted.
+- **Preview features in production** — they can change between releases and need `--enable-preview`.
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- Records + sealed types + pattern matching = concise, exhaustive data modelling.
+- Switch expressions, text blocks, `toList()`, sequenced collections and `_` simplify daily code.
+- Virtual threads scale blocking I/O; keep CPU work on bounded pools.
+- Target an LTS (17/21/25) and adopt features incrementally.
+
+</KeyTakeaways>

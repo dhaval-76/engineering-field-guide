@@ -1,0 +1,33 @@
+questions:
+  - q: 'Rewrite `if (user != null && user.getProfile() != null && user.getProfile().getAddress() != null) return user.getProfile().getAddress().getCity(); return "Unknown";` using Optional.'
+    think: Each null check guards one step. map skips on empty.
+    answer: |
+      `Optional.ofNullable(user).map(User::getProfile).map(Profile::getAddress).map(Address::getCity).orElse("Unknown")`. If any getter already returns `Optional` (e.g. a repository's `findById`), use `flatMap` for that step. Better still, change the getters to return `Optional` where absence is legitimate.
+followUps:
+  - q: What is the difference between orElse() and orElseGet()?
+    intuition: When is the default computed?
+    approach: |
+      `orElse(value)` evaluates its argument before the call, even if the Optional has a value. `orElseGet(supplier)` invokes the supplier only when empty. `opt.orElse(repo.loadDefault())` hits the database every time; `opt.orElseGet(repo::loadDefault)` only when needed. Use `orElse` for constants and cheap values.
+  - q: Should Optional be used for fields or method parameters?
+    intuition: What problem does it solve, and what does it cost in those positions?
+    approach: |
+      No. It was designed for return values. As a field it's not Serializable and frameworks (JPA, Jackson) handle it awkwardly; keep a nullable field and expose an `Optional` getter. As a parameter, callers can still pass `null` and every call site must wrap values — use overloads or `@Nullable`. Never wrap collections; return an empty one.
+  - q: Does Optional eliminate NullPointerExceptions?
+    intuition: Where can nulls still appear?
+    approach: |
+      No. It documents absence in return types, but nulls still come from fields, parameters, collections, deserialised JSON and third-party code, and `Optional.get()` just changes the exception type. Combine it with boundary validation (`requireNonNull`), nullness annotations checked by tools, and immutable value objects.
+practice:
+  - task: Write `cityOf(userId)` where the repository returns `Optional<User>`, `User.profile()` returns `Optional<Profile>`, `Profile.address()` returns `Optional<Address>`, and `Address.city()` returns `String`. Return "Unknown" if anything is missing.
+    hint: flatMap for the Optional-returning steps, map for the last.
+    solution: |
+      `userRepo.findById(id).flatMap(User::profile).flatMap(Profile::address).map(Address::city).orElse("Unknown")`.
+    solutionCode: optional-chain
+quiz:
+  - q: '`Optional<User> u = Optional.of(map.get("x"));` and the key is missing. What happens?'
+    options: [u is empty, NullPointerException at Optional.of, u contains null, NoSuchElementException]
+    correct: 1
+    why: Optional.of requires a non-null value; use ofNullable for uncertain values.
+  - q: In JavaScript, `config.timeout || 5000` with `timeout = 0` gives…
+    options: ['0', '5000', 'undefined', 'NaN']
+    correct: 1
+    why: '|| treats 0 as falsy; ?? would keep 0.'

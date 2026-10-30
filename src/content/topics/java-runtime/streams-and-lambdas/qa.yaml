@@ -1,0 +1,51 @@
+questions:
+  - q: Given a list of orders, return the names of the top 3 customers by total spend, excluding cancelled orders.
+    think: Filter, group-and-sum, sort entries by value, limit, map to keys.
+    answer: |
+      ```java
+      orders.stream()
+          .filter(o -> o.status() != CANCELLED)
+          .collect(groupingBy(Order::customerName, summingLong(Order::totalPaise)))
+          .entrySet().stream()
+          .sorted(Map.Entry.<String, Long>comparingByValue().reversed())
+          .limit(3)
+          .map(Map.Entry::getKey)
+          .toList();
+      ```
+      Talk through it: group to a `Map<String, Long>`, stream its entries, sort descending, take three, keep names. For huge inputs you could use a size-3 min-heap instead of a full sort.
+  - q: A teammate wrote four loops to filter, sort, take the top 1,000 and map 1 million users. You rewrite it as one stream. What actually changes in performance?
+    think: Which operations are lazy, which are stateful, and which short-circuit?
+    answer: |
+      The loops create intermediate lists after each step; the stream fuses filter and map into a single pass with no intermediate lists. But `sorted()` is stateful, so it still buffers and sorts all matching users — the sort dominates either way. `limit(1000)` then stops the pipeline after 1,000 elements reach it. If only the top 1,000 matter, a bounded heap (`PriorityQueue` of size 1,000) avoids sorting everything: O(n log k) instead of O(n log n).
+followUps:
+  - q: Can a stream be reused?
+    intuition: Where does a stream get its elements from?
+    approach: |
+      No. After a terminal operation, the stream is consumed; any further operation throws `IllegalStateException: stream has already been operated upon or closed`. Streams don't store data — they pull from a source, which may not be re-traversable (I/O). Create a new stream from the source, or use a `Supplier<Stream<T>>`.
+  - q: When should you not use parallelStream()?
+    intuition: What does it run on, and what does it assume about your lambdas?
+    approach: |
+      It runs on the shared common ForkJoinPool and assumes independent, side-effect-free, CPU-bound work. Avoid it for small collections, blocking I/O (it starves the pool for everyone), shared mutable state, sources that split poorly (`LinkedList`, iterators), and order-dependent results. Benchmark before using it.
+  - q: What's the difference between map and flatMap?
+    intuition: What if each element maps to a list?
+    approach: |
+      `map` produces exactly one output per input — mapping to a list gives `Stream<List<T>>`. `flatMap` maps each input to a stream and concatenates them into a single `Stream<T>`. Same idea for `Optional`: `map` vs `flatMap` when the function already returns an Optional.
+  - q: Why must captured local variables be effectively final?
+    intuition: The lambda may run later or on another thread.
+    approach: |
+      Java copies captured local values into the lambda. If the variable could change afterwards, the copy and the original would diverge and there would be races across threads. Forbidding reassignment keeps semantics simple. Fields aren't copied (they live on the heap), so lambdas can read and write them — which is exactly why mutating fields from lambdas needs care.
+practice:
+  - task: Return the first string that starts with "A" and is longer than 5 characters, uppercased, or "NONE" — once with a loop and once with a stream.
+    hint: The stream version should short-circuit.
+    solution: |
+      Loop with a `break` on the first match, or `filter(...).findFirst().map(String::toUpperCase).orElse("NONE")`. Both stop at the first match; the stream version states the intent in one expression.
+    solutionCode: streams-patterns
+quiz:
+  - q: 'What does this print? `Stream.of(1,2,3).peek(System.out::println).map(x -> x * 2);`'
+    options: ['1 2 3', '2 4 6', Nothing — there is no terminal operation, It throws]
+    correct: 2
+    why: Intermediate operations are lazy; without a terminal operation nothing executes.
+  - q: Which operation can stop a stream before it has processed every element?
+    options: [sorted, distinct, anyMatch, collect]
+    correct: 2
+    why: anyMatch short-circuits on the first match; sorted and distinct must see everything.

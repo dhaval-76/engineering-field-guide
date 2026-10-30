@@ -1,0 +1,27 @@
+title: How a stream pipeline actually runs
+frames:
+  - caption: '`names.stream().filter(s -> s.length() > 3).map(String::toUpperCase).findFirst()` — building the pipeline does **nothing**. No element has been looked at yet.'
+    panels:
+      - kind: array
+        label: Source
+        items: [Al, Bo, Cara, Dev, Elena]
+      - kind: list
+        label: Pipeline (not started)
+        items: [filter, map, findFirst]
+  - caption: 'The terminal operation `findFirst()` pulls the **first** element through all stages: "Al" fails the filter. It never reaches map.'
+    panels:
+      - kind: array
+        label: Source
+        items: [{ v: Al, tone: bad, tag: filtered out }, Bo, Cara, Dev, Elena]
+  - caption: '"Bo" also fails the filter. Elements travel **one at a time, top to bottom**, not stage by stage over the whole list.'
+    panels:
+      - kind: array
+        label: Source
+        items: [{ v: Al, tone: muted }, { v: Bo, tone: bad, tag: filtered out }, Cara, Dev, Elena]
+  - caption: '"Cara" passes the filter, is mapped to "CARA", and reaches `findFirst()`, which is satisfied. The stream **stops** — "Dev" and "Elena" are never touched.'
+    panels:
+      - kind: array
+        label: Source
+        items: [{ v: Al, tone: muted }, { v: Bo, tone: muted }, { v: Cara, tone: ok, tag: → CARA }, { v: Dev, tone: muted, tag: untouched }, { v: Elena, tone: muted, tag: untouched }]
+      - kind: note
+        text: 'Short-circuiting operations: findFirst, findAny, anyMatch, allMatch, noneMatch, limit. Stateful ones like sorted() must see every element before passing anything on.'

@@ -1,0 +1,80 @@
+---
+title: Optional and Null Handling
+summary: Use Optional to make "might be absent" part of a method's return type — map/flatMap/orElse chains, orElse vs orElseGet, where Optional doesn't belong, and the equivalents in JavaScript and Python.
+track: java-runtime
+order: 42
+tags: [java, optional, null-safety, api-design]
+aliases: [java optional, null pointer exception, orElse vs orElseGet, optional map flatmap, optional chaining]
+prerequisites: [java-runtime/streams-and-lambdas]
+related: [java-runtime/exceptions, java-runtime/modern-java]
+quickRef:
+  points:
+    - '`Optional<T>` is a **return type** that says "the value may be absent" — callers must decide what to do.'
+    - '`map` for functions returning plain values, `flatMap` for functions returning `Optional`; finish with `orElse`, `orElseGet`, `orElseThrow` or `ifPresentOrElse`.'
+    - '`orElse(x)` always evaluates `x`; `orElseGet(supplier)` only when empty — use it for anything expensive.'
+    - 'Avoid `get()`, Optional fields, Optional parameters and `Optional<List<…>>` (return an empty list).'
+    - 'JS: `a?.b ?? fallback`. Python: `Optional[T]` type hints and explicit `is None` checks.'
+  useWhen: Designing lookups that can find nothing (findById, parse, first match), or removing chains of null checks.
+lastReviewed: 2026-10-30
+---
+
+## Why it matters
+
+`NullPointerException` is the most common runtime error in Java, and it usually surfaces far from the bug: a method returned `null` and nothing in its signature warned you. `Optional` moves that information into the type, so the compiler and code reviewers can see that absence is possible and has to be handled.
+
+<Callout type="analogy">
+A parcel delivery that might be empty. A plain return value is a parcel you assume contains something — until you open it and it doesn't. An `Optional` is a parcel labelled "may be empty": you're expected to check, or say what to do instead, before relying on the contents.
+</Callout>
+
+## The basics
+
+<CodeTabs id="optional-basics" title="From a null return to Optional — and the JS/Python equivalents" />
+
+| Method | Use it to… |
+|---|---|
+| `Optional.ofNullable(x)` | Wrap a value that might be null |
+| `Optional.of(x)` / `Optional.empty()` | Wrap a value that's definitely non-null / create an empty one |
+| `map(f)` | Transform the value if present |
+| `flatMap(f)` | Transform with a function that itself returns `Optional` |
+| `filter(p)` | Keep the value only if it matches |
+| `orElse(x)` / `orElseGet(s)` | Default value (eager / lazy) |
+| `orElseThrow(...)` | Treat absence as an error |
+| `ifPresent` / `ifPresentOrElse` | Side effects |
+| `stream()` | 0 or 1 elements — handy for `flatMap(Optional::stream)` in streams |
+
+## Replacing nested null checks
+
+<CodeTabs id="optional-chain" title="Chaining optional lookups with flatMap and map" />
+
+Each step short-circuits on empty, so the chain reads top to bottom with no nested `if` statements.
+
+## Where Optional doesn't belong
+
+<CodeTabs id="optional-misuse" title="Common misuses and what to do instead" />
+
+Optional was designed as a **return type**. As a field it isn't `Serializable` and complicates frameworks; as a parameter it doesn't stop callers passing `null` and makes call sites noisy (use overloads); around collections it adds a second way to say "nothing" when an empty collection already does. It's also an allocation — don't use it in the hottest loops.
+
+## Other tools for null safety
+
+- **Validate early**: `Objects.requireNonNull(arg, "arg")` in constructors so nulls fail at the boundary, not deep inside.
+- **Annotations + static analysis**: `@Nullable`/`@NonNull` (JSpecify) with NullAway or IntelliJ inspections catch null flows at compile time.
+- **Records with validation** make invalid (null) states unrepresentable.
+- **Empty objects**: empty strings, empty collections, a `Guest` user (Null Object pattern) when a sensible default exists.
+
+<Pitfalls>
+
+- **`opt.get()`** — throws `NoSuchElementException` when empty; use the alternatives above.
+- **`orElse(expensiveCall())`** — runs even when a value is present.
+- **Returning `null` from a method declared to return `Optional`** — the worst of both worlds.
+- **`Optional.of(possiblyNull)`** — throws immediately; use `ofNullable`.
+- **Using `||` instead of `??` in JavaScript** — replaces valid `0`, `''` and `false`.
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- Return `Optional` when absence is a normal outcome; chain with `map`/`flatMap`.
+- Prefer `orElseGet` for computed defaults and `orElseThrow` when absence is an error.
+- Don't use Optional for fields, parameters or collections; combine with validation and nullness annotations.
+
+</KeyTakeaways>

@@ -1,0 +1,40 @@
+questions:
+  - q: What are the most important changes between Java 8 and Java 21?
+    answer: |
+      Language: `var`, switch expressions, text blocks, records, sealed classes, pattern matching for `instanceof` and `switch`, record patterns. Libraries: `List.of`/`copyOf`, `Stream.toList`, `Optional` additions, HTTP client (11), sequenced collections. Platform: the module system, G1 by default and ZGC/Shenandoah, helpful NPE messages, JFR in OpenJDK, faster startup options. Concurrency: virtual threads (21). Pick a few you've used and explain the problem each solves.
+  - q: When would you NOT use virtual threads?
+    think: What do they actually make cheap?
+    answer: |
+      They make *waiting* cheap, not computing. For CPU-bound work they add nothing (you're limited by cores), so use a bounded platform pool or parallel streams. Also: don't pool them (create one per task), and on Java 21–23 avoid blocking inside `synchronized` blocks (it pins the carrier thread; fixed in 24). Protect fragile downstreams with semaphores, since millions of virtual threads can overwhelm a database that a small thread pool used to shield.
+followUps:
+  - q: What problem do sealed classes solve?
+    intuition: What does the compiler know about a closed hierarchy?
+    approach: |
+      They declare a closed set of subtypes. That documents the domain ("a payment result is exactly Approved, Declined or Pending"), prevents unexpected implementations, and lets `switch` pattern matching check exhaustiveness — adding a variant becomes a compile error everywhere it isn't handled. It's how Java models algebraic data types.
+  - q: How does a switch expression differ from a classic switch statement?
+    intuition: Fall-through and values.
+    approach: |
+      Arrow labels don't fall through, multiple labels share a branch, and the switch yields a value (assignable directly). With patterns it can match types and deconstruct records, add guards with `when`, and must be exhaustive — for enums and sealed types the compiler checks you covered every case.
+  - q: Records vs Lombok @Value — when would you choose each?
+    intuition: Records are a language feature with specific constraints.
+    approach: |
+      Records are built in, final, transparent (state = components), and work with pattern matching and serialisation frameworks. Lombok `@Value` allows things records can't — inheritance from a base class, hiding fields, custom field visibility — but adds a compile-time dependency. For new value objects and DTOs on Java 16+, prefer records.
+practice:
+  - task: Model a payment result as a sealed hierarchy of records and write an exhaustive switch that renders a message, with different text for retryable declines.
+    hint: Use record patterns and a `when` guard.
+    solution: |
+      `sealed interface PaymentResult permits Approved, Declined, Pending` with three records; `switch (r) { case Approved(var id, var amt) -> …; case Declined(var reason, var retry) when retry -> …; case Declined d -> …; case Pending p -> …; }` — no default, so the compiler enforces completeness.
+    solutionCode: modern-sealed-patterns
+quiz:
+  - q: Which are Java LTS releases?
+    options: ['16, 20, 24', '17, 21, 25', '18, 22, 26', '9, 13, 19']
+    correct: 1
+    why: LTS releases come every two years — 17 (2021), 21 (2023), 25 (2025).
+  - q: Why avoid a `default` branch when switching over a sealed interface?
+    options:
+      - It's a syntax error
+      - It hides missing cases — the compiler can no longer flag a newly added subtype
+      - It's slower
+      - Sealed interfaces can't be switched on
+    correct: 1
+    why: Exhaustiveness checking only helps if the switch lists the cases explicitly.

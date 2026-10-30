@@ -1,0 +1,90 @@
+---
+title: Lambdas and Streams
+summary: Functional interfaces, lambdas and method references, then streams — lazy pipelines, the collectors you'll actually use, short-circuiting, primitive streams, and when parallel streams help or hurt.
+track: java-runtime
+order: 40
+tags: [java, streams, lambdas, functional-programming, collectors]
+aliases: [java 8 streams, lambda expressions, functional interface, method reference, collectors groupingby, map vs flatmap, parallel stream]
+prerequisites: [java-runtime/collections]
+related: [java-runtime/optional, java-runtime/modern-java]
+quickRef:
+  points:
+    - 'A **lambda** implements a **functional interface** (one abstract method): `Function`, `Predicate`, `Consumer`, `Supplier`.'
+    - 'A **stream** is a lazy pipeline over a source: intermediate ops (`filter`, `map`, `flatMap`, `sorted`) do nothing until a **terminal** op (`collect`, `toList`, `findFirst`, `count`).'
+    - Elements flow **one at a time** through all stages; short-circuiting ops (`findFirst`, `anyMatch`, `limit`) stop early.
+    - '`map` = one-to-one; `flatMap` = one-to-many, flattened. `groupingBy`, `partitioningBy`, `toMap` (with a merge function) cover most aggregation.'
+    - Streams are **single-use**. Parallel streams help only for large, CPU-bound, independent work — never for blocking I/O or shared mutable state.
+  useWhen: Transforming, filtering and aggregating collections declaratively; reading and writing modern Java code.
+lastReviewed: 2026-10-30
+---
+
+## Why it matters
+
+Since Java 8, most collection-processing code in real codebases is written with lambdas and streams. They make transformations read like a description of the result — "orders that aren't cancelled, grouped by customer, summed, top three" — instead of loops with temporary variables. They also have rules that matter for correctness and performance: laziness, single use, the danger of side effects, and the shared pool behind parallel streams.
+
+<Callout type="analogy">
+A stream is a recipe, not a pantry. Writing "wash, chop, fry" cooks nothing. Only when someone orders the dish does the kitchen start — and if they only want the first plate, it stops after one.
+</Callout>
+
+## Lambdas and functional interfaces
+
+<CodeTabs id="streams-lambdas" title="Lambdas, the four core interfaces, composition and capture" />
+
+- A lambda can only target an interface with **exactly one abstract method** (`@FunctionalInterface` documents and enforces it).
+- **Method references** are shorthand for lambdas that just call a method.
+- Java lambdas capture **effectively final** local variables by value. JavaScript and Python closures capture variables by reference — a frequent source of cross-language surprises.
+
+## How a stream runs
+
+<Walkthrough id="stream-laziness" />
+
+A stream has three parts: a **source** (a collection, array, range, file lines), zero or more **intermediate operations** that return a new stream, and one **terminal operation** that produces a result and closes the stream. Because evaluation is lazy and element-at-a-time, `filter` + `findFirst` on a million-element list may touch only a handful of elements, and no intermediate lists are built.
+
+`sorted()` and `distinct()` are **stateful**: they must see every element before passing any on, so they cost memory and break short-circuiting.
+
+## The patterns you'll use
+
+<CodeTabs id="streams-patterns" title="Grouping, partitioning, flattening, toMap and short-circuiting" />
+
+| Need | Use |
+|---|---|
+| Transform each element | `map` (or `mapToInt/Long/Double` to avoid boxing) |
+| One element → many | `flatMap` |
+| Keep some | `filter` |
+| Aggregate by key | `groupingBy(key, downstream)` — `counting()`, `summingLong`, `maxBy`, `toSet()`, `mapping(...)` |
+| Two groups | `partitioningBy(predicate)` |
+| Key → value | `toMap(k, v, merge)` — always pass a merge function if keys can repeat |
+| Join strings | `Collectors.joining(", ")` |
+| Unmodifiable list | `.toList()` (Java 16+) |
+
+## Parallel streams
+
+<CodeTabs id="streams-parallel" title="When parallel helps — and two ways it hurts" />
+
+Parallel streams use the JVM-wide **common ForkJoinPool** (about one thread per core). They help for large, CPU-heavy, independent computations over sources that split well (arrays, `ArrayList`, ranges). They hurt for small inputs (coordination overhead), blocking I/O (starves the shared pool for the whole JVM), shared mutable state (data races), and order-sensitive work. Measure before and after.
+
+## Rules of thumb
+
+- Keep lambdas **side-effect free**; let collectors build results.
+- Prefer a loop when the logic needs early exits with complex state, checked exceptions, or index arithmetic — streams aren't always clearer.
+- Don't return or store streams; return collections.
+- Streams can be consumed **once** — calling another operation throws `IllegalStateException`.
+
+<Pitfalls>
+
+- **`toMap` without a merge function** — throws on the first duplicate key.
+- **`forEach` that adds to an outside list** — breaks with parallel streams and hides intent; collect instead.
+- **`peek` for logic** — it's a debugging aid and may not run for every element.
+- **Boxing in numeric pipelines** — use `mapToLong(...).sum()` rather than `map(...).reduce(0L, Long::sum)` on wrappers.
+- **Parallel streams with I/O** — use an executor or virtual threads.
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- Lambdas implement single-method interfaces; method references are shorthand.
+- Streams are lazy, element-at-a-time, single-use pipelines; terminal operations start them.
+- `groupingBy`, `partitioningBy`, `toMap(merge)`, `flatMap` cover most real aggregation.
+- Parallel only for large CPU-bound independent work.
+
+</KeyTakeaways>

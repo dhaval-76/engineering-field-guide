@@ -1,0 +1,86 @@
+---
+title: Immutable Objects and Records
+summary: How to make a class truly immutable, why it pays off (thread safety, safe keys, simpler reasoning), records and their limits, what happens when an object is created, and how final fields make publication safe.
+track: java-runtime
+order: 44
+tags: [java, immutability, records, value-objects, thread-safety, jmm]
+aliases: [immutable class java, how to make class immutable, java records, defensive copy, safe publication, object creation steps]
+prerequisites: [java-runtime/equals-and-hashcode, java-runtime/data-types-and-memory]
+related: [oop-patterns/builder, java-runtime/string-immutability]
+quickRef:
+  points:
+    - 'Recipe: `final` class, `private final` fields, validate in the constructor, **defensive copies** of mutable inputs (and outputs), no setters, "modifications" return new objects.'
+    - '**Records** generate the boilerplate (fields, accessors, `equals`/`hashCode`/`toString`) — but are only **shallowly** immutable; copy lists in the compact constructor.'
+    - Immutable objects are **thread-safe without locks**, safe as map keys and cache entries, and easy to reason about.
+    - '`final` fields give **safe publication**: other threads see fully constructed values without extra synchronisation.'
+    - 'JS: `Object.freeze` (shallow) and non-mutating methods (`toSorted`). Python: `@dataclass(frozen=True)` with tuples.'
+  useWhen: Value objects (Money, Email, Range), DTOs, configuration, events, cache keys, anything shared between threads.
+lastReviewed: 2026-10-30
+---
+
+## Why it matters
+
+Most bugs in shared state come from something changing when you didn't expect it: a list someone else still holds, a key mutated after it went into a map, an object read by another thread mid-update. An object that can't change after construction removes that whole category. It's why `String`, `Integer`, `LocalDate` and `BigDecimal` are immutable, and why modern Java added records.
+
+<Callout type="analogy">
+A printed receipt versus a whiteboard. Anyone can read a receipt at the same time and it will always say the same thing — to "change" it you print a new one. A whiteboard is cheaper to update, but two people writing at once make a mess, and what you read depends on when you looked.
+</Callout>
+
+## Making a class immutable
+
+<CodeTabs id="immut-class" title="The six rules in one class" />
+
+<Steps>
+
+1. **`final` class** (or private constructor + factories) so subclasses can't add mutable state.
+2. **`private final` fields** — assigned once, in the constructor.
+3. **Validate and defensively copy** inputs: if a caller passes an `ArrayList` and keeps it, copy it (`List.copyOf`) so their later changes don't affect you.
+4. **No setters**; accessors return immutable views or copies, never internal mutable objects.
+5. **"Modifications" return new instances** (`withItem`, `plus`).
+6. **Don't let `this` escape** during construction (no registering listeners, starting threads, or publishing `this` from the constructor).
+
+</Steps>
+
+## Records
+
+<CodeTabs id="immut-record" title="Records, frozen objects and frozen dataclasses" />
+
+A record is a transparent carrier for data: final, with private final fields, a canonical constructor, accessors, and value-based `equals`/`hashCode`/`toString`. The **compact constructor** is where you validate and normalise. Records are only *shallowly* immutable: a `List` component can still be mutated unless you copy it to an unmodifiable list.
+
+Records can implement interfaces and have methods, but can't extend classes or declare extra instance fields. They pair naturally with sealed interfaces and pattern matching.
+
+## What immutability buys
+
+| Benefit | Why |
+|---|---|
+| Thread safety | No writes after construction → no data races, no locks |
+| Safe map keys / set elements | Hash code can't change after insertion |
+| Free sharing and caching | No defensive copies needed when passing around |
+| Simpler reasoning | Validity checked once, in the constructor, holds forever |
+| Failure atomicity | An operation that fails half-way can't leave the object half-changed |
+
+The cost is allocation: every change creates a new object. For most business code that's negligible (young-generation GC is cheap); for hot inner loops or large structures, use builders, persistent data structures, or local mutable state that never escapes.
+
+## Object creation and safe publication
+
+<CodeTabs id="immut-publication" title="The steps of new, and why final fields matter across threads" />
+
+The Java Memory Model lets the JIT and CPU reorder writes, so a thread can observe a reference to an object before its constructor's writes are visible — seeing zeros and nulls. `final` fields carry a special guarantee: once the constructor finishes (without leaking `this`), any thread that obtains the reference sees the final fields' values. That's what makes properly built immutable objects safe to share without synchronisation.
+
+<Pitfalls>
+
+- **Storing the caller's list** instead of a copy — the caller can still change your "immutable" object.
+- **Returning internal arrays or `Date` objects** — callers mutate them.
+- **Records holding mutable lists** without `List.copyOf`.
+- **`Collections.unmodifiableList(input)`** as a "copy" — it's a view of the caller's list.
+- **Leaking `this` from a constructor** — breaks the final-field guarantee.
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- Final class, final fields, validation, defensive copies, no setters, new objects for changes.
+- Records remove the boilerplate; copy mutable components yourself.
+- Immutable objects are thread-safe, cache-friendly and safe as keys; final fields make publication safe.
+
+</KeyTakeaways>

@@ -1,0 +1,32 @@
+questions:
+  - q: How do you make a class immutable in Java?
+    answer: |
+      Make the class `final`; make all fields `private final`; set them only in the constructor after validating; defensively copy mutable inputs (`List.copyOf`, `Arrays.copyOf`, copy of `Date`); never expose internal mutable objects (return unmodifiable views or copies); provide no setters; implement "changes" as methods returning new instances; don't let `this` escape during construction. For plain data carriers, use a record and copy mutable components in its compact constructor.
+  - q: Can an "immutable" class still cause thread-safety problems?
+    think: Think about publication — how another thread gets the reference — and fields that aren't final.
+    answer: |
+      Yes, if it's immutable only by convention. Without `final` fields, another thread may see the reference before the constructor's writes are visible (unsafe publication) and read default values. Also, if `this` escapes during construction (a listener registered in the constructor), others can observe a half-built object even with final fields. Truly immutable objects — all fields final, no escape — are safely published by the Java Memory Model's final-field semantics.
+followUps:
+  - q: Are records immutable?
+    intuition: What if a component is a List?
+    approach: |
+      Shallowly. Record fields are final and there are no setters, but a mutable component (like an `ArrayList`) can still be modified through its accessor. Copy it in the compact constructor: `public Basket { skus = List.copyOf(skus); }`.
+  - q: What happens step by step when you call `new Order(...)`?
+    intuition: Class, memory, defaults, constructor, reference.
+    approach: |
+      The class is loaded and initialised if needed; memory is allocated (normally a pointer bump in the thread's TLAB); fields are zeroed; the constructor chain runs (`super()` first, field initialisers, constructor body); the reference is returned. Escape analysis may let the JIT scalar-replace a non-escaping object so no heap allocation happens at all.
+practice:
+  - task: Make an `ImmutableOrder(orderId, items, totalAmount, createdAt)` and add a `withItems(...)` method.
+    hint: Copy the list in and treat it as unmodifiable; BigDecimal and Instant are already immutable.
+    solution: |
+      Final class, final fields, `List.copyOf(items)` in the constructor (which also rejects null elements), accessors returning the fields directly, and `withItems(newItems)` returning `new ImmutableOrder(orderId, newItems, totalAmount, createdAt)` — or a record with a compact constructor doing the copy.
+    solutionCode: immut-class
+quiz:
+  - q: Which guarantees that another thread sees a fully constructed value without locks?
+    options: [A private field, A final field (with no `this` escape), A static method, An interface default method]
+    correct: 1
+    why: The Java Memory Model's final-field semantics guarantee visibility after construction.
+  - q: '`Collections.unmodifiableList(callerList)` in a constructor — is the object now safe from the caller?'
+    options: [Yes, No — it is a view; the caller can still change the underlying list, Only for ArrayList, Only after a GC]
+    correct: 1
+    why: Use List.copyOf to take an independent, unmodifiable copy.
