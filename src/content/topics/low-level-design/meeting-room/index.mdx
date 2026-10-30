@@ -1,0 +1,98 @@
+---
+title: Design a Meeting Room Booking System
+summary: Interval scheduling with half-open time slots, O(log n) overlap checks with a sorted map, smallest-fitting-room search, recurring series, and how to make "no double booking" hold across servers with a database exclusion constraint.
+track: low-level-design
+order: 27
+tags: [lld, intervals, booking, treemap, concurrency, exclusion-constraint]
+aliases: [meeting room reservation, conference room booking, calendar booking lld, interval overlap, room scheduler]
+prerequisites: [low-level-design/lld-method]
+related: [low-level-design/movie-booking, low-level-design/parking-lot]
+quickRef:
+  points:
+    - 'Use **half-open** slots `[start, end)`: two slots overlap iff `aStart < bEnd && bStart < aEnd`.'
+    - Keep each room's bookings in a **sorted map by start**; only the neighbours (floor/ceiling) can overlap → O(log n) checks.
+    - 'Search: filter rooms by capacity + amenities + free, then pick the **smallest** fitting room; retry the next if you lose a race.'
+    - '"Check then insert" must be atomic: per-room lock in memory; in PostgreSQL an **exclusion constraint** `EXCLUDE USING gist (room_id WITH =, during WITH &&)`.'
+    - Recurring meetings expand from a rule in **local time + zone** (DST-safe); book the series all-or-nothing or report clashes.
+  complexity: 'Availability check O(log n) per room; search O(rooms · log n).'
+  useWhen: Meeting rooms, desks, doctor appointments, equipment rental — any "book a resource for a time range" problem.
+lastReviewed: 2026-10-30
+---
+
+## Why it matters
+
+Room booking is **interval scheduling**: the core question is "does this time range overlap any existing booking for this resource?", asked fast and answered atomically. The same design books desks, consultation slots, rental cars and hotel rooms. Interviewers look for a correct overlap condition, an efficient structure, and a real answer to concurrent bookings — where many candidates propose a unique constraint that doesn't actually prevent overlaps.
+
+<Callout type="analogy">
+A paper diary per room, with bookings written in time order. To check 10:15–10:45 you don't read the whole diary — you look at the entry just before 10:15 and the one just after. If neither touches your slot, it's free.
+</Callout>
+
+## Clarify
+
+- Rooms have capacity and amenities (projector, video conferencing)? Yes.
+- Book a specific room, or "find me a room for 6 people with VC"? Both.
+- Recurring meetings, and editing a single occurrence? Yes.
+- Time zones — offices in several cities? Yes: store instants, expand recurrences in the office's zone.
+- Multiple app servers? Yes — so in-memory locks are not enough on their own.
+
+## Overlap, precisely
+
+<Diagram id="interval-overlap" caption="With half-open intervals, back-to-back meetings don't clash, and a single condition detects every kind of overlap." />
+
+Use **half-open** intervals `[start, end)`: a meeting ending at 10:00 and one starting at 10:00 don't conflict. Then one condition covers partial overlap, containment and covering:
+
+```
+overlaps(a, b) = a.start < b.end && b.start < a.end
+```
+
+## Data model and fast availability
+
+<CodeTabs id="room-model" title="Room with a TreeMap of bookings by start time" />
+
+Because a room's bookings never overlap each other, at most two of them can overlap a new slot: the latest one starting **at or before** the new start (`floorEntry`) and the earliest starting **at or after** it (`ceilingEntry`). That makes the check O(log n) instead of scanning every booking. (A general **interval tree** handles arbitrary overlapping intervals; here the no-overlap invariant makes a sorted map enough.)
+
+## Finding a room
+
+<CodeTabs id="room-service" title="Smallest fitting room, with retry on a lost race" />
+
+Picking the **smallest** room that fits keeps large rooms available for large meetings. Searching and booking are separate steps, so another request can take a candidate in between; the booking call re-checks under the room's lock and the finder simply tries the next candidate.
+
+## Recurring meetings
+
+<CodeTabs id="room-recurring" title="Expand a weekly rule and book the series" />
+
+- Expand recurrence rules in the office's **local time and zone**, then convert to instants — "every Monday 10:00" stays 10:00 across daylight-saving changes.
+- Decide the conflict policy with the user: reject the series, skip clashing dates, or offer another room for those dates.
+- Store a `seriesId` on each occurrence. Cancel one occurrence → delete that booking. Cancel the series → delete by `seriesId`. "This and following" → end the old series and start a new one.
+- For open-ended series ("every Monday forever"), store the rule and materialise occurrences a few months ahead with a scheduled job.
+
+## No double booking across servers
+
+A per-room lock only works inside one process. With several servers, the database must enforce the rule.
+
+<CodeTabs id="room-sql" title="Exclusion constraint in PostgreSQL (and the locking alternative)" />
+
+<Callout type="warning" title="A unique constraint is not enough">
+`UNIQUE (room_id, start_time, end_time)` only rejects *identical* slots. 10:00–11:00 and 10:30–11:30 have different values and both succeed. You need an overlap-aware constraint (PostgreSQL exclusion constraint on a range) or a lock on the room row while you check and insert.
+</Callout>
+
+Other options: serialise bookings per room through a queue partitioned by room id, or a short Redis lock per room (`SET lock:room:R-301 <token> NX PX 5000`) around check-and-insert — but the database constraint is the simplest guarantee because it can't be bypassed.
+
+<Pitfalls>
+
+- **Closed intervals** (`<=`) that make back-to-back meetings conflict.
+- **Scanning all bookings** for every check instead of using the sorted neighbours.
+- **Unique constraints that don't capture overlap** (see above).
+- **Expanding recurrences in UTC** — meetings shift by an hour twice a year.
+- **Partially booking a series silently** — the organiser thinks every week is booked.
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- Half-open intervals and one overlap condition: `aStart < bEnd && bStart < aEnd`.
+- A sorted map per room makes availability O(log n) because only neighbours can overlap.
+- Choose the smallest fitting room and re-check under the room's lock.
+- Across servers, enforce no-overlap in the database (exclusion constraint or row lock).
+
+</KeyTakeaways>

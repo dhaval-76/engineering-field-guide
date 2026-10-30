@@ -1,0 +1,115 @@
+---
+title: Design a Movie Ticket Booking System
+summary: The BookMyShow model — catalogue vs show-level seat inventory, an all-or-nothing seat hold with expiry, idempotent payment and confirmation, and how holds work in SQL and Redis when a blockbuster opens.
+track: low-level-design
+order: 28
+tags: [lld, booking, seat-hold, concurrency, idempotency, state-machine]
+aliases: [bookmyshow lld, movie ticket booking, ticketing system, seat reservation, concert booking, event ticketing]
+prerequisites: [low-level-design/lld-method, low-level-design/meeting-room]
+related: [low-level-design/parking-lot, oop-patterns/strategy-and-state]
+quickRef:
+  points:
+    - '**Catalogue** (Movie, Theatre, Screen, Seat) is separate from **inventory**: one `ShowSeat` row per (show, seat) with AVAILABLE → HELD → BOOKED.'
+    - '**Hold** the selected seats all-or-nothing for a few minutes; take seats in **sorted order**; roll back on any failure.'
+    - Holds expire (TTL) — lazily in the `WHERE` clause and/or by a sweeper — so abandoned checkouts free seats.
+    - '**Pay with an idempotency key** (the hold id); confirm only if the hold is still valid, else refund.'
+    - 'At scale: conditional `UPDATE … WHERE status=''AVAILABLE''` per seat, or Redis `SET NX PX` holds; a **virtual waiting room** smooths launch spikes.'
+  useWhen: Cinema, concert, flight-seat or any "choose specific seats, then pay" flow.
+lastReviewed: 2026-10-30
+---
+
+## Why it matters
+
+Ticket booking is the canonical "**many people want the same scarce thing at the same instant**" problem. When a blockbuster opens, thousands of users click the same seats within seconds. The design has to guarantee no seat is sold twice, nobody pays for seats they don't get, and seats from abandoned checkouts come back quickly. The object model is straightforward; the hold-then-pay protocol is the interview.
+
+<Callout type="analogy">
+A shop assistant puts the items you picked behind the counter with your name on them for ten minutes while you go to the cashier. Nobody else can buy them in that time. If you don't come back, they go back on the shelf.
+</Callout>
+
+## Clarify
+
+- Specific seats (cinema) or general admission (festival)? Specific seats; GA is a counter decrement.
+- Seat categories with different prices? Yes.
+- How long to hold seats during payment? About 8–10 minutes.
+- Max seats per booking? 10.
+- Cancellations and refunds? Policy-dependent; out of scope for the core.
+
+## Entities
+
+- **Catalogue**: `Movie`, `Theatre`, `Screen` (with a seat layout), `Seat` (row, number, category). Rarely changes; cache aggressively.
+- **Scheduling**: `Show` = movie + screen + start time + prices per category.
+- **Inventory**: `ShowSeat` = (show, seat) + status + hold info. This is the contended data.
+- **Transactions**: `Hold` (temporary), `Booking` (confirmed, with payment reference), `Payment`.
+
+<CodeTabs id="movie-model" title="Catalogue, show and per-show seat inventory" />
+
+<Callout type="tip" title="Status belongs to the show, not the seat">
+A physical seat is free at 6 pm and sold at 9 pm. Putting `status` on `Seat` is a common modelling bug; it belongs on the (show, seat) pair.
+</Callout>
+
+## The seat lifecycle
+
+<Diagram id="show-seat-states" caption="Per-show seat states. Holds always end — in a booking, a release, or expiry." />
+
+## Hold, pay, confirm
+
+<Walkthrough id="movie-seat-race" />
+
+<CodeTabs id="movie-booking-flow" title="All-or-nothing hold, idempotent payment, confirm-or-refund" />
+
+The protocol:
+
+<Steps>
+
+1. **Hold** — atomically move every selected seat from AVAILABLE to HELD under one hold id, or none of them. Sorting seat ids keeps lock order consistent (avoids deadlocks when using row locks).
+2. **Pay** — charge with the **hold id as the idempotency key**, so a retried request (double-click, network timeout) never charges twice.
+3. **Confirm** — move HELD → BOOKED only if the hold is still ours and unexpired. If the hold expired during payment, refund automatically.
+4. **Release** — on payment failure, cancellation or expiry, return seats to AVAILABLE.
+
+</Steps>
+
+The user-visible price is computed from the show's category prices at hold time and stored on the hold, so price changes mid-checkout don't alter the amount.
+
+## Making holds work across servers
+
+### In the database
+
+<CodeTabs id="movie-booking-sql" title="Conditional UPDATE as the hold, with lazy expiry" />
+
+The `WHERE status = 'AVAILABLE' …` condition makes each row update a compare-and-set. Comparing the affected row count with the requested count tells you whether you got every seat. Expired holds are treated as available directly in the condition, so a slow sweeper never blocks sales.
+
+### In Redis
+
+<CodeTabs id="movie-redis-hold" title="Seat holds as expiring Redis keys" />
+
+Redis handles very high request rates for hot shows, and keys expire by themselves. The database remains the record of BOOKED seats; Redis only arbitrates short-lived holds.
+
+### Launch-day spikes
+
+For releases where demand is 100× the seats, put a **virtual waiting room** in front: users get a queue position and are admitted to seat selection at a controlled rate. It protects the inventory service and makes the experience fair. For general-admission events, a single atomic counter (`DECRBY remaining n`, compensate if it goes below zero) replaces per-seat holds.
+
+## Extensions
+
+- **Seat-map freshness** — push seat status changes to viewers over WebSockets, or refresh on selection; the hold step is the authority anyway.
+- **Cancellation and refunds** — a policy (Strategy) by time before the show; cancelled seats return to inventory.
+- **Offers and coupons** — pricing pipeline applied to the hold total.
+- **Multiplex-level reporting** — read replicas or an analytics store fed by booking events.
+
+<Pitfalls>
+
+- **Status on the physical seat** instead of (show, seat).
+- **Holding seats one by one without rollback** — a user ends up with half their group's seats held.
+- **Charging before holding**, or confirming without checking the hold is still valid — people pay for seats they don't get.
+- **Non-idempotent payment calls** — double charges on retries.
+- **Holds that never expire** — abandoned checkouts make shows look sold out.
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- Separate catalogue from per-show inventory; contention is only on `ShowSeat`.
+- Hold all-or-nothing with a TTL, pay with the hold id as the idempotency key, confirm only a valid hold, refund otherwise.
+- Use conditional updates (or Redis `SET NX PX`) as the atomic hold; sort seats to avoid deadlocks.
+- Waiting rooms tame launch spikes; GA events use an atomic counter instead of per-seat holds.
+
+</KeyTakeaways>

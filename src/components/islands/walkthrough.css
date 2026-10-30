@@ -210,3 +210,7 @@
     transition: none;
   }
 }
+.wt-cell.tone-plum {
+  border-color: var(--d-plum);
+  background: var(--d-plum-soft);
+}

@@ -1,0 +1,41 @@
+questions:
+  - q: 500,000 users hit "Book" for a show with 5,000 seats. How do you guarantee no seat is sold twice and nobody pays for a seat they don't get?
+    think: Separate reserving a seat from paying for it, and make the reservation atomic per seat.
+    answer: |
+      - **Atomic holds**: `UPDATE show_seats SET status='HELD', hold_id=?, expires=now()+8min WHERE show_id=? AND seat_id = ANY(?) AND (status='AVAILABLE' OR expired)`; if fewer rows changed than requested, roll back. (Or Redis `SET hold:show:seat holdId NX PX 480000` per seat.)
+      - **Pay after holding**, with the hold id as idempotency key.
+      - **Confirm** HELD → BOOKED only if the hold is still ours and unexpired; otherwise refund automatically.
+      - **Expiry** frees abandoned holds (lazily in the WHERE clause and via a sweeper).
+      - **Load**: a virtual waiting room admits users at a rate the inventory service can handle; catalogue data is cached.
+followUps:
+  - q: The payment gateway times out at minute 7 of an 8-minute hold. What do you do?
+    intuition: A timeout doesn't tell you whether the charge happened.
+    approach: |
+      Treat the payment as UNKNOWN. Query the gateway (or retry with the same idempotency key, which returns the original result instead of charging again). If it succeeded and the hold is still valid, confirm. If the hold has expired by then and the seats were taken by someone else, refund and tell the user. Never confirm seats you no longer hold, and never charge twice. Some systems briefly extend the hold while a payment is in an unknown state.
+  - q: Why sort seat ids before holding several of them?
+    intuition: Think of two users selecting overlapping seats with row locks.
+    approach: |
+      If user A locks F5 then F7 while user B locks F7 then F5, each can wait for the other forever (deadlock). Acquiring locks in one global order (sorted seat id) makes that impossible. With a single conditional UPDATE over all seats the database also benefits from consistent ordering.
+  - q: How would you handle general-admission events with no seat selection?
+    intuition: You only need a count, not individual seats.
+    approach: |
+      Keep `remaining` per ticket type. Reserve with an atomic decrement — `UPDATE ticket_types SET remaining = remaining - :n WHERE id=? AND remaining >= :n` (check rows affected), or Redis `DECRBY` with compensation if it goes negative — and record a hold with an expiry that adds the count back if unpaid.
+practice:
+  - task: Implement hold, confirm and release for seats with an expiring hold, and a test proving two concurrent holds on the same seat can't both succeed.
+    hint: Model `ShowSeat.tryHold` as a synchronised compare-and-set with lazy expiry; in the test, start two threads with a latch and count successes.
+    solution: |
+      `tryHold` succeeds only from AVAILABLE (or an expired HELD). The test releases two threads simultaneously on the same seat and asserts exactly one `true`. A second test advances an injected clock past the TTL and asserts the seat can be held again and that `confirm` with the old hold id fails.
+    solutionCode: movie-model
+quiz:
+  - q: Where should the AVAILABLE/HELD/BOOKED status live?
+    options: [On the physical Seat, On the (Show, Seat) pair, On the Movie, On the Theatre]
+    correct: 1
+    why: The same seat has different availability for different shows.
+  - q: What is the hold id used for during payment?
+    options:
+      - Display only
+      - As the idempotency key, so retries never charge twice
+      - As the seat number
+      - To look up the movie
+    correct: 1
+    why: Retries with the same key return the original result instead of creating a new charge.

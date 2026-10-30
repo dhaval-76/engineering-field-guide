@@ -1,0 +1,27 @@
+title: Two users pick overlapping seats in row F
+frames:
+  - caption: Asha selects **F5, F6, F7**. Ravi selects **F7, F8** at the same moment. Both press "Proceed to pay".
+    panels:
+      - kind: array
+        label: Row F (show at 21:00)
+        items: [F4, { v: F5, tone: info, tag: Asha }, { v: F6, tone: info, tag: Asha }, { v: F7, tone: warn, tag: both }, { v: F8, tone: info, tag: Ravi }, F9]
+  - caption: Each request takes its seats **in sorted order**. Asha holds F5 and F6; Ravi's first seat is F7 and he gets it first.
+    panels:
+      - kind: array
+        label: Row F
+        items: [F4, { v: F5, tone: accent, tag: A held }, { v: F6, tone: accent, tag: A held }, { v: F7, tone: plum, tag: R held }, F8, F9]
+  - caption: Asha's hold on **F7 fails** — it's already held. Her request is all-or-nothing, so it **releases F5 and F6** and reports "F7 was just taken".
+    panels:
+      - kind: array
+        label: Row F
+        items: [F4, { v: F5, tone: muted }, { v: F6, tone: muted }, { v: F7, tone: plum, tag: R held }, F8, F9]
+  - caption: Ravi holds F7 and F8 for 8 minutes and goes to payment. Asha re-picks F4–F6 and holds them. No seat was ever sold twice, and nobody was charged for seats they didn't get.
+    panels:
+      - kind: array
+        label: Row F
+        items: [{ v: F4, tone: accent, tag: A held }, { v: F5, tone: accent, tag: A held }, { v: F6, tone: accent, tag: A held }, { v: F7, tone: plum, tag: R held }, { v: F8, tone: plum, tag: R held }, F9]
+  - caption: If Ravi's payment fails or the 8 minutes pass, his holds return to AVAILABLE. If he pays in time, they become **BOOKED** permanently.
+    panels:
+      - kind: array
+        label: Row F
+        items: [{ v: F4, tone: ok, tag: booked }, { v: F5, tone: ok, tag: booked }, { v: F6, tone: ok, tag: booked }, { v: F7, tone: ok, tag: booked }, { v: F8, tone: ok, tag: booked }, F9]

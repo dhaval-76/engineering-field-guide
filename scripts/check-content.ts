@@ -38,7 +38,9 @@ for (const [id, files] of snippetIds) {
   const exts = files.map((f) => f.split('.').pop());
   if (new Set(exts).size !== exts.length)
     errors.push(`Snippet "${id}" has two files with the same language: ${files.join(', ')}`);
-  if (!exts.includes('java'))
+  // SQL/shell/config-only snippets are language-neutral; only flag code that has no Java variant.
+  const programmable = exts.some((e) => ['js', 'py', 'ts', 'go'].includes(e!));
+  if (programmable && !exts.includes('java'))
     warn.push(`Snippet "${id}" has no Java version (Java is the primary language).`);
 }
 const diagramIds = new Set(diagramFiles.map(stem));

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type KeyboardEvent, type TouchEvent } from 'react';
 import './walkthrough.css';
 
-type Tone = 'accent' | 'ok' | 'warn' | 'bad' | 'muted' | 'info';
+type Tone = 'accent' | 'ok' | 'warn' | 'bad' | 'muted' | 'info' | 'plum';
 type Cell =
   string | number | { v: string | number; tone?: Tone | undefined; tag?: string | undefined };
 

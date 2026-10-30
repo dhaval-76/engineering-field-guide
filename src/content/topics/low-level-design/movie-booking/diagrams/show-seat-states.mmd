@@ -1,0 +1,8 @@
+stateDiagram-v2
+  direction LR
+  [*] --> Available
+  Available --> Held: hold(holdId) — atomic
+  Held --> Booked: payment succeeds and hold still valid
+  Held --> Available: release / payment failed
+  Held --> Available: hold expired (TTL)
+  Booked --> Available: cancellation (refund policy)

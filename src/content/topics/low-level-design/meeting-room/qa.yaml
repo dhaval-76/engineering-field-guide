@@ -1,0 +1,42 @@
+questions:
+  - q: At 8 am every Monday, 200 booking requests arrive at once and rooms get double-booked. Why, and how do you fix it?
+    think: Where is the gap between checking availability and inserting the booking?
+    answer: |
+      The code checks availability (`SELECT … overlapping`) and then inserts in separate steps without serialisation; two requests both see the room free and both insert.
+      Fixes, best first:
+      1. **Database exclusion constraint** (PostgreSQL): `EXCLUDE USING gist (room_id WITH =, during WITH &&)` on a `tstzrange` column. The second overlapping insert fails with an exclusion violation → return 409 and suggest another room.
+      2. **Lock the room row** in a transaction: `SELECT … FROM rooms WHERE id=? FOR UPDATE`, then check overlap and insert, then commit — serialises bookings per room, not globally.
+      3. A per-room queue or short distributed lock (adds infrastructure).
+      Note that a plain `UNIQUE(room, start, end)` does **not** help — overlapping slots with different times pass it.
+followUps:
+  - q: With thousands of rooms and millions of bookings, how do you check availability efficiently?
+    intuition: Bookings for one room never overlap each other. What does that let you assume about which ones could clash?
+    approach: |
+      Per room, keep bookings sorted by start (TreeMap / B-tree index on `(room_id, start)`). Only the booking starting just before the new slot and the one starting just after can overlap, so the check is O(log n). In SQL: an index on `(room_id, start_at)` plus `WHERE room_id=? AND start_at < :end AND end_at > :start`, or a GiST index on a range column. For arbitrary overlapping intervals (e.g. querying a person's calendar), use an interval tree.
+  - q: How do you cancel one occurrence of a recurring meeting without cancelling the series?
+    intuition: Separate the rule from its occurrences.
+    approach: |
+      Each occurrence is its own booking with a `seriesId`. Cancelling one occurrence deletes (or marks cancelled) that booking only; cancelling the series deletes all with that id. Modifying "this and following" closes the old rule at that date and creates a new series. If occurrences are generated lazily from the rule, store exceptions (cancelled/moved dates) alongside the rule — the iCalendar `EXDATE`/`RECURRENCE-ID` model.
+  - q: Two people in different time zones book "every Monday at 10:00". What can go wrong?
+    intuition: Daylight saving time.
+    approach: |
+      If you expand the rule in UTC, the meeting moves by an hour when DST starts or ends in the office's zone. Store the rule with its time zone (`10:00 Europe/London`), expand each occurrence in that zone, then convert to an instant for storage and overlap checks. Display in each viewer's own zone.
+practice:
+  - task: List all bookings across rooms for a given day sorted by start time, and list rooms that are free for a given window.
+    hint: Use the per-room sorted maps; for free rooms, reuse `isFree`.
+    solution: |
+      Collect `room.between(dayStart, dayEnd)` from every room, merge, sort by start (or k-way merge the already-sorted lists with a heap). Free rooms: `rooms.stream().filter(r -> r.isFree(window))`. Both reuse the O(log n) structure.
+    solutionCode: room-service
+quiz:
+  - q: 'Existing booking [10:00, 11:00). Which request overlaps it?'
+    options: ['[9:00, 10:00)', '[11:00, 12:00)', '[10:59, 11:30)', '[8:00, 9:30)']
+    correct: 2
+    why: 10:59 < 11:00 and 10:00 < 11:30, so it overlaps. The others only touch or are disjoint.
+  - q: Why doesn't UNIQUE(room_id, start_time, end_time) prevent double booking?
+    options:
+      - Unique constraints are slow
+      - It only rejects identical rows; overlapping slots with different times still pass
+      - It doesn't work with timestamps
+      - It does prevent it
+    correct: 1
+    why: Overlap is a relationship between ranges, not equality of values; you need an exclusion constraint or locking.

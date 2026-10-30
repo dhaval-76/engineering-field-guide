@@ -122,7 +122,7 @@ const cell = z.union([
   z.number(),
   z.object({
     v: z.union([z.string(), z.number()]),
-    tone: z.enum(['accent', 'ok', 'warn', 'bad', 'muted', 'info']).optional(),
+    tone: z.enum(['accent', 'ok', 'warn', 'bad', 'muted', 'info', 'plum']).optional(),
     tag: z.string().optional().describe('Small label under the cell, e.g. a pointer name'),
   }),
 ]);
