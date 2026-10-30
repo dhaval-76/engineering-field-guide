@@ -1,0 +1,26 @@
+title: Hybrid fan-out in action
+frames:
+  - caption: '**Ana** (900 followers) posts. A `PostCreated` event reaches the fan-out workers, which add the post id to each active follower''s feed cache — 900 small writes, done in well under a second.'
+    panels:
+      - kind: rows
+        label: Bob's feed cache
+        items: [{ v: 'ana:p91 (new)', tone: accent }, 'raj:p88', 'li:p80']
+  - caption: '**Star** (40 M followers) posts. Fan-out would mean 40 M writes. Instead, the workers see she''s above the celebrity threshold and **skip** fan-out; the post sits only in her own timeline.'
+    panels:
+      - kind: rows
+        label: Star's timeline
+        items: [{ v: 'star:p12 (new)', tone: plum }, 'star:p11']
+      - kind: note
+        text: 'Feed caches untouched.'
+  - caption: 'Bob opens the app. The feed service reads his cached ids and, because Bob follows 3 celebrities, fetches each one''s latest posts directly (3 cheap reads).'
+    panels:
+      - kind: rows
+        label: Candidates
+        items: ['ana:p91', 'raj:p88', 'li:p80', { v: 'star:p12', tone: plum }, { v: 'chef:p7', tone: plum }]
+  - caption: 'Candidates are merged, filtered (deleted posts, blocked users), ranked, and hydrated in one batch from post and user caches. The first page and a cursor go back to the app.'
+    panels:
+      - kind: rows
+        label: Page 1
+        items: [{ v: 'star:p12', tone: ok }, { v: 'ana:p91', tone: ok }, { v: 'raj:p88', tone: ok }]
+      - kind: note
+        text: 'cursor = (score of raj:p88, p88)'

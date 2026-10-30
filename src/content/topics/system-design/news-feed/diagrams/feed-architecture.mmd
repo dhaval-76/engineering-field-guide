@@ -1,0 +1,13 @@
+flowchart TD
+  W[Post request] --> PS[Post service]
+  PS --> P[(Posts<br/>by author)]
+  PS -- PostCreated --> K{{Kafka}}
+  K --> FO[Fan-out workers<br/>skip celebrities and inactive users]
+  FO --> G[(Follow graph)]
+  FO --> FC[(Feed cache<br/>Redis sorted sets of post ids)]
+  R[Feed request] --> FS[Feed service]
+  FS --> FC
+  FS -. pull celebrity posts .-> P
+  FS --> RK[Ranking]
+  FS --> H[Hydrate: posts · authors · counts]
+  H --> CDN[Media via CDN]

@@ -1,0 +1,94 @@
+---
+title: 'Design: Payment System'
+summary: Moving money correctly — idempotent APIs, a double-entry ledger, payment state machines, card and UPI providers via webhooks, transfers, sagas and the outbox, reconciliation, and security basics.
+track: system-design
+order: 150
+tags: [system-design, case-study, payments, consistency, idempotency, fintech]
+aliases: [design a payment system, payment gateway, psp, stripe, razorpay, upi, card payments, double entry ledger, ledger, wallet, money transfer, idempotency key, payment state machine, webhooks, reconciliation, settlement, refunds, chargebacks, pci dss, tokenization, saga payments, outbox payments, exactly once payments]
+prerequisites: [backend/idempotency, databases/transactions-isolation, architecture/microservices]
+related: [concurrency/case-payment-thread-safety, system-design/kafka-deep-dive, system-design/auth-at-scale]
+quickRef:
+  points:
+    - 'The one rule: **money is never created, lost or moved twice**. Everything else serves it.'
+    - 'Every mutating request carries an **idempotency key**; the outcome is stored and replayed on retry.'
+    - 'Record money in a **double-entry ledger**: immutable entries, debits = credits; balances are derived (or cached with the entries).'
+    - 'Payments are **state machines** (created → authorised → captured → settled / failed / refunded) driven by provider **webhooks**, not just API responses.'
+    - 'Atomic local transactions + **outbox** for events; **sagas** with compensations across services; never 2PC with an external provider.'
+    - '**Reconcile** daily against provider settlement files; PCI scope minimised by tokenisation.'
+  useWhen: '"Design a payment system / wallet / Stripe-like gateway" — and any feature that touches money.'
+lastReviewed: 2026-10-30
+---
+
+## Requirements
+
+**Functional**: customers pay merchants by card/UPI/wallet through external payment service providers (PSPs); wallet-to-wallet transfers; refunds; merchant payouts; transaction history and statements.
+**Non-functional**: correctness over everything (no double charges, no lost money, full audit trail); 1 M+ transactions/day with peaks during sales (~1,000/s); high availability for accepting payments; strong consistency for balances; regulatory compliance (PCI DSS, data residency).
+
+1 M transactions/day is only ~12/s on average — volume is rarely the hard part; correctness under retries, timeouts and partial failure is.
+
+## High-level design
+
+<Diagram id="payments-architecture" caption="The payment service drives a state machine, records every money movement in the ledger, and learns outcomes from PSP webhooks." />
+
+## Idempotency everywhere
+
+- Clients send an `Idempotency-Key` with every create/charge/refund/transfer; the server stores key → request hash → outcome and returns the stored outcome on retry ([Idempotency](../../backend/idempotency/)).
+- Calls to PSPs carry **our own** idempotency key, so retrying a timed-out charge can't charge twice.
+- Webhook and event consumers de-duplicate on the provider's event id.
+
+## The ledger
+
+<CodeTabs id="ledger" title="A double-entry ledger and an atomic, idempotent transfer" />
+
+- Every movement is a **journal transaction** with two or more **entries** (account, direction, amount) whose debits equal credits — money only moves between accounts, including external ones like "PSP clearing" or "fees".
+- Entries are **append-only**: corrections are new reversing entries, never updates or deletes — this is the audit trail.
+- Balances = sum of entries; for speed, keep a balance column updated in the **same transaction** and verify it against entries periodically.
+- Store amounts as integers in minor units (paise, cents) with a currency; never floating point.
+
+## Payment lifecycle with an external provider
+
+<Walkthrough id="payment-lifecycle" />
+
+<CodeTabs id="psp-webhook" title="Charging through a PSP with timeouts and idempotent webhooks" />
+
+- A timeout from the PSP is **unknown**, not failure: mark the payment `PENDING_CONFIRMATION`, then resolve it by the webhook or by querying the PSP with the same idempotency key. Never retry a charge with a new key.
+- Webhooks are at-least-once and may arrive out of order: verify the signature, de-duplicate by event id, and apply only **valid state transitions**.
+- Refunds and chargebacks are their own state machines and ledger transactions.
+
+## Across services
+
+- Within one service: one database transaction updates the payment, writes ledger entries and inserts an **outbox** event — so state, money and notification never disagree ([Microservices](../../architecture/microservices/)).
+- Across services (order, payment, inventory): an **orchestrated saga** — the payment step is explicit, its state stored, and compensations defined (refund if fulfilment fails). Two-phase commit doesn't work with external providers and couples availability.
+- Concurrency on hot accounts (a merchant receiving thousands of payments): lock rows in a consistent order, keep transactions short, or shard a hot account into sub-accounts and aggregate ([Payment thread-safety](../../concurrency/case-payment-thread-safety/)).
+
+## Reconciliation
+
+Daily (or more frequent) jobs compare three views — our ledger, our payment records, and the PSP's settlement report — matching by our payment id and PSP reference. Mismatches (missing webhook, amount difference, unexpected fee, chargeback) open exceptions for automated fixes or manual review. Reconciliation is what catches the bugs that every other mechanism missed.
+
+## Security and compliance
+
+- **Never store card numbers**: card data goes straight from the client to the PSP's hosted fields/SDK; you store a token. This keeps most of your system out of PCI scope.
+- Encrypt sensitive data, restrict and audit access, sign and verify webhooks, rate-limit and run risk/fraud scoring before authorising.
+- Keep data where regulations require it (for example, payment data localisation rules).
+
+<Pitfalls>
+
+- **Treating a timeout as a failure** and retrying with a new key — double charges.
+- **Floating-point money.**
+- **Updating balances without ledger entries**, or editing entries — no audit trail.
+- **Trusting the synchronous API response alone** and ignoring webhooks.
+- **Publishing events outside the database transaction.**
+- **Applying webhook events without checking state transitions** — a late "failed" overwrites "captured".
+- **No reconciliation.**
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- Idempotency keys on every write, inbound and outbound.
+- Double-entry, append-only ledger in integer minor units; balances derived or updated atomically.
+- State machines advanced by verified, de-duplicated webhooks; timeouts mean "unknown".
+- Local transactions + outbox; orchestrated sagas across services.
+- Reconcile against provider reports; tokenise card data.
+
+</KeyTakeaways>

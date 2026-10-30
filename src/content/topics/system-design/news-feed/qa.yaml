@@ -1,0 +1,33 @@
+questions:
+  - q: 'An account with 50 M followers posts, and millions of followers open the app within a minute. Pure push and pure pull both fail. Design the hybrid.'
+    think: Which accounts make push expensive, and which readers make pull expensive?
+    answer: |
+      Classify accounts by follower count (with hysteresis). For normal accounts, fan out on write asynchronously: a `PostCreated` event drives workers that add the post id to each **active** follower's feed cache (sorted set, trimmed to ~800 ids). For celebrities, skip fan-out; their posts live only in their author timeline. On read, the feed service takes the user's cached ids plus the latest few posts from each celebrity they follow (a handful of indexed reads, heavily cached since millions read the same celebrity timeline), merges, filters, ranks and hydrates in batches, returning a cursor. The celebrity post appears for followers within seconds without 50 M writes; normal posts keep cheap reads. Inactive users get no fan-out and their feed is rebuilt on return.
+followUps:
+  - q: How do you paginate a feed that keeps changing?
+    intuition: What happens to offsets when new items arrive at the top?
+    approach: |
+      Use a cursor: the (score, post id) of the last item shown; the next page is items strictly below it in the ordering, with the id breaking ties. New posts at the top don't shift pages, and "pull to refresh" fetches items above the first cursor. Ranked feeds keep a per-session ranked list (or a snapshot id) so pages stay consistent.
+  - q: A user unfollows someone or a post is deleted. How do feeds update?
+    intuition: Feed caches are derived data.
+    approach: |
+      Filter at read time: check follow status, block lists and deletion flags while hydrating, so the change is visible immediately. Optionally clean caches asynchronously (remove the author's ids from the follower's set). Because feed caches store ids, not bodies, deletions and edits are reflected automatically when hydrating.
+  - q: How do you keep like counts fast at scale?
+    intuition: Millions of increments per second on hot posts.
+    approach: |
+      Sharded counters (several keys per post summed on read) in Redis or a counter service, periodic flush to durable storage, and approximate display ("1.2M"). Whether the current user liked a post is stored exactly per (user, post), and the like event goes to a stream for analytics and notifications.
+practice:
+  - task: Implement feed reading that merges a user's cached feed with posts from followed celebrities, paginates with a cursor and hydrates posts in one batch.
+    hint: ZREVRANGEBYSCORE below the cursor score; a few latest posts per celebrity; sort by (score, id) descending; build the next cursor from the last item.
+    solution: |
+      Read up to two pages of ids below the cursor from `feed:{user}`; add the latest few posts below the cursor from each followed celebrity; filter out items not strictly after the cursor (tie-break by id), sort by score then id descending, de-duplicate and take a page; batch-load bodies, drop deleted posts and blocked authors, and return the page with a cursor made of the last item's score and id.
+    solutionCode: feed-read
+quiz:
+  - q: Fan-out on write is a poor fit for which accounts?
+    options: [Accounts with few followers, Accounts with tens of millions of followers, Private accounts, New accounts]
+    correct: 1
+    why: Each post would trigger tens of millions of feed writes.
+  - q: What should feed caches store?
+    options: [Full post bodies, Post ids (with scores), Rendered HTML, User passwords]
+    correct: 1
+    why: Ids keep caches small and let edits and deletions apply at hydration time.

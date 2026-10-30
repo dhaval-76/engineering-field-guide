@@ -1,0 +1,33 @@
+questions:
+  - q: 'Design a chat app: 100 M daily users, 50 B messages a day, delivery within 500 ms when online, no lost messages, offline users receive messages when they reconnect.'
+    think: Connections are stateful; messages must be durable before they're acknowledged; devices need to catch up.
+    answer: |
+      Clients keep a WebSocket to one of hundreds of stateless-for-routing but connection-holding **gateways**; a **session registry** maps user/device → gateway with heartbeat TTLs. Sending: the gateway forwards to the **message service**, which de-duplicates on the client message id, assigns a per-conversation **sequence**, persists to a store partitioned by conversation (Cassandra/ScyllaDB, ~10+ TB/day, time-bucketed), then acknowledges ("sent") and publishes to Kafka keyed by conversation. **Fan-out** looks up members' sessions, routes to their gateways (pub/sub per gateway) and sends push notifications for offline devices. Devices acknowledge (delivered receipts) and track the last sequence per conversation; reconnecting devices fetch everything after it — so delivery is reliable even across gateway failures. Presence uses heartbeats with TTL and is pushed only to interested online contacts. Large groups/channels switch to notify-then-pull. Optional end-to-end encryption means the server stores ciphertext and each device is a recipient.
+followUps:
+  - q: How do you guarantee ordering within a conversation?
+    intuition: Who decides the order?
+    approach: |
+      The server assigns a monotonically increasing sequence per conversation when it persists the message (from a counter owned by one place — the conversation's partition owner or a consistent store). Kafka keyed by conversation preserves processing order; clients render by sequence and detect gaps to request missing ranges. Client timestamps are only for display.
+  - q: A gateway with 200,000 connections crashes. What happens?
+    intuition: What state was on that machine?
+    approach: |
+      Only live connections. Clients detect the drop (missed pings), reconnect with backoff and jitter to any gateway, re-register their session, and sync from their last-seen sequences; registry entries for the dead gateway expire. No messages are lost because they were persisted before delivery; messages routed to the dead gateway in the meantime are simply fetched during sync.
+  - q: How do you fan out a message to a 5,000-member group?
+    intuition: Most members are offline; online ones are spread over many gateways.
+    approach: |
+      Store the message once. Fetch the member list (cached), intersect with online sessions, and group deliveries by gateway so each gateway receives one batch. Send push notifications to offline members in batches, honouring mute settings and collapsing repeated notifications. Track read state per member as a read pointer. For very large broadcast channels, send a lightweight "new activity" signal and let clients pull.
+practice:
+  - task: Design the message schema and the send path so that retries never duplicate messages and reconnecting devices never miss one.
+    hint: Client message id for dedup, per-conversation sequence assigned before persisting, catch-up by "seq > last seen".
+    solution: |
+      Messages are partitioned by (conversation, time bucket) and clustered by sequence; a dedup record maps (sender, client message id) → sequence with a TTL covering the client's retry window. The send path checks dedup, allocates the next sequence, persists, records dedup, then acks and publishes. Each device stores the last sequence per conversation; on reconnect it requests `seq > last` per active conversation (found via the inbox table), and per-member read/delivered positions drive receipts.
+    solutionCode: chat-schema
+quiz:
+  - q: What should happen before the sender sees the "sent" tick?
+    options: [The recipient reads it, The message is durably stored with its sequence, The push notification is sent, Nothing — show it immediately]
+    correct: 1
+    why: Persist-then-acknowledge means an acknowledged message can't be lost.
+  - q: How should a reconnecting device catch up?
+    options: [Download the full history, Ask for messages after its last seen sequence per conversation, Wait for new messages only, Use client timestamps]
+    correct: 1
+    why: Sequence-based sync is exact, cheap and independent of which gateway it connects to.

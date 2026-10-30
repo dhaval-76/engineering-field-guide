@@ -1,0 +1,11 @@
+flowchart TD
+  C[Client / checkout] -- "POST /payments<br/>Idempotency-Key" --> API[Payment API]
+  API --> PS[Payment service<br/>state machine]
+  PS --> DB[(Payments · ledger · outbox<br/>one database transaction)]
+  PS -- "charge (our idempotency key)" --> PSP[Payment provider<br/>cards · UPI]
+  PSP -- signed webhooks --> WH[Webhook handler<br/>verify · dedupe]
+  WH --> PS
+  DB -. outbox relay .-> K{{Kafka}}
+  K --> O[Orders · notifications · analytics]
+  REC[Reconciliation job] --> DB
+  PSP -- settlement files --> REC

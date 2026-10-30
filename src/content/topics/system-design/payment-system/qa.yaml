@@ -1,0 +1,37 @@
+questions:
+  - q: 'Design a payment system processing 1 M transactions a day through external card/UPI providers. It must never double-charge, never lose money, and be auditable.'
+    think: Where can a request be retried, where can an outcome be unknown, and where is the money recorded?
+    answer: |
+      **API**: every create/charge/refund carries an idempotency key; the payment service stores key → outcome. **Model**: a payment state machine (CREATED → AUTHORISED/CAPTURED → SETTLED, or DECLINED/FAILED, plus REFUNDED) and a **double-entry ledger** in integer minor units, append-only, with balances updated in the same transaction. **Provider calls** carry our own idempotency key; timeouts move the payment to PENDING_CONFIRMATION, resolved by the PSP's signed **webhooks** (verified, de-duplicated by event id, valid transitions only) or by querying the PSP. **Events**: every state change writes an outbox row in the same transaction; other services (orders, notifications) consume idempotently. **Cross-service flows**: an orchestrated saga with refunds as compensation. **Reconciliation**: daily matching of ledger, payments and PSP settlement files with an exceptions queue. **Security**: card data tokenised by the PSP (PCI scope minimised), encryption, audit logs, fraud checks. Volume (~12/s average, ~1,000/s peaks) fits a single well-tuned relational primary with replicas; correctness is the real design.
+  - q: 'Alice transfers ₹10,000 to Bob inside your wallet. The request times out on her phone and she taps "retry". How do you make sure the money moves exactly once?'
+    think: What makes the second request recognisably the same?
+    answer: |
+      The app generates one idempotency key per transfer attempt and reuses it on retry. The ledger transfer runs in one database transaction: insert the journal row with a unique idempotency key (a duplicate inserts nothing → return the original journal), lock both accounts in id order, debit with a balance guard, credit, insert the two entries (summing to zero) and an outbox event. Either everything commits once or nothing does; the retry returns the first result. Concurrent opposite transfers can't deadlock thanks to the lock order.
+followUps:
+  - q: Why a double-entry ledger instead of just updating balances?
+    intuition: How would you prove where money went?
+    approach: |
+      Each movement is recorded as balanced debits and credits, so money can't appear or vanish: every journal sums to zero and every balance is the sum of its entries. Entries are immutable, giving a complete audit trail; corrections are reversing entries. Mismatches between balances and entries are detectable by a simple query, which catches bugs early.
+  - q: The PSP call times out. Did the customer pay?
+    intuition: Unknown is a state.
+    approach: |
+      You don't know. Record PENDING_CONFIRMATION, tell the customer the payment is being confirmed, and resolve it via the PSP's webhook or by querying the PSP with the same idempotency key. If you must retry the charge, reuse the same key so the PSP returns the original result instead of charging again. Never mark it failed and let the customer pay a second time.
+  - q: Saga or two-phase commit for order + payment + inventory?
+    intuition: Can the PSP participate in your transaction?
+    approach: |
+      A saga. External providers can't join a 2PC, and 2PC across services blocks on coordinator failures. An orchestrator records each step (reserve stock, capture payment, confirm order) and runs compensations (refund, release stock) on failure; each step is idempotent and its state persisted, so the saga resumes after crashes.
+practice:
+  - task: Implement an atomic, idempotent wallet transfer with a double-entry ledger, insufficient-funds handling and deadlock-free locking.
+    hint: Unique idempotency key on the journal; lock accounts in id order; guarded debit; two entries summing to zero; outbox row; all in one transaction.
+    solution: |
+      In one transaction: `INSERT … ON CONFLICT DO NOTHING` the journal row keyed by the idempotency key (return the existing journal if it already exists); `SELECT … ORDER BY id FOR UPDATE` both accounts; `UPDATE … SET balance = balance - amount WHERE id = from AND balance >= amount` and fail with insufficient funds on 0 rows (rolling everything back); credit the other account; insert the debit and credit entries; insert an outbox event. A periodic check verifies journals sum to zero and balances equal entry sums.
+    solutionCode: ledger
+quiz:
+  - q: How should money amounts be stored?
+    options: [Double-precision floats, Integers in minor units with a currency, Strings, Floats rounded to 2 decimals]
+    correct: 1
+    why: Floating point can't represent most decimal fractions exactly; integers in paise/cents are exact.
+  - q: A duplicate webhook for an already-applied event arrives. What should the handler do?
+    options: [Apply it again, Return an error so the PSP stops, Recognise the event id and acknowledge without changes, Delete the payment]
+    correct: 2
+    why: Webhooks are at-least-once; de-duplicate by event id and return 2xx.

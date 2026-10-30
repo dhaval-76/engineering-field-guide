@@ -1,0 +1,30 @@
+title: Alice sends Bob a message
+frames:
+  - caption: 'Alice''s app sends `{conversation: c9, clientMsgId: m-77, text}` over her WebSocket to gateway 1. The client id lets the server ignore a retry of the same message.'
+    panels:
+      - kind: rows
+        label: Alice's app
+        items: [{ v: 'send m-77 (pending ⏱)', tone: info }]
+  - caption: 'The message service de-duplicates on `m-77`, assigns the next **sequence** for conversation c9 (1042), stores it, then acknowledges. Alice sees one tick: **sent**.'
+    panels:
+      - kind: kv
+        label: Conversation c9
+        pairs: [['seq 1041', 'earlier message'], [{ v: 'seq 1042', tone: accent }, 'Alice: "on my way"']]
+      - kind: rows
+        label: Alice's app
+        items: [{ v: 'm-77 ✓ sent (seq 1042)', tone: ok }]
+  - caption: 'Fan-out looks up Bob in the session registry: his laptop is on gateway 2, his phone is offline. The laptop gets the message over its socket; the phone gets a push notification.'
+    panels:
+      - kind: kv
+        label: Bob's devices
+        pairs: [[laptop, { v: 'gateway 2 → delivered live', tone: ok }], [phone, { v: 'offline → push notification', tone: warn }]]
+  - caption: 'Bob''s laptop acknowledges seq 1042 → a **delivered** receipt flows back to Alice (two ticks). When Bob opens the chat, his read pointer moves to 1042 → **read**.'
+    panels:
+      - kind: rows
+        label: Alice's app
+        items: [{ v: 'm-77 ✓✓ delivered', tone: ok }, { v: 'm-77 read', tone: plum }]
+  - caption: 'Later Bob''s phone comes online on gateway 5 and says: "last seen in c9: 1038". The server returns 1039–1042 in order. Nothing lost, nothing duplicated — regardless of which gateway it lands on.'
+    panels:
+      - kind: rows
+        label: Phone sync
+        items: ['1039', '1040', '1041', { v: '1042', tone: accent }]

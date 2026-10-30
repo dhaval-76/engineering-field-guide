@@ -1,0 +1,32 @@
+title: A card payment from request to settlement
+frames:
+  - caption: 'Checkout sends `POST /payments` with `Idempotency-Key: ord-881`. The service stores the payment as **CREATED** with the key — a retry of this request returns this same payment.'
+    panels:
+      - kind: kv
+        label: Payment p-55
+        pairs: [[state, { v: CREATED, tone: info }], [amount, '₹2,499.00 (249900 paise)']]
+  - caption: 'The service calls the PSP to charge, passing **its own** idempotency key `p-55`. The PSP times out after 10 s. The outcome is **unknown** — the card may or may not have been charged.'
+    panels:
+      - kind: kv
+        label: Payment p-55
+        pairs: [[state, { v: PENDING_CONFIRMATION, tone: warn }]]
+      - kind: note
+        text: 'Never retry with a new key. Never mark FAILED on a timeout.'
+  - caption: 'A signed webhook arrives: `payment.captured` for `p-55`. The handler verifies the signature, records the event id, checks the transition PENDING_CONFIRMATION → CAPTURED is valid, and in **one transaction** updates the state, writes ledger entries and an outbox event.'
+    panels:
+      - kind: kv
+        label: Payment p-55
+        pairs: [[state, { v: CAPTURED, tone: ok }]]
+      - kind: rows
+        label: Ledger entries
+        items: ['psp_clearing  −249900', 'merchant:42   +244901', 'fees_revenue    +4999', { v: 'sum = 0', tone: ok }]
+  - caption: 'The same webhook is delivered again (at-least-once). The event id is already recorded, so it''s ignored. A late `payment.failed` for an earlier attempt is rejected because CAPTURED → FAILED isn''t a valid transition.'
+    panels:
+      - kind: rows
+        label: Webhooks
+        items: [{ v: 'evt_9 captured → applied', tone: ok }, { v: 'evt_9 captured → duplicate, ignored', tone: muted }, { v: 'evt_7 failed → invalid transition, logged', tone: warn }]
+  - caption: 'Next morning, reconciliation matches p-55 in our ledger with the PSP''s settlement file (amount, fee, reference). Settled money moves from `psp_clearing` to `bank` with new entries. Any mismatch becomes an exception for review.'
+    panels:
+      - kind: kv
+        label: Reconciliation
+        pairs: [[ledger, '249900'], [settlement file, '249900'], [result, { v: matched → SETTLED, tone: ok }]]

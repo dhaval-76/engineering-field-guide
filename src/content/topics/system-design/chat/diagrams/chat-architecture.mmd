@@ -1,0 +1,11 @@
+flowchart TD
+  A[Alice's phone] <-- WebSocket --> G1[Gateway 1]
+  B[Bob's laptop] <-- WebSocket --> G2[Gateway 2]
+  G1 --> MS[Message service<br/>dedupe · sequence · persist]
+  MS --> DB[(Messages<br/>by conversation, seq)]
+  MS --> K{{Kafka}}
+  K --> FO[Fan-out]
+  FO -- "where is Bob?" --> REG[(Session registry<br/>user → device, gateway)]
+  FO -- route --> G2
+  FO -- offline --> PN[Push notifications<br/>APNs / FCM]
+  G1 & G2 -. heartbeats .-> REG

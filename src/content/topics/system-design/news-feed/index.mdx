@@ -1,0 +1,86 @@
+---
+title: 'Design: News Feed'
+summary: A personalised feed for hundreds of millions of users — fan-out on write vs on read, the hybrid for celebrities, feed storage in caches, cursor pagination, ranking, media through CDNs, and keeping counts and deletions consistent enough.
+track: system-design
+order: 140
+tags: [system-design, case-study, fan-out, caching, ranking]
+aliases: [design twitter, design instagram, news feed, timeline, home feed, fan out on write, fan out on read, push vs pull, celebrity problem, hot users, feed cache, feed ranking, cursor pagination, follow graph, like counts, design facebook feed]
+prerequisites: [system-design/approach-and-estimation, databases/caching-strategies]
+related: [system-design/chat, backend/pagination, system-design/kafka-deep-dive]
+quickRef:
+  points:
+    - '**Fan-out on write (push)**: on post, insert its id into each follower''s feed cache — fast reads, expensive for accounts with millions of followers.'
+    - '**Fan-out on read (pull)**: build the feed at read time from followees'' recent posts — cheap writes, slow reads.'
+    - '**Hybrid**: push for normal accounts, pull for celebrities, merge at read time.'
+    - 'Feed caches hold **post ids** (bounded, e.g. 800), not post bodies; hydrate in batches.'
+    - 'Paginate with a **cursor** (score + id), never offsets; rank candidates after retrieval.'
+    - 'Counts (likes, views) are eventually consistent, sharded counters.'
+  useWhen: '"Design Twitter / Instagram / a timeline" — or any follow-graph fan-out problem.'
+lastReviewed: 2026-10-30
+---
+
+## Requirements
+
+**Functional**: post text/media; follow users; home feed of followees' posts (ranked or reverse-chronological), infinite scroll; like/comment counts.
+**Non-functional**: 300 M DAU, ~20 feed loads per user per day, ~100 M new posts/day; feed load p99 < 300 ms; a new post visible to followers within seconds; skewed graph (a few accounts with tens of millions of followers).
+
+## Estimates
+
+Feed reads ≈ 6 B/day ≈ 70,000/s (peaks 3–5×). Posts ≈ 1,200/s. If the average account has 200 followers, push fan-out = 1,200 × 200 ≈ 240,000 feed inserts/s — fine — but one post by an account with 50 M followers is 50 M inserts on its own. Feed cache: 300 M users × 800 ids × 8 bytes ≈ 2 TB of RAM across a Redis cluster (only active users need cached feeds).
+
+## High-level design
+
+<Diagram id="feed-architecture" caption="Posts are fanned out asynchronously into followers' feed caches; celebrity posts are pulled and merged when a feed is read." />
+
+<Walkthrough id="hybrid-fanout" />
+
+## Fan-out strategies
+
+| | Push (on write) | Pull (on read) | Hybrid |
+|---|---|---|---|
+| Post cost | O(followers) inserts | O(1) | O(followers) for normal accounts only |
+| Read cost | read one list | query every followee, merge | one list + a few celebrity timelines |
+| Freshness | seconds (async) | immediate | seconds |
+| Weak spot | celebrities; inactive followers waste work | users following thousands | merge logic and thresholds |
+
+Refinements: skip fan-out to users inactive for 30+ days (rebuild on their return); treat "celebrity" as a follower-count threshold with hysteresis; for very active readers, cache the merged first page briefly.
+
+## Storage
+
+<CodeTabs id="feed-model" title="Posts, follows and the feed cache" />
+
+- **Posts** in a store partitioned by author (Cassandra/DynamoDB or sharded SQL), media in object storage behind a CDN.
+- **Follow graph**: two tables (followers of X, followees of X) for both directions of lookup.
+- **Feed cache**: a Redis sorted set per user of post ids scored by time (or rank), trimmed to a bounded length. The cache is derived data — it can always be rebuilt from follows + posts.
+
+## Reading a feed
+
+<CodeTabs id="feed-read" title="Read: cached ids + celebrity posts, cursor pagination, batch hydration" />
+
+- **Cursor** = (score, post id) of the last item returned; next page = items strictly older. Offsets duplicate or skip items as new posts arrive ([Pagination](../../backend/pagination/)).
+- **Hydrate in batches**: multi-get post bodies, authors and counts from caches; filter deleted posts, blocked/unfollowed authors and privacy changes at read time.
+- **Ranking**: retrieve a few hundred candidates (followees' posts plus recommendations), score with features (recency, affinity, engagement, content type) — a model service — then diversify and paginate the ranked list per session.
+
+## Counts and interactions
+
+Likes and views are high-write, low-precision: increment sharded counters in Redis (or a counter service), flush aggregates to durable storage periodically, and show approximate numbers. Whether *you* liked a post is exact and stored per user.
+
+<Pitfalls>
+
+- **Synchronous fan-out in the post request** — a celebrity's post would take minutes.
+- **Storing post bodies in every feed** — edits and deletes become impossible; store ids.
+- **Offset pagination** on a changing feed.
+- **Fan-out to inactive users.**
+- **Joining follow graph and posts on every read** for users with thousands of followees.
+- **Exact global counters on the hot path.**
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- Hybrid fan-out: push for most accounts, pull for celebrities, merge on read.
+- Feed caches of ids are derived and rebuildable; hydrate in batches.
+- Cursor pagination; filter deletions and blocks at read time.
+- Counts are approximate and sharded; ranking happens after candidate retrieval.
+
+</KeyTakeaways>

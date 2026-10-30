@@ -1,0 +1,85 @@
+---
+title: 'Design: Chat and Messaging App'
+summary: Chat for hundreds of millions of users — persistent connections, routing to the right gateway, durable storage with per-conversation ordering, offline sync, receipts, presence, group fan-out and end-to-end encryption.
+track: system-design
+order: 130
+tags: [system-design, case-study, realtime, websockets, messaging]
+aliases: [design whatsapp, design slack, design messenger, chat system, websocket, connection gateway, presence, typing indicator, delivery receipt, read receipt, message ordering, sequence number, offline messages, push notifications, group chat fan out, end to end encryption, signal protocol, cassandra messages schema]
+prerequisites: [system-design/approach-and-estimation, system-design/kafka-deep-dive]
+related: [databases/sql-vs-nosql, system-design/news-feed]
+quickRef:
+  points:
+    - 'Clients hold a **persistent connection** (WebSocket/MQTT) to a stateful **gateway**; a registry maps user/device → gateway.'
+    - 'Persist first, then deliver: message stored with a **per-conversation sequence number** before fan-out.'
+    - 'Clients **sync by sequence** after reconnecting — no lost or duplicated messages; client-generated ids make sends idempotent.'
+    - 'Offline recipients: stored messages + **push notification**; delivered/read receipts are just more events.'
+    - 'Groups: fan out to online members'' gateways; very large channels switch to pull.'
+    - 'Presence is ephemeral (heartbeats + TTL), kept apart from durable messages.'
+  useWhen: '"Design WhatsApp / Slack / Messenger" or any real-time delivery system.'
+lastReviewed: 2026-10-30
+---
+
+## Requirements
+
+**Functional**: 1:1 and group messages (groups up to a few thousand); text and media; delivery and read receipts; online/last-seen presence and typing indicators; history sync across a user's devices; push notifications when offline.
+**Non-functional**: 500 M users, 100 M daily active; 50 B messages/day; delivery under ~500 ms when online; no message loss once acknowledged; ordered within a conversation; very high availability.
+
+## Estimates
+
+50 B messages/day ≈ 600,000/s average, ~1–2 M/s at peak. At ~200 bytes each (plus metadata) ≈ 10–15 TB/day of new messages — a write-optimised, partitioned store with TTL/archival. Concurrent connections ≈ tens of millions; at ~100,000–500,000 connections per gateway host, that's hundreds of gateway servers.
+
+## High-level design
+
+<Diagram id="chat-architecture" caption="Gateways hold connections; the message service persists and sequences; a fan-out stage routes to recipients' gateways or to push notifications." />
+
+<Walkthrough id="message-delivery" />
+
+## Storage and ordering
+
+<CodeTabs id="chat-schema" title="Messages partitioned by conversation, ordered by sequence; per-device sync state" />
+
+- Partition messages by **conversation** (bucketed by time for very active ones), cluster by **sequence number** — reading the latest page or catching up is one partition scan.
+- The sequence number is assigned per conversation at write time (a counter in a strongly consistent store, or by the single owner of the conversation's partition). Timestamps from clients aren't reliable for ordering.
+- The client sends a **client message id**; the server de-duplicates retries on it, so a flaky network can't create duplicates.
+- Each device stores the **last sequence it has seen** per conversation; on reconnect it asks for everything after that.
+
+## Delivery and routing
+
+<CodeTabs id="chat-delivery" title="Accept, persist, then route to gateways or push" />
+
+- A **session registry** (Redis/consistent store) maps `user → [(device, gateway)]` with TTLs refreshed by heartbeats.
+- Routing to another gateway: publish to that gateway's channel (Redis pub/sub, or a per-gateway queue), or call it directly via an internal RPC.
+- **Receipts**: "sent" when the server persisted it; "delivered" when a recipient device acknowledges; "read" when displayed — each is a small event routed back to the sender (and stored as per-member read pointers for groups, not per message).
+
+## Groups
+
+- Small and medium groups: look up members, route to the online ones' gateways, push to the offline ones (batched, with per-user notification preferences).
+- Very large channels (thousands+): store once, notify lightly ("channel has new messages"), and let clients pull — the same push/pull trade-off as [news feeds](../news-feed/).
+
+## Presence and typing
+
+Presence is high-churn and disposable: gateways update `presence:{user}` with a short TTL on each heartbeat; subscribers (only the user's contacts who are currently online, or the open conversation) get changes — never broadcast every status change to everyone. Typing indicators are sent over the live connection only and never stored.
+
+## End-to-end encryption
+
+With the Signal protocol (used by WhatsApp and Signal), each device publishes public keys; senders derive per-conversation keys (X3DH) and ratchet keys per message (Double Ratchet), so the server stores and forwards only ciphertext. Consequences: server-side search, moderation and multi-device sync need client-side work (each device is a separate recipient), and backups must be encrypted by the client.
+
+<Pitfalls>
+
+- **Delivering before persisting** — a crash loses messages that the sender saw as sent.
+- **Ordering by client timestamps.**
+- **No client message id** — retries create duplicates.
+- **Broadcasting presence to everyone** — the dominant load in naive designs.
+- **Per-message read receipts in large groups** — store per-member read positions instead.
+- **Sticky reconnect assumptions** — any gateway must be able to accept a reconnect and resync.
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- Stateful gateways + a session registry route messages to live connections.
+- Persist with a per-conversation sequence, then fan out; clients sync from their last sequence.
+- Idempotent sends, push for offline users, receipts as events.
+- Presence ephemeral and scoped; big channels pull instead of push.
+
+</KeyTakeaways>
