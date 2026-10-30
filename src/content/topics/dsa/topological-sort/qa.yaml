@@ -1,0 +1,33 @@
+questions:
+  - q: 'There are n courses with prerequisite pairs. Can you finish them all? If so, in what order?'
+    think: What graph property makes it impossible?
+    answer: |
+      Model courses as nodes with edges from prerequisite to course. All courses can be finished iff the graph has no directed cycle. Kahn's algorithm: compute in-degrees, queue every course with in-degree 0, repeatedly take one, append it to the order and decrement its dependents, queueing those that reach 0. If the order contains all n courses it is a valid schedule; otherwise the leftovers are in or behind a cycle. O(V + E). DFS with three colours is an equivalent alternative.
+  - q: 'Given words sorted in an alien language, determine the order of its letters.'
+    think: What does each pair of adjacent words tell you?
+    answer: |
+      Compare each adjacent pair: the first position where they differ gives an edge `a[j] → b[j]` (that letter comes first); nothing after it is informative. If a longer word precedes its own prefix, the input is invalid. Include every letter as a node, then topologically sort with Kahn's algorithm; a cycle means the input is contradictory (return ""). O(total characters + edges).
+followUps:
+  - q: How do you detect a cycle in a directed graph with DFS?
+    intuition: Why isn't a visited set enough?
+    approach: |
+      In a directed graph, reaching an already visited node isn't necessarily a cycle — it may belong to a branch that finished earlier (a cross edge). Track three states: unvisited, in progress (on the current recursion path), done. An edge to an in-progress node is a back edge, which closes a cycle.
+  - q: How would you compute the minimum number of semesters if independent courses can be taken together?
+    intuition: Kahn's queue in levels.
+    approach: |
+      Run Kahn's algorithm level by level: all nodes with in-degree 0 form semester 1; removing them reveals semester 2, and so on. The number of levels is the answer (the longest path in the DAG, counted in nodes); if not all nodes are processed, it's impossible.
+practice:
+  - task: Return a valid course order, or an empty list if there is a cycle.
+    hint: Edges prerequisite → course, in-degree counts, a queue of ready courses.
+    solution: |
+      Build adjacency lists and in-degrees, enqueue in-degree-0 courses, then repeatedly dequeue, append to the order, and decrement each dependent's in-degree, enqueuing it at zero. Return the order if it has n courses, else an empty list. O(V + E) time and space.
+    solutionCode: dsa-course-schedule
+quiz:
+  - q: When does a directed graph have a topological order?
+    options: [Always, When it is connected, When it has no directed cycle, When it is a tree]
+    correct: 2
+    why: A cycle means some node would have to come before itself.
+  - q: In Kahn's algorithm, what indicates a cycle?
+    options: [The queue never empties, Fewer than V nodes are output, A node has in-degree 1, The graph is disconnected]
+    correct: 1
+    why: Nodes on a cycle never reach in-degree 0, so they are never output.

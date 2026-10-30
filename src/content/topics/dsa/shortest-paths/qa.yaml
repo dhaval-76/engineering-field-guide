@@ -1,0 +1,33 @@
+questions:
+  - q: 'A signal is sent from node k through directed weighted edges. How long until every node receives it?'
+    think: The time for each node is its shortest-path distance; what's the overall answer?
+    answer: |
+      Run Dijkstra from k (weights are non-negative travel times): a min-heap of `(distance, node)`, popping the closest unsettled node, skipping stale entries, relaxing outgoing edges. The answer is the maximum distance over all nodes, or −1 if some node is unreachable. O((V + E) log V).
+  - q: 'Find the cheapest flight route from src to dst with at most k stops.'
+    think: Why can plain Dijkstra fail here?
+    answer: |
+      Dijkstra settles each city once at its cheapest cost, but the cheapest route to an intermediate city might use too many stops, blocking a slightly more expensive route with fewer stops. Run Bellman-Ford for k + 1 rounds, each round relaxing all flights using only the previous round's costs; after round i, costs reflect at most i + 1 flights. O(k · E). Alternatively, Dijkstra/BFS over states `(city, stops used)`.
+followUps:
+  - q: Why doesn't Dijkstra work with negative edge weights?
+    intuition: What does "settled" assume?
+    approach: |
+      Dijkstra assumes that once the closest node is popped, no other path can reach it more cheaply, because every other path must first go through a node at least as far away and then add non-negative weights. A negative edge can make a longer-looking path cheaper after the node was settled, so the result is wrong. Bellman-Ford handles negative edges (and detects negative cycles).
+  - q: When is BFS enough, and what is 0-1 BFS?
+    intuition: Equal weights vs two weights.
+    approach: |
+      BFS finds shortest paths when every edge has the same weight. With weights of only 0 and 1, use a deque: push neighbours reached by 0-weight edges to the front and 1-weight edges to the back; the deque stays sorted by distance, giving O(V + E) without a heap.
+practice:
+  - task: Find the path from the top-left to the bottom-right of a height grid that minimises the largest step between adjacent cells.
+    hint: Dijkstra where a path's cost is the max of its step differences.
+    solution: |
+      Run Dijkstra over cells with cost = maximum absolute difference along the path: popping `(effort, cell)`, relaxing neighbours with `max(effort, |h[next] − h[cur]|)`. Because extending a path never decreases its cost, Dijkstra's settling argument holds. Return the effort when the target is popped. O(R·C log(R·C)). (Binary search on the answer + BFS, or union-find on sorted edges, also work.)
+    solutionCode: dsa-min-effort-path
+quiz:
+  - q: Which algorithm fits a graph with negative edge weights?
+    options: [Dijkstra, BFS, Bellman-Ford, Prim]
+    correct: 2
+    why: Bellman-Ford relaxes all edges repeatedly and handles negatives (and detects negative cycles).
+  - q: In Dijkstra with lazy deletion, what do you do with a popped entry whose distance exceeds dist[node]?
+    options: [Relax its edges anyway, Skip it, Re-insert it, Restart]
+    correct: 1
+    why: It's stale; the node was already settled at a lower cost.

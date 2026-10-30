@@ -1,0 +1,39 @@
+title: Dijkstra from A
+frames:
+  - caption: 'Edges: A→B 4, A→C 1, C→B 2, B→D 1, C→D 5. Start with dist[A] = 0, everything else ∞. The heap holds (0, A).'
+    panels:
+      - kind: kv
+        label: dist
+        pairs: [[A, { v: '0', tone: accent }], [B, '∞'], [C, '∞'], [D, '∞']]
+      - kind: queue
+        label: heap (dist, node)
+        items: ['(0, A)']
+  - caption: 'Pop A (0) — it is settled. Relax A→B: 4; A→C: 1.'
+    panels:
+      - kind: kv
+        label: dist
+        pairs: [[A, { v: '0', tone: ok }], [B, '4'], [C, '1'], [D, '∞']]
+      - kind: queue
+        label: heap
+        items: ['(1, C)', '(4, B)']
+  - caption: 'Pop C (1), the closest unsettled node. Relax C→B: 1 + 2 = 3 < 4 → update B. C→D: 6.'
+    panels:
+      - kind: kv
+        label: dist
+        pairs: [[A, '0'], [B, { v: '3', tone: info }], [C, { v: '1', tone: ok }], [D, '6']]
+      - kind: queue
+        label: heap
+        items: ['(3, B)', '(4, B) stale', '(6, D)']
+  - caption: 'Pop B (3). Relax B→D: 3 + 1 = 4 < 6 → update D. Later the stale (4, B) is popped and skipped because 4 > dist[B].'
+    panels:
+      - kind: kv
+        label: dist
+        pairs: [[A, '0'], [B, { v: '3', tone: ok }], [C, '1'], [D, { v: '4', tone: info }]]
+      - kind: queue
+        label: heap
+        items: ['(4, B) stale', '(4, D)', '(6, D) stale']
+  - caption: 'Pop D (4). All settled: the shortest path A → C → B → D costs 4, even though A→B directly looked cheaper at first.'
+    panels:
+      - kind: kv
+        label: final dist
+        pairs: [[A, '0'], [B, '3'], [C, '1'], [D, { v: '4', tone: ok }]]

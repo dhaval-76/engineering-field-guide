@@ -1,0 +1,33 @@
+questions:
+  - q: 'A graph started as a tree on n nodes and one extra edge was added. Find that edge.'
+    think: What happens when you add an edge between two nodes that are already connected?
+    answer: |
+      Process edges in order with union-find: `union(u, v)` merges their sets; if `u` and `v` already share a root, this edge closes a cycle — return it (the last such edge in input order is the one asked for, and with exactly one extra edge it's the first failing union). With path compression and union by size, total time is O(n α(n)). A DFS from scratch for each edge would be O(n²).
+  - q: 'Merge user accounts that share at least one email, returning each person''s name with sorted emails.'
+    think: Which items should end up in the same set?
+    answer: |
+      Treat each account as a node. Map each email to the first account that contained it; when an email is seen again, union the two accounts. Then group all emails by the root of their owning account, sort each group, and prepend the account name. Union-find makes merges near O(1); total cost is dominated by sorting the emails: O(E log E) for E emails.
+followUps:
+  - q: What do path compression and union by rank each contribute?
+    intuition: Shallow trees.
+    approach: |
+      Union by rank/size attaches the shorter (or smaller) tree under the taller, keeping height O(log n) on its own. Path compression flattens paths during `find` so later finds are near-direct. Together they give an amortised cost of O(α(n)) per operation, where α is the inverse Ackermann function — at most 4 for any realistic n.
+  - q: Union-find or BFS for counting connected components?
+    intuition: Static or growing graph?
+    approach: |
+      For a fixed graph, both are O(V + E) and BFS/DFS is equally simple. Union-find shines when edges arrive over time and you must answer connectivity after each one (dynamic connectivity, "number of islands II"), or when edges come as a list without building adjacency lists. It doesn't handle edge deletions or directed reachability.
+practice:
+  - task: Connect all points with the minimum total Manhattan distance.
+    hint: Kruskal — sort all pairwise edges by cost and add edges that join different components.
+    solution: |
+      Generate all n(n−1)/2 edges with their Manhattan distances, sort them ascending, and scan: whenever an edge connects two different union-find sets, add its cost and union them; stop after n − 1 edges. The result is a minimum spanning tree. O(n² log n) time, O(n²) space for the edge list; Prim's algorithm with a simple array is O(n²) and avoids storing all edges.
+    solutionCode: dsa-kruskal
+quiz:
+  - q: '`union(a, b)` returns false. What does that mean in an undirected graph?'
+    options: [a or b doesn't exist, The edge would create a cycle, The graph is directed, The sets were merged]
+    correct: 1
+    why: a and b were already connected; adding the edge closes a cycle.
+  - q: What is the amortised cost per operation with both optimisations?
+    options: ['O(n)', 'O(log n)', 'O(α(n)) — effectively constant', 'O(1) worst case']
+    correct: 2
+    why: The inverse Ackermann bound grows so slowly it's ≤ 4 in practice.

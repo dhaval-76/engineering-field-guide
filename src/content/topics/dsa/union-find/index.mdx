@@ -1,0 +1,71 @@
+---
+title: Union-Find (Disjoint Set Union)
+summary: Tracking which items belong together as connections are added — path compression, union by size, near-constant operations, and uses in components, redundant edges, account merging and Kruskal's MST.
+track: dsa
+order: 120
+tags: [dsa, union-find, disjoint-set, graphs, patterns]
+aliases: [union find, disjoint set union, dsu, path compression, union by rank, union by size, connected components, number of provinces, redundant connection, graph valid tree, accounts merge, kruskal, minimum spanning tree, mst, inverse ackermann, dynamic connectivity]
+prerequisites: [dsa/graphs-bfs-dfs]
+related: [dsa/topological-sort, dsa/shortest-paths]
+quickRef:
+  points:
+    - 'Each set is a tree; `find(x)` returns its root (the set''s representative); `union(a, b)` links two roots.'
+    - '**Path compression** (point nodes straight at the root while finding) + **union by rank/size** → nearly O(1) amortised per operation.'
+    - '`union` returning false means a and b were already connected → **a cycle** in an undirected graph.'
+    - 'Great for **incremental** connectivity (edges arrive over time) where re-running BFS each time would be slow.'
+    - 'Kruskal''s MST: sort edges by weight, add each edge that joins two different sets.'
+  complexity: 'O(α(n)) amortised per operation — effectively constant; O(n) space.'
+  useWhen: 'Grouping/merging items, counting components as edges are added, detecting cycles in undirected graphs, MSTs.'
+lastReviewed: 2026-10-30
+---
+
+## Recognise it
+
+- "Are x and y connected?" asked many times while connections keep being **added**.
+- Count **groups/components** after a list of merges (friends circles, accounts with shared emails, islands added over time).
+- Find the edge that creates a **cycle** in an undirected graph.
+- Build a **minimum spanning tree**.
+
+<Callout type="analogy">
+Clubs merging. Every member knows who their club's president is (directly or via someone who does). To check if two people are in the same club, ask for their presidents. To merge two clubs, one president agrees to report to the other. After you ask "who's my president?" once, you remember the answer directly next time — path compression.
+</Callout>
+
+<Walkthrough id="union-find" />
+
+## The structure
+
+<CodeTabs id="dsa-union-find" title="Union-find with path compression and union by size" />
+
+## Worked problems
+
+<CodeTabs id="dsa-redundant-connection" title="Redundant connection — the first edge that closes a cycle" />
+
+<CodeTabs id="dsa-accounts-merge" title="Accounts merge — union emails that appear in the same account" />
+
+<CodeTabs id="dsa-kruskal" title="Kruskal's minimum spanning tree — connect all points at minimum cost" />
+
+| Question | Union-find | BFS/DFS |
+|---|---|---|
+| Components of a fixed graph | O(E α(V)) | O(V + E) — just as good |
+| Connectivity while edges are added online | near O(1) per edge | re-traverse each time |
+| Edges removed over time | not supported (process offline in reverse) | works |
+| Cycle in undirected graph | union returns false | DFS with parent tracking |
+| Directed graphs / cycles | not suitable | DFS (three colours) |
+
+<Pitfalls>
+
+- **Comparing `parent[a] == parent[b]`** instead of `find(a) == find(b)`.
+- **Skipping union by rank/size and path compression** — degenerates to O(n) per find.
+- **Recursive find on long chains** before compression — use the iterative two-pass version for huge inputs.
+- **Using union-find for directed cycles** — it ignores direction.
+- **Forgetting to count components** down on each successful union.
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- `find` with path compression, `union` by size/rank: effectively O(1) per operation.
+- A failed union reveals a cycle; successful unions reduce the component count.
+- Best for incremental connectivity and Kruskal's MST; use DFS for directed graphs.
+
+</KeyTakeaways>
