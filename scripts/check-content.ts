@@ -34,13 +34,15 @@ for (const f of codeFiles) {
   const id = stem(f);
   snippetIds.set(id, [...(snippetIds.get(id) ?? []), f]);
 }
+// Snippets that demonstrate one language's own runtime (the JS event loop, ES modules) and have no Java equivalent.
+const LANGUAGE_SPECIFIC = new Set(['singleton-module', 'event-loop-order', 'blocking-the-loop']);
 for (const [id, files] of snippetIds) {
   const exts = files.map((f) => f.split('.').pop());
   if (new Set(exts).size !== exts.length)
     errors.push(`Snippet "${id}" has two files with the same language: ${files.join(', ')}`);
   // SQL/shell/config-only snippets are language-neutral; only flag code that has no Java variant.
   const programmable = exts.some((e) => ['js', 'py', 'ts', 'go'].includes(e!));
-  if (programmable && !exts.includes('java'))
+  if (programmable && !exts.includes('java') && !LANGUAGE_SPECIFIC.has(id))
     warn.push(`Snippet "${id}" has no Java version (Java is the primary language).`);
 }
 const diagramIds = new Set(diagramFiles.map(stem));

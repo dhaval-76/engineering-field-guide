@@ -1,0 +1,84 @@
+---
+title: Event Loops, async/await and the GIL
+summary: How JavaScript and Python handle concurrency differently — the event loop with its microtask and macrotask queues, async/await, why blocking the loop freezes a server, Python's GIL and asyncio, and how Java's virtual threads compare.
+track: concurrency
+order: 100
+tags: [concurrency, event-loop, async-await, gil, asyncio, virtual-threads]
+aliases: [javascript event loop, microtask vs macrotask, node.js concurrency, python gil, asyncio, async await, blocking the event loop, free-threaded python]
+prerequisites: [concurrency/threads-and-race-conditions]
+related: [concurrency/completablefuture, concurrency/executors-thread-pools, concurrency/threadlocal]
+quickRef:
+  points:
+    - 'An event loop runs **one callback at a time** on one thread; I/O waits happen in the background and their callbacks are queued.'
+    - 'Order: current code to completion → **all microtasks** (promises, `await` continuations) → **one macrotask** (timer, I/O) → repeat.'
+    - '**Never block the loop**: CPU-heavy or synchronous work stalls every request. Use worker threads / processes or another service.'
+    - 'Python''s **GIL** lets one thread run Python bytecode at a time: threads help I/O, not CPU — use processes (or the free-threaded build, 3.14+).'
+    - 'Java: platform threads (pool them), **virtual threads** (blocking style, event-loop efficiency), or reactive event loops (WebFlux/Netty).'
+  useWhen: Writing or reviewing Node.js or asyncio services, debugging "why is everything slow", or comparing runtime concurrency models.
+lastReviewed: 2026-10-30
+---
+
+## Why it matters
+
+Not every runtime handles concurrency with a thread per request. Node.js serves thousands of connections on one thread with an **event loop**; Python offers threads, `asyncio` and processes, constrained by the **GIL**; Java now has **virtual threads**. Each model has one rule that, when broken, freezes or slows the whole service — and interviews for full-stack and backend roles regularly probe it ("what does this print?", "why did one request stall all the others?").
+
+<Callout type="analogy">
+A single waiter serving many tables. They take an order, hand it to the kitchen, and move on instead of standing at the kitchen door; when a dish is ready, they're called to deliver it. One waiter can handle a full restaurant — unless a customer asks them to personally cook a five-course meal, at which point every other table waits.
+</Callout>
+
+## The JavaScript event loop
+
+<Walkthrough id="event-loop" />
+
+<CodeTabs id="event-loop-order" title="What does this print?" />
+
+- **Microtasks**: promise reactions, `await` continuations, `queueMicrotask`. Drained completely after each task — a microtask that keeps scheduling microtasks starves everything else.
+- **Macrotasks**: timers, I/O callbacks, `setImmediate`, messages. One per loop turn.
+- `async` functions run synchronously until the first `await`; everything after it is a microtask.
+- Node's I/O (network, most file operations through libuv's pool) happens off the main thread; only your JavaScript runs on it.
+
+## Don't block the loop
+
+<CodeTabs id="blocking-the-loop" title="CPU work on the event loop vs a worker thread" />
+
+Symptoms of a blocked loop: every endpoint's latency rises together, timers fire late, health checks time out under load. Measure **event-loop lag** (`perf_hooks.monitorEventLoopDelay`) and alert on it.
+
+## Python: threads, the GIL and asyncio
+
+<CodeTabs id="async-concurrency" title="Bounded concurrent I/O — asyncio in Python, virtual threads in Java" />
+
+- The **GIL** (global interpreter lock) allows one thread at a time to execute Python bytecode. Threads still help with **I/O** (the GIL is released while waiting) but not with **CPU-bound** Python code.
+- For CPU work use `multiprocessing` / `ProcessPoolExecutor`, or native libraries (NumPy) that release the GIL.
+- `asyncio` is an event loop like Node's: one thread, `await` yields, and a blocking call (`requests.get`, `time.sleep`) blocks everything — use async libraries or `asyncio.to_thread`.
+- **Free-threaded Python** (PEP 703) removes the GIL in a separate build: experimental in 3.13, officially supported (still optional) since 3.14. Check that your C extensions support it before relying on it.
+- The GIL doesn't make your code thread-safe: `counter += 1` is still a read-modify-write race between threads.
+
+## Comparing the models
+
+| Model | Concurrency unit | Good at | Breaks when |
+|---|---|---|---|
+| Java platform threads + pools | OS thread (~1 MB stack) | CPU work, moderate I/O concurrency | Thousands of blocked threads; unbounded pools |
+| Java virtual threads (21+) | JVM-scheduled thread | Very high I/O concurrency with blocking-style code | CPU-bound work (no gain); pinning on native frames |
+| Reactive (WebFlux, Netty, Vert.x) | Event loop + callbacks | High I/O concurrency, streaming | Any blocking call on the loop; harder debugging |
+| Node.js | Single event loop (+ worker threads) | I/O-heavy APIs, real-time | CPU-heavy or sync work in handlers |
+| Python asyncio | Event loop + coroutines | Many concurrent network calls | Blocking libraries inside coroutines |
+| Python threads / processes | OS threads (GIL) / processes | Threads: I/O; processes: CPU | CPU in threads (GIL); large data copied between processes |
+
+<Pitfalls>
+
+- **Sync APIs in async code** (`fs.readFileSync`, `requests`, `time.sleep`) — the whole loop waits.
+- **Unbounded `Promise.all` / `gather`** over thousands of items — limit concurrency.
+- **Forgotten `await`** — the error surfaces later as an unhandled rejection, or never.
+- **Assuming the GIL means thread safety**.
+- **Endless microtask chains** starving I/O and timers.
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- Event loop: one callback at a time; microtasks drain before the next macrotask.
+- Keep the loop free: offload CPU and blocking work.
+- Python: threads for I/O, processes for CPU (GIL), asyncio for many concurrent network calls.
+- Java's virtual threads give event-loop efficiency with ordinary blocking code.
+
+</KeyTakeaways>

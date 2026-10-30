@@ -1,0 +1,43 @@
+title: One turn of the JavaScript event loop
+frames:
+  - caption: 'The script runs top to bottom on the **call stack**. `setTimeout` hands its callback to the timer system; `.then` schedules a **microtask**.'
+    panels:
+      - kind: stack
+        label: Call stack
+        items: [{ v: main script, tone: accent }]
+      - kind: queue
+        label: Microtasks
+        items: [{ v: promise.then, tone: info }, { v: queueMicrotask, tone: info }]
+      - kind: queue
+        label: Macrotasks
+        items: [{ v: 'timer (0 ms)', tone: plum }]
+  - caption: 'The script ends and the stack is empty. Before anything else, the loop drains **every** microtask — including ones added while draining.'
+    panels:
+      - kind: stack
+        label: Call stack
+        items: [{ v: promise.then callback, tone: info }]
+      - kind: queue
+        label: Microtasks
+        items: [{ v: queueMicrotask, tone: info }, { v: 'after await', tone: info }]
+      - kind: queue
+        label: Macrotasks
+        items: [{ v: 'timer (0 ms)', tone: plum }]
+  - caption: 'Microtasks empty → the loop takes **one** macrotask (the timer), runs it, then drains microtasks again. Rendering (in browsers) and I/O callbacks happen between macrotasks.'
+    panels:
+      - kind: stack
+        label: Call stack
+        items: [{ v: timer callback, tone: plum }]
+      - kind: queue
+        label: Microtasks
+        items: []
+      - kind: queue
+        label: Macrotasks
+        items: [{ v: 'I/O: db result', tone: muted }]
+  - caption: 'If any callback runs for 2 seconds, **nothing else** happens for 2 seconds: no other requests, timers or I/O callbacks. That''s why CPU-heavy work goes to worker threads.'
+    panels:
+      - kind: stack
+        label: Call stack
+        items: [{ v: crunchNumbers() 2000 ms, tone: bad }]
+      - kind: queue
+        label: Macrotasks
+        items: [{ v: request 2, tone: warn }, { v: request 3, tone: warn }, { v: timer, tone: warn }]

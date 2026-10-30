@@ -1,0 +1,37 @@
+questions:
+  - q: A Node.js API's p99 latency jumps for every endpoint whenever someone downloads a large CSV report. Why, and how do you fix it?
+    think: How many threads run your JavaScript? What does building a big CSV do to them?
+    answer: |
+      Building the report (looping over many rows, string concatenation, maybe `JSON.parse` of a big payload) is synchronous CPU work on the single event-loop thread. While it runs, no other callback can — other requests, timers and I/O completions all queue behind it. Fixes: stream the report (cursor from the database piped through a CSV transform to the response, so work happens in small chunks), move heavy computation to `worker_threads` or a background job that writes to object storage and returns a link, and monitor event-loop lag. Also check for synchronous APIs (`fs.readFileSync`, sync crypto/zlib) in request paths.
+  - q: Python service doing image resizing with a thread pool of 16 uses only one CPU core. Why?
+    think: What does the GIL allow?
+    answer: |
+      If the resizing runs in pure Python, the GIL lets only one thread execute bytecode at a time, so 16 threads take turns on one core. Use a `ProcessPoolExecutor` (one process per core), a library that releases the GIL during heavy work (Pillow/NumPy do for many operations), or a free-threaded Python build if all dependencies support it. Threads remain the right choice for I/O-bound work.
+followUps:
+  - q: Microtask vs macrotask — what's the difference?
+    intuition: When does each kind run relative to the other?
+    approach: |
+      After the current script or task finishes, the loop drains the whole microtask queue (promise callbacks, `await` continuations, `queueMicrotask`), then takes one macrotask (a timer, I/O callback, message) and repeats. So a resolved promise's `.then` always runs before a `setTimeout(…, 0)` scheduled earlier.
+  - q: Is Node.js single-threaded?
+    intuition: Which part is single-threaded?
+    approach: |
+      Your JavaScript runs on one thread per event loop. Node itself uses more: libuv's thread pool (file system, DNS lookup, some crypto and zlib), the OS's asynchronous network APIs, GC threads, and any `worker_threads` you create — each worker has its own event loop and memory.
+  - q: How do virtual threads compare with async/await?
+    intuition: Who does the suspending — the code or the runtime?
+    approach: |
+      Both let a few OS threads serve many concurrent I/O-bound tasks. With async/await the code marks suspension points and "colours" functions as async. With virtual threads the JVM suspends a thread transparently when it blocks on I/O, so ordinary blocking code and stack traces work. Neither helps CPU-bound work, and both still need limits on downstream concurrency.
+practice:
+  - task: Fetch 1,000 URLs concurrently in Python with at most 10 requests in flight, a 2-second timeout each, and fail the whole operation if any request fails.
+    hint: asyncio.Semaphore for the limit, an async HTTP client with a timeout, TaskGroup to cancel the rest on the first failure.
+    solution: |
+      Wrap each request in `async with semaphore`, use one shared `httpx.AsyncClient(timeout=2.0)`, and create tasks inside `async with asyncio.TaskGroup()`; if one raises, the group cancels the others and re-raises. The Java equivalent uses a virtual-thread executor with a `Semaphore`.
+    solutionCode: async-concurrency
+quiz:
+  - q: 'What does this print? setTimeout(() => log("A"), 0); Promise.resolve().then(() => log("B")); log("C")'
+    options: [A B C, C A B, C B A, B C A]
+    correct: 2
+    why: Synchronous code first, then microtasks (the promise), then the timer macrotask.
+  - q: Which Python approach speeds up CPU-bound pure-Python code on a standard (GIL) build?
+    options: [threading, asyncio, multiprocessing / ProcessPoolExecutor, More threads with smaller tasks]
+    correct: 2
+    why: Separate processes each have their own interpreter and GIL.
