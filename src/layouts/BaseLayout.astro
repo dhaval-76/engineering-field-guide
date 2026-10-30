@@ -1,0 +1,105 @@
+---
+import '~/styles/base.css';
+import Header from '~/components/layout/Header.astro';
+import Sidebar from '~/components/layout/Sidebar.astro';
+import Footer from '~/components/layout/Footer.astro';
+import CommandPalette from '~/components/islands/CommandPalette';
+import { site } from '~/site.config';
+import { url } from '~/lib/url';
+
+interface Props {
+  title: string;
+  description?: string;
+  /** Topic id or track id used to highlight the sidebar. */
+  current?: { track?: string; topic?: string };
+  sidebar?: boolean;
+  /** Excludes the page from the search index (e.g. progress, 404). */
+  noindex?: boolean;
+}
+
+const { title, description = site.tagline, current, sidebar = true, noindex = false } = Astro.props;
+const pageTitle = title === site.name ? title : `${title} — ${site.name}`;
+const canonical = new URL(Astro.url.pathname, Astro.site);
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{pageTitle}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonical} />
+    <link rel="icon" type="image/svg+xml" href={url('favicon.svg')} />
+    <meta property="og:title" content={pageTitle} />
+    <meta property="og:description" content={description} />
+    <meta property="og:type" content="article" />
+    <meta name="theme-color" content="#f8f6f1" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#161514" media="(prefers-color-scheme: dark)" />
+    {noindex && <meta name="robots" content="noindex" />}
+    <script is:inline>
+      // Apply saved theme/focus before first paint to avoid a flash.
+      try {
+        const t = JSON.parse(localStorage.getItem('efg:theme') || 'null');
+        if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t;
+        if (JSON.parse(localStorage.getItem('efg:focus') || 'false'))
+          document.documentElement.dataset.focus = 'on';
+        const l = JSON.parse(localStorage.getItem('efg:lang') || 'null');
+        if (typeof l === 'string') document.documentElement.dataset.lang = l;
+      } catch {
+        /* storage unavailable */
+      }
+    </script>
+  </head>
+  <body>
+    <a class="skip-link" href="#main">
+      Skip to content
+    </a>
+    <Header hasSidebar={sidebar} />
+    <div class:list={['shell', { 'has-sidebar': sidebar }]}>
+      {sidebar && <Sidebar current={current} />}
+      <main id="main" data-pagefind-body={noindex ? undefined : ''}>
+        <slot />
+      </main>
+    </div>
+    <Footer />
+    <CommandPalette client:idle base={url()} />
+    <script>
+      import '~/scripts/site';
+    </script>
+  </body>
+</html>
+
+<style>
+  .shell {
+    max-width: 1440px;
+    margin: 0 auto;
+    padding: 0 var(--gutter);
+  }
+
+  .shell.has-sidebar {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  main {
+    min-width: 0;
+    padding: 24px 0 64px;
+  }
+
+  @media (min-width: 960px) {
+    .shell {
+      padding: 0 32px;
+    }
+    .shell.has-sidebar {
+      grid-template-columns: var(--sidebar-w) minmax(0, 1fr);
+      gap: 48px;
+    }
+    main {
+      padding-top: 40px;
+    }
+    :global(html[data-focus='on']) .shell.has-sidebar {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+</style>

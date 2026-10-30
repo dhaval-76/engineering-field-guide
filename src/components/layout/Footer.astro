@@ -1,0 +1,53 @@
+---
+import { site } from '~/site.config';
+import { url } from '~/lib/url';
+---
+
+<footer class="footer">
+  <div class="inner">
+    <p>
+      <strong>{site.name}</strong> — {site.tagline}
+    </p>
+    <nav aria-label="Footer">
+      <a href={url('cheatsheets/')}>Cheat sheets</a>
+      <a href={url('glossary/')}>Glossary</a>
+      <a href={url('companies/')}>Companies</a>
+      <a href={url('progress/')}>Progress</a>
+      <a href={site.repoUrl}>Source</a>
+    </nav>
+  </div>
+</footer>
+
+<style>
+  .footer {
+    border-top: 1px solid var(--rule);
+    margin-top: 32px;
+    color: var(--ink-3);
+    font-size: 0.875rem;
+  }
+  .inner {
+    max-width: 1440px;
+    margin: 0 auto;
+    padding: 24px var(--gutter) 40px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px 32px;
+    justify-content: space-between;
+  }
+  p {
+    margin: 0;
+    max-width: 60ch;
+  }
+  strong {
+    color: var(--ink-2);
+    font-weight: 600;
+  }
+  nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+  a {
+    color: var(--ink-2);
+  }
+</style>

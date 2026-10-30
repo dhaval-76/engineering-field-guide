@@ -1,0 +1,139 @@
+---
+title: LRU Cache
+summary: Keep the most recently used items in a fixed-size cache and evict the least recently used one, with O(1) get and put.
+track: low-level-design
+order: 20
+tags: [cache, hashmap, linked-list, eviction]
+aliases: [least recently used, LinkedHashMap accessOrder, OrderedDict cache, cache eviction]
+quickRef:
+  points:
+    - A **HashMap** finds a key's node in O(1); a **doubly linked list** keeps nodes in recency order.
+    - '`get`: look up the node, move it to the front. `put`: insert at the front; if over capacity, remove the tail node **and** its map entry.'
+    - Sentinel `head`/`tail` nodes remove every null check from link/unlink.
+    - 'Built-ins: Java `LinkedHashMap(cap, 0.75f, true)` + `removeEldestEntry`, JS `Map` re-insertion, Python `OrderedDict.move_to_end`.'
+    - 'Production: Caffeine (Java) or `lru-cache` (Node) — thread-safe, TTL, stampede protection.'
+  complexity: '`get` and `put` are O(1) time; O(capacity) space.'
+  useWhen: Recent items are likely to be read again (sessions, user profiles, rendered pages) and memory is bounded.
+lastReviewed: 2026-10-30
+---
+
+## Why it matters
+
+Memory is finite. When a cache is full and a new item arrives, something has to go. **Least Recently Used (LRU)** evicts the item that has gone longest without being read or written. The bet is that what was used recently will be used again soon, which holds for most real traffic: a user who just opened their profile will likely open it again in the next minute.
+
+You meet LRU everywhere: CPU caches, database buffer pools, CDN edges, browser caches and the in-process caches in front of most backend services. It is also one of the most frequently asked coding/LLD problems because it tests whether you can **combine two data structures** so that each covers the other's weakness.
+
+<Callout type="analogy">
+A desk with room for three books. Every time you read a book you put it on top of the pile. When a fourth book arrives and the desk is full, the book at the bottom of the pile — the one you haven't touched for the longest — goes back to the shelf.
+</Callout>
+
+## The core idea
+
+We need two things to be fast at the same time:
+
+| Need | Best structure alone | Its weakness |
+|---|---|---|
+| Find a key quickly | HashMap: O(1) lookup | Has no idea which key was used least recently |
+| Keep items ordered by recency and move one to the front | Doubly linked list: O(1) move **if you already hold the node** | Finding a node means walking the list: O(n) |
+
+Put them together and the weaknesses cancel. The map stores `key → node`, so we jump straight to the node, and the node's own `prev`/`next` pointers let us unlink and relink it without scanning.
+
+<Diagram id="lru-structure" caption="The map points into the list. The front of the list is the most recently used item; the node just before TAIL is evicted next." />
+
+<Callout type="prereq" title="Why doubly linked?">
+To remove a node from a list you must update its **predecessor's** `next` pointer. In a singly linked list a node doesn't know its predecessor, so you would have to walk from the head to find it — O(n). With a `prev` pointer, removal is two assignments.
+</Callout>
+
+## How it works, step by step
+
+Step through the operations below; each frame shows the list and the map after one action.
+
+<Walkthrough id="lru-operations" />
+
+<Steps>
+
+1. **`get(key)`** — Look the key up in the map. Missing: return "not found". Present: unlink the node from where it is and push it right after `head`. Return its value.
+2. **`put(key, value)` for an existing key** — Update the value, then move the node to the front exactly as `get` does.
+3. **`put(key, value)` for a new key** — If the cache is already at capacity, take `tail.prev` (the least recently used node), unlink it and delete its key from the map. Then create the new node, add it to the map, and push it to the front.
+
+</Steps>
+
+<Callout type="tip" title="Sentinel nodes">
+Two dummy nodes, `head` and `tail`, that never hold data. Because every real node always has a non-null neighbour on both sides, `pushFront` and `unlink` are four and two pointer assignments with no special cases for an empty list or the first/last element.
+</Callout>
+
+## Implementation
+
+The from-scratch version — what interviewers usually want to see:
+
+<CodeTabs id="lru-from-scratch" title="HashMap + doubly linked list" />
+
+A quick test that exercises update, eviction and misses:
+
+<CodeTabs id="lru-test" title="Behaviour check" />
+
+### The standard-library shortcut
+
+Every mainstream language already ships an ordered map you can turn into an LRU in a few lines. Mention it in an interview — it shows you know the platform — then offer to build the real thing.
+
+<CodeTabs id="lru-builtin" title="Built-in ordered maps" />
+
+## Trade-offs and variations
+
+<Chart
+  type="bar"
+  title="Pointer/element operations for one get() on a full cache of 10,000 entries"
+  log
+  bars={[
+    ['Array of keys, scan + shift', 15000, 'bad'],
+    ['Singly linked list, find + unlink', 5000, 'warn'],
+    ['HashMap + doubly linked list', 7, 'ok'],
+  ]}
+  caption="Average case, log scale. The scan approaches touch about half (find) plus half again (shift) of the entries; the HashMap version does one lookup and six pointer writes regardless of size."
+/>
+
+| Policy | Evicts | Good for | Weak spot |
+|---|---|---|---|
+| **LRU** | Least recently used | General workloads with temporal locality | A one-off scan of many keys flushes the hot set |
+| **LFU** | Least frequently used | Stable popularity (top products, config) | Old favourites linger after they go cold; needs frequency bookkeeping |
+| **FIFO** | Oldest inserted | Simplicity, very cheap | Ignores reuse entirely |
+| **TTL** | Anything past its expiry | Data that goes stale (prices, tokens) | Not a size bound on its own — combine with LRU |
+| **W-TinyLFU** (Caffeine) | Admission by recent frequency + LRU window | Production caches; best hit rates in practice | More complex; use a library |
+
+## Making it thread-safe
+
+The class above is **not** safe for concurrent use. Two threads calling `get` at the same moment can both rewire the same pointers and corrupt the list, even though `get` "only reads".
+
+- **`synchronized` methods / one lock** — correct and simple. Every operation is serialised, which is fine up to moderate traffic.
+- **Read-write lock** — helps less than you'd expect: in an LRU cache `get` *also* writes (it moves the node), so it needs the write lock too.
+- **Striping** — split keys across N independent LRU segments, each with its own lock. Contention drops roughly N-fold; eviction becomes approximately LRU per segment.
+- **Buffered recency (Caffeine's approach)** — reads append to a lock-free ring buffer and the list is reordered in batches later, so reads almost never block.
+
+<Callout type="insight">
+Start with the simple, correct `synchronized` version, explain why `get` is a write, and then describe striping or Caffeine-style buffering for high throughput. Naming the trade-off is worth more than the cleverest lock.
+</Callout>
+
+## In production
+
+You rarely hand-roll this in production code. Use a library that also gives you expiry, metrics and protection against a **cache stampede** (many threads missing the same key at once and all hitting the database).
+
+<CodeTabs id="lru-production" title="Production-grade caches" />
+
+<Pitfalls>
+
+- **Forgetting to delete the evicted key from the map.** The list shrinks but the map keeps growing — a memory leak and stale hits. Store the key inside the node for exactly this reason.
+- **Treating `get` as read-only under concurrency.** It reorders the list, so it must hold the same lock as `put`.
+- **Evicting after inserting without checking for an existing key.** Updating a key that is already present must not evict anything.
+- **Using a singly linked list.** Unlinking a node then needs its predecessor, which costs O(n).
+- **Unbounded "cache" maps.** A plain `HashMap` used as a cache with no eviction is the most common source of slow memory leaks in services.
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- HashMap for O(1) lookup + doubly linked list for O(1) reordering = O(1) LRU.
+- Nodes store their key so eviction can clean up the map.
+- Sentinels make the pointer code short and branch-free.
+- Know the built-in shortcut in your language, and know that production code uses Caffeine / `lru-cache` for thread safety, TTL and stampede protection.
+
+</KeyTakeaways>

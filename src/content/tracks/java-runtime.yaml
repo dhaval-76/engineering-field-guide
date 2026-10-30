@@ -1,0 +1,5 @@
+title: Java & Runtimes
+short: Java
+blurb: How Java works under the hood — collections, memory, JVM, GC and modern language features.
+order: 3
+icon: runtime

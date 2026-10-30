@@ -1,0 +1,5 @@
+title: Concurrency
+short: Concurrency
+blurb: Threads, locks, memory visibility, executors and async — and how to reason about them.
+order: 4
+icon: concurrency

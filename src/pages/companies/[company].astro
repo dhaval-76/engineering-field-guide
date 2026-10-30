@@ -1,0 +1,102 @@
+---
+import BaseLayout from '~/layouts/BaseLayout.astro';
+import { getCompanyIndex } from '~/lib/companies';
+import { url } from '~/lib/url';
+
+export async function getStaticPaths() {
+  const companies = await getCompanyIndex();
+  return companies.map((c) => ({ params: { company: c.slug }, props: { company: c } }));
+}
+
+const { company } = Astro.props;
+const groups = new Map<string, typeof company.items>();
+for (const item of company.items) {
+  const list = groups.get(item.topicTitle) ?? [];
+  list.push(item);
+  groups.set(item.topicTitle, list);
+}
+const kindLabel = { topic: 'Topic', question: 'Question', 'follow-up': 'Follow-up' } as const;
+---
+
+<BaseLayout
+  title={`${company.name} — reported topics`}
+  description={`Topics and questions reported in ${company.name} interviews, with sources.`}
+>
+  <div class="wrap">
+    <p class="eyebrow">
+      <a href={url('companies/')}>Companies</a>
+    </p>
+    <h1>{company.name}</h1>
+    <p class="lede">
+      What candidates have publicly reported from {company.name} interviews. Click a source to read
+      the original report.
+    </p>
+    {[...groups.entries()].map(([topic, items]) => (
+      <section>
+        <h2>
+          <a href={items[0]!.url.split('#')[0]}>{topic}</a>
+        </h2>
+        <ul>
+          {items.map((it) => (
+            <li>
+              <span class="kind">{kindLabel[it.kind]}</span>
+              <a href={it.url}>{it.text}</a>
+              <span class="meta">
+                {[it.round, it.year].filter(Boolean).join(' · ')}{' '}
+                <a href={it.source} rel="nofollow noopener" target="_blank">
+                  source
+                </a>
+              </span>
+            </li>
+          ))}
+        </ul>
+      </section>
+    ))}
+  </div>
+</BaseLayout>
+
+<style>
+  .wrap {
+    max-width: 760px;
+  }
+  h1 {
+    font-family: var(--font-serif);
+    font-weight: 560;
+    font-size: var(--step-4);
+    margin: 0;
+  }
+  .lede {
+    color: var(--ink-2);
+  }
+  h2 {
+    font-family: var(--font-serif);
+    font-weight: 560;
+    font-size: var(--step-2);
+    margin: 28px 0 8px;
+  }
+  h2 a {
+    color: var(--ink);
+  }
+  ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+  li {
+    display: grid;
+    grid-template-columns: 84px 1fr;
+    gap: 2px 12px;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--rule);
+  }
+  .kind {
+    font-size: 0.75rem;
+    color: var(--ink-3);
+    padding-top: 3px;
+  }
+  .meta {
+    grid-column: 2;
+    font-size: 0.8125rem;
+    color: var(--ink-3);
+  }
+</style>

@@ -1,0 +1,57 @@
+---
+import BaseLayout from '~/layouts/BaseLayout.astro';
+import { getNav } from '~/lib/nav';
+import { url } from '~/lib/url';
+
+const nav = (await getNav()).filter((n) => n.topics.length > 0);
+---
+
+<BaseLayout
+  title="Cheat sheets"
+  description="Every topic's quick reference, one page per track — built for fast revision and printing."
+>
+  <div class="wrap">
+    <h1>Cheat sheets</h1>
+    <p class="lede">
+      The quick-reference card from every topic, one page per track. Print-friendly.
+    </p>
+    <ul>
+      {nav.map(({ track, topics }) => (
+        <li>
+          <a href={url(`cheatsheets/${track.id}/`)}>{track.data.title}</a>
+          <span>{topics.length} topics</span>
+        </li>
+      ))}
+    </ul>
+  </div>
+</BaseLayout>
+
+<style>
+  .wrap {
+    max-width: 760px;
+  }
+  h1 {
+    font-family: var(--font-serif);
+    font-weight: 560;
+    font-size: var(--step-4);
+    margin: 0;
+  }
+  .lede {
+    color: var(--ink-2);
+  }
+  ul {
+    list-style: none;
+    padding: 0;
+    border-top: 1px solid var(--rule);
+  }
+  li {
+    display: flex;
+    justify-content: space-between;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--rule);
+  }
+  span {
+    color: var(--ink-3);
+    font-size: 0.875rem;
+  }
+</style>

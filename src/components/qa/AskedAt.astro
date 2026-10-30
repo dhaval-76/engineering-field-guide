@@ -1,0 +1,83 @@
+---
+import { slugifyCompany } from '~/lib/nav';
+import { url } from '~/lib/url';
+
+interface Props {
+  items: {
+    company: string;
+    year?: number | undefined;
+    round?: string | undefined;
+    source: string;
+  }[];
+  label?: string;
+}
+const { items, label = 'Reported at' } = Astro.props;
+// One chip per company; keep the most recent year and all sources.
+const byCompany = new Map<
+  string,
+  { company: string; year?: number | undefined; sources: string[] }
+>();
+for (const it of items) {
+  const cur = byCompany.get(it.company) ?? { company: it.company, year: it.year, sources: [] };
+  if (it.year && (!cur.year || it.year > cur.year)) cur.year = it.year;
+  cur.sources.push(it.source);
+  byCompany.set(it.company, cur);
+}
+const list = [...byCompany.values()].sort((a, b) => a.company.localeCompare(b.company));
+---
+
+{list.length > 0 && (
+  <div class="asked">
+    <span class="label">{label}</span>
+    {list.map((c) => (
+      <span class="co">
+        <a class="chip" href={url(`companies/${slugifyCompany(c.company)}/`)}>
+          {c.company}
+          {c.year && <span class="yr">’{String(c.year).slice(2)}</span>}
+        </a>
+        {c.sources.map((s, i) => (
+          <a
+            class="src"
+            href={s}
+            rel="nofollow noopener"
+            target="_blank"
+            title={`Source: ${new URL(s).hostname}`}
+          >
+            [{i + 1}]
+          </a>
+        ))}
+      </span>
+    ))}
+  </div>
+)}
+
+<style>
+  .asked {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 8px;
+    margin: 12px 0 4px;
+  }
+  .label {
+    font-size: 0.75rem;
+    color: var(--ink-3);
+  }
+  .co {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 2px;
+  }
+  .yr {
+    color: var(--ink-3);
+    font-size: 0.75rem;
+  }
+  .src {
+    font-size: 0.6875rem;
+    color: var(--ink-3);
+    text-decoration: none;
+  }
+  .src:hover {
+    color: var(--accent-ink);
+  }
+</style>

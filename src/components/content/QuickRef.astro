@@ -1,0 +1,86 @@
+---
+import type { Topic } from '~/lib/nav';
+import { mdInline } from '~/lib/markdown';
+
+interface Props {
+  data: Topic['data']['quickRef'];
+}
+const { data } = Astro.props;
+const points = await Promise.all(data.points.map((p) => mdInline(p)));
+const useWhen = data.useWhen ? await mdInline(data.useWhen) : '';
+const complexity = data.complexity ? await mdInline(data.complexity) : '';
+---
+
+<section class="qr" aria-labelledby="quick-reference">
+  <h2 id="quick-reference">Quick reference</h2>
+  <ul>
+    {points.map((p) => (
+      <li set:html={p} />
+    ))}
+  </ul>
+  {(useWhen || complexity) && (
+    <dl>
+      {useWhen && (
+        <div>
+          <dt>Use when</dt>
+          <dd set:html={useWhen} />
+        </div>
+      )}
+      {complexity && (
+        <div>
+          <dt>Cost</dt>
+          <dd set:html={complexity} />
+        </div>
+      )}
+    </dl>
+  )}
+</section>
+
+<style>
+  .qr {
+    max-width: var(--measure);
+    margin: 28px 0 8px;
+    padding: 18px 20px;
+    background: var(--bg-raised);
+    border: 1px solid var(--rule-strong);
+    border-top: 3px solid var(--accent);
+    border-radius: var(--radius);
+  }
+  h2 {
+    margin: 0 0 8px;
+    font-size: 0.75rem;
+    font-weight: 650;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--accent-ink);
+    font-family: var(--font-sans);
+  }
+  ul {
+    margin: 0;
+    padding-left: 1.2em;
+  }
+  li + li {
+    margin-top: 4px;
+  }
+  dl {
+    display: grid;
+    gap: 6px;
+    margin: 14px 0 0;
+    padding-top: 12px;
+    border-top: 1px solid var(--rule);
+  }
+  dl div {
+    display: grid;
+    grid-template-columns: 88px 1fr;
+    gap: 12px;
+  }
+  dt {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--ink-3);
+    padding-top: 2px;
+  }
+  dd {
+    margin: 0;
+  }
+</style>

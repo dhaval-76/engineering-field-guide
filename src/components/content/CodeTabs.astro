@@ -1,0 +1,145 @@
+---
+import Icon from '~/components/Icon.astro';
+import { getSnippet } from '~/lib/snippets';
+import { highlight } from '~/lib/highlight';
+
+interface Props {
+  /** Snippet id: matches code/<id>.<ext> files anywhere under topics/. */
+  id: string;
+  title?: string;
+}
+const { id, title } = Astro.props;
+const variants = await Promise.all(
+  getSnippet(id).map(async (v) => ({ ...v, html: await highlight(v.code, v.lang) })),
+);
+const uid = `code-${id}`;
+---
+
+<figure
+  class="code-tabs"
+  data-code-tabs
+  data-copy-scope
+  data-langs={variants.map((v) => v.lang).join(',')}
+>
+  <div class="bar">
+    {title && <figcaption class="title">{title}</figcaption>}
+    <div class="tabs" role="tablist" aria-label={title ? `${title} — language` : 'Language'}>
+      {variants.map((v, i) => (
+        <button
+          type="button"
+          role="tab"
+          id={`${uid}-tab-${v.lang}`}
+          aria-controls={`${uid}-${v.lang}`}
+          aria-selected={i === 0 ? 'true' : 'false'}
+          tabindex={i === 0 ? 0 : -1}
+          data-lang={v.lang}
+        >
+          {v.label}
+        </button>
+      ))}
+    </div>
+    <button class="copy" type="button" data-copy aria-label="Copy code">
+      <Icon name="copy" />
+      <Icon name="check" class="done" />
+    </button>
+  </div>
+  <p class="fallback" data-fallback-note hidden></p>
+  {variants.map((v, i) => (
+    <div
+      role="tabpanel"
+      id={`${uid}-${v.lang}`}
+      aria-labelledby={`${uid}-tab-${v.lang}`}
+      data-lang={v.lang}
+      hidden={i !== 0}
+      set:html={v.html}
+    />
+  ))}
+</figure>
+
+<style>
+  .code-tabs {
+    margin: 1.4em 0;
+    max-width: 100%;
+  }
+  .bar {
+    display: flex;
+    align-items: flex-end;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: -1px;
+  }
+  .title {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--ink-2);
+    padding: 0 2px 6px;
+    margin-right: auto;
+  }
+  .tabs {
+    display: flex;
+    gap: 2px;
+    overflow-x: auto;
+  }
+  .title + .tabs {
+    margin-left: 0;
+  }
+  .tabs:first-child {
+    margin-right: auto;
+  }
+  [role='tab'] {
+    padding: 5px 12px;
+    border: 1px solid transparent;
+    border-bottom: 0;
+    border-radius: var(--radius) var(--radius) 0 0;
+    background: transparent;
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    color: var(--ink-3);
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  [role='tab']:hover {
+    color: var(--ink);
+  }
+  [role='tab'][aria-selected='true'] {
+    color: var(--ink);
+    background: var(--code-bg);
+    border-color: var(--rule);
+  }
+  .copy {
+    display: grid;
+    place-items: center;
+    width: 30px;
+    height: 28px;
+    margin-bottom: 2px;
+    border: 0;
+    border-radius: var(--radius);
+    background: transparent;
+    color: var(--ink-3);
+    cursor: pointer;
+  }
+  .copy:hover {
+    color: var(--ink);
+    background: var(--bg-sunken);
+  }
+  .copy :global(.done) {
+    display: none;
+  }
+  .copy[data-state='copied'] {
+    color: var(--ok);
+  }
+  .copy[data-state='copied'] :global(.icon:not(.done)) {
+    display: none;
+  }
+  .copy[data-state='copied'] :global(.done) {
+    display: block;
+  }
+  .fallback {
+    margin: 0 0 6px;
+    font-size: 0.8125rem;
+    color: var(--warn);
+  }
+  [role='tabpanel'] :global(pre) {
+    border-top-left-radius: 0;
+  }
+</style>

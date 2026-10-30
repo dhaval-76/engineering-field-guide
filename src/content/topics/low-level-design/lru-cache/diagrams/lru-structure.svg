@@ -1,0 +1,70 @@
+<svg viewBox="0 0 680 300" xmlns="http://www.w3.org/2000/svg" font-size="14">
+  <defs>
+    <marker id="lru-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0L10 5L0 10z" fill="var(--d-stroke)"/>
+    </marker>
+    <marker id="lru-dash" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M0 0L10 5L0 10z" fill="var(--d-info)"/>
+    </marker>
+  </defs>
+
+  <!-- HashMap -->
+  <text x="190" y="22" fill="var(--d-muted)" font-size="12" font-weight="600" letter-spacing=".06em">HASHMAP · KEY → NODE</text>
+  <g>
+    <rect x="190" y="32" width="300" height="34" rx="5" fill="var(--d-fill)" stroke="var(--d-stroke)" stroke-width="1.4"/>
+    <line x1="290" y1="32" x2="290" y2="66" stroke="var(--d-line)"/>
+    <line x1="390" y1="32" x2="390" y2="66" stroke="var(--d-line)"/>
+    <text x="240" y="54" text-anchor="middle" fill="var(--d-text)" font-family="var(--font-mono)">"D"</text>
+    <text x="340" y="54" text-anchor="middle" fill="var(--d-text)" font-family="var(--font-mono)">"A"</text>
+    <text x="440" y="54" text-anchor="middle" fill="var(--d-text)" font-family="var(--font-mono)">"C"</text>
+  </g>
+
+  <!-- map → node pointers -->
+  <path d="M240 66 C240 110, 230 120, 230 158" fill="none" stroke="var(--d-info)" stroke-width="1.4" stroke-dasharray="4 3" marker-end="url(#lru-dash)"/>
+  <path d="M340 66 C340 110, 340 120, 340 158" fill="none" stroke="var(--d-info)" stroke-width="1.4" stroke-dasharray="4 3" marker-end="url(#lru-dash)"/>
+  <path d="M440 66 C440 110, 450 120, 450 158" fill="none" stroke="var(--d-info)" stroke-width="1.4" stroke-dasharray="4 3" marker-end="url(#lru-dash)"/>
+  <text x="500" y="112" fill="var(--d-info)" font-size="12">O(1) jump to the node</text>
+
+  <!-- list label -->
+  <text x="20" y="150" fill="var(--d-muted)" font-size="12" font-weight="600" letter-spacing=".06em">DOUBLY LINKED LIST</text>
+
+  <!-- HEAD -->
+  <rect x="20" y="162" width="90" height="44" rx="22" fill="none" stroke="var(--d-line)" stroke-width="1.4" stroke-dasharray="4 3"/>
+  <text x="65" y="189" text-anchor="middle" fill="var(--d-muted)" font-family="var(--font-mono)" font-size="13">HEAD</text>
+
+  <!-- D -->
+  <rect x="180" y="162" width="100" height="44" rx="5" fill="var(--d-accent-soft)" stroke="var(--d-accent)" stroke-width="1.6"/>
+  <text x="230" y="189" text-anchor="middle" fill="var(--d-text)" font-family="var(--font-mono)" font-weight="600">D : 4</text>
+
+  <!-- A -->
+  <rect x="290" y="162" width="100" height="44" rx="5" fill="var(--d-fill)" stroke="var(--d-stroke)" stroke-width="1.4"/>
+  <text x="340" y="189" text-anchor="middle" fill="var(--d-text)" font-family="var(--font-mono)">A : 1</text>
+
+  <!-- C -->
+  <rect x="400" y="162" width="100" height="44" rx="5" fill="var(--d-warn-soft)" stroke="var(--d-warn)" stroke-width="1.6"/>
+  <text x="450" y="189" text-anchor="middle" fill="var(--d-text)" font-family="var(--font-mono)">C : 3</text>
+
+  <!-- TAIL -->
+  <rect x="570" y="162" width="90" height="44" rx="22" fill="none" stroke="var(--d-line)" stroke-width="1.4" stroke-dasharray="4 3"/>
+  <text x="615" y="189" text-anchor="middle" fill="var(--d-muted)" font-family="var(--font-mono)" font-size="13">TAIL</text>
+
+  <!-- prev/next links -->
+  <g stroke="var(--d-stroke)" stroke-width="1.3" fill="none">
+    <line x1="112" y1="178" x2="178" y2="178" marker-end="url(#lru-arrow)"/>
+    <line x1="178" y1="190" x2="112" y2="190" marker-end="url(#lru-arrow)"/>
+    <line x1="282" y1="178" x2="288" y2="178"/>
+    <line x1="392" y1="178" x2="398" y2="178"/>
+    <line x1="502" y1="178" x2="568" y2="178" marker-end="url(#lru-arrow)"/>
+    <line x1="568" y1="190" x2="502" y2="190" marker-end="url(#lru-arrow)"/>
+  </g>
+  <text x="145" y="172" text-anchor="middle" fill="var(--d-muted)" font-size="11">next</text>
+  <text x="145" y="204" text-anchor="middle" fill="var(--d-muted)" font-size="11">prev</text>
+
+  <!-- annotations -->
+  <path d="M230 214 L230 236" stroke="var(--d-accent)" stroke-width="1.3"/>
+  <text x="230" y="254" text-anchor="middle" fill="var(--d-accent)" font-size="12" font-weight="600">most recently used</text>
+  <text x="230" y="272" text-anchor="middle" fill="var(--d-muted)" font-size="12">get/put move nodes here</text>
+  <path d="M450 214 L450 236" stroke="var(--d-warn)" stroke-width="1.3"/>
+  <text x="450" y="254" text-anchor="middle" fill="var(--d-warn)" font-size="12" font-weight="600">least recently used</text>
+  <text x="450" y="272" text-anchor="middle" fill="var(--d-muted)" font-size="12">evicted next (tail.prev)</text>
+</svg>

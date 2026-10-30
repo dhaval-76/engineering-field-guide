@@ -1,0 +1,13 @@
+---
+import TopicLayout from '~/layouts/TopicLayout.astro';
+import { getFlatTopics } from '~/lib/nav';
+
+export async function getStaticPaths() {
+  const topics = await getFlatTopics();
+  return topics.map((topic) => ({ params: { topic: topic.id }, props: { topic } }));
+}
+
+const { topic } = Astro.props;
+---
+
+<TopicLayout topic={topic} />

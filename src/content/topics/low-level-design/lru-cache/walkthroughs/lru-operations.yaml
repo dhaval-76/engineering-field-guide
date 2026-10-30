@@ -1,0 +1,66 @@
+title: LRU cache with capacity 3
+frames:
+  - caption: Start empty. The list runs from **most recent** (left, after HEAD) to **least recent** (right, before TAIL).
+    panels:
+      - kind: list
+        label: Recency list
+        items: [HEAD, TAIL]
+      - kind: kv
+        label: HashMap (key → node)
+        pairs: []
+  - caption: '`put(A, 1)` — new key: create a node, add it to the map, link it right after HEAD.'
+    panels:
+      - kind: list
+        label: Recency list
+        items: [HEAD, { v: 'A:1', tone: accent, tag: new }, TAIL]
+      - kind: kv
+        label: HashMap
+        pairs: [[A, { v: node A, tone: accent }]]
+  - caption: '`put(B, 2)` then `put(C, 3)` — each new node goes to the front, pushing older ones right.'
+    panels:
+      - kind: list
+        label: Recency list
+        items: [HEAD, { v: 'C:3', tone: accent }, 'B:2', 'A:1', TAIL]
+      - kind: kv
+        label: HashMap
+        pairs: [[A, node A], [B, node B], [C, { v: node C, tone: accent }]]
+  - caption: '`get(A)` — the map finds node A in O(1). Unlink it from its neighbours (C and TAIL) using its own `prev`/`next` pointers…'
+    panels:
+      - kind: list
+        label: Recency list
+        items: [HEAD, 'C:3', 'B:2', { v: 'A:1', tone: warn, tag: unlink }, TAIL]
+      - kind: kv
+        label: HashMap
+        pairs: [[A, { v: node A, tone: info, tag: lookup }], [B, node B], [C, node C]]
+  - caption: '…and relink it right after HEAD. A is now the most recent; **B** has become the least recent. Returns 1.'
+    panels:
+      - kind: list
+        label: Recency list
+        items: [HEAD, { v: 'A:1', tone: accent, tag: MRU }, 'C:3', { v: 'B:2', tag: LRU }, TAIL]
+      - kind: kv
+        label: HashMap
+        pairs: [[A, node A], [B, node B], [C, node C]]
+  - caption: '`put(D, 4)` — the cache is full. Evict `tail.prev` (B): unlink it **and** remove key B from the map. That is why each node stores its key.'
+    panels:
+      - kind: list
+        label: Recency list
+        items: [HEAD, 'A:1', 'C:3', { v: 'B:2', tone: bad, tag: evict }, TAIL]
+      - kind: kv
+        label: HashMap
+        pairs: [[A, node A], [{ v: B, tone: bad }, { v: node B, tone: bad }], [C, node C]]
+  - caption: Then insert D at the front as usual. Size stays at the capacity of 3.
+    panels:
+      - kind: list
+        label: Recency list
+        items: [HEAD, { v: 'D:4', tone: accent, tag: new }, 'A:1', 'C:3', TAIL]
+      - kind: kv
+        label: HashMap
+        pairs: [[A, node A], [C, node C], [D, { v: node D, tone: accent }]]
+  - caption: '`get(B)` — not in the map: a cache miss. Every step above touched a fixed number of pointers, so both operations are **O(1)**.'
+    panels:
+      - kind: list
+        label: Recency list
+        items: [HEAD, 'D:4', 'A:1', 'C:3', TAIL]
+      - kind: kv
+        label: HashMap
+        pairs: [[A, node A], [C, node C], [D, node D], [{ v: B, tone: muted }, { v: miss, tone: bad }]]

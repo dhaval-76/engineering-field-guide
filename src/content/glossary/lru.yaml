@@ -1,0 +1,4 @@
+term: LRU (Least Recently Used)
+short: Eviction policy that removes the entry that has gone longest without
+  being accessed.
+topic: low-level-design/lru-cache

@@ -1,0 +1,71 @@
+---
+import type { Topic } from '~/lib/nav';
+import { topicUrl } from '~/lib/url';
+
+interface Props {
+  prev?: Topic | undefined;
+  next?: Topic | undefined;
+}
+const { prev, next } = Astro.props;
+---
+
+<nav class="pn" aria-label="Previous and next topic" data-pagefind-ignore>
+  {prev ? (
+    <a href={topicUrl(prev.id)} rel="prev">
+      <span class="dir">
+        ← Previous <kbd>k</kbd>
+      </span>
+      <span class="t">{prev.data.title}</span>
+    </a>
+  ) : (
+    <span />
+  )}
+  {next && (
+    <a href={topicUrl(next.id)} rel="next" class="next">
+      <span class="dir">
+        <kbd>j</kbd> Next →
+      </span>
+      <span class="t">{next.data.title}</span>
+    </a>
+  )}
+</nav>
+
+<style>
+  .pn {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-top: 48px;
+    max-width: var(--measure);
+  }
+  a {
+    display: grid;
+    gap: 2px;
+    padding: 12px 16px;
+    border: 1px solid var(--rule);
+    border-radius: var(--radius);
+    text-decoration: none;
+    color: var(--ink);
+  }
+  a:hover {
+    border-color: var(--accent);
+  }
+  .next {
+    text-align: right;
+  }
+  .dir {
+    font-size: 0.8125rem;
+    color: var(--ink-3);
+  }
+  .t {
+    font-weight: 560;
+  }
+  @media (max-width: 560px) {
+    .pn {
+      grid-template-columns: 1fr;
+    }
+    kbd {
+      display: none;
+    }
+  }
+</style>

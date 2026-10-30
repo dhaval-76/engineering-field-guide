@@ -1,0 +1,53 @@
+---
+import { getDiagram } from '~/lib/diagrams';
+
+interface Props {
+  id: string;
+  caption: string;
+  /** Allows the diagram to grow wider than the reading column on large screens. */
+  wide?: boolean;
+}
+const { id, caption, wide = false } = Astro.props;
+const svg = getDiagram(id);
+---
+
+<figure class:list={['diagram', { wide }]}>
+  <div class="canvas" role="img" aria-label={caption} tabindex="0" set:html={svg} />
+  <figcaption>{caption}</figcaption>
+</figure>
+
+<style>
+  .diagram {
+    margin: 1.8em 0;
+  }
+  .canvas {
+    overflow-x: auto;
+    padding: 16px;
+    background: var(--d-bg);
+    border: 1px solid var(--rule);
+    border-radius: var(--radius-lg);
+    color: var(--d-text);
+  }
+  .canvas :global(svg) {
+    display: block;
+    margin: 0 auto;
+    height: auto;
+    min-width: 520px;
+    max-width: 100%;
+    font-family: var(--font-sans);
+  }
+  .canvas :global(svg text) {
+    font-family: var(--font-sans);
+  }
+  figcaption {
+    margin-top: 8px;
+    font-size: 0.875rem;
+    color: var(--ink-3);
+    text-align: center;
+  }
+  @media (min-width: 1280px) {
+    .wide {
+      width: min(100%, 960px);
+    }
+  }
+</style>

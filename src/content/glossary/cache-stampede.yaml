@@ -1,0 +1,3 @@
+term: Cache stampede
+short: Many concurrent requests miss the same key at once and all hit the
+  backing store; also called thundering herd. Fixed by coalescing loads per key.

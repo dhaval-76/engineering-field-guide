@@ -1,0 +1,212 @@
+---
+import Icon from '~/components/Icon.astro';
+import { site } from '~/site.config';
+import { url } from '~/lib/url';
+
+interface Props {
+  hasSidebar: boolean;
+}
+const { hasSidebar } = Astro.props;
+---
+
+<header class="header">
+  <div class="inner">
+    {hasSidebar && (
+      <button
+        class="icon-btn nav-toggle"
+        type="button"
+        data-nav-toggle
+        aria-controls="sidebar"
+        aria-expanded="false"
+      >
+        <Icon name="menu" label="Open navigation" />
+      </button>
+    )}
+    <a class="brand" href={url()}>
+      <svg class="mark" viewBox="0 0 28 28" aria-hidden="true">
+        <rect
+          x="1.5"
+          y="1.5"
+          width="25"
+          height="25"
+          rx="5"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.5"
+        ></rect>
+        <path
+          d="M8 19V9h8M8 14h6"
+          fill="none"
+          stroke="var(--accent)"
+          stroke-width="2.2"
+          stroke-linecap="round"
+        ></path>
+        <circle cx="19.5" cy="18.5" r="2" fill="var(--accent)"></circle>
+      </svg>
+      <span class="name">{site.name}</span>
+    </a>
+
+    <nav class="links" aria-label="Site">
+      <a href={url('cheatsheets/')}>Cheat sheets</a>
+      <a href={url('glossary/')}>Glossary</a>
+      <a href={url('progress/')}>Progress</a>
+    </nav>
+
+    <button class="search-btn" type="button" data-search-open aria-label="Search (Ctrl+K)">
+      <Icon name="search" />
+      <span class="search-label">Search</span>
+      <span class="search-keys">
+        <kbd>/</kbd>
+      </span>
+    </button>
+    <button class="icon-btn" type="button" data-theme-toggle aria-label="Toggle dark theme">
+      <Icon name="moon" class="when-light" />
+      <Icon name="sun" class="when-dark" />
+    </button>
+  </div>
+</header>
+
+<style>
+  .header {
+    position: sticky;
+    top: 0;
+    z-index: 40;
+    height: var(--header-h);
+    background: color-mix(in srgb, var(--bg) 92%, transparent);
+    backdrop-filter: saturate(1.2) blur(8px);
+    border-bottom: 1px solid var(--rule);
+  }
+  .inner {
+    max-width: 1440px;
+    height: 100%;
+    margin: 0 auto;
+    padding: 0 var(--gutter);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  @media (min-width: 960px) {
+    .inner {
+      padding: 0 32px;
+    }
+  }
+  .brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--ink);
+    text-decoration: none;
+    margin-right: auto;
+    min-width: 0;
+  }
+  .mark {
+    width: 26px;
+    height: 26px;
+    flex: none;
+  }
+  .name {
+    font-family: var(--font-serif);
+    font-size: 1.2rem;
+    font-weight: 560;
+    letter-spacing: -0.01em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .links {
+    display: none;
+    gap: 4px;
+    margin-right: 8px;
+  }
+  .links a {
+    color: var(--ink-2);
+    text-decoration: none;
+    font-size: 0.9375rem;
+    padding: 6px 10px;
+    border-radius: var(--radius);
+  }
+  .links a:hover {
+    color: var(--ink);
+    background: var(--bg-sunken);
+  }
+  @media (min-width: 1100px) {
+    .links {
+      display: flex;
+    }
+  }
+  .search-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    height: 36px;
+    padding: 0 10px;
+    border: 1px solid var(--rule-strong);
+    border-radius: var(--radius);
+    background: var(--bg-raised);
+    color: var(--ink-3);
+    cursor: pointer;
+  }
+  .search-btn:hover {
+    color: var(--ink);
+    border-color: var(--ink-3);
+  }
+  .search-label,
+  .search-keys {
+    display: none;
+  }
+  @media (min-width: 640px) {
+    .search-btn {
+      min-width: 200px;
+    }
+    .search-label {
+      display: inline;
+      font-size: 0.9375rem;
+      margin-right: auto;
+    }
+    .search-keys {
+      display: inline;
+    }
+  }
+  .icon-btn {
+    display: inline-grid;
+    place-items: center;
+    width: 36px;
+    height: 36px;
+    border: 1px solid transparent;
+    border-radius: var(--radius);
+    background: transparent;
+    color: var(--ink-2);
+    cursor: pointer;
+    flex: none;
+  }
+  .icon-btn:hover {
+    background: var(--bg-sunken);
+    color: var(--ink);
+  }
+  .icon-btn :global(.icon) {
+    width: 20px;
+    height: 20px;
+  }
+  :global(.when-dark) {
+    display: none;
+  }
+  :global(html[data-theme='dark'] .when-dark) {
+    display: block;
+  }
+  :global(html[data-theme='dark'] .when-light) {
+    display: none;
+  }
+  @media (prefers-color-scheme: dark) {
+    :global(html:not([data-theme='light']) .when-dark) {
+      display: block;
+    }
+    :global(html:not([data-theme='light']) .when-light) {
+      display: none;
+    }
+  }
+  @media (min-width: 960px) {
+    .icon-btn.nav-toggle {
+      display: none;
+    }
+  }
+</style>

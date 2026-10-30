@@ -1,0 +1,203 @@
+---
+import type { CollectionEntry } from 'astro:content';
+import CodeTabs from '~/components/content/CodeTabs.astro';
+import AskedAt from '~/components/qa/AskedAt.astro';
+import Quiz from '~/components/islands/Quiz';
+import { md } from '~/lib/markdown';
+
+interface Props {
+  qa: CollectionEntry<'qa'>['data'];
+}
+const { qa } = Astro.props;
+
+const questions = await Promise.all(
+  qa.questions.map(async (x) => ({
+    ...x,
+    thinkHtml: x.think ? await md(x.think) : '',
+    answerHtml: await md(x.answer),
+  })),
+);
+const followUps = await Promise.all(
+  qa.followUps.map(async (x) => ({
+    ...x,
+    intuitionHtml: await md(x.intuition),
+    approachHtml: await md(x.approach),
+  })),
+);
+const practice = await Promise.all(
+  qa.practice.map(async (x) => ({
+    ...x,
+    taskHtml: await md(x.task),
+    hintHtml: x.hint ? await md(x.hint) : '',
+    solutionHtml: await md(x.solution),
+  })),
+);
+const quiz = await Promise.all(
+  qa.quiz.map(async (x) => ({
+    q: x.q,
+    options: x.options,
+    correct: x.correct,
+    whyHtml: await md(x.why),
+  })),
+);
+---
+
+<div class="interview prose">
+  {questions.length > 0 && (
+    <section aria-labelledby="interview-questions">
+      <h2 id="interview-questions">Interview questions</h2>
+      <p class="lede">Try answering out loud before opening each one.</p>
+      {questions.map((x, i) => (
+        <details class="qa">
+          <summary>
+            <span class="n">Q{i + 1}</span>
+            <span class="q">{x.q}</span>
+          </summary>
+          <div class="qa-body">
+            <AskedAt items={x.askedAt} />
+            {x.thinkHtml && (
+              <div class="think">
+                <p class="tag">How to think about it</p>
+                <Fragment set:html={x.thinkHtml} />
+              </div>
+            )}
+            <p class="tag">Answer</p>
+            <Fragment set:html={x.answerHtml} />
+          </div>
+        </details>
+      ))}
+    </section>
+  )}
+  {followUps.length > 0 && (
+    <section aria-labelledby="follow-ups">
+      <h2 id="follow-ups">Follow-ups to expect</h2>
+      <p class="lede">The questions interviewers ask once the first answer lands.</p>
+      {followUps.map((x) => (
+        <details class="qa">
+          <summary>
+            <span class="n">↳</span>
+            <span class="q">{x.q}</span>
+          </summary>
+          <div class="qa-body">
+            <AskedAt items={x.askedAt} />
+            <p class="tag">Intuition</p>
+            <Fragment set:html={x.intuitionHtml} />
+            <p class="tag">Approach</p>
+            <Fragment set:html={x.approachHtml} />
+          </div>
+        </details>
+      ))}
+    </section>
+  )}
+  {practice.length > 0 && (
+    <section aria-labelledby="practice">
+      <h2 id="practice">Practice</h2>
+      {practice.map((x, i) => (
+        <div class="practice">
+          <p class="tag">Exercise {i + 1}</p>
+          <Fragment set:html={x.taskHtml} />
+          {x.hintHtml && (
+            <details class="mini">
+              <summary>Hint</summary>
+              <Fragment set:html={x.hintHtml} />
+            </details>
+          )}
+          <details class="mini">
+            <summary>Solution</summary>
+            <Fragment set:html={x.solutionHtml} />
+            {x.solutionCode && <CodeTabs id={x.solutionCode} />}
+          </details>
+        </div>
+      ))}
+    </section>
+  )}
+  {quiz.length > 0 && (
+    <section aria-labelledby="self-check">
+      <h2 id="self-check">Self-check</h2>
+      <Quiz client:visible items={quiz} />
+    </section>
+  )}
+</div>
+
+<style>
+  .lede {
+    color: var(--ink-3);
+    font-size: 0.9375rem;
+  }
+  .qa {
+    border: 1px solid var(--rule);
+    border-radius: var(--radius);
+    background: var(--bg-raised);
+    margin: 10px 0;
+  }
+  .qa > summary {
+    display: flex;
+    gap: 12px;
+    align-items: baseline;
+    padding: 12px 16px;
+    cursor: pointer;
+    list-style: none;
+  }
+  .qa > summary::-webkit-details-marker {
+    display: none;
+  }
+  .qa > summary::after {
+    content: '+';
+    margin-left: auto;
+    color: var(--ink-3);
+    font-size: 1.2rem;
+    line-height: 1;
+  }
+  .qa[open] > summary::after {
+    content: '−';
+  }
+  .qa > summary:hover .q {
+    color: var(--accent-ink);
+  }
+  .n {
+    flex: none;
+    font-family: var(--font-mono);
+    font-size: 0.8125rem;
+    color: var(--accent);
+  }
+  .q {
+    font-weight: 560;
+  }
+  .qa-body {
+    padding: 4px 18px 16px 18px;
+    border-top: 1px solid var(--rule);
+  }
+  .tag {
+    margin: 14px 0 2px;
+    font-size: 0.6875rem;
+    font-weight: 650;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+  }
+  .think {
+    padding: 2px 14px 6px;
+    margin-top: 12px;
+    border-left: 3px solid var(--plum);
+    background: var(--plum-soft);
+    border-radius: 0 var(--radius) var(--radius) 0;
+  }
+  .practice {
+    padding: 14px 18px;
+    margin: 12px 0;
+    border: 1px dashed var(--rule-strong);
+    border-radius: var(--radius);
+  }
+  .practice > .tag:first-child {
+    margin-top: 0;
+  }
+  .mini {
+    margin-top: 10px;
+  }
+  .mini > summary {
+    cursor: pointer;
+    font-size: 0.9375rem;
+    font-weight: 600;
+    color: var(--accent-ink);
+  }
+</style>

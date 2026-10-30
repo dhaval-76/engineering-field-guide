@@ -1,0 +1,76 @@
+---
+import { getEntry } from 'astro:content';
+import { topicUrl, url } from '~/lib/url';
+
+interface Props {
+  /** Glossary entry id (file name in content/glossary). */
+  id: string;
+}
+const { id } = Astro.props;
+const entry = await getEntry('glossary', id);
+if (!entry) throw new Error(`Unknown glossary term "${id}". Add src/content/glossary/${id}.yaml`);
+const pid = `term-${id}-${Math.random().toString(36).slice(2, 7)}`;
+const more = entry.data.topic ? topicUrl(entry.data.topic.id) : url(`glossary/#${id}`);
+---
+
+<button type="button" class="term" popovertarget={pid} style={`anchor-name: --${pid}`}>
+  <slot>{entry.data.term}</slot>
+</button>
+<div id={pid} popover class="term-pop" style={`position-anchor: --${pid}`}>
+  <strong>{entry.data.term}</strong>
+  <span>{entry.data.short}</span>
+  <a href={more}>Read more →</a>
+</div>
+
+<style>
+  .term {
+    display: inline;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: inherit;
+    font: inherit;
+    cursor: help;
+    text-decoration: underline dotted var(--ink-3);
+    text-underline-offset: 0.2em;
+  }
+  .term:hover {
+    text-decoration-color: var(--accent);
+  }
+  .term-pop {
+    margin: 0;
+    inset: auto 16px 16px 16px;
+    max-width: 420px;
+    padding: 12px 14px;
+    border: 1px solid var(--rule-strong);
+    border-radius: var(--radius);
+    background: var(--bg-raised);
+    color: var(--ink);
+    box-shadow: var(--shadow);
+    font-size: 0.9375rem;
+    line-height: 1.5;
+  }
+  .term-pop:popover-open {
+    display: grid;
+    gap: 4px;
+  }
+  .term-pop strong {
+    font-family: var(--font-serif);
+    font-size: 1.05rem;
+  }
+  .term-pop a {
+    font-size: 0.875rem;
+  }
+  @supports (position-area: bottom) {
+    @media (min-width: 640px) {
+      .term-pop {
+        inset: auto;
+        position-area: bottom span-right;
+        position-try-fallbacks: flip-block, flip-inline;
+        margin-top: 6px;
+        width: max-content;
+        max-width: 360px;
+      }
+    }
+  }
+</style>

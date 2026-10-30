@@ -1,0 +1,18 @@
+---
+import { getEntry } from 'astro:content';
+import WalkthroughPlayer from '~/components/islands/WalkthroughPlayer';
+import { mdInline } from '~/lib/markdown';
+
+interface Props {
+  /** File name (without .yaml) in some topic's walkthroughs/ folder. */
+  id: string;
+}
+const { id } = Astro.props;
+const entry = await getEntry('walkthroughs', id);
+if (!entry) throw new Error(`Walkthrough "${id}" not found (expected walkthroughs/${id}.yaml).`);
+const frames = await Promise.all(
+  entry.data.frames.map(async (f) => ({ ...f, captionHtml: await mdInline(f.caption) })),
+);
+---
+
+<WalkthroughPlayer client:visible title={entry.data.title} frames={frames} />

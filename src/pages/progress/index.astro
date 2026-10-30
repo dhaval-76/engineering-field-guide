@@ -1,0 +1,80 @@
+---
+import BaseLayout from '~/layouts/BaseLayout.astro';
+import PersonalPanel from '~/components/islands/PersonalPanel';
+import { getTopicIndex } from '~/lib/topic-index';
+
+const index = await getTopicIndex();
+---
+
+<BaseLayout title="Your progress" noindex>
+  <div class="wrap">
+    <h1>Your progress</h1>
+    <p class="lede">
+      Self-paced: there are no deadlines. Mark topics complete as you go and come back any time.
+    </p>
+    <PersonalPanel
+      client:only="react"
+      mode="progress"
+      topics={index.topics}
+      tracks={index.tracks}
+    />
+  </div>
+</BaseLayout>
+
+<style>
+  .wrap {
+    max-width: 760px;
+  }
+  h1 {
+    font-family: var(--font-serif);
+    font-weight: 560;
+    font-size: var(--step-4);
+    margin: 0;
+  }
+  .lede {
+    color: var(--ink-2);
+  }
+  .wrap :global(h2) {
+    font-family: var(--font-serif);
+    font-weight: 560;
+    font-size: var(--step-2);
+    margin: 32px 0 8px;
+  }
+  .wrap :global(.pp-total) {
+    font-size: var(--step-1);
+  }
+  .wrap :global(.pp-tracks) {
+    list-style: none;
+    padding: 0;
+    margin: 16px 0;
+    display: grid;
+    gap: 10px;
+  }
+  .wrap :global(.pp-tracks li) {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 120px 48px;
+    gap: 12px;
+    align-items: center;
+  }
+  .wrap :global(.pp-bar) {
+    height: 6px;
+    border-radius: 3px;
+    background: var(--bg-sunken);
+    overflow: hidden;
+  }
+  .wrap :global(.pp-bar span) {
+    display: block;
+    height: 100%;
+    background: var(--ok);
+  }
+  .wrap :global(.pp-num) {
+    font-variant-numeric: tabular-nums;
+    color: var(--ink-3);
+    font-size: 0.875rem;
+    text-align: right;
+  }
+  .wrap :global(.pp-muted) {
+    color: var(--ink-3);
+    font-size: 0.9375rem;
+  }
+</style>

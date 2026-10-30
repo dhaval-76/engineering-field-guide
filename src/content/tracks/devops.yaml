@@ -1,0 +1,5 @@
+title: DevOps & Delivery
+short: DevOps
+blurb: Git, containers, Kubernetes, CI/CD and cloud fundamentals.
+order: 11
+icon: devops

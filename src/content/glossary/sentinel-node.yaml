@@ -1,0 +1,3 @@
+term: Sentinel node
+short: A dummy node at the start or end of a linked structure that holds no
+  data, so insert and delete never need null checks.

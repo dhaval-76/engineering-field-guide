@@ -1,0 +1,198 @@
+---
+import BaseLayout from '~/layouts/BaseLayout.astro';
+import Icon from '~/components/Icon.astro';
+import PersonalPanel from '~/components/islands/PersonalPanel';
+import { getNav } from '~/lib/nav';
+import { getTopicIndex } from '~/lib/topic-index';
+import { site } from '~/site.config';
+import { topicUrl, trackUrl, url } from '~/lib/url';
+
+const nav = await getNav();
+const index = await getTopicIndex();
+---
+
+<BaseLayout title={site.name} sidebar={false}>
+  <section class="intro">
+    <h1>{site.name}</h1>
+    <p class="lede">
+      Core software-engineering ideas — from hash maps to distributed consensus — explained with
+      pictures, step-by-step walkthroughs and runnable code. Look one thing up in thirty seconds, or
+      read a track end to end.
+    </p>
+    <button class="big-search" type="button" data-search-open>
+      <Icon name="search" />
+      <span>Search topics, concepts and interview questions</span>
+      <kbd>/</kbd>
+    </button>
+    <p class="hints">
+      <a href={url('cheatsheets/')}>Cheat sheets</a> for quick revision ·{' '}
+      <a href={url('glossary/')}>Glossary</a> of terms · Code in Java, with JavaScript and Python
+      where available
+    </p>
+  </section>
+
+  <PersonalPanel client:only="react" mode="home" topics={index.topics} tracks={index.tracks} />
+
+  <section class="tracks" aria-label="Tracks">
+    {nav.map(({ track, topics }) => (
+      <article class="track">
+        <a class="track-head" href={trackUrl(track.id)}>
+          <Icon name={track.data.icon} />
+          <h2>{track.data.title}</h2>
+        </a>
+        <p>{track.data.blurb}</p>
+        {topics.length > 0 ? (
+          <ul>
+            {topics.slice(0, 5).map((t) => (
+              <li>
+                <a href={topicUrl(t.id)} data-topic-link={t.id}>
+                  {t.data.title}
+                </a>
+              </li>
+            ))}
+            {topics.length > 5 && (
+              <li class="more">
+                <a href={trackUrl(track.id)}>All {topics.length} topics →</a>
+              </li>
+            )}
+          </ul>
+        ) : (
+          <p class="soon">In progress</p>
+        )}
+      </article>
+    ))}
+  </section>
+</BaseLayout>
+
+<style>
+  .intro {
+    max-width: 760px;
+    padding: 32px 0 24px;
+  }
+  h1 {
+    margin: 0;
+    font-family: var(--font-serif);
+    font-size: clamp(2.4rem, 1.6rem + 3.4vw, 3.6rem);
+    font-weight: 540;
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+  }
+  .lede {
+    margin: 16px 0 0;
+    font-family: var(--font-serif);
+    font-size: clamp(1.15rem, 1rem + 0.5vw, 1.35rem);
+    line-height: 1.5;
+    color: var(--ink-2);
+  }
+  .big-search {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    margin-top: 28px;
+    padding: 14px 16px;
+    border: 1px solid var(--rule-strong);
+    border-radius: var(--radius-lg);
+    background: var(--bg-raised);
+    color: var(--ink-3);
+    font-size: 1.0625rem;
+    text-align: left;
+    cursor: pointer;
+    box-shadow: var(--shadow);
+  }
+  .big-search span {
+    flex: 1;
+    min-width: 0;
+  }
+  .big-search:hover {
+    border-color: var(--accent);
+    color: var(--ink-2);
+  }
+  .hints {
+    font-size: 0.9375rem;
+    color: var(--ink-3);
+  }
+  :global(.pp-home) {
+    display: grid;
+    gap: 24px;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    max-width: 760px;
+    padding: 16px 0 8px;
+  }
+  :global(.pp-home ul) {
+    list-style: none;
+    margin: 8px 0 0;
+    padding: 0;
+  }
+  :global(.pp-home li) {
+    padding: 4px 0;
+  }
+  .tracks {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr));
+    gap: 0;
+    margin-top: 32px;
+    border-top: 1px solid var(--rule);
+  }
+  .track {
+    padding: 24px 24px 24px 0;
+    border-bottom: 1px solid var(--rule);
+  }
+  @media (min-width: 720px) {
+    .track {
+      padding: 28px 28px 28px 0;
+    }
+  }
+  .track-head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--ink);
+    text-decoration: none;
+  }
+  .track-head :global(.icon) {
+    width: 22px;
+    height: 22px;
+    color: var(--accent);
+  }
+  .track-head:hover h2 {
+    color: var(--accent-ink);
+  }
+  h2 {
+    margin: 0;
+    font-family: var(--font-serif);
+    font-size: var(--step-2);
+    font-weight: 560;
+    line-height: 1.2;
+  }
+  .track > p {
+    margin: 8px 0 12px;
+    color: var(--ink-2);
+    font-size: 0.9375rem;
+  }
+  .track ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    font-size: 0.9375rem;
+  }
+  .track li {
+    padding: 3px 0;
+  }
+  .track li a {
+    color: var(--ink);
+    text-decoration-color: var(--rule-strong);
+  }
+  .track li a[data-done]::after {
+    content: ' ✓';
+    color: var(--ok);
+  }
+  .more a {
+    color: var(--accent-ink) !important;
+  }
+  .soon {
+    color: var(--ink-3);
+    font-style: italic;
+    font-size: 0.875rem;
+  }
+</style>

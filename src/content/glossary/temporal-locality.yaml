@@ -1,0 +1,3 @@
+term: Temporal locality
+short: Data accessed recently is likely to be accessed again soon — the
+  assumption behind LRU caches.

@@ -1,0 +1,82 @@
+---
+/**
+ * Asides inside a topic.
+ * - note: neutral context        - tip: practical advice
+ * - warning: easy-to-miss trap   - insight: what a strong answer/engineer adds
+ * - analogy: plain-language picture of the idea
+ * - prereq: a quick refresher of something this topic depends on
+ */
+interface Props {
+  type?: 'note' | 'tip' | 'warning' | 'insight' | 'analogy' | 'prereq';
+  title?: string;
+}
+const { type = 'note', title } = Astro.props;
+const defaults = {
+  note: 'Note',
+  tip: 'Tip',
+  warning: 'Watch out',
+  insight: 'What strong answers include',
+  analogy: 'Think of it like this',
+  prereq: 'Quick refresher',
+} as const;
+---
+
+<aside class:list={['callout', type]}>
+  <p class="label">{title ?? defaults[type]}</p>
+  <div class="body">
+    <slot />
+  </div>
+</aside>
+
+<style>
+  .callout {
+    --c: var(--info);
+    --c-soft: var(--info-soft);
+    margin: 1.5em 0;
+    padding: 14px 18px;
+    border-left: 3px solid var(--c);
+    background: var(--c-soft);
+    border-radius: 0 var(--radius) var(--radius) 0;
+  }
+  .tip {
+    --c: var(--ok);
+    --c-soft: var(--ok-soft);
+  }
+  .warning {
+    --c: var(--warn);
+    --c-soft: var(--warn-soft);
+  }
+  .insight {
+    --c: var(--accent);
+    --c-soft: var(--accent-soft);
+  }
+  .analogy {
+    --c: var(--plum);
+    --c-soft: var(--plum-soft);
+  }
+  .prereq {
+    --c: var(--ink-3);
+    --c-soft: var(--bg-sunken);
+  }
+  .label {
+    margin: 0 0 4px;
+    font-size: 0.75rem;
+    font-weight: 650;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--c);
+  }
+  .analogy .body {
+    font-family: var(--font-serif);
+    font-size: 1.08em;
+  }
+  .body > :global(:first-child) {
+    margin-top: 0;
+  }
+  .body > :global(:last-child) {
+    margin-bottom: 0;
+  }
+  .body :global(p) {
+    margin: 0.5em 0;
+  }
+</style>

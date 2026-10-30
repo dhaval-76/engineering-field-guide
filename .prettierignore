@@ -1,0 +1,7 @@
+dist
+legacy
+drafts
+node_modules
+.astro
+src/content/**/code/**
+src/content/**/diagrams/*.svg

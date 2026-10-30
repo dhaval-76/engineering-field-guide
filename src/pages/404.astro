@@ -1,0 +1,40 @@
+---
+import BaseLayout from '~/layouts/BaseLayout.astro';
+import { url } from '~/lib/url';
+---
+
+<BaseLayout title="Page not found" sidebar={false} noindex>
+  <div class="wrap">
+    <p class="eyebrow">404</p>
+    <h1>This page isn't here.</h1>
+    <p>
+      It may have moved when topics were reorganised. Try searching for it, or start from the home
+      page.
+    </p>
+    <p>
+      <button class="btn" type="button" data-search-open>
+        Search
+      </button>
+      <a class="btn" href={url()}>
+        Home
+      </a>
+    </p>
+  </div>
+</BaseLayout>
+
+<style>
+  .wrap {
+    max-width: 560px;
+    padding: 64px 0;
+  }
+  h1 {
+    font-family: var(--font-serif);
+    font-weight: 560;
+    font-size: var(--step-4);
+    margin: 4px 0 12px;
+  }
+  .btn {
+    text-decoration: none;
+    margin-right: 8px;
+  }
+</style>

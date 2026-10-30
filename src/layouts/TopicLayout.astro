@@ -1,0 +1,262 @@
+---
+import { getEntry, render } from 'astro:content';
+import BaseLayout from './BaseLayout.astro';
+import Icon from '~/components/Icon.astro';
+import Toc from '~/components/layout/Toc.astro';
+import PrevNext from '~/components/layout/PrevNext.astro';
+import QuickRef from '~/components/content/QuickRef.astro';
+import AskedAt from '~/components/qa/AskedAt.astro';
+import InterviewSection from '~/components/qa/InterviewSection.astro';
+import { mdxComponents } from '~/components/content/mdx';
+import { getNeighbours, resolveTopics, type Topic } from '~/lib/nav';
+import { interviewHeadings } from '~/lib/qa';
+import { topicUrl, trackUrl } from '~/lib/url';
+
+interface Props {
+  topic: Topic;
+}
+const { topic } = Astro.props;
+const { data } = topic;
+const track = await getEntry(data.track);
+const qa = await getEntry('qa', topic.id);
+const { Content, headings } = await render(topic);
+const { prev, next } = await getNeighbours(topic.id);
+const prerequisites = await resolveTopics(data.prerequisites);
+const related = await resolveTopics(data.related);
+
+const words = (topic.body ?? '').split(/\s+/).length;
+const minutes = Math.max(2, Math.round(words / 220));
+const toc = [
+  { depth: 2, slug: 'quick-reference', text: 'Quick reference' },
+  ...headings,
+  ...interviewHeadings(qa?.data),
+];
+const reviewed = data.lastReviewed.toLocaleDateString('en-GB', { month: 'short', year: 'numeric' });
+---
+
+<BaseLayout
+  title={data.title}
+  description={data.summary}
+  current={{ track: track.id, topic: topic.id }}
+>
+  <div class="topic" data-topic-id={topic.id} data-topic-title={data.title}>
+    <article>
+      <nav class="crumbs" aria-label="Breadcrumb" data-pagefind-ignore>
+        <a href={trackUrl(track.id)}>{track.data.title}</a>
+      </nav>
+      <h1 data-pagefind-meta="title">{data.title}</h1>
+      <span hidden data-pagefind-meta="track">
+        {track.data.short}
+      </span>
+      <p class="summary">{data.summary}</p>
+
+      <div class="meta" data-pagefind-ignore>
+        <span>{minutes} min read</span>
+        <span aria-hidden="true">·</span>
+        <span>Reviewed {reviewed}</span>
+        <div class="actions">
+          <button class="btn" type="button" data-progress-toggle={topic.id} aria-pressed="false">
+            <Icon name="check" />
+            <span data-label>Mark complete</span>
+          </button>
+          <button class="btn" type="button" data-bookmark-toggle={topic.id} aria-pressed="false">
+            <Icon name="bookmark" />
+            <span data-label>Save</span>
+          </button>
+          <button
+            class="btn focus-btn"
+            type="button"
+            data-focus-toggle
+            aria-pressed="false"
+            title="Hide side panels"
+          >
+            <Icon name="focus" />
+            <span>Focus</span>
+          </button>
+        </div>
+      </div>
+
+      {prerequisites.length > 0 && (
+        <p class="prereq" data-pagefind-ignore>
+          Builds on{' '}
+          {prerequisites.map((p, i) => (
+            <>
+              {i > 0 && ', '}
+              <a href={topicUrl(p.id)}>{p.data.title}</a>
+            </>
+          ))}
+          . Each is recapped briefly where it's needed.
+        </p>
+      )}
+
+      <AskedAt items={data.askedAt} label="Reported in interviews at" />
+
+      <QuickRef data={data.quickRef} />
+
+      <details class="toc-inline" data-pagefind-ignore>
+        <summary>On this page</summary>
+        <Toc headings={toc} />
+      </details>
+
+      <div class="prose">
+        <Content components={mdxComponents} />
+      </div>
+
+      {qa && <InterviewSection qa={qa.data} />}
+
+      {related.length > 0 && (
+        <section class="related" aria-labelledby="related" data-pagefind-ignore>
+          <h2 id="related">Related topics</h2>
+          <ul>
+            {related.map((r) => (
+              <li>
+                <a href={topicUrl(r.id)}>{r.data.title}</a>
+                <span>{r.data.summary}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      <PrevNext prev={prev} next={next} />
+    </article>
+    <aside class="toc-col">
+      <div class="toc-sticky">
+        <Toc headings={toc} />
+      </div>
+    </aside>
+  </div>
+</BaseLayout>
+
+<style>
+  .topic {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 48px;
+  }
+  .toc-col {
+    display: none;
+  }
+  @media (min-width: 1240px) {
+    .topic {
+      grid-template-columns: minmax(0, 1fr) var(--toc-w);
+    }
+    .toc-col {
+      display: block;
+    }
+    .toc-inline {
+      display: none;
+    }
+  }
+  .toc-sticky {
+    position: sticky;
+    top: calc(var(--header-h) + 32px);
+    max-height: calc(100vh - var(--header-h) - 64px);
+    overflow-y: auto;
+  }
+  article {
+    min-width: 0;
+  }
+  .crumbs {
+    font-size: 0.875rem;
+  }
+  .crumbs a {
+    color: var(--ink-3);
+    text-decoration: none;
+  }
+  .crumbs a:hover {
+    color: var(--accent-ink);
+  }
+  h1 {
+    margin: 6px 0 0;
+    font-family: var(--font-serif);
+    font-size: clamp(2rem, 1.4rem + 2.4vw, var(--step-4));
+    font-weight: 560;
+    line-height: 1.1;
+    letter-spacing: -0.015em;
+    max-width: 24ch;
+  }
+  .summary {
+    margin: 12px 0 0;
+    max-width: var(--measure);
+    font-family: var(--font-serif);
+    font-size: var(--step-1);
+    line-height: 1.5;
+    color: var(--ink-2);
+  }
+  .meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin-top: 18px;
+    font-size: 0.875rem;
+    color: var(--ink-3);
+  }
+  .actions {
+    display: flex;
+    gap: 6px;
+    margin-left: auto;
+  }
+  @media (max-width: 640px) {
+    .actions {
+      margin-left: 0;
+      width: 100%;
+    }
+  }
+  @media (max-width: 959px) {
+    .focus-btn {
+      display: none;
+    }
+  }
+  .prereq {
+    max-width: var(--measure);
+    margin: 18px 0 0;
+    font-size: 0.9375rem;
+    color: var(--ink-2);
+  }
+  .toc-inline {
+    max-width: var(--measure);
+    margin: 16px 0 0;
+    padding: 10px 14px;
+    border: 1px solid var(--rule);
+    border-radius: var(--radius);
+  }
+  .toc-inline summary {
+    cursor: pointer;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--ink-2);
+  }
+  .toc-inline :global(.toc) {
+    margin-top: 10px;
+  }
+  .toc-inline :global(.toc .eyebrow) {
+    display: none;
+  }
+  .related {
+    max-width: var(--measure);
+    margin-top: 48px;
+  }
+  .related h2 {
+    font-family: var(--font-serif);
+    font-size: var(--step-2);
+    font-weight: 560;
+    margin: 0 0 12px;
+  }
+  .related ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: grid;
+    gap: 10px;
+  }
+  .related li {
+    display: grid;
+    gap: 2px;
+  }
+  .related li span {
+    font-size: 0.9375rem;
+    color: var(--ink-3);
+  }
+</style>

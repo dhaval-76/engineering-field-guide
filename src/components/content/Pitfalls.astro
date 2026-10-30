@@ -1,0 +1,48 @@
+---
+/** A list of common mistakes. Each list item reads as "mistake — why / fix". */
+interface Props {
+  title?: string;
+}
+const { title = 'Common pitfalls' } = Astro.props;
+---
+
+<section class="pitfalls" aria-label={title}>
+  <p class="label">{title}</p>
+  <slot />
+</section>
+
+<style>
+  .pitfalls {
+    margin: 1.6em 0;
+  }
+  .label {
+    margin: 0 0 6px;
+    font-size: 0.75rem;
+    font-weight: 650;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--bad);
+  }
+  .pitfalls :global(ul) {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+  .pitfalls :global(li) {
+    position: relative;
+    padding: 10px 0 10px 28px;
+    border-top: 1px solid var(--rule);
+    margin: 0;
+  }
+  .pitfalls :global(li)::before {
+    content: '';
+    position: absolute;
+    left: 4px;
+    top: 0.95em;
+    width: 12px;
+    height: 12px;
+    background:
+      linear-gradient(45deg, transparent 44%, var(--bad) 44% 56%, transparent 56%),
+      linear-gradient(-45deg, transparent 44%, var(--bad) 44% 56%, transparent 56%);
+  }
+</style>

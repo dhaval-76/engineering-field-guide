@@ -1,0 +1,46 @@
+/* Code: inline code, Shiki blocks (dual theme via CSS variables). */
+code,
+kbd,
+pre {
+  font-family: var(--font-mono);
+  font-variant-ligatures: none;
+}
+
+:not(pre) > code {
+  font-size: 0.875em;
+  padding: 0.1em 0.35em;
+  border-radius: 4px;
+  background: var(--code-bg);
+  border: 1px solid var(--rule);
+  overflow-wrap: anywhere;
+}
+
+pre.shiki,
+pre.astro-code {
+  margin: 0;
+  padding: 14px 16px;
+  overflow-x: auto;
+  font-size: 0.8125rem;
+  line-height: 1.6;
+  background: var(--code-bg) !important;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  tab-size: 2;
+}
+
+.shiki span,
+.astro-code span {
+  color: var(--shiki-light);
+}
+
+:root[data-theme='dark'] .shiki span,
+:root[data-theme='dark'] .astro-code span {
+  color: var(--shiki-dark);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) .shiki span,
+  :root:not([data-theme='light']) .astro-code span {
+    color: var(--shiki-dark);
+  }
+}

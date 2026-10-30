@@ -1,0 +1,79 @@
+questions:
+  - q: Design a cache with O(1) get and O(1) put that evicts the least recently used entry when full.
+    think: |
+      A HashMap gives O(1) lookup but no ordering. A list gives ordering but O(n) search.
+      What if the map pointed *into* the list?
+    answer: |
+      Combine a **HashMap<key, Node>** with a **doubly linked list** ordered by recency (head = most recent).
+
+      - `get`: map lookup → unlink the node → push it after `head`. O(1).
+      - `put`: if the key exists, update and move to front. Otherwise, if full, remove `tail.prev` from the list **and** the map, then insert the new node at the front. O(1).
+
+      The list must be doubly linked so a node can be removed without finding its predecessor, and each node stores its key so eviction can delete the map entry.
+  - q: Why does Java's LinkedHashMap work as an LRU cache? What does accessOrder do?
+    think: LinkedHashMap is a HashMap that also threads a doubly linked list through its entries. What order does that list follow by default?
+    answer: |
+      By default the internal list follows **insertion order**. Constructing it with `new LinkedHashMap<>(cap, 0.75f, true)` switches to **access order**: every `get`/`put` moves the entry to the end of the list.
+      Overriding `removeEldestEntry` to return `size() > capacity` makes it evict the head (the least recently accessed entry) after each insert.
+      It is not thread-safe; wrapping it in `Collections.synchronizedMap` serialises everything, so production code usually uses Caffeine instead.
+  - q: Design a thread-safe LRU cache for a profile service — 50K reads/second, entries expire after 30 minutes.
+    think: Three separate concerns — eviction policy, concurrency, expiry. Handle them one at a time.
+    answer: |
+      - **Eviction**: HashMap + doubly linked list (or LinkedHashMap in access order).
+      - **Concurrency**: a single lock is correct but becomes the bottleneck at 50K/s because `get` also mutates the list. Use lock striping (N segments) or, in practice, **Caffeine**, which records reads in lock-free buffers and replays them in batches.
+      - **Expiry**: store `expiresAt` with each value and treat expired entries as misses on read; a periodic sweep (or Caffeine's `expireAfterWrite`) reclaims memory for entries nobody reads.
+      - Add `recordStats()` and watch the hit rate — a cache with a 20% hit rate is mostly overhead.
+followUps:
+  - q: How do you make your implementation thread-safe, and why doesn't a read-write lock help much?
+    intuition: Readers can share a read lock only if they don't modify anything. Does `get` modify anything here?
+    approach: |
+      `get` moves the node to the front, so it is a **write** to the list. A read-write lock would force every `get` onto the write lock, giving no more concurrency than a plain mutex.
+      Options: one `synchronized`/`ReentrantLock` (simple, correct); **striping** across N independent caches keyed by `hash(key) % N`; or Caffeine-style buffered access recording.
+  - q: Many requests miss the same key at once and all hit the database. How do you prevent that?
+    intuition: This is a cache stampede (thundering herd). Only the first miss should load; the others should wait for its result.
+    approach: |
+      Coalesce in-flight loads per key. In Java: `inFlight.computeIfAbsent(key, k -> CompletableFuture.supplyAsync(() -> db.load(k)))` — later callers get the same future and `join()` it; remove the entry when it completes.
+      Caffeine's `cache.get(key, loader)` and Node's `lru-cache` `fetchMethod` do exactly this for you. For distributed caches add a short lock in Redis (`SET key NX PX`) or serve slightly stale values while one worker refreshes.
+  - q: When would LFU beat LRU?
+    intuition: Think about a workload where a big one-off scan touches thousands of keys once.
+    approach: |
+      LRU lets a single scan push every hot key out, because each scanned key becomes "most recent". LFU keeps keys that are used *often*, so a one-time scan doesn't evict them.
+      LFU struggles when popularity changes (yesterday's hits keep high counts). Modern caches use **W-TinyLFU**: a small LRU window for new items plus a frequency sketch that decides whether a newcomer deserves to replace an existing entry.
+practice:
+  - task: |
+      Implement the LRU cache without any built-in ordered map, then run:
+      `put(1,1)`, `put(2,2)`, `get(1)` → 1, `put(3,3)` (evicts 2), `get(2)` → miss, `put(1,10)`, `put(4,4)` (evicts 3).
+    hint: Write `pushFront(node)` and `unlink(node)` first, using sentinel head/tail nodes. Everything else is a combination of those two plus map updates.
+    solution: |
+      See the from-scratch implementation above. The key detail on eviction is removing `tail.prev` from **both** the list and the map, and on update not evicting anything.
+    solutionCode: lru-from-scratch
+  - task: Add a TTL so every entry expires a fixed number of seconds after it was written. Expired entries must behave like misses.
+    hint: Store `expiresAt` next to the value. Check it in `get`; remove and return a miss if it has passed.
+    solution: |
+      Keep `record Entry(V value, Instant expiresAt)` as the map value (or inside the node). In `get`, if `Instant.now().isAfter(expiresAt)`, unlink and delete the entry and return a miss. Writes set `expiresAt = now + ttl`.
+      Expired entries that are never read still occupy memory, so either sweep periodically or keep a min-heap / `DelayQueue` ordered by `expiresAt` and drain it on each `put`.
+quiz:
+  - q: Why must the list be doubly linked?
+    options:
+      - So we can iterate in both directions when printing
+      - So a node can be removed in O(1) without searching for its predecessor
+      - Because Java's HashMap requires it
+      - To save memory
+    correct: 1
+    why: Removal must update the predecessor's `next` pointer. With a `prev` pointer that's O(1); a singly linked list needs an O(n) walk.
+  - q: In the from-scratch cache, why does each node store its key?
+    options:
+      - To support iteration in key order
+      - So equals() works
+      - So that when the tail node is evicted we can also delete its entry from the map
+      - It isn't needed
+    correct: 2
+    why: Eviction starts from the list (`tail.prev`). Without the key we couldn't find the matching map entry, and the map would leak.
+  - q: Which statement about a read-write lock around an LRU cache is true?
+    options:
+      - get() can safely use the read lock
+      - get() needs the write lock because it reorders the list
+      - put() can use the read lock if the key exists
+      - Read-write locks make LRU lock-free
+    correct: 1
+    why: Moving the accessed node to the front is a mutation, so every `get` needs exclusive access.

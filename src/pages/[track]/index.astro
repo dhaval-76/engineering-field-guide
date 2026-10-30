@@ -1,0 +1,129 @@
+---
+import BaseLayout from '~/layouts/BaseLayout.astro';
+import Icon from '~/components/Icon.astro';
+import { getNav } from '~/lib/nav';
+import { topicUrl, url } from '~/lib/url';
+
+export async function getStaticPaths() {
+  const nav = await getNav();
+  return nav.map((n, i) => ({
+    params: { track: n.track.id },
+    props: { ...n, nextTrack: nav[i + 1]?.track },
+  }));
+}
+
+const { track, topics, nextTrack } = Astro.props;
+---
+
+<BaseLayout title={track.data.title} description={track.data.blurb} current={{ track: track.id }}>
+  <header class="head">
+    <Icon name={track.data.icon} class="big" />
+    <h1>{track.data.title}</h1>
+    <p class="blurb">{track.data.blurb}</p>
+    <p class="meta">
+      {topics.length} topics · read in any order — the list is a suggested sequence ·
+      <a href={url(`cheatsheets/${track.id}/`)}>cheat sheet</a>
+    </p>
+  </header>
+
+  {topics.length === 0 && <p class="empty">Topics for this track are being written.</p>}
+  <ol class="list">
+    {topics.map((t, i) => (
+      <li>
+        <a href={topicUrl(t.id)} data-topic-link={t.id}>
+          <span class="n">{String(i + 1).padStart(2, '0')}</span>
+          <span class="body">
+            <span class="t">{t.data.title}</span>
+            <span class="s">{t.data.summary}</span>
+          </span>
+          <span class="dot" aria-hidden="true" />
+        </a>
+      </li>
+    ))}
+  </ol>
+  {nextTrack && (
+    <p class="next">
+      Next track: <a href={url(`${nextTrack.id}/`)}>{nextTrack.data.title} →</a>
+    </p>
+  )}
+</BaseLayout>
+
+<style>
+  .head {
+    max-width: var(--measure);
+  }
+  .head :global(.big) {
+    width: 36px;
+    height: 36px;
+    color: var(--accent);
+  }
+  h1 {
+    margin: 8px 0 0;
+    font-family: var(--font-serif);
+    font-size: clamp(2rem, 1.4rem + 2.4vw, var(--step-4));
+    font-weight: 560;
+    line-height: 1.1;
+  }
+  .blurb {
+    font-family: var(--font-serif);
+    font-size: var(--step-1);
+    color: var(--ink-2);
+    margin: 10px 0 0;
+  }
+  .meta {
+    font-size: 0.875rem;
+    color: var(--ink-3);
+  }
+  .list {
+    list-style: none;
+    padding: 0;
+    margin: 28px 0 0;
+    max-width: 860px;
+    border-top: 1px solid var(--rule);
+  }
+  .list a {
+    display: grid;
+    grid-template-columns: 40px 1fr 12px;
+    gap: 12px;
+    align-items: baseline;
+    padding: 14px 4px;
+    border-bottom: 1px solid var(--rule);
+    color: var(--ink);
+    text-decoration: none;
+  }
+  .list a:hover .t {
+    color: var(--accent-ink);
+  }
+  .n {
+    font-family: var(--font-mono);
+    font-size: 0.8125rem;
+    color: var(--ink-3);
+  }
+  .body {
+    display: grid;
+    gap: 2px;
+  }
+  .t {
+    font-weight: 600;
+  }
+  .s {
+    font-size: 0.9375rem;
+    color: var(--ink-2);
+  }
+  .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    border: 1px solid var(--rule-strong);
+  }
+  [data-done] .dot {
+    background: var(--ok);
+    border-color: var(--ok);
+  }
+  .next {
+    margin-top: 32px;
+  }
+  .empty {
+    color: var(--ink-3);
+  }
+</style>

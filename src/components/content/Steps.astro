@@ -1,0 +1,47 @@
+---
+/** Wrap an ordered list to render it as a numbered, connected sequence. */
+---
+
+<div class="steps">
+  <slot />
+</div>
+
+<style>
+  .steps :global(ol) {
+    list-style: none;
+    counter-reset: step;
+    padding-left: 0;
+    margin: 1.4em 0;
+  }
+  .steps :global(ol > li) {
+    counter-increment: step;
+    position: relative;
+    padding: 0 0 18px 44px;
+    margin: 0;
+  }
+  .steps :global(ol > li)::before {
+    content: counter(step);
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 28px;
+    height: 28px;
+    display: grid;
+    place-items: center;
+    border: 1.5px solid var(--accent);
+    border-radius: 50%;
+    font-size: 0.8125rem;
+    font-weight: 650;
+    color: var(--accent-ink);
+    background: var(--bg);
+  }
+  .steps :global(ol > li:not(:last-child))::after {
+    content: '';
+    position: absolute;
+    left: 14px;
+    top: 30px;
+    bottom: 2px;
+    width: 1px;
+    background: var(--rule-strong);
+  }
+</style>

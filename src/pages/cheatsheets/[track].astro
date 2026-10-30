@@ -1,0 +1,127 @@
+---
+import BaseLayout from '~/layouts/BaseLayout.astro';
+import { getNav } from '~/lib/nav';
+import { mdInline } from '~/lib/markdown';
+import { topicUrl } from '~/lib/url';
+
+export async function getStaticPaths() {
+  const nav = await getNav();
+  return nav
+    .filter((n) => n.topics.length)
+    .map((n) => ({ params: { track: n.track.id }, props: n }));
+}
+
+const { track, topics } = Astro.props;
+const cards = await Promise.all(
+  topics.map(async (t) => ({
+    id: t.id,
+    title: t.data.title,
+    points: await Promise.all(t.data.quickRef.points.map((p) => mdInline(p))),
+    useWhen: t.data.quickRef.useWhen ? await mdInline(t.data.quickRef.useWhen) : '',
+    complexity: t.data.quickRef.complexity ? await mdInline(t.data.quickRef.complexity) : '',
+  })),
+);
+---
+
+<BaseLayout
+  title={`${track.data.title} cheat sheet`}
+  description={`Quick reference for every ${track.data.title} topic.`}
+  current={{ track: track.id }}
+>
+  <header class="head">
+    <p class="eyebrow">Cheat sheet</p>
+    <h1>{track.data.title}</h1>
+    <button class="btn no-print" type="button" onclick="window.print()">
+      Print
+    </button>
+  </header>
+  <div class="cards">
+    {cards.map((c) => (
+      <section class="card">
+        <h2>
+          <a href={topicUrl(c.id)}>{c.title}</a>
+        </h2>
+        <ul>
+          {c.points.map((p) => (
+            <li set:html={p} />
+          ))}
+        </ul>
+        {c.useWhen && (
+          <p class="extra">
+            <b>Use when:</b> <span set:html={c.useWhen} />
+          </p>
+        )}
+        {c.complexity && (
+          <p class="extra">
+            <b>Cost:</b> <span set:html={c.complexity} />
+          </p>
+        )}
+      </section>
+    ))}
+  </div>
+</BaseLayout>
+
+<style>
+  .head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 4px 16px;
+  }
+  .head .eyebrow {
+    width: 100%;
+    margin: 0;
+  }
+  h1 {
+    font-family: var(--font-serif);
+    font-weight: 560;
+    font-size: var(--step-4);
+    margin: 0;
+  }
+  .cards {
+    columns: 2 360px;
+    column-gap: 20px;
+    margin-top: 24px;
+  }
+  .card {
+    break-inside: avoid;
+    margin: 0 0 20px;
+    padding: 14px 16px;
+    border: 1px solid var(--rule);
+    border-radius: var(--radius);
+    background: var(--bg-raised);
+    font-size: 0.9375rem;
+  }
+  h2 {
+    margin: 0 0 6px;
+    font-family: var(--font-serif);
+    font-weight: 560;
+    font-size: var(--step-1);
+  }
+  h2 a {
+    color: var(--ink);
+    text-decoration: none;
+  }
+  ul {
+    margin: 0;
+    padding-left: 1.1em;
+  }
+  .extra {
+    margin: 8px 0 0;
+    color: var(--ink-2);
+  }
+  @media print {
+    :global(header.header),
+    :global(footer.footer),
+    :global(#sidebar),
+    .no-print {
+      display: none !important;
+    }
+    :global(.shell.has-sidebar) {
+      display: block !important;
+    }
+    .card {
+      border-color: #ccc;
+    }
+  }
+</style>

@@ -1,0 +1,62 @@
+---
+import BaseLayout from '~/layouts/BaseLayout.astro';
+import { getCompanyIndex } from '~/lib/companies';
+import { url } from '~/lib/url';
+
+const companies = await getCompanyIndex();
+---
+
+<BaseLayout
+  title="Companies"
+  description="Topics and questions reported in interviews, grouped by company, with sources."
+>
+  <div class="wrap">
+    <h1>Companies</h1>
+    <p class="lede">
+      Topics and questions candidates have publicly reported being asked, grouped by company. Every
+      tag links to its source. Reports reflect what was asked at some point — not a guarantee of
+      what will be asked.
+    </p>
+    {companies.length === 0 && <p class="muted">No company reports have been added yet.</p>}
+    <ul>
+      {companies.map((c) => (
+        <li>
+          <a href={url(`companies/${c.slug}/`)}>{c.name}</a>
+          <span>{c.items.length} topics/questions</span>
+        </li>
+      ))}
+    </ul>
+  </div>
+</BaseLayout>
+
+<style>
+  .wrap {
+    max-width: 760px;
+  }
+  h1 {
+    font-family: var(--font-serif);
+    font-weight: 560;
+    font-size: var(--step-4);
+    margin: 0;
+  }
+  .lede,
+  .muted {
+    color: var(--ink-2);
+  }
+  ul {
+    list-style: none;
+    padding: 0;
+    columns: 2 220px;
+  }
+  li {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 6px 0;
+    break-inside: avoid;
+  }
+  span {
+    color: var(--ink-3);
+    font-size: 0.875rem;
+  }
+</style>
