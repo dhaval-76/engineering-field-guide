@@ -1,0 +1,117 @@
+---
+title: Resilience Patterns
+summary: Keeping a service up when its dependencies aren't — timeouts and deadlines, retries with backoff and jitter, circuit breakers, bulkheads, rate limiting and load shedding, fallbacks, and health checks, with Resilience4j and equivalents.
+track: architecture
+order: 20
+tags: [architecture, resilience, reliability, circuit-breaker, resilience4j, distributed-systems]
+aliases: [resilience, fault tolerance, cascading failure, timeout, deadline propagation, retry, exponential backoff, jitter, retry storm, retry budget, circuit breaker, closed open half-open, bulkhead, rate limiter, load shedding, backpressure, fallback, graceful degradation, hedged requests, health check, liveness, readiness, resilience4j, opossum, tenacity]
+prerequisites: [architecture/microservices]
+related: [backend/connection-pooling, concurrency/executors-thread-pools, backend/idempotency]
+quickRef:
+  points:
+    - '**Slow is worse than down**: a hanging dependency holds your threads and connections until you fall over too.'
+    - '**Timeouts on every remote call**, shorter than your own callers'' timeouts; propagate a deadline.'
+    - '**Retry** only idempotent operations, with exponential backoff + jitter and a small cap — retry at one layer, not every layer.'
+    - '**Circuit breaker**: CLOSED → (failure rate high) → OPEN (fail fast) → HALF-OPEN (probe) → CLOSED.'
+    - '**Bulkheads** cap concurrency per dependency so one slow dependency can''t take every thread.'
+    - '**Shed load** early (429/503) rather than queueing forever; degrade features instead of failing pages.'
+  useWhen: Calling any remote dependency, designing for failure, or answering "what if service X is slow?".
+lastReviewed: 2026-10-30
+---
+
+## Why it matters
+
+In a distributed system, something is always failing a little: a slow database, a GC pause, a deploy, a congested network. Whether that stays a small blip or becomes an outage depends on how callers react. Without protection, one slow dependency fills every caller's thread pool, the callers become slow, *their* callers fill up — a **cascading failure**. Retries without limits then multiply the load on whatever is already struggling. These patterns are how you keep the blast radius small.
+
+<Callout type="analogy">
+A house's electrical system. A fuse (circuit breaker) cuts off a faulty circuit before it burns the house down, and you test it again later. Separate circuits for the kitchen and the bedrooms (bulkheads) mean a broken kettle doesn't plunge the whole house into darkness. And you don't keep flipping a tripped switch every second (retry storm).
+</Callout>
+
+## How cascading failures happen
+
+<Walkthrough id="cascade-failure" />
+
+## Timeouts and deadlines
+
+- **Every** network call needs a connect timeout and a response timeout — many clients default to infinite or very long values.
+- Choose from the dependency's latency: a bit above its p99 under normal load, and well below your own SLA.
+- **Propagate a deadline**: if the user's request has 2 s left, a downstream call shouldn't be allowed 5 s. gRPC does this natively; with HTTP, pass a remaining-time header or use a request-scoped budget.
+- A timeout doesn't free the remote work — the downstream may still complete the operation. Combine with idempotency keys so retries are safe.
+
+## Retries
+
+<Chart
+  type="bar"
+  title="Load on the bottom service when every layer retries 3 times (4 attempts)"
+  bars={[
+    ['1 layer retries', 4, 'warn'],
+    ['2 layers retry', 16, 'bad'],
+    ['3 layers retry', 64, 'bad'],
+  ]}
+  unit="×"
+  caption="Retries multiply across layers: during an incident, the struggling service receives up to 4ⁿ times the normal load."
+/>
+
+- Retry only **transient** failures (timeouts, 503, connection reset) and only **idempotent** operations — or ones made idempotent with a key.
+- **Exponential backoff with jitter** (`random(0, base × 2^attempt)`, capped) spreads retries out instead of synchronising them into waves.
+- **Cap attempts** (2–3) and use a **retry budget** (e.g. retries ≤ 10% of requests) so retries can't multiply load during an incident.
+- Retry at **one** layer — usually closest to the failure — and honour `Retry-After`.
+
+## Circuit breakers
+
+<Diagram id="circuit-breaker-states" caption="A circuit breaker's three states. While OPEN, calls fail immediately without touching the dependency." />
+
+The breaker watches recent calls (a count- or time-based sliding window). When the failure rate — or the rate of slow calls — crosses a threshold, it **opens**: calls fail immediately (or go to a fallback) for a cool-down period, freeing threads and giving the dependency room to recover. Then it **half-opens**, letting a few trial calls through; success closes it, failure re-opens it.
+
+<CodeTabs id="resilience4j" title="Timeout, retry, circuit breaker and bulkhead around one dependency" />
+
+Resilience4j applies its decorators in a fixed order — `Retry(CircuitBreaker(RateLimiter(TimeLimiter(Bulkhead(call)))))` — so the retry sees the breaker's fast failures and should not retry `CallNotPermittedException`.
+
+## Bulkheads, rate limits and load shedding
+
+- **Bulkhead**: a cap on concurrent calls to one dependency (a semaphore, or a dedicated thread pool). When it's full, new calls fail fast, and calls to *other* dependencies are unaffected.
+- **Rate limiter** (client side): don't send more than a partner's quota allows.
+- **Load shedding** (server side): when overloaded, reject early with 429/503 and `Retry-After` rather than accepting work you can't finish — queues that grow without bound only add latency before the inevitable timeout. Prioritise: shed analytics before checkout.
+- **Backpressure**: bounded queues between stages ([Producer–consumer](../../concurrency/producer-consumer/)).
+
+## Fallbacks and graceful degradation
+
+| Fallback | Example | Watch out |
+|---|---|---|
+| Cached / last known value | recommendations from yesterday | label staleness if it matters |
+| Default value | "delivery in 3–5 days" | must be safe to be wrong |
+| Hide the feature | page renders without reviews | the page must not depend on it |
+| Queue for later | accept the order, charge asynchronously | needs a reliable queue and follow-up |
+| Fail clearly | "payments are temporarily unavailable" | better than a hang |
+
+A fallback must be simpler and more reliable than the call it replaces — a fallback that calls another remote service just moves the problem.
+
+## Health checks
+
+- **Liveness**: "is this process stuck?" — restart it if not. Keep it trivial; **don't** include dependencies, or a database blip restarts every instance.
+- **Readiness**: "should this instance receive traffic now?" — false during startup, warm-up, shutdown, or when critical dependencies are unavailable.
+- **Startup probes** for slow-starting JVMs, so liveness doesn't kill them mid-boot.
+
+<CodeTabs id="resilience-other" title="The same ideas in Node and Python" />
+
+<Pitfalls>
+
+- **No timeout** or default timeouts of minutes.
+- **Retrying non-idempotent calls** — duplicate charges and orders.
+- **Retries at every layer** and without jitter — retry storms that keep the outage going.
+- **Circuit breaker without a timeout** — slow calls still hold threads until they finish.
+- **Running time-limited calls on the shared `ForkJoinPool.commonPool()`** — one slow dependency starves unrelated work; give each bulkhead its own executor.
+- **Fallbacks that call other fragile dependencies** or hide failures from monitoring.
+- **Liveness probes that check the database** — a database incident becomes a restart storm.
+- **Unbounded queues** in front of slow consumers.
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- Timeouts everywhere, tighter as you go deeper; propagate deadlines.
+- Few retries, at one layer, with backoff + jitter, only for idempotent work.
+- Circuit breakers fail fast; bulkheads contain; load shedding protects the core.
+- Plan the degraded experience; keep liveness simple and readiness honest.
+
+</KeyTakeaways>

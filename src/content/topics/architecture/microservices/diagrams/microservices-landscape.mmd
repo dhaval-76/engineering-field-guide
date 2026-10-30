@@ -1,0 +1,13 @@
+flowchart TD
+  C[Web / mobile clients] --> G[API gateway<br/>auth · routing · rate limits]
+  G --> O[Order service]
+  G --> P[Catalogue service]
+  O -- "sync: charge (timeout 2 s)" --> Pay[Payment service]
+  O --- ODB[(orders DB)]
+  P --- PDB[(catalogue DB)]
+  Pay --- PayDB[(payments DB)]
+  O -- "OrderPlaced (outbox)" --> K{{Kafka}}
+  K --> I[Inventory service]
+  K --> N[Notification service]
+  K --> S[Search indexer]
+  I --- IDB[(inventory DB)]

@@ -1,0 +1,53 @@
+questions:
+  - q: 'OrderService calls InventoryService synchronously. Inventory''s p99 jumps to 8 s, OrderService''s threads are exhausted and orders fail. How do you stop the cascade without touching InventoryService?'
+    think: What is holding the threads, and how do you stop waiting on something that's clearly unhealthy?
+    answer: |
+      The threads are stuck waiting. In OrderService:
+
+      1. **Timeout** the inventory call well below 8 s (e.g. 800 ms, just above its normal p99) so a thread is never held long.
+      2. **Bulkhead**: cap concurrent inventory calls (e.g. 20); beyond that, fail fast, so the rest of OrderService keeps its threads.
+      3. **Circuit breaker** on failure *and* slow-call rate: once it opens, inventory calls fail immediately for a cool-down, then a few trial calls test recovery.
+      4. **Fallback**: last-known stock from a cache, or accept the order and verify stock asynchronously — whichever the business accepts — or a clear "temporarily unavailable" for that feature.
+      5. **Retries**: at most one or two with jittered backoff, and not on top of retries elsewhere.
+
+      Then alert on the breaker opening, and look at why a single dependency is on the critical path synchronously — could stock be reserved asynchronously or cached?
+  - q: Why can retries make an outage worse, and how do you retry safely?
+    think: What happens to load on a struggling service when every caller retries?
+    answer: |
+      Retries add load exactly when the dependency is weakest, and they multiply across layers (3 retries at each of 3 layers = up to 64× load). Synchronised retries arrive in waves. Safe retries: only for transient errors and idempotent operations (or with idempotency keys); exponential backoff with jitter; a small attempt cap; a retry budget per client; at a single layer; honour `Retry-After`; and stop retrying when a circuit breaker is open.
+followUps:
+  - q: Explain the circuit breaker's states.
+    intuition: Normal, tripped, testing.
+    approach: |
+      **CLOSED**: calls pass, outcomes are recorded in a sliding window. When the failure or slow-call rate crosses the threshold (after a minimum number of calls), it goes **OPEN**: calls fail immediately (fallback) without reaching the dependency. After a wait duration it goes **HALF-OPEN**: a few trial calls pass; if they succeed it closes, if not it opens again.
+  - q: What is the bulkhead pattern?
+    intuition: Watertight compartments in a ship.
+    approach: |
+      Isolate resources per dependency — a semaphore or a separate thread pool with a small limit — so one slow dependency can only use its own compartment. When it's full, calls to it fail fast while calls to other dependencies continue normally. Connection pools per downstream service are a form of bulkhead too.
+  - q: Liveness vs readiness probes?
+    intuition: Restart me, or just don't send me traffic?
+    approach: |
+      Liveness answers "is this process healthy enough to keep running?" — failing it restarts the container, so it should check only the process itself (e.g. not deadlocked). Readiness answers "should I receive traffic now?" — failing it removes the instance from the load balancer without restarting it: during startup/warm-up, graceful shutdown, or when it can't serve. Putting a database check in liveness turns a database blip into a restart storm.
+  - q: What makes a good fallback?
+    intuition: Simpler and more reliable than the original call.
+    approach: |
+      It relies on local or cached data, is safe if slightly wrong, makes degradation visible where it matters (a "may be out of date" hint, metrics/alerts), and never calls another fragile dependency. For money and correctness-critical operations, the right fallback is often a clear failure or deferring the work to a reliable queue.
+practice:
+  - task: Wrap an inventory client with a timeout, retry with backoff and jitter, a circuit breaker, a bulkhead and a cached fallback, and test that the breaker opens.
+    hint: Resilience4j annotations + YAML; fallback method with the same parameters plus a Throwable; test with CircuitBreaker.of and a loop of failures.
+    solution: |
+      Give the HTTP client connect/read timeouts. Configure Resilience4j: a count-based window of 20 with a minimum of 10 calls, 50% failure and slow-call thresholds (slow = 1 s), 20 s open; retry 3 attempts with exponential randomized backoff only on I/O errors; a semaphore bulkhead of 20 with no waiting. Annotate the method with `@Retry`, `@CircuitBreaker(fallbackMethod = "lastKnown")` and `@Bulkhead`; the fallback returns a cached value marked stale or throws a domain "unavailable" exception. Test by driving a `CircuitBreaker` with ten failures and asserting OPEN and `CallNotPermittedException`. Expose state via the actuator and alert on it.
+    solutionCode: resilience4j
+quiz:
+  - q: A circuit breaker is OPEN. What happens to a call?
+    options: [It waits for the dependency, It fails immediately or uses the fallback, It is retried three times, It is queued]
+    correct: 1
+    why: OPEN means fail fast for the cool-down period, protecting both caller and dependency.
+  - q: Which belongs in a liveness probe?
+    options: [A database query, A check that the process can respond at all, A call to every downstream service, A disk-full check on the database]
+    correct: 1
+    why: Liveness failures restart the container; dependency checks belong in readiness (if anywhere).
+  - q: Why add jitter to retry backoff?
+    options: [To make retries faster, To avoid synchronised retry waves from many clients, To satisfy HTTP specs, To reduce payload size]
+    correct: 1
+    why: Clients that failed together would otherwise retry together, hitting the service in bursts.

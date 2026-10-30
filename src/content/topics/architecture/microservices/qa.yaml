@@ -1,0 +1,49 @@
+questions:
+  - q: 'Design the flow: a user places an order, payment is charged, stock is reserved and a confirmation email is sent. Which calls are synchronous, which are events, and what happens when a step fails?'
+    think: What does the user need to see before the response returns? What can happen afterwards? What must be undone if a later step fails?
+    answer: |
+      **Synchronous** (user waits): validate the cart and **reserve stock** (cheap to undo), then **authorise payment** through the payment service with a short timeout, circuit breaker and idempotency key. On success, save the order as `CONFIRMED` and write `OrderConfirmed` to the **outbox** in the same transaction; return 201. If authorisation is declined, release the stock reservation and return a clear error; if the payment service times out, mark the order `PAYMENT_PENDING` and resolve it asynchronously (query by idempotency key) rather than guessing.
+
+      **Asynchronous** (events from the outbox via Kafka): capture payment, email, analytics, search updates. Consumers are idempotent. If a later step fails (e.g. capture fails), a **saga** compensates — release stock, cancel the order, notify the user. For a longer flow, use an orchestrator so the state of each order's saga is explicit and observable.
+  - q: Your team wants to split a monolith into microservices. How do you decide whether and how to do it?
+    think: What problem is the split supposed to solve?
+    answer: |
+      Start from the problem: are teams blocked on shared releases, do parts need different scaling or availability, is the codebase too large for teams to own? If not, invest in a **modular monolith** — enforced module boundaries, separate schemas per module — which gives most of the design benefit without the network.
+
+      If yes, identify **bounded contexts** with clear data ownership, and extract incrementally with the **strangler fig** pattern: put a gateway/router in front, move one capability (often one with distinct scaling or a separate team) behind it, give it its own database (sync data via events/CDC during the transition), and repeat. Before the first split, have the platform pieces: CI/CD per service, centralised logs, tracing, metrics, and on-call ownership.
+followUps:
+  - q: Orchestration or choreography for sagas?
+    intuition: Where does the knowledge of the whole flow live?
+    approach: |
+      Choreography — services react to each other's events — has no central component and suits short flows with few participants, but the overall flow is implicit and hard to change or monitor. Orchestration — a coordinator sends commands and tracks state — makes long, branching flows explicit, observable and easier to change, at the cost of a central component (often a workflow engine such as Temporal). Many systems use choreography between domains and orchestration inside one.
+  - q: Why do you need the transactional outbox?
+    intuition: Save to the database, then publish to Kafka — what if the process dies in between?
+    approach: |
+      The database write and the broker publish can't be in one transaction. Publish-after-commit loses events if the process crashes in between; publish-before-commit emits events for changes that roll back. Writing the event into an outbox table in the same transaction makes it atomic with the change; a relay (polling with SKIP LOCKED, or CDC) publishes it afterwards, at least once — so consumers must be idempotent.
+  - q: Do you still need Eureka and a Config Server on Kubernetes?
+    intuition: What does the platform already give you?
+    approach: |
+      Usually not. Kubernetes Services provide stable DNS names and load balancing; ConfigMaps and Secrets (or an external secret store) provide configuration; rollouts handle restarts. Spring Cloud Kubernetes can read ConfigMaps natively. Eureka/Config Server remain useful outside Kubernetes or for features such as Git-backed config with refresh.
+  - q: How do you change an API that other services depend on without breaking them?
+    intuition: Expand, migrate, contract.
+    approach: |
+      Make additive, backward-compatible changes (new optional fields, new endpoints); consumers ignore unknown fields. For breaking changes, run old and new versions side by side, migrate consumers, then remove the old one ("expand and contract"). Consumer-driven contract tests in the provider's pipeline catch accidental breaks; schema registries with compatibility rules do the same for events.
+practice:
+  - task: Implement reliable event publishing for an order service so an event is published if and only if the order is committed.
+    hint: Outbox table in the same transaction; a relay using SKIP LOCKED or CDC; idempotent consumers.
+    solution: |
+      In `@Transactional place()`, save the order and insert an `outbox` row (event id, aggregate id as the Kafka key, type, JSON payload). A relay selects unsent rows `FOR UPDATE SKIP LOCKED`, publishes each with the aggregate id as key (preserving per-order ordering), waits for the broker's acknowledgement, and marks them sent — or Debezium streams the table from the WAL. A crash between publish and mark-sent re-publishes, so consumers record processed event ids (`INSERT … ON CONFLICT DO NOTHING`) in the same transaction as their own change.
+    solutionCode: outbox
+quiz:
+  - q: Five services in a synchronous chain each have 99.9% availability. Roughly what's the chain's availability?
+    options: ['99.9%', '99.5%', '95%', '99.99%']
+    correct: 1
+    why: 0.999^5 ≈ 0.995 — every synchronous dependency adds its failures.
+  - q: What is a "distributed monolith"?
+    options: [A monolith deployed in several regions, Services that must be changed and deployed together, A monolith using Kafka, A service mesh]
+    correct: 1
+    why: You pay the costs of distribution without the independence benefits.
+  - q: Which pattern publishes events atomically with a database change?
+    options: [Two-phase commit across Kafka and the DB, Transactional outbox, Publishing before commit, A circuit breaker]
+    correct: 1
+    why: The event is a row written in the same local transaction and relayed afterwards.

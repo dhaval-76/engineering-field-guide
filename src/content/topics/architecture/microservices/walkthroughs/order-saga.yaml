@@ -1,0 +1,38 @@
+title: An order saga with a compensation
+frames:
+  - caption: '**Order service** saves the order as `PENDING` and, in the same transaction, writes `OrderPlaced` to its outbox. The customer immediately sees "order received".'
+    panels:
+      - kind: kv
+        label: State
+        pairs: [[order, { v: PENDING, tone: info }], [payment, '—'], [stock, '—']]
+      - kind: rows
+        label: Events
+        items: [{ v: OrderPlaced, tone: accent }]
+  - caption: '**Payment service** consumes `OrderPlaced`, charges the card in its own local transaction, and publishes `PaymentCaptured`.'
+    panels:
+      - kind: kv
+        label: State
+        pairs: [[order, PENDING], [payment, { v: CAPTURED, tone: ok }], [stock, '—']]
+      - kind: rows
+        label: Events
+        items: [OrderPlaced, { v: PaymentCaptured, tone: accent }]
+  - caption: '**Inventory service** tries to reserve stock — but the last unit sold a moment ago. It publishes `StockReservationFailed`.'
+    panels:
+      - kind: kv
+        label: State
+        pairs: [[order, PENDING], [payment, CAPTURED], [stock, { v: 'FAILED', tone: bad }]]
+      - kind: rows
+        label: Events
+        items: [OrderPlaced, PaymentCaptured, { v: StockReservationFailed, tone: warn }]
+  - caption: 'There''s no rollback across services, so earlier steps are undone by **compensating actions**: payment refunds the charge (`PaymentRefunded`), and order marks itself `CANCELLED` and tells the customer.'
+    panels:
+      - kind: kv
+        label: State
+        pairs: [[order, { v: CANCELLED, tone: warn }], [payment, { v: REFUNDED, tone: info }], [stock, FAILED]]
+      - kind: rows
+        label: Events
+        items: [OrderPlaced, PaymentCaptured, StockReservationFailed, { v: PaymentRefunded, tone: accent }, { v: OrderCancelled, tone: accent }]
+  - caption: 'Design choices this exposes: reserve stock **before** charging to avoid most refunds; with many steps, an **orchestrator** that tracks the saga''s state is easier to follow than services reacting to each other; every step must be **idempotent** because events can be delivered twice.'
+    panels:
+      - kind: note
+        text: 'Choreography (shown) vs orchestration: same steps, different owner of the flow.'

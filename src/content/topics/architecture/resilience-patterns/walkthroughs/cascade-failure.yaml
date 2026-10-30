@@ -1,0 +1,29 @@
+title: One slow dependency takes down its callers
+frames:
+  - caption: 'Normal: the order service has 200 request threads. Inventory answers in 20 ms, so about 20 threads are busy at 1,000 requests/s.'
+    panels:
+      - kind: kv
+        label: Order service threads
+        pairs: [[busy, { v: '20 / 200', tone: ok }], [inventory latency, '20 ms']]
+  - caption: 'Inventory''s database slows down; responses now take **8 s** — not errors, just slow. Every order request holds a thread for 8 s.'
+    panels:
+      - kind: kv
+        label: Order service threads
+        pairs: [[busy, { v: '200 / 200', tone: bad }], [inventory latency, { v: '8 s', tone: bad }]]
+      - kind: note
+        text: '1,000 req/s × 8 s would need 8,000 threads.'
+  - caption: 'With every thread stuck, the order service can''t serve **anything** — including endpoints that never touch inventory. Its callers (gateway, web) now time out and pile up too. The outage spreads upwards.'
+    panels:
+      - kind: rows
+        label: Status
+        items: [{ v: 'inventory: slow', tone: warn }, { v: 'orders: down', tone: bad }, { v: 'gateway: queueing', tone: bad }]
+  - caption: 'Clients and services **retry**. Each retry is another 8-second request against a service that is already overloaded — the recovering database never gets breathing room.'
+    panels:
+      - kind: kv
+        label: Load on inventory
+        pairs: [[normal, '1,000/s'], [with 3 retries at 2 layers, { v: 'up to 16,000/s', tone: bad }]]
+  - caption: 'With protection: an **800 ms timeout** caps how long a thread waits, a **bulkhead** of 20 keeps 180 threads for everything else, the **circuit opens** after the failure rate passes 50% and returns a cached "last known stock" instantly, and **jittered, capped retries** add little load. Orders keep working, slightly degraded.'
+    panels:
+      - kind: rows
+        label: Status
+        items: [{ v: 'inventory: slow (circuit OPEN)', tone: warn }, { v: 'orders: up, stock shown as "last known"', tone: ok }, { v: 'gateway: normal', tone: ok }]

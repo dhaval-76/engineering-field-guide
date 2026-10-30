@@ -35,7 +35,7 @@ for (const f of codeFiles) {
   snippetIds.set(id, [...(snippetIds.get(id) ?? []), f]);
 }
 // Snippets that demonstrate one language's own runtime (the JS event loop, ES modules) and have no Java equivalent.
-const LANGUAGE_SPECIFIC = new Set(['singleton-module', 'event-loop-order', 'blocking-the-loop']);
+const LANGUAGE_SPECIFIC = new Set(['singleton-module', 'event-loop-order', 'blocking-the-loop', 'resilience-other']);
 for (const [id, files] of snippetIds) {
   const exts = files.map((f) => f.split('.').pop());
   if (new Set(exts).size !== exts.length)
