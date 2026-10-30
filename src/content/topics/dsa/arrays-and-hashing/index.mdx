@@ -1,0 +1,90 @@
+---
+title: Arrays, Hashing and Prefix Sums
+summary: The most common interview pattern — trading memory for time with hash maps and sets, counting with frequency maps, grouping by a canonical key, and answering range and subarray questions with prefix sums.
+track: dsa
+order: 10
+tags: [dsa, arrays, hashing, hash-map, prefix-sum, patterns]
+aliases: [hashing pattern, hash map, hash set, frequency count, counting, two sum, group anagrams, contains duplicate, top k frequent, longest consecutive sequence, prefix sum, subarray sum equals k, product of array except self, running sum]
+prerequisites: [cs-foundations/complexity]
+related: [java-runtime/hashmap-internals, java-runtime/collections]
+quickRef:
+  points:
+    - '"Have I seen X before?" / "how many times?" → a **hash set / hash map**: O(1) average per lookup, O(n) space.'
+    - '**Complement lookup**: for each x, check whether `target − x` was already seen (two sum).'
+    - '**Canonical key** to group equivalent items: sorted letters, character counts, normalised form.'
+    - '**Prefix sums**: `sum(i..j) = prefix[j+1] − prefix[i]`; with a map of prefix counts, count subarrays summing to k in O(n).'
+    - 'If values are small integers in a known range, an **array as a map** is faster and simpler.'
+  complexity: 'Typical: O(n) time, O(n) space (vs O(n²) brute force).'
+  useWhen: 'The brute force compares pairs or re-scans ranges, and the input fits in memory.'
+lastReviewed: 2026-10-30
+---
+
+## Recognise it
+
+- The brute force has nested loops looking for a **matching element** → remember elements in a map instead.
+- You need **counts** or **groups** → a frequency map, or a map from a canonical key to a list.
+- The question is about **subarray sums** or ranges → prefix sums (plus a map for "how many/which ranges").
+- Constraint n up to 10⁵–10⁶ → O(n) or O(n log n) expected.
+
+<Callout type="analogy">
+A cloakroom ticket system. Instead of searching every coat on the rack for yours (O(n) each time), you hand over a ticket number and the attendant goes straight to the hook (O(1)). Hashing turns "search" into "go directly to".
+</Callout>
+
+<Walkthrough id="two-sum-map" />
+
+## Templates
+
+<CodeTabs id="dsa-hashing-template" title="Seen-set, frequency map and grouping by key" />
+
+## Worked problems
+
+### Two sum
+
+Return indices of two numbers adding to a target. For each number, the partner we need is `target − x`; check the map of values seen so far, then add the current one.
+
+<CodeTabs id="dsa-two-sum" title="Two sum — O(n) with a value → index map" />
+
+### Group anagrams
+
+Words are anagrams when they have the same letter counts. Use a canonical key — the sorted word (O(k log k)) or a 26-count signature (O(k)) — and group by it.
+
+<CodeTabs id="dsa-group-anagrams" title="Group anagrams — group by a canonical key" />
+
+### Subarray sum equals k
+
+Count contiguous subarrays summing to k (numbers may be negative, so a sliding window doesn't work). A subarray `(i, j]` sums to k exactly when `prefix[j] − prefix[i] = k`, i.e. some earlier prefix equals `prefix[j] − k`. Keep a map of prefix-sum counts.
+
+<CodeTabs id="dsa-subarray-sum-k" title="Subarray sum equals k — prefix sums + counts" />
+
+### Longest consecutive sequence
+
+Find the longest run of consecutive integers in an unsorted array in O(n). Put everything in a set; only start counting from numbers whose predecessor is absent (the start of a run), so each number is visited at most twice.
+
+<CodeTabs id="dsa-longest-consecutive" title="Longest consecutive sequence — O(n) with a set" />
+
+## Complexity
+
+| Problem | Brute force | With hashing / prefix sums |
+|---|---|---|
+| Two sum | O(n²) | O(n) time, O(n) space |
+| Group anagrams | O(n² · k) comparing pairs | O(n · k) with count keys |
+| Subarray sum = k | O(n²) or O(n³) | O(n) time, O(n) space |
+| Longest consecutive | O(n log n) sort | O(n) time, O(n) space |
+
+<Pitfalls>
+
+- **Adding the current element before checking** in two sum — an element pairs with itself.
+- **Forgetting `prefixCount[0] = 1`** — subarrays starting at index 0 are missed.
+- **Mutable or array keys** — Java arrays use identity `hashCode`; use a `String` or `List` key (or `Arrays.toString`).
+- **Sliding window for sums with negative numbers** — use prefix sums instead.
+- **Integer overflow** in prefix sums — use `long`.
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- Hash maps/sets turn "search for a partner" into O(1) lookups.
+- Canonical keys group equivalent items.
+- Prefix sums + a count map solve subarray-sum questions in O(n), even with negatives.
+
+</KeyTakeaways>

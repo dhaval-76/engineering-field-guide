@@ -1,0 +1,33 @@
+questions:
+  - q: 'Find all unique triplets in an array that sum to zero.'
+    think: How do you turn three nested loops into two, and how do you avoid repeated triplets?
+    answer: |
+      Sort the array (O(n log n)). For each index `i` (skipping values equal to the previous one), solve two-sum for `−nums[i]` on the suffix with converging pointers: sum too small → `l++`, too large → `r--`, equal → record and skip duplicates on both sides. Break early when `nums[i] > 0`. Total O(n²) time, O(1) extra space apart from the output. A hash-set approach is also O(n²) but makes de-duplication messier.
+  - q: 'Given heights of vertical lines, find two lines that hold the most water.'
+    think: Which pointer move can possibly improve the area?
+    answer: |
+      Start at both ends (maximum width). The area is `width × min(h[l], h[r])`. Moving the taller line inward reduces width and can't raise the minimum (still bounded by the shorter line), so it can never help; only moving the shorter one can find a taller limit. Move the shorter side each step and track the best: O(n) time, O(1) space.
+followUps:
+  - q: When does two pointers fail and hashing win?
+    intuition: What does the elimination argument need?
+    approach: |
+      Converging pointers need sorted (monotonic) data to safely discard elements. If the array is unsorted and you must return original indices, sorting loses them (unless you sort index pairs) and hashing's O(n) beats sorting's O(n log n). For "count subarrays with sum k" with negatives, neither pointers nor windows work — use prefix sums with a map.
+  - q: How do fast and slow pointers find a cycle in a linked list?
+    intuition: A runner lapping a walker on a circular track.
+    approach: |
+      Move slow by one and fast by two. If there's a cycle, fast eventually meets slow inside it; if fast reaches null, there's no cycle. To find the cycle start, reset one pointer to the head and advance both by one — they meet at the entry. O(n) time, O(1) space (see Linked lists).
+practice:
+  - task: Implement 3Sum returning unique triplets in O(n²).
+    hint: Sort; fix i; converging pointers for the remaining two; skip duplicates for i, l and r.
+    solution: |
+      Sort; for each i with `nums[i] != nums[i−1]`, set `l = i+1, r = n−1` and move them according to the sum; on a match, add the triplet, then advance `l` past equal values and `r` past equal values before moving both. Stop when `nums[i] > 0`. Duplicates never appear because each distinct value is used once at each position.
+    solutionCode: dsa-three-sum
+quiz:
+  - q: In converging two-sum on a sorted array, the sum is too small. What do you do?
+    options: [Move right left, Move left right, Move both, Restart]
+    correct: 1
+    why: The smallest element can't reach the target with anything remaining, so discard it.
+  - q: What is the time complexity of 3Sum with sorting and two pointers?
+    options: ['O(n)', 'O(n log n)', 'O(n²)', 'O(n³)']
+    correct: 2
+    why: n iterations of an O(n) two-pointer scan dominate the O(n log n) sort.

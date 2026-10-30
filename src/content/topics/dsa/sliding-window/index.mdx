@@ -1,0 +1,79 @@
+---
+title: Sliding Window
+summary: Solving "best contiguous subarray or substring" problems in one pass — fixed-size windows, variable windows that grow and shrink while keeping an invariant, frequency maps inside the window, and monotonic deques for window maxima.
+track: dsa
+order: 30
+tags: [dsa, sliding-window, strings, arrays, patterns]
+aliases: [sliding window, variable window, fixed window, longest substring without repeating characters, minimum window substring, longest repeating character replacement, permutation in string, max sum subarray of size k, sliding window maximum, monotonic deque, at most k distinct]
+prerequisites: [dsa/two-pointers, dsa/arrays-and-hashing]
+related: []
+quickRef:
+  points:
+    - 'Contiguous subarray/substring + "longest / shortest / count / max sum" → **sliding window**.'
+    - '**Fixed size k**: add the entering element, remove the leaving one — O(1) per step.'
+    - '**Variable**: expand `right` every step; **shrink `left` while the window is invalid**; record the answer when valid.'
+    - 'Keep window state in counters (a map or `int[26]`) so validity checks are O(1).'
+    - 'Requires a **monotone** condition (adding elements only makes it "more invalid"); with negative numbers in sum problems, use prefix sums instead.'
+  complexity: 'O(n): each element enters and leaves the window at most once.'
+  useWhen: 'Contiguous ranges with a constraint that grows monotonically as the window grows.'
+lastReviewed: 2026-10-30
+---
+
+## Recognise it
+
+- The answer is a **contiguous** subarray or substring.
+- You want the longest/shortest window satisfying a condition, or the best value over all windows of size k.
+- The condition is **monotone**: if a window is invalid, every larger window containing it is also invalid (e.g. "has a repeated character", "sum > k" with positive numbers).
+
+<Callout type="analogy">
+A train window passing a landscape: as the train moves, one tree enters on the right and one leaves on the left. You don't re-look at the whole view; you only update for what changed.
+</Callout>
+
+<Walkthrough id="variable-window" />
+
+## Templates
+
+<CodeTabs id="dsa-window-template" title="Fixed and variable window templates" />
+
+## Worked problems
+
+### Longest substring without repeating characters
+
+Expand right; when the new character is already in the window, move left past its previous occurrence (or shrink until it's unique).
+
+<CodeTabs id="dsa-longest-unique-substring" title="Longest substring without repeats — last-seen index" />
+
+### Minimum window substring
+
+The smallest window of `s` containing all characters of `t` (with multiplicity). Expand until valid (all required counts met), then shrink from the left while it stays valid, recording the minimum.
+
+<CodeTabs id="dsa-min-window" title="Minimum window substring — expand to valid, shrink to minimal" />
+
+### Longest repeating character replacement
+
+The longest substring you can make all one letter with at most k replacements. A window is valid when `length − (count of its most frequent letter) ≤ k`.
+
+<CodeTabs id="dsa-char-replacement" title="Character replacement — window validity from the max frequency" />
+
+### Sliding window maximum
+
+The maximum of every window of size k in O(n): a **monotonic deque** of indices whose values decrease; the front is the window's maximum; drop indices that leave the window or are dominated by a newer, larger value.
+
+<CodeTabs id="dsa-window-max" title="Sliding window maximum — monotonic deque" />
+
+<Pitfalls>
+
+- **Shrinking with `if` instead of `while`** — the window may need several steps to become valid.
+- **Recording the answer at the wrong moment** — for "longest", after shrinking to valid; for "shortest", while valid during shrinking.
+- **Non-monotone conditions** (sums with negatives, "exactly k") — use prefix sums, or count "at most k" minus "at most k−1".
+- **Recomputing window state from scratch** each step — O(n·k).
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- Expand right, shrink left while invalid, update the answer — O(n).
+- Maintain counts so validity checks are O(1).
+- Monotonic deques give window maxima/minima in O(n).
+
+</KeyTakeaways>

@@ -1,0 +1,33 @@
+questions:
+  - q: 'Find the length of the longest substring without repeating characters.'
+    think: When the window becomes invalid, how far must the left edge move?
+    answer: |
+      Use a variable window. Expand `right` each step; track each character's last index. If the incoming character was last seen at or after `left`, move `left` to one past that index (the window becomes valid again in one jump). After each step, the window is duplicate-free, so record `right − left + 1`. O(n) time, O(alphabet) space. A set-based version shrinks one step at a time with a `while`, also O(n).
+  - q: 'Find the smallest substring of s that contains every character of t (with multiplicity).'
+    think: Expand until valid, then shrink while still valid.
+    answer: |
+      Count required characters of `t` and track how many are still missing. Expand `right`, decrementing counts (and `missing` when a needed character arrives). When `missing == 0`, the window is valid: record it, then move `left` forward, restoring counts; when a needed character leaves, the window becomes invalid and expansion resumes. Each index enters and leaves once: O(|s| + |t|).
+followUps:
+  - q: Why doesn't sliding window work for "subarray sum equals k" with negative numbers?
+    intuition: Does growing the window always make the sum larger?
+    approach: |
+      The shrink step relies on monotonicity: once a window is "too big", every larger window is too, so moving `left` is safe. With negative numbers, extending can decrease the sum, so you can't know which way to move. Use prefix sums with a hash map instead (O(n)).
+  - q: How do you count subarrays with exactly k distinct values?
+    intuition: Exact conditions aren't monotone; "at most" conditions are.
+    approach: |
+      `exactly(k) = atMost(k) − atMost(k − 1)`. `atMost(k)` is a standard variable window: expand, shrink while distinct count > k, and add `right − left + 1` (the number of valid subarrays ending at `right`) each step. Both passes are O(n).
+practice:
+  - task: Return the maximum of every window of size k in O(n).
+    hint: Keep a deque of indices whose values decrease; the front is the current maximum.
+    solution: |
+      For each index i: drop the front if it's outside the window (`≤ i − k`); pop from the back while the back's value ≤ `nums[i]` (they can never be a maximum again); push i; once `i ≥ k − 1`, the front's value is the window maximum. Each index is pushed and popped at most once, so O(n) time and O(k) space.
+    solutionCode: dsa-window-max
+quiz:
+  - q: In a variable sliding window, when should the left pointer move?
+    options: [Every step, While the window is invalid, Only at the end, When right reaches the end]
+    correct: 1
+    why: Shrink until the invariant holds again, then record the answer.
+  - q: 'What does a monotonic deque give you in sliding-window problems?'
+    options: [Sorted windows, Window maximum or minimum in O(1) per step, Prefix sums, Random access]
+    correct: 1
+    why: Its front always holds the best candidate for the current window.

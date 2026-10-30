@@ -1,0 +1,34 @@
+title: Longest substring without repeats in "abcabcbb"
+frames:
+  - caption: 'Expand right over "a", "b", "c": all unique. Window "abc", length **3** — best so far.'
+    panels:
+      - kind: array
+        label: s
+        items: [{ v: a, tone: info }, { v: b, tone: info }, { v: c, tone: info }, a, b, c, b, b]
+      - kind: kv
+        label: Window
+        pairs: [[left..right, '0..2'], [best, '3']]
+  - caption: 'right = 3 brings in "a", which is already in the window (at 0). Shrink: move left to 1 — past the earlier "a". Window "bca", still length 3.'
+    panels:
+      - kind: array
+        label: s
+        items: [{ v: a, tone: muted }, { v: b, tone: info }, { v: c, tone: info }, { v: a, tone: accent }, b, c, b, b]
+      - kind: kv
+        label: Window
+        pairs: [[left..right, '1..3'], [best, '3']]
+  - caption: 'The same happens for "b" and "c": each time the left edge jumps just past the previous copy. Every character enters once and leaves at most once.'
+    panels:
+      - kind: array
+        label: s
+        items: [{ v: a, tone: muted }, { v: b, tone: muted }, { v: c, tone: muted }, { v: a, tone: info }, { v: b, tone: info }, { v: c, tone: accent }, b, b]
+      - kind: kv
+        label: Window
+        pairs: [[left..right, '3..5'], [best, '3']]
+  - caption: 'The final "b"s force the window down to "b". The answer is **3** ("abc") after a single pass — O(n) instead of checking all O(n²) substrings.'
+    panels:
+      - kind: array
+        label: s
+        items: [{ v: a, tone: muted }, { v: b, tone: muted }, { v: c, tone: muted }, { v: a, tone: muted }, { v: b, tone: muted }, { v: c, tone: muted }, { v: b, tone: muted }, { v: b, tone: ok }]
+      - kind: kv
+        label: Result
+        pairs: [[best, { v: '3', tone: ok }]]

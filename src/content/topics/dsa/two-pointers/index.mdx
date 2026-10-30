@@ -1,0 +1,84 @@
+---
+title: Two Pointers
+summary: Walking two indices through a sequence to replace nested loops — converging pointers on sorted arrays and palindromes, fast and slow pointers for in-place compaction, and 3Sum and container-with-most-water as classic applications.
+track: dsa
+order: 20
+tags: [dsa, two-pointers, arrays, strings, patterns]
+aliases: [two pointers, converging pointers, opposite ends, fast and slow pointers, read write pointers, two sum sorted, two sum ii, 3sum, three sum, container with most water, valid palindrome, remove duplicates in place, move zeroes, trapping rain water, partition]
+prerequisites: [dsa/arrays-and-hashing]
+related: [dsa/sliding-window]
+quickRef:
+  points:
+    - '**Converging** (left from the start, right from the end): sorted pair search, palindromes, container problems. Move the pointer whose change can improve the answer.'
+    - '**Same direction** (read/write or fast/slow): in-place filtering, deduplication, partitioning — O(1) extra space.'
+    - 'Sorting first (O(n log n)) often unlocks two pointers; k-sum = sort + fix one + two pointers.'
+    - 'Each step moves a pointer forward, so the scan is **O(n)** total.'
+  complexity: 'O(n) per scan (after an optional O(n log n) sort), O(1) extra space.'
+  useWhen: 'Sorted input (or sortable), pairs/triplets with a target, symmetric checks, or in-place rearrangement.'
+lastReviewed: 2026-10-30
+---
+
+## Recognise it
+
+- **Sorted** array and a pair/triple condition (sum, difference) → converging pointers.
+- **Symmetry** (palindromes, reversing) → converging pointers.
+- **Rearrange in place** with O(1) extra space (remove, deduplicate, move zeros, partition) → read/write pointers.
+- Linked-list cycles and middles → fast/slow pointers ([Linked lists](../linked-lists/)).
+
+<Callout type="analogy">
+Two people searching a sorted bookshelf for two books whose page counts add up to 1,000: one starts at the thinnest, one at the thickest. Too many pages? The person at the thick end moves inward. Too few? The thin end moves. Neither ever needs to go back.
+</Callout>
+
+<Walkthrough id="converging-pointers" />
+
+## Why converging works
+
+On a sorted array with `sum = a[l] + a[r]`: if the sum is too small, no pair using `a[l]` with any element left of `r` can be large enough (they're all ≤ `a[r]`), so `l` can be discarded; symmetrically for too large. Every step safely eliminates one element, giving O(n).
+
+## Templates
+
+<CodeTabs id="dsa-two-pointer-template" title="Converging pointers and read/write pointers" />
+
+## Worked problems
+
+### Valid palindrome
+
+Ignoring non-alphanumerics and case, compare characters from both ends moving inward.
+
+<CodeTabs id="dsa-valid-palindrome" title="Valid palindrome — converging pointers, O(1) space" />
+
+### 3Sum
+
+Find all unique triplets summing to zero. Sort; for each `i`, run two pointers on the rest for `−nums[i]`, skipping duplicates at every level.
+
+<CodeTabs id="dsa-three-sum" title="3Sum — sort + fix one + two pointers, O(n²)" />
+
+### Container with most water
+
+Pick two lines forming the container with the most water. The area is limited by the shorter line, so moving the *taller* one inward can never help — always move the shorter.
+
+<CodeTabs id="dsa-container-water" title="Container with most water — move the shorter side" />
+
+### Remove duplicates from a sorted array (in place)
+
+A write pointer marks the end of the unique prefix; a read pointer scans ahead.
+
+<CodeTabs id="dsa-remove-duplicates" title="Read/write pointers — O(n) time, O(1) space" />
+
+<Pitfalls>
+
+- **Using converging pointers on unsorted input** — the elimination argument needs order.
+- **Duplicate results in k-sum** — skip equal values after sorting, at every level.
+- **Off-by-one loop conditions** (`l < r` vs `l <= r`).
+- **Moving both pointers** when only one can be safely discarded.
+- **Sorting when indices must be returned** — keep original indices or use hashing.
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- Converging pointers on sorted/symmetric data eliminate one candidate per step.
+- Read/write pointers rearrange in place with O(1) space.
+- Sort first to unlock the pattern; skip duplicates to avoid repeated answers.
+
+</KeyTakeaways>

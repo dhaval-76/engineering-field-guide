@@ -1,0 +1,33 @@
+questions:
+  - q: 'Given an array and a target, return the indices of two numbers that sum to the target. Improve on O(n²).'
+    think: For each number, what exactly are you looking for, and where could you have stored it?
+    answer: |
+      For each `x`, the partner is `target − x`. Walk once, keeping a map from value to index of numbers already seen; check the map for the partner before inserting `x` (so `x` can't pair with itself). O(n) time, O(n) space. If the array is sorted (or you may sort and only need values), two pointers give O(1) extra space. Clarify duplicates and whether a solution always exists.
+  - q: 'Count the subarrays whose sum equals k. The array may contain negative numbers.'
+    think: Why doesn't a sliding window work here? What does the sum of a subarray look like in terms of prefix sums?
+    answer: |
+      With negatives, extending a window doesn't monotonically increase the sum, so sliding windows fail. A subarray `(i, j]` sums to `prefix[j] − prefix[i]`; it equals k when `prefix[i] = prefix[j] − k`. Walk once with a running sum and a map counting how many times each prefix sum has occurred (starting with `{0: 1}`); at each step add `count[sum − k]` to the answer. O(n) time and space; use 64-bit sums.
+followUps:
+  - q: Hash map vs sorting — when would you choose sorting?
+    intuition: Space, and whether order helps.
+    approach: |
+      Sorting is O(n log n) with O(1) or O(log n) extra space (in place) and enables two pointers, binary search and adjacent comparisons; it also handles inputs where hashing is awkward. A hash map is O(n) average but O(n) extra space. Choose sorting when memory is tight, when the output must be ordered anyway, or when the input is already sorted.
+  - q: How do you choose a good key for grouping?
+    intuition: Equal key ⇔ equivalent items.
+    approach: |
+      The key must be identical for all items that belong together and different otherwise: sorted characters or 26-letter counts for anagrams, a normalised string (lowercase, trimmed) for case-insensitive grouping, a tuple of relative offsets for shapes. Prefer O(k) keys (counts) to O(k log k) (sorting), and make sure the key type has value-based equality and hashing.
+practice:
+  - task: Find the length of the longest consecutive sequence of integers in an unsorted array in O(n).
+    hint: Put everything in a set; only start counting at numbers whose predecessor isn't present.
+    solution: |
+      Insert all numbers into a set. For each value whose `x − 1` is not in the set, it starts a run: count upward while `x + length` is in the set and track the maximum. Each number is examined by at most one run, so the total work is O(n) on average, with O(n) space. Sorting would give O(n log n).
+    solutionCode: dsa-longest-consecutive
+quiz:
+  - q: In two sum with a hash map, why insert the current number after checking for its partner?
+    options: [It's faster, So a number can't pair with itself, Maps require it, To keep indices sorted]
+    correct: 1
+    why: Checking first ensures the partner comes from an earlier, different index.
+  - q: 'With prefix sums p (p[0] = 0), what is the sum of nums[2..5]?'
+    options: ['p[5] − p[2]', 'p[6] − p[2]', 'p[6] − p[3]', 'p[5] − p[1]']
+    correct: 1
+    why: p[i] is the sum of the first i elements, so indices 2..5 are p[6] − p[2].

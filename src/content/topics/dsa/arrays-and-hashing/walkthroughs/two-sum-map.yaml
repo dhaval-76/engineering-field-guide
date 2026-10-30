@@ -1,0 +1,26 @@
+title: Two sum with a map of seen values
+frames:
+  - caption: 'Find two numbers that add to **9**. Walk left to right; for each x, the partner we need is 9 − x. The map remembers values already seen → their index.'
+    panels:
+      - kind: array
+        label: nums
+        items: [{ v: '2', tone: accent }, '7', '11', '15']
+      - kind: kv
+        label: seen (value → index)
+        pairs: []
+  - caption: 'i = 0, x = 2: need 7. Not in the map. Store 2 → 0.'
+    panels:
+      - kind: array
+        label: nums
+        items: [{ v: '2', tone: info }, '7', '11', '15']
+      - kind: kv
+        label: seen
+        pairs: [['2', '0']]
+  - caption: 'i = 1, x = 7: need **2** — it''s in the map at index 0. Answer: [0, 1]. One pass, O(1) lookups: O(n) instead of checking every pair.'
+    panels:
+      - kind: array
+        label: nums
+        items: [{ v: '2', tone: ok }, { v: '7', tone: ok }, '11', '15']
+      - kind: kv
+        label: seen
+        pairs: [[{ v: '2', tone: ok }, '0']]

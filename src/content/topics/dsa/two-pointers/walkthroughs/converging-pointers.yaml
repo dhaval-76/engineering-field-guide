@@ -1,0 +1,31 @@
+title: Pair with target sum 10 in a sorted array
+frames:
+  - caption: 'Sorted array, target **10**. Start with l at the smallest and r at the largest.'
+    panels:
+      - kind: array
+        label: nums
+        items: [{ v: '1', tone: accent }, '3', '4', '6', '8', { v: '11', tone: accent }]
+      - kind: kv
+        label: Step
+        pairs: [[sum, '1 + 11 = 12'], [action, { v: 'too big → r--', tone: warn }]]
+  - caption: '12 > 10: every pair using 11 with anything ≥ 1 is too big, so 11 is discarded.'
+    panels:
+      - kind: array
+        label: nums
+        items: [{ v: '1', tone: accent }, '3', '4', '6', { v: '8', tone: accent }, { v: '11', tone: muted }]
+      - kind: kv
+        label: Step
+        pairs: [[sum, '1 + 8 = 9'], [action, { v: 'too small → l++', tone: warn }]]
+  - caption: '9 < 10: 1 paired with anything ≤ 8 is too small, so 1 is discarded.'
+    panels:
+      - kind: array
+        label: nums
+        items: [{ v: '1', tone: muted }, { v: '3', tone: accent }, '4', '6', { v: '8', tone: accent }, { v: '11', tone: muted }]
+      - kind: kv
+        label: Step
+        pairs: [[sum, '3 + 8 = 11'], [action, { v: 'too big → r--', tone: warn }]]
+  - caption: '3 + 6 = 9 → too small → l++. Then 4 + 6 = **10** ✓. Four steps instead of checking all 15 pairs.'
+    panels:
+      - kind: array
+        label: nums
+        items: [{ v: '1', tone: muted }, { v: '3', tone: muted }, { v: '4', tone: ok }, { v: '6', tone: ok }, { v: '8', tone: muted }, { v: '11', tone: muted }]
