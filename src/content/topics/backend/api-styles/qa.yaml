@@ -1,0 +1,41 @@
+questions:
+  - q: 'Your mobile app makes 7 REST calls to render the home screen and is slow on poor networks. What do you change?'
+    think: Round trips vs payload size, and who should aggregate.
+    answer: |
+      Aggregate on the server, close to the data. Options: a **backend-for-frontend** endpoint that returns exactly the home-screen data in one response (calls internal services in parallel with deadlines), or **GraphQL** so the app requests all needed fields in one query. Either way: trim fields to what the screen needs, compress responses, cache per-user parts briefly and shared parts at the CDN, and make slow sections optional (render the rest, lazy-load them). With GraphQL, batch resolvers and use persisted queries.
+  - q: Why might internal services use gRPC while the public API stays REST?
+    think: Who the consumers are and what each style optimises for.
+    answer: |
+      Internally you control both sides: gRPC gives a strict contract with generated clients in every language, compact binary payloads, HTTP/2 multiplexing, streaming and built-in deadline propagation — good for latency and correctness across many services. Public consumers want something universal, debuggable with curl, cacheable by CDNs and documented with OpenAPI — REST/JSON. A gateway or BFF translates between them, and internal schemas can change without breaking partners.
+followUps:
+  - q: What is the N+1 problem in GraphQL and how do you fix it?
+    intuition: One resolver call per parent object.
+    approach: |
+      Field resolvers run per object, so resolving `customer` for 50 orders issues 50 queries after the first. A DataLoader (or Spring's `@BatchMapping`) collects the keys requested during one execution level and loads them in a single batched query, de-duplicating and caching within the request. Create loaders per request to avoid leaking data between users.
+  - q: How do you evolve a Protobuf message without breaking clients?
+    intuition: Field numbers are the contract.
+    approach: |
+      Add new fields with new numbers (old readers skip unknown fields); never change an existing field's number or type; when removing a field, mark its number and name `reserved` so they're never reused; keep a zero `UNSPECIFIED` enum value; prefer new RPCs or a new package version (`v2`) for incompatible changes. Lint with tools like buf to catch breaking changes in CI.
+  - q: Why does gRPC load balancing need special care?
+    intuition: Long-lived HTTP/2 connections.
+    approach: |
+      A gRPC client multiplexes all calls over one persistent HTTP/2 connection. A connection-level (L4) balancer picks a backend once per connection, so one client's traffic all goes to a single pod and new pods get nothing. Balance per request instead: client-side load balancing over the resolved addresses (round_robin), a request-aware L7 proxy like Envoy, or a service mesh sidecar.
+  - q: How do you protect a GraphQL API from expensive queries?
+    intuition: Clients can ask for anything the schema allows.
+    approach: |
+      Enforce maximum depth and a cost/complexity score per query (list fields multiply by their page size), require pagination arguments with caps, set timeouts, rate-limit by cost rather than requests, disable introspection publicly if appropriate, and for first-party clients accept only persisted (pre-registered) queries.
+practice:
+  - task: Implement Order.customer in a GraphQL server so a page of 50 orders costs two database queries.
+    hint: Batch by customer id within one request.
+    solution: |
+      Use a per-request DataLoader (JS/Python) or Spring for GraphQL's `@BatchMapping` (Java). The batch function receives all requested customer ids (or the list of parent orders), fetches them with one `WHERE id IN (…)` query, and returns results aligned with the input order (or a map from order to customer). Missing customers map to null.
+    solutionCode: graphql-batching
+quiz:
+  - q: Which style gives natural HTTP caching through CDNs?
+    options: [GraphQL over POST, REST GET endpoints, gRPC unary calls, gRPC streaming]
+    correct: 1
+    why: GET responses with Cache-Control and ETag headers are cacheable by browsers and CDNs.
+  - q: 'In Protobuf, you removed field 6. What should you do?'
+    options: [Reuse 6 for the next new field, Mark 6 as reserved, Renumber the remaining fields, Nothing]
+    correct: 1
+    why: Reserving prevents a future field from reusing the number and misreading old data.

@@ -1,0 +1,58 @@
+syntax = "proto3";
+
+package shop.orders.v1;
+
+option java_multiple_files = true;
+option java_package = "com.example.shop.orders.v1";
+
+service OrderService {
+  rpc GetOrder(GetOrderRequest) returns (Order);                    // unary
+  rpc ListOrders(ListOrdersRequest) returns (ListOrdersResponse);   // unary, paginated
+  rpc WatchOrder(WatchOrderRequest) returns (stream OrderEvent);    // server streaming
+}
+
+message GetOrderRequest { string order_id = 1; }
+
+message ListOrdersRequest {
+  string customer_id = 1;
+  int32 page_size = 2;
+  string page_token = 3;          // opaque cursor
+}
+
+message ListOrdersResponse {
+  repeated Order orders = 1;
+  string next_page_token = 2;
+}
+
+message Order {
+  string id = 1;
+  string customer_id = 2;
+  OrderStatus status = 3;
+  int64 total_cents = 4;          // money as integer minor units
+  repeated LineItem items = 5;
+  // Field 6 was "string coupon" — never reuse a removed number.
+  reserved 6;
+  reserved "coupon";
+  string currency = 7;            // new fields get new numbers; old clients ignore them
+}
+
+message LineItem {
+  string sku = 1;
+  int32 quantity = 2;
+  int64 unit_price_cents = 3;
+}
+
+enum OrderStatus {
+  ORDER_STATUS_UNSPECIFIED = 0;   // proto3 default; always have a zero value
+  ORDER_STATUS_PLACED = 1;
+  ORDER_STATUS_SHIPPED = 2;
+  ORDER_STATUS_DELIVERED = 3;
+  ORDER_STATUS_CANCELLED = 4;
+}
+
+message WatchOrderRequest { string order_id = 1; }
+message OrderEvent {
+  string order_id = 1;
+  OrderStatus status = 2;
+  int64 at_epoch_millis = 3;
+}

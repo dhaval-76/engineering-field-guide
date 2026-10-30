@@ -1,0 +1,41 @@
+questions:
+  - q: Design live order-status updates for a food-delivery app's web and mobile clients.
+    think: Direction of traffic, how many connections, what happens offline.
+    answer: |
+      Updates flow one way (server → client), so use **SSE** on web (or a WebSocket if the app already has one) and platform push (FCM/APNs) when the mobile app is backgrounded. The order service persists each status change as an event with an increasing id and publishes it to a pub/sub topic `order:{id}`. **Connection servers** authorize the subscription, replay events after the client's `Last-Event-ID`, subscribe to the topic and forward events, with heartbeats every 15 s. Clients reconnect with backoff and jitter and can always fall back to `GET /orders/{id}`. Scale connection servers on connection count; pub/sub decouples them from the order service.
+  - q: 'Your chat service works on one server but messages go missing when you add a second instance. Why, and how do you fix it?'
+    think: Where do the sockets live?
+    answer: |
+      Room membership and sockets are in each instance's memory, so a message received on instance 1 is only delivered to sockets on instance 1. Fix: publish every message to a shared pub/sub channel per room (Redis, NATS, Kafka); every instance subscribes and delivers to its own local members. Persist messages before publishing so clients that reconnect — possibly to another instance — can fetch what they missed by message id. Sticky sessions only hide the problem.
+followUps:
+  - q: SSE or WebSocket?
+    intuition: Who sends, and how often?
+    approach: |
+      If only the server pushes (notifications, progress, feeds, streamed LLM output), SSE: plain HTTP, works with existing auth, proxies and HTTP/2, and reconnects with `Last-Event-ID` automatically. If the client also sends frequent messages with low latency (chat typing, games, collaborative cursors) or needs binary frames, WebSocket.
+  - q: How do you handle a client that disconnects for 30 seconds?
+    intuition: Resume, don't restart.
+    approach: |
+      Give every event a monotonically increasing id per stream and persist events (or keep a bounded recent buffer). On reconnect the client sends its last seen id; the server replays everything after it, then continues live. If the gap is too old, the client reloads full state via a normal API. Clients de-duplicate by id.
+  - q: Why do reconnect storms happen and how do you prevent them?
+    intuition: Everyone retries at the same instant.
+    approach: |
+      A deploy or network blip disconnects many clients at once; if they all reconnect immediately (or on the same fixed delay) the servers and auth service get a spike that can cause another failure. Use exponential backoff with random jitter on clients, drain servers gradually during deploys, rate-limit connection attempts, and make reconnects cheap (resume tokens instead of full state reloads).
+  - q: How do you authenticate a WebSocket?
+    intuition: The upgrade is an HTTP request — but only once.
+    approach: |
+      Authenticate during the upgrade (session cookie, with an Origin check to prevent cross-site WebSocket hijacking) or in the first message with a short-lived token; avoid tokens in query strings, which end up in logs. Authorize each subscription (may this user join this room?). Because the connection outlives the token, track expiry and require refresh or close the connection.
+practice:
+  - task: Build an SSE endpoint for order status that survives reconnects without losing events.
+    hint: Event ids, Last-Event-ID, replay then subscribe, heartbeats, cleanup on close.
+    solution: |
+      Authorize the user for the order. Set `text/event-stream` and no-cache headers. Read the `Last-Event-ID` header and replay persisted events after it, then subscribe to the order's pub/sub topic and write each event with `id:`, `event:` and `data:` lines. Send a comment line as a heartbeat every 15 s. On close/timeout/error, unsubscribe and stop the heartbeat. The browser's EventSource handles reconnects and sends the last id automatically.
+    solutionCode: sse-endpoint
+quiz:
+  - q: Which technique has automatic reconnect with resume built into the browser API?
+    options: [WebSocket, Server-sent events, Short polling, Webhooks]
+    correct: 1
+    why: EventSource reconnects automatically and sends the last event id in the Last-Event-ID header.
+  - q: Two WebSocket servers each hold half the users of a chat room. What delivers a message to everyone?
+    options: [Sticky sessions, A shared pub/sub channel both servers subscribe to, A bigger server, HTTP/2]
+    correct: 1
+    why: Each server receives the published message and delivers it to its local sockets.

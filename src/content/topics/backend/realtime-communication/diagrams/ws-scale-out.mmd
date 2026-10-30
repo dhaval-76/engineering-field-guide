@@ -1,0 +1,11 @@
+flowchart TD
+  U1[Client A] -- WebSocket --> LB[L7 load balancer<br/>long idle timeouts]
+  U2[Client B] -- WebSocket --> LB
+  U3[Client C] -- SSE --> LB
+  LB --> G1[Connection server 1<br/>~100k sockets]
+  LB --> G2[Connection server 2]
+  G1 <--> PS{{Pub/sub<br/>Redis · NATS · Kafka}}
+  G2 <--> PS
+  SVC[Order / chat services] -- publish order:A-1001 --> PS
+  G1 -. who is connected where .-> REG[(Presence registry)]
+  G2 -.-> REG

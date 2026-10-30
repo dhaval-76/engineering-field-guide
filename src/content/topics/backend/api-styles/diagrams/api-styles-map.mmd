@@ -1,0 +1,10 @@
+flowchart TD
+  WEB[Web app] -- GraphQL --> BFF[BFF / GraphQL gateway]
+  MOB[Mobile app] -- GraphQL or REST --> BFF
+  PARTNER[Partners · public API] -- REST + OpenAPI --> GW[API gateway]
+  BFF -- gRPC --> ORD[Orders service]
+  BFF -- gRPC --> CUS[Customers service]
+  GW -- gRPC or REST --> ORD
+  ORD -- events --> K{{Kafka}}
+  K --> NOT[Notifications service]
+  ORD -. webhooks .-> PARTNER

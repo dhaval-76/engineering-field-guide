@@ -1,0 +1,115 @@
+---
+title: 'API Styles: REST, GraphQL, gRPC and Async'
+summary: Choosing how services talk — REST, GraphQL, gRPC and asynchronous events or webhooks — with schemas, streaming, caching, evolution rules, N+1 batching, deadlines and where each fits in one system.
+track: backend
+order: 15
+tags: [backend, api, graphql, grpc, rest, protobuf]
+aliases: [rest vs graphql, graphql vs rest, grpc vs rest, grpc, protobuf, protocol buffers, graphql, graphql schema, resolver, dataloader, n plus one, batch mapping, persisted queries, query complexity, http2, grpc streaming, deadline, grpc web, grpc gateway, openapi, webhooks, async api, event driven api, bff, backend for frontend, trpc, soap, api evolution, backward compatibility]
+prerequisites: [backend/rest-api-design]
+related: [backend/realtime-communication, system-design/api-gateway, backend/pagination, cs-foundations/networking]
+quickRef:
+  points:
+    - '**REST**: resources over HTTP + JSON; cacheable, universal — the default for public and partner APIs.'
+    - '**GraphQL**: one endpoint, the client picks fields; great for varied UIs, but batch resolvers (**DataLoader**) and limit query cost.'
+    - '**gRPC**: Protobuf contracts over HTTP/2; fast, typed, streaming — the default for internal service-to-service calls.'
+    - '**Async** (events, queues, webhooks): when the caller shouldn''t wait or many consumers care.'
+    - 'Evolve additively: new optional fields; never reuse Protobuf field numbers or change meanings.'
+  useWhen: Designing a new API, picking a protocol for internal calls, or answering "REST vs GraphQL vs gRPC".
+lastReviewed: 2026-10-30
+---
+
+## Why it matters
+
+Every service boundary needs a contract. The protocol you pick decides how easy the API is to consume, cache, evolve, debug and secure, and how much data crosses the network. Most real systems use several styles — the skill is matching each boundary to the right one, and explaining why.
+
+<Callout type="analogy">
+A restaurant. **REST** is a set menu by dish: fixed plates at known addresses. **GraphQL** is a buffet where you fill one plate with exactly what you want, in one trip. **gRPC** is the kitchen's internal ticket system — terse, fast, and only the staff understand it. **Async** is "we'll text you when your table is ready".
+</Callout>
+
+## At a glance
+
+| | REST | GraphQL | gRPC | Async (events/webhooks) |
+|---|---|---|---|---|
+| Contract | OpenAPI (optional) | Schema (required) | `.proto` (required) | Event schema (Avro/JSON Schema/Protobuf) |
+| Transport / format | HTTP/1.1–3, JSON | HTTP POST, JSON | HTTP/2, binary Protobuf | Broker (Kafka, queues) or HTTP callbacks |
+| Who shapes the response | Server | Client | Server | Producer |
+| HTTP caching | Natural (GET + ETag/CDN) | Hard (POST); persisted queries help | None | n/a |
+| Streaming | SSE, chunked | Subscriptions (usually WebSocket) | Built in (client, server, bidirectional) | Inherent |
+| Browser support | Native | Native | Needs grpc-web or a gateway | Webhooks are server-to-server |
+| Best for | Public/partner APIs, simple CRUD | Many client types needing different shapes | Internal low-latency calls, polyglot services | Decoupling, fan-out, slow work |
+
+<Diagram id="api-styles-map" caption="One system, several styles: GraphQL for the apps through a BFF, REST for partners, gRPC between services, events for fan-out and webhooks to notify partners." />
+
+## REST
+
+Covered in depth in [REST API design](../rest-api-design/). Its strengths are the web's: URLs, verbs, status codes, caching, and tooling everyone already has. Weaknesses: over-fetching (big fixed responses), under-fetching (several round trips to assemble a screen), and no enforced schema unless you adopt OpenAPI.
+
+## GraphQL
+
+A typed schema describes the graph; clients send queries selecting exactly the fields they need; each field has a **resolver**.
+
+<CodeTabs id="api-schema" title="A GraphQL schema: queries, a mutation with user errors, cursor pagination" />
+
+<Walkthrough id="graphql-n-plus-one" />
+
+<CodeTabs id="graphql-batching" title="Batching Order.customer so a page of orders costs two queries" />
+
+Production concerns:
+
+- **N+1** — batch every relation (DataLoader, `@BatchMapping`).
+- **Abuse** — a single query can request a huge nested graph. Limit depth and complexity, paginate every list, and use **persisted queries** (an allow-list of query hashes) for first-party apps.
+- **Caching** — responses vary per query; cache inside (DataLoader per request, entity caches) or use persisted queries over GET for CDN caching.
+- **Errors** — HTTP 200 with an `errors` array; expected business errors are better modelled in the payload (`CancelOrderPayload.errors`).
+- **Authorization** — per field/object in the service layer, not by hiding schema fields.
+
+## gRPC
+
+Define services and messages in Protobuf; code generators produce typed clients and servers in every major language. Messages are compact binary over HTTP/2 multiplexed connections.
+
+<CodeTabs id="api-orders" title="orders.proto: unary and streaming RPCs, reserved fields, enums with a zero value" />
+
+<CodeTabs id="grpc-client" title="Serving and calling gRPC with deadlines, status codes and client-side load balancing" />
+
+Production concerns:
+
+- **Deadlines** on every call, propagated downstream — gRPC carries the remaining deadline across hops.
+- **Status codes** (`NOT_FOUND`, `UNAVAILABLE`, `DEADLINE_EXCEEDED`, …) replace HTTP statuses; retry only idempotent calls on `UNAVAILABLE`.
+- **Load balancing** — HTTP/2 keeps one long-lived connection, so an L4 load balancer pins a client to one pod. Use client-side balancing (`round_robin` over DNS), an L7 proxy (Envoy) or a service mesh.
+- **Browsers** need grpc-web or a REST/JSON gateway (gRPC-Gateway, Envoy transcoding).
+- **Compatibility** — add fields with new numbers; never change a field's type or reuse a number (`reserved`); unknown fields are ignored by old clients.
+
+## Asynchronous APIs
+
+When the caller doesn't need the result now, or several services react to the same fact, publish an **event** ("OrderPlaced") to a broker ([Kafka vs RabbitMQ](../../system-design/kafka-vs-rabbitmq/)). For external consumers, **webhooks** push events over HTTP — signed, retried with backoff, idempotent on the receiver. Async APIs need schemas and versioning too (a schema registry), and consumers must tolerate duplicates and reordering.
+
+## Choosing
+
+<Steps>
+
+1. **Public or partner API?** REST with OpenAPI (plus webhooks for events). Universally consumable, cacheable, documented.
+2. **Several frontends with different data needs?** GraphQL, usually in a backend-for-frontend that calls internal services.
+3. **Service-to-service, latency-sensitive, many languages?** gRPC.
+4. **Caller shouldn't wait, or many consumers?** Events through a broker.
+5. **Small team, one TypeScript app?** tRPC or plain REST — don't adopt GraphQL or gRPC infrastructure you don't need.
+
+</Steps>
+
+<Pitfalls>
+
+- **GraphQL without batching or query limits** — N+1 floods and denial-of-service by query.
+- **gRPC behind an L4 load balancer** — all traffic from a client lands on one pod.
+- **No deadlines** — a slow dependency holds threads across the call chain.
+- **Reusing Protobuf field numbers** or renaming enum values — silent data corruption between versions.
+- **Exposing internal gRPC or event schemas directly to partners** — couples them to your internals.
+- **Choosing by fashion** — the protocol should follow the consumer.
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- REST for public APIs, GraphQL for flexible client queries, gRPC for internal calls, events for decoupling.
+- GraphQL needs batching, query cost limits and field-level authorization.
+- gRPC needs deadlines, L7/client-side load balancing and careful Protobuf evolution.
+- Most systems mix styles at different boundaries.
+
+</KeyTakeaways>

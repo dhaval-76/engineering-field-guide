@@ -1,0 +1,26 @@
+title: Four ways to get an update to the browser
+frames:
+  - caption: 'An order changes status at an unpredictable moment. The browser wants to know within a second or two. Compare how each technique spends requests while waiting.'
+    panels:
+      - kind: note
+        text: 'Status changes at t = 7 s'
+  - caption: '**Short polling** — ask every 2 s. Simple and cache-friendly, but most responses are "no change", and the update can be up to one interval late.'
+    panels:
+      - kind: rows
+        label: Requests
+        items: [{ v: 't=0 no change', tone: muted }, { v: 't=2 no change', tone: muted }, { v: 't=4 no change', tone: muted }, { v: 't=6 no change', tone: muted }, { v: 't=8 SHIPPED (1 s late)', tone: warn }]
+  - caption: '**Long polling** — the server holds the request open until something changes (or ~30 s pass), then the client immediately asks again. Near-instant, works everywhere, but one request per update.'
+    panels:
+      - kind: rows
+        label: Requests
+        items: ['t=0 … held …', { v: 't=7 SHIPPED', tone: ok }, 't=7 … held again …']
+  - caption: '**Server-sent events** — one long-lived HTTP response that the server keeps writing events to. One-way (server → client), automatic reconnect with `Last-Event-ID`, plain HTTP.'
+    panels:
+      - kind: rows
+        label: One response stream
+        items: [': ping', { v: 'id: 42 · event: status · data: SHIPPED', tone: ok }, ': ping']
+  - caption: '**WebSocket** — the connection is upgraded to a two-way channel. Either side can send at any time with tiny framing overhead: chat, games, collaborative editing.'
+    panels:
+      - kind: rows
+        label: Frames both ways
+        items: ['→ subscribe A-1001', { v: '← SHIPPED', tone: ok }, '→ typing…', '← message']

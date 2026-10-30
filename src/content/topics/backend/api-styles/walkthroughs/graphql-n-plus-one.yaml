@@ -1,0 +1,21 @@
+title: GraphQL N+1 and the DataLoader fix
+frames:
+  - caption: 'A client asks for 3 orders, each with its customer''s name, in one query. GraphQL resolves fields independently: one resolver for `orders`, one for `Order.customer`.'
+    panels:
+      - kind: note
+        text: '{ orders(first: 3) { id total customer { name } } }'
+  - caption: 'Naively, the `customer` resolver runs once **per order** — 1 query for orders + N queries for customers. With 50 orders that''s 51 database round trips.'
+    panels:
+      - kind: rows
+        label: SQL sent
+        items: ['SELECT … FROM orders LIMIT 3', { v: 'SELECT … FROM customers WHERE id = 7', tone: warn }, { v: 'SELECT … FROM customers WHERE id = 9', tone: warn }, { v: 'SELECT … FROM customers WHERE id = 7', tone: bad }]
+  - caption: 'A **DataLoader** collects every `load(id)` made while resolving one level of the query, de-duplicates them, and calls a batch function once.'
+    panels:
+      - kind: kv
+        label: Loader queue
+        pairs: [['order 1', 'load(7)'], ['order 2', 'load(9)'], ['order 3', { v: 'load(7) — cached', tone: muted }]]
+  - caption: 'Two queries total, whatever the page size. Create loaders **per request** so their cache never leaks data between users.'
+    panels:
+      - kind: rows
+        label: SQL sent
+        items: ['SELECT … FROM orders LIMIT 3', { v: 'SELECT … FROM customers WHERE id IN (7, 9)', tone: ok }]

@@ -1,0 +1,100 @@
+---
+title: 'Real-Time Communication: Polling, SSE and WebSockets'
+summary: Getting updates to clients as they happen — short and long polling, server-sent events and WebSockets compared, plus scaling connections with pub/sub, heartbeats, reconnects, backpressure and auth.
+track: backend
+order: 16
+tags: [backend, realtime, websockets, sse, networking]
+aliases: [real time, realtime, push notifications to browser, polling, short polling, long polling, comet, server sent events, sse, eventsource, last event id, websocket, websockets, ws, socket.io, stomp, webtransport, webhooks vs websockets, heartbeat, ping pong, reconnect, backoff, sticky sessions, fan out, pub sub, redis pub sub, presence, backpressure, connection limits]
+prerequisites: [cs-foundations/networking]
+related: [backend/api-styles, system-design/chat, system-design/realtime-collaboration, cs-foundations/operating-systems]
+quickRef:
+  points:
+    - '**Short polling**: simple and cacheable, but wasteful and late. **Long polling**: held requests, near-instant, works everywhere.'
+    - '**SSE**: one-way server → client over plain HTTP, built-in reconnect with `Last-Event-ID`. Default for notifications, progress, LLM token streams.'
+    - '**WebSocket**: full-duplex channel; for chat, games, collaboration — anything where the client also sends often.'
+    - 'Scale out with **connection servers + pub/sub** (Redis, NATS, Kafka) so any instance can deliver any message.'
+    - 'Plan for **heartbeats, reconnect with backoff + jitter, resume from an event id, backpressure** and auth expiry.'
+  useWhen: Live notifications, order tracking, chat, dashboards, streaming AI responses, collaborative apps.
+lastReviewed: 2026-10-30
+---
+
+## Why it matters
+
+HTTP was designed for the client to ask and the server to answer. Many features need the opposite: the server tells the client when something happens. Picking the right push technique — and running hundreds of thousands of long-lived connections reliably — is a common backend task and a staple of chat, notification and collaboration design interviews.
+
+<Callout type="analogy">
+Waiting for a parcel. **Short polling** is checking the doorstep every ten minutes. **Long polling** is standing at the door until the courier arrives, then going back to stand there again. **SSE** is a radio that the courier company broadcasts to. **WebSocket** is a phone call — both sides can talk whenever they like.
+</Callout>
+
+## The options
+
+<Walkthrough id="push-options" />
+
+| | Short polling | Long polling | SSE | WebSocket |
+|---|---|---|---|---|
+| Direction | client pulls | client pulls (server holds) | server → client | both ways |
+| Protocol | HTTP | HTTP | HTTP (`text/event-stream`) | HTTP upgrade → WS frames |
+| Latency | up to the interval | near-instant | instant | instant |
+| Reconnect / resume | n/a | client loop | built in (`Last-Event-ID`) | you build it |
+| Through proxies, CDNs, corporate networks | easiest | easy | easy (needs no buffering) | usually fine; some proxies interfere |
+| Binary data | yes | yes | text only | yes |
+| Good for | rare updates, simple clients | fallback | notifications, progress, feeds, LLM streaming | chat, games, collaborative editing, trading |
+
+Server-to-server pushes use **webhooks** instead — the receiver exposes an HTTP endpoint ([API styles](../api-styles/)). For mobile apps in the background, only platform push (APNs, FCM) works.
+
+## Server-sent events
+
+<CodeTabs id="sse-endpoint" title="An SSE endpoint with authorization, catch-up from Last-Event-ID, live pub/sub events and heartbeats" />
+
+- Each event has an `id`; after a drop the browser reconnects and sends `Last-Event-ID`, so the server can replay what was missed.
+- Disable response buffering in proxies (nginx `X-Accel-Buffering: no`), and send heartbeat comments so idle-timeouts don't close the stream.
+- Over HTTP/1.1 browsers allow ~6 connections per host, which SSE tabs can exhaust; HTTP/2 multiplexes them on one connection.
+
+## WebSockets
+
+The client sends an HTTP `Upgrade: websocket` request; after `101 Switching Protocols` the TCP connection carries small frames in both directions. You define the message protocol (JSON with a `type` field, or STOMP, or a library like Socket.IO that adds rooms and fallbacks).
+
+<CodeTabs id="ws-fanout" title="WebSocket rooms fanned out across instances through Redis pub/sub, with heartbeats and slow-client handling" />
+
+## Scaling out
+
+<Diagram id="ws-scale-out" caption="Connection servers only hold sockets. Services publish to pub/sub topics; every connection server subscribed to that topic delivers to its local sockets." />
+
+<Steps>
+
+1. **Separate connection servers** from business logic — they hold sockets, authenticate, subscribe and forward. They scale on connection count and memory.
+2. **Pub/sub between them** — a message for room X is published once; each server with members in X delivers locally. Redis pub/sub is fire-and-forget; use Redis Streams, NATS JetStream or Kafka when messages must not be lost.
+3. **No sticky sessions needed** for correctness if state lives in pub/sub and storage — any server can take a reconnect.
+4. **Durability through ids** — persist messages first, push second; on reconnect the client asks "everything after id 1234".
+5. **Capacity** — an idle connection costs tens of KB of memory plus a file descriptor; one well-tuned server can hold 100k+ mostly idle connections. Raise `ulimit -n` ([Operating systems](../../cs-foundations/operating-systems/)) and load balancer idle timeouts.
+
+</Steps>
+
+## Operating long-lived connections
+
+- **Heartbeats** — ping/pong every 15–30 s to detect dead peers (mobile networks drop silently) and keep NATs and proxies from timing out.
+- **Reconnect with exponential backoff and jitter** — after a deploy or outage, thousands of clients reconnecting at once is a self-inflicted DDoS.
+- **Deploys** — drain gracefully: stop accepting, tell clients to reconnect elsewhere, close over a few minutes.
+- **Backpressure** — a slow client's buffer grows without bound; cap it and disconnect (it will resume from its last id).
+- **Auth** — authenticate at connect (token in a cookie or the first message — avoid long-lived tokens in URLs, which get logged); re-check authorization per subscription; close or re-auth when the token expires.
+- **Ordering and delivery** — a single connection is ordered, but across reconnects and servers you need ids and de-duplication on the client.
+
+<Pitfalls>
+
+- **WebSockets for one-way notifications** — SSE is simpler and plain HTTP.
+- **In-memory rooms on one instance** — works until the second instance; use pub/sub.
+- **Treating pub/sub as storage** — offline clients miss messages; persist and resume by id.
+- **No heartbeat** — dead connections pile up; idle proxies cut live ones.
+- **Synchronized reconnect storms** after deploys.
+- **Unbounded per-connection buffers.**
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- Polling is simplest, SSE is the default for server push, WebSockets for two-way traffic.
+- Scale with stateless connection servers fanned out through pub/sub.
+- Persist first, push second, and resume by event id.
+- Heartbeats, backoff with jitter, backpressure and auth expiry are part of the design.
+
+</KeyTakeaways>

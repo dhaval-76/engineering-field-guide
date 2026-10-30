@@ -26,6 +26,8 @@ export const codeLanguages = [
   { id: 'properties', label: 'Properties', ext: 'properties' },
   { id: 'xml', label: 'XML', ext: 'xml' },
   { id: 'http', label: 'HTTP', ext: 'http' },
+  { id: 'proto', label: 'Protobuf', ext: 'proto' },
+  { id: 'graphql', label: 'GraphQL', ext: 'graphql' },
   { id: 'text', label: 'Text', ext: 'txt' },
 ] as const;
 

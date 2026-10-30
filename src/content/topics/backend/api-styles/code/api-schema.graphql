@@ -1,0 +1,40 @@
+type Query {
+  order(id: ID!): Order
+  orders(first: Int = 20, after: String): OrderConnection!
+}
+
+type Mutation {
+  cancelOrder(input: CancelOrderInput!): CancelOrderPayload!
+}
+
+type Order {
+  id: ID!
+  status: OrderStatus!
+  totalCents: Int!
+  customer: Customer!          # resolved by a separate resolver → batch it
+  items: [LineItem!]!
+}
+
+type Customer {
+  id: ID!
+  name: String!
+}
+
+type LineItem {
+  sku: String!
+  quantity: Int!
+}
+
+enum OrderStatus { PLACED SHIPPED DELIVERED CANCELLED }
+
+# Cursor pagination (Relay connection style)
+type OrderConnection {
+  edges: [OrderEdge!]!
+  pageInfo: PageInfo!
+}
+type OrderEdge { node: Order!  cursor: String! }
+type PageInfo { hasNextPage: Boolean!  endCursor: String }
+
+input CancelOrderInput { orderId: ID!  reason: String }
+type CancelOrderPayload { order: Order  errors: [UserError!]! }
+type UserError { field: String  message: String! }
