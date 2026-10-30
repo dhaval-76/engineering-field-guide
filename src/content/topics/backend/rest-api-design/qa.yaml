@@ -1,0 +1,41 @@
+questions:
+  - q: Your API is used by mobile apps, a web app and third-party partners. After a release, a partner's integration broke. How should the API be designed and versioned so this doesn't happen?
+    think: What exactly counts as a breaking change? How do clients find out about upcoming changes?
+    answer: |
+      Define breaking changes explicitly: removing or renaming fields, changing types or meanings, making optional input required, tightening validation, changing status codes or URLs. Everything else (new optional fields, new endpoints) is additive, and clients must ignore unknown fields. Breaking changes go into a new version (`/v2`, or a dated version header) while `/v1` keeps working for a published window; announce with `Deprecation` and `Sunset` headers, changelogs and direct contact, and track per-client usage of old versions. Prevent accidents with contract tests (OpenAPI diff in CI, consumer-driven contracts such as Pact) so a breaking change fails the build.
+  - q: Design the endpoints for a simple order system — create, read, list with filters, cancel, and refund.
+    answer: |
+      `POST /v1/orders` (Idempotency-Key header, 201 + Location), `GET /v1/orders/{id}`, `GET /v1/orders?status=&customerId=&limit=&cursor=` (cursor-paginated), `POST /v1/orders/{id}/cancellation` (202 if asynchronous, 409 if already shipped), `POST /v1/orders/{id}/refunds` (201, a refund has its own id and status). Errors use problem+json; updates use `ETag`/`If-Match`; list responses include `nextCursor`. Mention auth (scopes per endpoint), rate limits and that amounts are integers in minor units with a currency.
+followUps:
+  - q: PUT vs PATCH — what's the actual difference?
+    intuition: What happens to fields you leave out?
+    approach: |
+      `PUT` sends the complete representation and replaces the resource — omitted fields are reset or removed; it's idempotent. `PATCH` sends only changes, e.g. JSON Merge Patch (`application/merge-patch+json`, where `null` deletes a field) or JSON Patch (a list of operations). Using PUT for partial updates silently wipes fields when a client sends an older or partial model.
+  - q: Which status codes for validation failure, not found, unauthenticated, forbidden, conflict and rate limiting?
+    intuition: Status codes drive client behaviour — retry, re-login, or show an error.
+    approach: |
+      400 (or 422) with field errors; 404; 401 with `WWW-Authenticate` when the token is missing or expired; 403 when authenticated but not permitted (or 404 to hide existence); 409 for state conflicts such as a duplicate or an already-cancelled order (412 if an `If-Match` precondition failed); 429 with `Retry-After`. 500 for bugs (no stack traces), 503 when a dependency is down. All with the same problem+json body and a trace id.
+  - q: How do you design an endpoint that creates 1,000 orders at once?
+    intuition: What if item 437 is invalid?
+    approach: |
+      `POST /v1/orders/batch` with a size cap. Synchronous for small batches, returning per-item results so partial success is visible (207 Multi-Status or a 200 body listing each item's status). For large batches, accept with `202` and a job resource the client polls, or notify by webhook. Each item should carry its own idempotency key (or the batch one) so retries don't duplicate.
+practice:
+  - task: Redesign an API with verb URLs and uniform 200 responses — getUsers, createUser, updateUserEmail, deleteUser, getUserOrders, resetPassword — into resource-oriented endpoints with correct methods and status codes.
+    hint: Nouns, ids in the path, filters in the query, actions as sub-resources, one error format.
+    solution: |
+      `GET /v1/users`, `POST /v1/users` (201), `PATCH /v1/users/{id}` (200), `DELETE /v1/users/{id}` (204), `GET /v1/users/{id}/orders`, `POST /v1/users/{id}/password-resets` (202). Missing users → 404 problem+json.
+    solutionCode: rest-redesign
+  - task: Define POST /v1/orders — request body with validation, the 201 response, the 400 validation error and the idempotency header.
+    hint: A validated request record, ResponseEntity.created with a Location, ProblemDetail errors with per-field messages.
+    solution: |
+      See the controller: `@Valid` request record with constraints on nested items, `Idempotency-Key` header, `ResponseEntity.created(location).body(...)`; validation failures produce the problem+json shown above via a global handler.
+    solutionCode: rest-controller
+quiz:
+  - q: A logged-in user requests another customer's invoice. Best response?
+    options: [401 Unauthorized, '403 Forbidden, or 404 if existence itself is sensitive', 400 Bad Request, 200 with an empty body]
+    correct: 1
+    why: They are authenticated (not 401) but not permitted.
+  - q: Which change is safe without a new API version?
+    options: [Renaming a response field, Adding an optional response field, Making an optional request field required, Changing an amount from string to number]
+    correct: 1
+    why: Additive, optional changes don't break clients that ignore unknown fields.

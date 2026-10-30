@@ -1,0 +1,33 @@
+questions:
+  - q: An API returns all 1 million orders for a customer in one response; it takes 30 seconds and mobile apps crash. You add OFFSET pagination, and the interviewer says it breaks at scale. What do you use instead?
+    think: What does the database do for OFFSET 1,000,000? What happens when rows are inserted between page requests?
+    answer: |
+      `OFFSET n` makes the database walk and discard n rows, so deep pages get linearly slower; and because pages are defined by position, inserts and deletes between requests cause duplicates and skipped rows. Use keyset (cursor) pagination: sort by `(created_at DESC, id DESC)`, return an opaque cursor encoding the last row's `(created_at, id)`, and fetch the next page with `WHERE (created_at, id) < (:t, :id) ORDER BY … LIMIT n+1`, backed by an index on `(customer_id, created_at DESC, id DESC)`. Each page costs the same regardless of depth and is stable under writes. Trade-off: no "jump to page 500" and no cheap exact total — fine for feeds, histories and syncs.
+followUps:
+  - q: How do you paginate by a non-unique column such as created_at?
+    intuition: What happens to two rows with the same timestamp on a page boundary?
+    approach: |
+      Add a unique tiebreaker to both the sort and the cursor — `ORDER BY created_at DESC, id DESC` and `WHERE (created_at, id) < (:t, :id)` — so the position is unambiguous. Without it, rows sharing the boundary timestamp are skipped or repeated.
+  - q: How do you show "1–20 of 1,234" with cursor pagination?
+    intuition: Is an exact count worth a full scan on every request?
+    approach: |
+      Often you don't: use "Load more". If needed, run the count separately and cache it, use a planner estimate, maintain a counter table, or cap it ("1,000+"). Exact `COUNT(*)` on large filtered sets can cost more than the page query.
+  - q: Can a client jump to page 50 with cursors?
+    intuition: A cursor is a position, not a number.
+    approach: |
+      Not directly. If the product truly needs page numbers, use offset for shallow pages on modest data, or narrow the search with filters (date ranges) instead of deep paging. For search engines, use their own deep-paging mechanisms (`search_after`, point-in-time).
+practice:
+  - task: Implement GET /v1/customers/{id}/orders?cursor=&limit= returning {data, nextCursor}, sorted newest first, stable when new orders arrive mid-pagination.
+    hint: Decode (createdAt, id) from the cursor; query with a row-value comparison, LIMIT limit+1; encode the last returned row as the next cursor only if an extra row came back.
+    solution: |
+      See the code: first page without a cursor condition; later pages with `(created_at, id) < (?, ?)`; `limit` capped at 100; `nextCursor` null on the last page. Test by inserting a newer order between page 1 and page 2 and asserting no duplicates — the same test fails with OFFSET.
+    solutionCode: pg-cursor
+quiz:
+  - q: Why does OFFSET 100000 LIMIT 20 get slow?
+    options: [The LIMIT is ignored, 'The database still produces and discards the first 100,000 rows', Indexes can't be used with ORDER BY, The result is cached]
+    correct: 1
+    why: Offsets are positional, so the skipped rows must still be found and counted.
+  - q: What index supports `WHERE customer_id = ? AND (created_at, id) < (?, ?) ORDER BY created_at DESC, id DESC`?
+    options: ['(created_at)', '(id)', '(customer_id, created_at DESC, id DESC)', '(customer_id)']
+    correct: 2
+    why: Equality column first, then the sort columns in order, so the seek is a single range scan.

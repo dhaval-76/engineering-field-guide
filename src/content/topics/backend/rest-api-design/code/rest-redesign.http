@@ -1,0 +1,13 @@
+### Before                                   ### After
+POST /getUsers                               GET    /v1/users?role=admin&limit=50&cursor=…
+POST /createUser                             POST   /v1/users                        → 201 + Location
+POST /updateUserEmail?id=7                   PATCH  /v1/users/7  {"email": "…"}     → 200
+GET  /deleteUser?id=7                        DELETE /v1/users/7                      → 204
+POST /getUserOrders?id=7                     GET    /v1/users/7/orders               → 200
+POST /resetPassword?id=7                     POST   /v1/users/7/password-resets      → 202
+GET  /user?id=999  → 200 {"error":"none"}    GET    /v1/users/999                    → 404 problem+json
+
+### Rules applied
+# plural nouns · ids in the path · filters/paging in the query · GET never changes state
+# precise status codes · one error format (problem+json) · version prefix · no verbs except for
+# action sub-resources that are themselves things (password-resets, refunds, cancellations)

@@ -1,0 +1,97 @@
+---
+title: Idempotency
+summary: Making retries safe. Why networks force clients to retry, which HTTP methods are idempotent, how idempotency keys work end to end (atomic claim, stored response, concurrent duplicates, expiry), and idempotent message consumers.
+track: backend
+order: 30
+tags: [backend, idempotency, retries, distributed-systems, payments, messaging]
+aliases: [idempotency key, idempotent api, safe retries, exactly once, duplicate requests, at least once delivery, dedupe messages, idempotent consumer]
+prerequisites: [backend/rest-api-design]
+related: [concurrency/case-payment-thread-safety, backend/pagination]
+quickRef:
+  points:
+    - '**Idempotent** = doing it twice leaves the same state as doing it once. `GET`, `PUT`, `DELETE` are by definition; `POST` isn''t.'
+    - 'A timeout doesn''t tell the client whether the request happened, so clients **must** retry — and servers must make retries harmless.'
+    - 'Idempotency key: client sends a unique `Idempotency-Key`; server **claims it atomically** (unique constraint / `SET NX`), stores the **final response**, replays it on repeats.'
+    - 'Same key with a different body → 422. Still in progress → 409 + `Retry-After`. Keys scoped per client and expire after the retry window.'
+    - 'Messages arrive **at least once**: consumers dedupe by message id in the same transaction as the effect.'
+  useWhen: Payments, orders, bookings, emails, webhooks — any write that clients or brokers might repeat.
+lastReviewed: 2026-10-30
+---
+
+## Why it matters
+
+A client sends "charge ₹500", the server charges the card, and the response is lost to a timeout. From the client's side, the charge may or may not have happened. Retrying risks charging twice; not retrying risks never charging. Mobile networks, load balancers, gateways and SDKs all retry automatically, and message brokers redeliver. The only robust answer is to make the operation **idempotent**: repeating it has no additional effect. "Exactly once" in distributed systems is really *at-least-once delivery plus idempotent processing*.
+
+<Callout type="analogy">
+A lift button. Pressing it five times calls the lift once. A vending machine without that property would hand out five drinks — so it gives each purchase a receipt number and refuses to dispense twice for the same receipt.
+</Callout>
+
+## Idempotency by HTTP method
+
+| Method | Safe | Idempotent | Why |
+|---|---|---|---|
+| `GET`, `HEAD`, `OPTIONS` | ✓ | ✓ | Read-only |
+| `PUT` | | ✓ | "Make the resource equal to this" |
+| `DELETE` | | ✓ | "Make sure it's gone" (a second call may return 404, but the state is the same) |
+| `PATCH` | | depends | `{"qty": 3}` is; "add 1" isn't |
+| `POST` | | ✗ | "Create another one" — needs an idempotency key |
+
+Idempotency is about **state**, not identical responses.
+
+## Idempotency keys
+
+<Diagram id="idempotency-flow" caption="The retry finds the stored result and returns it instead of charging again." />
+
+<CodeTabs id="idem-schema" title="A table for keys and stored responses" />
+
+<CodeTabs id="idem-service" title="Claim, execute, store — and handle duplicates, conflicts and crashes" />
+
+The decisions that make it correct:
+
+1. **Claim atomically.** "Check if the key exists, then process" races: two concurrent retries both see "not found". Insert first and let a unique constraint (or Redis `SET NX`) pick one winner.
+2. **Store the outcome with the effect.** Writing the result in the same database transaction as the business change means they can't disagree after a crash.
+3. **Store final outcomes only.** Success and business rejections (card declined) are replayed; unexpected 5xx failures release the key so a retry can run again.
+4. **Detect misuse.** Hash the request body; the same key with a different body is a client bug → 422.
+5. **Concurrent duplicates.** A second request while the first is still running gets 409 with `Retry-After`; a claim older than its lease (`locked_until`) can be taken over after a crash.
+6. **Scope and expiry.** Unique per client (or per API key); purge after the retry window — 24 hours is typical.
+7. **Key generation.** The client generates a UUID per *logical operation* and reuses it for every retry of that operation — not a new key per HTTP attempt.
+
+The pattern is standardised as the `Idempotency-Key` header in an IETF HTTP API draft and used by payment APIs such as Stripe and Adyen.
+
+### A faster store
+
+<CodeTabs id="idem-redis" title="Redis SET NX as the idempotency store" />
+
+Redis makes the claim cheap, but the key and the business write now live in different systems: a crash between them leaves "IN_PROGRESS" with the payment done, or the reverse. Use it where the side effect is itself safe to repeat or reconcilable; keep the key in the same database as the money.
+
+## Idempotent by design
+
+<CodeTabs id="idem-natural" title="Operations that need no key at all" />
+
+Client-generated ids (`PUT /orders/{uuid}` or `POST` with an `id` in the body plus `ON CONFLICT DO NOTHING`) turn creates into naturally idempotent operations.
+
+## Idempotent consumers
+
+<CodeTabs id="idem-consumer" title="Deduplicating at-least-once message delivery" />
+
+Brokers redeliver after consumer crashes, rebalances and timeouts, and producers may publish twice on retry (Kafka's idempotent producer prevents duplicates within a partition, but not end to end). Every consumer with side effects needs a dedupe key — the event id — recorded atomically with the effect. When an operation spans services, pass a key downstream (e.g. `orderId:charge`) so every step is idempotent and a saga can be retried safely.
+
+<Pitfalls>
+
+- **Check-then-insert** without a unique constraint — concurrent duplicates both run.
+- **Caching 500s** — a transient failure becomes permanent for that key.
+- **Generating a new key on every retry** — defeats the purpose.
+- **Keys without a scope** — one client's key collides with another's.
+- **Calling external providers without passing your key on** — your side is idempotent, theirs charges twice.
+- **Increment-style updates** (`balance = balance + x`) applied by retried messages without dedupe.
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- Timeouts make retries unavoidable; idempotency makes them safe.
+- Keys: atomic claim, outcome stored with the effect, replay on repeat, 409/422 for in-progress or misuse, expiry.
+- Prefer naturally idempotent operations (absolute sets, upserts, conditional transitions).
+- At-least-once delivery + idempotent consumers ≈ exactly-once effects.
+
+</KeyTakeaways>

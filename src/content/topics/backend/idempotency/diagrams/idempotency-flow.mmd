@@ -1,0 +1,13 @@
+sequenceDiagram
+  participant C as Client
+  participant API as Payments API
+  participant DB as Database
+  C->>API: POST /payments (Idempotency-Key: k1)
+  API->>DB: INSERT key k1 (IN_PROGRESS)
+  API->>DB: debit + ledger (same transaction)
+  API->>DB: key k1 = DONE, response 201 {...}
+  API--xC: 201 response lost (timeout)
+  C->>API: retry POST /payments (Idempotency-Key: k1)
+  API->>DB: INSERT key k1 → already exists
+  DB-->>API: DONE, stored response
+  API-->>C: same 201 {...} — no second charge

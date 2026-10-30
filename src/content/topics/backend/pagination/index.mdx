@@ -1,0 +1,95 @@
+---
+title: Pagination
+summary: Returning large collections in pages — why OFFSET slows down and skips or repeats rows on changing data, how keyset (cursor) pagination fixes both, how to build opaque cursors and matching indexes, and what to do about total counts.
+track: backend
+order: 20
+tags: [backend, api-design, pagination, sql, performance]
+aliases: [cursor pagination, keyset pagination, offset vs cursor, seek method, infinite scroll api, limit offset slow]
+prerequisites: [backend/rest-api-design]
+related: [backend/idempotency]
+quickRef:
+  points:
+    - '**OFFSET n** makes the database produce and discard n rows: cost grows with page depth, and inserts/deletes shift rows between pages.'
+    - '**Keyset/cursor**: `WHERE (sort_key, id) < (:last_key, :last_id) ORDER BY sort_key DESC, id DESC LIMIT n+1` — constant cost with a matching index.'
+    - 'Always add a **unique tiebreaker** (id) to the sort and the cursor.'
+    - Make cursors **opaque** (base64), cap `limit`, fetch `limit + 1` to know if there's a next page.
+    - 'Offset is fine for small, slow-changing data and "jump to page 7" UIs; avoid exact totals on big tables.'
+  complexity: 'OFFSET page at depth d: O(d + n) rows read. Keyset page: O(log N + n) with a B-tree index.'
+  useWhen: Any list endpoint that can return more than a few hundred items — feeds, order histories, logs, exports.
+lastReviewed: 2026-10-30
+---
+
+## Why it matters
+
+An endpoint that returns every order a customer ever placed works in development and falls over in production: 30-second responses, huge payloads, out-of-memory errors on phones. Pagination fixes that — but the obvious implementation, `LIMIT … OFFSET …`, gets slower the deeper users go and shows duplicates or skips rows whenever data changes between requests. Feeds, activity logs, exports and infinite scroll all need the alternative.
+
+<Callout type="analogy">
+Finding your place in a book. OFFSET is "count 312 pages from the start every time you sit down". A cursor is a bookmark: you open straight to it — and if someone adds a page at the front, your bookmark still marks the right spot.
+</Callout>
+
+## Offset vs keyset
+
+<CodeTabs id="pg-offset-vs-keyset" title="The same page, two ways — and the index that makes keyset fast" />
+
+<Chart
+  type="line"
+  title="Rows the database must read to return a 20-row page"
+  log
+  x={['page 1', 'page 10', 'page 100', 'page 1,000', 'page 10,000']}
+  series={[
+    { name: 'OFFSET', values: [20, 200, 2000, 20000, 200000], tone: 'bad' },
+    { name: 'keyset (cursor)', values: [20, 20, 20, 20, 20], tone: 'ok' },
+  ]}
+  yLabel="rows"
+  caption="OFFSET reads offset + limit rows (plus index traversal); keyset seeks to the cursor and reads only the page."
+/>
+
+## Correctness: rows shifting under you
+
+<Walkthrough id="offset-drift" />
+
+## Building cursor pagination
+
+<CodeTabs id="pg-cursor" title="Opaque cursors with limit + 1 — Spring, Express, FastAPI" />
+
+Details that matter:
+
+- **Unique tiebreaker.** Sorting only by `created_at` skips or repeats rows with equal timestamps; sort and compare on `(created_at, id)`.
+- **Index matches filter + sort** — `(customer_id, created_at DESC, id DESC)` — or the "seek" becomes a scan.
+- **Opaque cursor.** Base64 hides the format so you can change it later; sign or encrypt it if it contains anything sensitive, and validate it on decode (400 for garbage).
+- **Cursors bind to the query.** A cursor from `status=PAID` used with `status=PENDING` is meaningless; include the filters in the cursor or reject mismatches.
+- **Response shape:** `{ "data": [...], "nextCursor": "…" | null }`, optionally `Link: <…>; rel="next"`.
+- **Backwards pages** reverse the comparison and sort, then flip the result.
+
+## When offset is fine
+
+| Situation | Choice |
+|---|---|
+| Admin table with a few thousand rows, "go to page 7" | Offset |
+| Infinite scroll, feeds, activity logs | Cursor |
+| API for partners syncing everything | Cursor (stable under writes) |
+| Full export of millions of rows | Cursor, or an async export job to a file |
+| Search results ranked by relevance | The search engine's own `search_after` / scroll API |
+
+## Total counts
+
+`COUNT(*)` over millions of matching rows can cost more than the page itself. Options: show "Load more" instead of "Page 3 of 12,345"; return an estimate (PostgreSQL's planner estimate, or a cached count refreshed periodically); maintain a counter table updated with the data; or cap the count ("1,000+ results").
+
+<Pitfalls>
+
+- **Unbounded `limit`** — clients ask for 100,000; always enforce a maximum.
+- **Sorting by a non-unique column** without a tiebreaker.
+- **No index supporting the sort** — every page sorts the whole result.
+- **Exposing raw database ids or offsets** in cursors you can never change.
+- **Deep OFFSET in batch jobs** (`OFFSET 900000`) — use keyset there too.
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- OFFSET is O(depth) and unstable under writes; keyset is O(page) and stable.
+- Sort and seek on `(key, id)` with a matching composite index.
+- Opaque cursors, capped limits, `limit + 1` for `hasMore`.
+- Avoid exact counts on large tables.
+
+</KeyTakeaways>

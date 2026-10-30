@@ -1,0 +1,104 @@
+---
+title: REST API Design
+summary: Designing HTTP APIs that clients can rely on — resources and methods, precise status codes, one error format, validation, versioning without breaking clients, and the conventions for filtering, bulk and long-running operations.
+track: backend
+order: 10
+tags: [backend, rest, http, api-design, versioning]
+aliases: [rest best practices, http status codes, put vs patch, api versioning, problem details, rfc 9457, breaking changes, 401 vs 403]
+prerequisites: []
+related: [backend/pagination, backend/idempotency]
+quickRef:
+  points:
+    - '**URLs name resources (nouns); methods are the verbs.** `GET` is safe; `GET`, `PUT`, `DELETE` are idempotent; `POST` isn''t.'
+    - '`PUT` replaces the whole resource; `PATCH` changes only what you send.'
+    - 'Precise codes: **201 + Location**, 204, 400/422, **401 = who are you**, **403 = not allowed**, 404, 409, 412, 429 + `Retry-After`.'
+    - One error shape everywhere — `application/problem+json` (RFC 9457) with a trace id.
+    - 'Additive changes are safe; renames, removals, type changes and new required fields need a new version (`/v2`) plus `Deprecation`/`Sunset` headers.'
+  useWhen: Designing or reviewing any HTTP endpoint, or answering "design the API for…" in an interview.
+lastReviewed: 2026-10-30
+---
+
+## Why it matters
+
+An API is a contract with clients you often don't control — mobile apps that users never update, partner integrations, other teams. Predictable conventions make an API easy to use correctly; precise status codes let clients decide whether to retry, re-authenticate or show an error; disciplined versioning lets you evolve without breaking anyone. In system-design and backend interviews, the API section is where vague answers ("POST /createOrder returns 200") stand out immediately.
+
+<Callout type="analogy">
+A library catalogue. Every book has a stable shelf address (the URL); the desk offers the same few services for any book — look it up, add it, replace it, withdraw it (the HTTP methods). You don't need a different counter for "getBookById" and "removeBookFromShelf".
+</Callout>
+
+## Resources and methods
+
+<CodeTabs id="rest-resources" title="From verb URLs to resources" />
+
+| Method | Meaning | Safe | Idempotent | Typical success |
+|---|---|---|---|---|
+| `GET` | Read | ✓ | ✓ | 200 |
+| `POST` | Create in a collection / run an action | | | 201 + `Location`, or 202 |
+| `PUT` | Replace (or create at a known id) | | ✓ | 200 / 204 (201 if created) |
+| `PATCH` | Partial update | | not by default | 200 |
+| `DELETE` | Remove | | ✓ | 204 |
+
+**Safe** means no side effects; **idempotent** means repeating the request leaves the same state. A `PATCH` like `{"stock": 5}` is idempotent; one like "increment stock by 1" isn't. `POST` becomes safely retryable with an [idempotency key](../idempotency/).
+
+## Status codes
+
+<Diagram id="status-codes" caption="A rough order for choosing an error status: rate limit, authentication, authorization, validation, existence, state." />
+
+- **401 vs 403**: 401 means "authenticate first" (missing or expired token); 403 means "I know who you are, and you can't do this". Return 404 instead of 403 when even revealing that the resource exists is a leak.
+- **400 vs 422**: 400 for malformed requests; 422 when the syntax is fine but the content breaks a rule (end date before start date). Many APIs use 400 for both — be consistent.
+- **5xx** means the server failed; clients may retry. **4xx** means the client must change something; retrying the same request won't help (except 408/429).
+- Never return 200 with `{"success": false}` — proxies, monitoring and client libraries all trust the status code.
+
+## Validation and errors
+
+<CodeTabs id="rest-controller" title="A create endpoint with validation — Spring, Express, FastAPI" />
+
+<CodeTabs id="problem-details" title="One error format: Problem Details" />
+
+Spring Boot supports this out of the box (`ProblemDetail`, `spring.mvc.problemdetails.enabled=true`); see [exception handling](../exception-handling/) for the global handler.
+
+## Collections: filter, sort, paginate
+
+- Filters as query parameters: `GET /orders?status=PENDING&customerId=c_1`.
+- Sorting: `sort=-createdAt,id` (minus for descending), restricted to indexed fields.
+- Pagination: a `limit` with a maximum, and a cursor for large or changing data — see [pagination](../pagination/).
+- Sparse responses: `fields=id,status,total` when payloads are large; or expand related resources on request (`expand=customer`).
+
+## Versioning and evolution
+
+<CodeTabs id="api-deprecation" title="Breaking vs non-breaking changes and deprecation headers" />
+
+| Strategy | Example | Trade-off |
+|---|---|---|
+| URL path | `/v1/orders` | Explicit, easy to route, cache and test — the most common |
+| Header / media type | `Accept: application/vnd.acme.v2+json` | Clean URLs; harder to try in a browser or curl |
+| Query parameter | `?version=2` | Easy to forget; rarely the primary strategy |
+| Date-based | `Stripe-Version: 2026-09-30` | Per-client pinning, many small versions; needs strong tooling |
+
+Evolve **additively** whenever possible: add optional fields and new endpoints, and require clients to ignore unknown fields (the "tolerant reader"). Keep the old version running for a published period, tell clients with `Deprecation` and `Sunset` headers, and track who still calls it.
+
+## Bulk and long-running operations
+
+- **Bulk:** `POST /v1/orders/batch` with up to N items; return per-item results (`207 Multi-Status` or a 200 body with each item's status) so partial success is explicit.
+- **Long-running:** return `202 Accepted` with `Location: /v1/jobs/job_42`; the client polls the job (or receives a webhook) for the result.
+- **Concurrency control:** return an `ETag`; clients send `If-Match` on updates, and you answer `412 Precondition Failed` if someone changed it first — optimistic locking over HTTP.
+
+<Pitfalls>
+
+- **Verbs in URLs** and `GET` requests that change state (crawlers and prefetchers will call them).
+- **200 for errors**, or 500 for client mistakes.
+- **Leaking internals**: stack traces, SQL errors, sequential ids that reveal volume.
+- **Breaking changes in place** (renaming a field "because it's cleaner").
+- **Unbounded list endpoints** with no limit.
+- **Chatty APIs** that need ten calls to render one screen — design around client use cases.
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- Resources as nouns, methods as verbs; know which methods are safe and idempotent.
+- Precise status codes and one problem+json error format.
+- Validate at the edge; return field-level errors.
+- Evolve additively; version and deprecate explicitly when you must break.
+
+</KeyTakeaways>

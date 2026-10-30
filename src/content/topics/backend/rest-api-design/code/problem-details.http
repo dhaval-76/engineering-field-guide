@@ -1,0 +1,23 @@
+### RFC 9457 Problem Details (replaces RFC 7807) — one error shape for every endpoint
+HTTP/1.1 400 Bad Request
+Content-Type: application/problem+json
+
+{
+  "type": "https://api.example.com/problems/validation",
+  "title": "Request validation failed",
+  "status": 400,
+  "detail": "2 fields are invalid",
+  "instance": "/v1/orders",
+  "traceId": "4bf92f3577b34da6",
+  "errors": [
+    { "field": "customerId", "message": "must not be blank" },
+    { "field": "items[0].quantity", "message": "must be greater than 0" }
+  ]
+}
+
+### Rate limited: tell the client when to come back
+HTTP/1.1 429 Too Many Requests
+Retry-After: 30
+Content-Type: application/problem+json
+
+{ "type": "https://api.example.com/problems/rate-limit", "title": "Too many requests", "status": 429 }

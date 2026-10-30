@@ -1,0 +1,36 @@
+questions:
+  - q: A payment request with Idempotency-Key "pay-xyz-123" times out on the client, which retries three times. How do you make sure the customer is charged exactly once?
+    think: What if the retries arrive while the first attempt is still running? What exactly do you store, and where?
+    answer: |
+      On each request, try to **insert** `(client_id, key, request_hash, IN_PROGRESS)` into a table with a unique constraint. The winner performs the charge and, in the same transaction, marks the key `DONE` with the response code and body. A retry's insert conflicts: if the stored status is `DONE`, return the stored response unchanged; if `IN_PROGRESS`, return 409 with `Retry-After` (or briefly wait); if the body hash differs, 422. Unexpected 5xx failures delete the in-progress claim so a later retry can run; declines are stored as final. Pass the key (or a derived one) to the card processor too, so their side is idempotent. Keys expire after the retry window (e.g. 24 hours).
+  - q: Your order service consumes "PaymentCaptured" events from Kafka and creates invoices. Some customers receive two invoices. Why, and how do you fix it?
+    answer: |
+      Kafka delivers at least once: if the consumer processes a message but crashes or rebalances before committing the offset, the message is redelivered; producers can also publish duplicates on retries. Make the consumer idempotent: insert the event id into a `processed_messages` table with a unique constraint in the same transaction as the invoice, and skip when the insert affects no rows. Alternatively, make the effect naturally idempotent (an invoice keyed uniquely by order id with `ON CONFLICT DO NOTHING`).
+followUps:
+  - q: What's the difference between safe and idempotent methods?
+    intuition: Does idempotent mean no side effects?
+    approach: |
+      Safe methods (GET, HEAD, OPTIONS) don't change state. Idempotent methods may change state, but repeating them doesn't change it further: PUT sets the same value again; DELETE leaves the resource deleted. All safe methods are idempotent; PUT and DELETE are idempotent but not safe; POST is neither by default.
+  - q: Two identical requests arrive at exactly the same moment. What stops both from processing?
+    intuition: Which component can decide "first" atomically?
+    approach: |
+      Not an application-level check — both would see "not found". An atomic claim: a primary-key/unique-constraint insert (one succeeds, one gets a conflict) or Redis `SET key value NX EX ttl` (one gets OK, one gets nil). The loser replays or waits.
+  - q: How do you keep a multi-service operation idempotent?
+    intuition: If service A retries, B and C may see duplicate calls.
+    approach: |
+      Propagate keys: A calls B with `orderId:reserve` and C with `orderId:charge`, and each service dedupes with its own store. For partial failure, a saga retries forward (safe because each step is idempotent) or runs compensations, which must also be idempotent.
+practice:
+  - task: Build a POST endpoint backed by a database idempotency table. Fire 10 concurrent identical requests with the same key and verify exactly one record is created and all callers receive the same response (or 409 while in progress).
+    hint: INSERT … ON CONFLICT DO NOTHING to claim; do the work and store the response in one transaction; test with a CountDownLatch to release all threads at once.
+    solution: |
+      Use the executor in the code: claim with an insert, branch on conflict (replay / 409 / 422), run the action and store `DONE` with the response in one transaction. The concurrent test asserts one business row exists and every 2xx response body is identical.
+    solutionCode: idem-service
+quiz:
+  - q: A retried request with an idempotency key previously failed with a 500 because the database was down. What should the server do?
+    options: [Replay the stored 500, 'Run the operation again — transient failures shouldn''t be stored', Return 409, Return 422]
+    correct: 1
+    why: Only final outcomes are stored; an unexpected failure releases the key.
+  - q: Which update is safe to apply twice?
+    options: ['SET stock = stock - 1', 'SET status = ''SHIPPED'' WHERE status = ''PAID''', INSERT a new row with a generated id, 'SET retries = retries + 1']
+    correct: 1
+    why: The conditional transition matches nothing the second time.

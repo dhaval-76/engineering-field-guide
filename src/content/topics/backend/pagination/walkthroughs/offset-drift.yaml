@@ -1,0 +1,22 @@
+title: Why OFFSET pages skip or repeat rows when data changes
+frames:
+  - caption: 'Page 1 (`LIMIT 3 OFFSET 0`, newest first) shows **F, E, D**.'
+    panels:
+      - kind: array
+        label: Orders, newest first
+        items: [{ v: F, tone: accent }, { v: E, tone: accent }, { v: D, tone: accent }, C, B, A]
+  - caption: 'While the user reads, a new order **G** arrives at the top. Every row shifts one position down.'
+    panels:
+      - kind: array
+        label: Orders, newest first
+        items: [{ v: G, tone: plum, tag: new }, F, E, D, C, B, A]
+  - caption: 'Page 2 (`OFFSET 3`) now starts at position 3 — **D again**. The user sees a duplicate. (A deletion would make them miss a row instead.)'
+    panels:
+      - kind: array
+        label: Orders, newest first
+        items: [G, F, E, { v: D, tone: bad, tag: dup }, { v: C, tone: accent }, { v: B, tone: accent }, A]
+  - caption: 'With a **cursor**, page 2 asks for rows *older than D* — `(created_at, id) < D`. Inserts at the top don''t matter: it returns **C, B, A**, exactly once each.'
+    panels:
+      - kind: array
+        label: Orders, newest first
+        items: [G, F, E, { v: D, tone: muted, tag: cursor }, { v: C, tone: ok }, { v: B, tone: ok }, { v: A, tone: ok }]

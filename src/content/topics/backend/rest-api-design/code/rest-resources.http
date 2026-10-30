@@ -1,0 +1,17 @@
+### ✗ Verbs in URLs, one status code for everything
+POST /createNewOrder
+GET  /getOrderById?id=123
+POST /deleteOrder/123            → 200 {"success": false, "error": "not found"}
+
+### ✓ Nouns for resources, HTTP methods for actions
+POST   /v1/orders                       → 201 Created + Location: /v1/orders/ord_123
+GET    /v1/orders/ord_123               → 200
+PUT    /v1/orders/ord_123               → 200   (replace the whole order)
+PATCH  /v1/orders/ord_123               → 200   (change only the fields sent)
+DELETE /v1/orders/ord_123               → 204 No Content
+GET    /v1/orders/ord_123/items         → 200   (sub-resource)
+GET    /v1/orders?status=PENDING&sort=-createdAt&limit=20&cursor=eyJ0Ijo…   (filter, sort, paginate with query params)
+
+### Actions that aren't CRUD: model them as resources or sub-resources
+POST   /v1/orders/ord_123/cancellation  → 202 Accepted (cancellation in progress)
+POST   /v1/payments/pay_9/refunds       → 201 Created (a refund is a thing with its own id)

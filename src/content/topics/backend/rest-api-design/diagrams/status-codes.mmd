@@ -1,0 +1,14 @@
+flowchart TD
+  A[Request arrives] --> G{Over the rate limit?}
+  G -- yes --> R429[429 + Retry-After]
+  G -- no --> B{Authenticated?}
+  B -- no / bad token --> R401[401 Unauthorized]
+  B -- yes --> C{Allowed to do this?}
+  C -- no --> R403[403 Forbidden<br/>or 404 to hide existence]
+  C -- yes --> D{Well-formed and valid?}
+  D -- no --> R400[400 Bad Request<br/>422 if valid syntax, invalid meaning]
+  D -- yes --> E{Resource exists?}
+  E -- no --> R404[404 Not Found]
+  E -- yes --> F{Conflicts with current state?}
+  F -- yes --> R409[409 Conflict<br/>412 if If-Match failed]
+  F -- no --> OK[2xx: 200 · 201 + Location · 202 · 204]

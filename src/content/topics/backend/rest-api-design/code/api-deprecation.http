@@ -1,0 +1,12 @@
+### Old version keeps working, but announces its end date (RFC 9745 Deprecation, RFC 8594 Sunset)
+GET /v1/orders/ord_123
+→ 200 OK
+Deprecation: @1767225600
+Sunset: Thu, 31 Dec 2026 23:59:59 GMT
+Link: <https://api.example.com/docs/migrate-v2>; rel="deprecation"
+
+### Non-breaking: add an optional field — old clients ignore it
+{ "id": "ord_123", "status": "PAID", "currency": "INR" }
+
+### Breaking (needs a new version): rename/remove a field, change a type or meaning,
+### make an optional field required, change a status code or URL, tighten validation.
