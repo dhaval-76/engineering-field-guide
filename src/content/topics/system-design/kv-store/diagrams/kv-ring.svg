@@ -1,0 +1,23 @@
+<svg viewBox="0 0 640 300" xmlns="http://www.w3.org/2000/svg" font-family="var(--font-sans)" font-size="12">
+  <circle cx="170" cy="150" r="110" fill="none" stroke="var(--d-line)" stroke-width="2"/>
+  <g font-size="11" text-anchor="middle" fill="var(--d-text)">
+    <circle cx="170" cy="40" r="11" fill="var(--d-info-soft)" stroke="var(--d-info)"/><text x="170" y="44">A</text>
+    <circle cx="265" cy="95" r="11" fill="var(--d-plum-soft)" stroke="var(--d-plum)"/><text x="265" y="99">B</text>
+    <circle cx="265" cy="205" r="11" fill="var(--d-ok-soft)" stroke="var(--d-ok)"/><text x="265" y="209">C</text>
+    <circle cx="170" cy="260" r="11" fill="var(--d-info-soft)" stroke="var(--d-info)"/><text x="170" y="264">A</text>
+    <circle cx="75" cy="205" r="11" fill="var(--d-plum-soft)" stroke="var(--d-plum)"/><text x="75" y="209">B</text>
+    <circle cx="75" cy="95" r="11" fill="var(--d-ok-soft)" stroke="var(--d-ok)"/><text x="75" y="99">C</text>
+  </g>
+  <circle cx="230" cy="60" r="6" fill="var(--d-accent)"/>
+  <text x="240" y="56" fill="var(--d-accent)" font-size="11.5">hash("cart:42")</text>
+  <path d="M236 64 Q258 74 260 84" fill="none" stroke="var(--d-accent)" stroke-width="1.6" stroke-dasharray="4 3"/>
+  <g fill="var(--d-text)" font-size="12.5">
+    <text x="320" y="70" font-weight="600">Key placement</text>
+    <text x="320" y="96">1. Hash the key onto the ring.</text>
+    <text x="320" y="118">2. Walk clockwise to the first token → node <tspan fill="var(--d-plum)" font-weight="600">B</tspan>.</text>
+    <text x="320" y="140">3. Keep walking for N = 3 <tspan font-style="italic">distinct</tspan> nodes:</text>
+    <text x="336" y="162">replicas = <tspan fill="var(--d-plum)">B</tspan>, <tspan fill="var(--d-ok)">C</tspan>, <tspan fill="var(--d-info)">A</tspan></text>
+    <text x="320" y="196" fill="var(--d-muted)" font-size="11.5">Each physical node owns several tokens (virtual nodes),</text>
+    <text x="320" y="214" fill="var(--d-muted)" font-size="11.5">so a new node takes small slices from every other node.</text>
+  </g>
+</svg>

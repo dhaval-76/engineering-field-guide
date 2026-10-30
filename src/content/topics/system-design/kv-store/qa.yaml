@@ -1,0 +1,33 @@
+questions:
+  - q: 'Design a distributed key-value store that stays writable during node failures and lets you add nodes without downtime.'
+    think: Partitioning, replication, conflict handling and repair — in that order.
+    answer: |
+      **Partitioning**: consistent hashing with virtual nodes (or fixed hash slots); any node coordinates by hashing the key to find its replica set. **Replication**: N = 3 replicas on distinct nodes and zones; writes to all, acknowledged after W; reads from R with W and R tunable per request (QUORUM/QUORUM for read-your-writes, ONE/ONE for speed). **Availability**: sloppy quorums with hinted handoff keep writes flowing when replicas are down. **Conflicts**: version vectors detect concurrent writes; resolve with app merges or CRDTs, or last-write-wins where loss is acceptable; deletes as tombstones. **Repair**: gossip for membership and failure detection, read repair, Merkle-tree anti-entropy. **Node storage**: commit log + memtable + SSTables with compaction and Bloom filters; TTLs enforced lazily and during compaction. **Adding a node**: it takes tokens; data for those arcs streams from current owners while both serve, then ownership switches — about 1/N of data moves.
+followUps:
+  - q: Why virtual nodes?
+    intuition: With one token per node, arcs are uneven and a new node relieves only one neighbour.
+    approach: |
+      Many tokens per physical node spread its ownership across the ring, so load is balanced statistically, a new node takes small slices from every node (not one), a failed node's load spreads across many survivors, and heterogeneous machines can get proportionally more tokens.
+  - q: How do replicas converge after a failure?
+    intuition: Some writes missed a replica while it was down.
+    approach: |
+      Hinted handoff replays writes held by neighbours when the node returns; read repair fixes stale replicas noticed during reads; periodic anti-entropy compares Merkle trees per key range and transfers only ranges whose hashes differ. Tombstones ensure deletes propagate rather than being undone.
+  - q: How does Redis Cluster differ from a Dynamo-style store?
+    intuition: Slots and primaries vs rings and quorums.
+    approach: |
+      Redis Cluster maps keys to 16,384 hash slots, each owned by one primary with asynchronous replicas; there are no read/write quorums — writes are acknowledged by the primary, so a failover can lose recent writes. It's in-memory first with optional persistence. Dynamo-style stores use leaderless replication with tunable quorums, versioning and repair mechanisms, and disk-based LSM storage.
+practice:
+  - task: Implement a consistent hash ring with virtual nodes that returns N distinct replicas for a key, and a node-local store with TTL where overwriting a key also replaces its expiry.
+    hint: TreeMap/sorted list of tokens; walk clockwise collecting distinct nodes; keep value and expiry in one record.
+    solution: |
+      Hash `node#i` for i in 0..V to create tokens in a sorted map; for a key, start at the first token ≥ hash(key), wrap around, and collect owners until N distinct nodes are found. Removing a node deletes its tokens only. For the node store, keep `(value, expiresAt)` together in one map entry so `put` replaces both atomically; expire lazily on `get` (removing only that exact entry) and with a bounded periodic sweep.
+    solutionCode: hash-ring
+quiz:
+  - q: With 5 nodes and 128 virtual nodes each, adding a 6th node moves roughly what share of keys?
+    options: ['About 1/6', 'About 5/6', 'About half', 'All of them']
+    correct: 0
+    why: The new node takes its fair share (~1/6), drawn from all existing nodes.
+  - q: What do tombstones prevent?
+    options: [Hot keys, Deleted data reappearing from stale replicas, Slow reads, Network partitions]
+    correct: 1
+    why: A delete must replicate like a write; otherwise a replica that missed it re-spreads the old value.

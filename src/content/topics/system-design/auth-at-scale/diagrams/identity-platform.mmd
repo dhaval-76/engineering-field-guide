@@ -1,0 +1,11 @@
+flowchart TD
+  U[User] -- "login · MFA · passkey" --> IDP[Identity provider<br/>OIDC · sessions · MFA]
+  IDP --> UD[(Users · credentials<br/>replicated)]
+  IDP --> RT[(Refresh tokens<br/>hashed · rotated)]
+  IDP -. publishes keys .-> JWKS[JWKS endpoint]
+  U -- access token --> GW[Gateway]
+  GW -. caches keys .-> JWKS
+  GW --> S1[Service A]
+  GW --> S2[Service B]
+  S1 -. "can user X edit doc 7?" .-> PS[Permission service<br/>relationship tuples · cache]
+  S1 <-- mTLS identity --> S2

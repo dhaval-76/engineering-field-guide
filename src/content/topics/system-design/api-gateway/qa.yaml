@@ -1,0 +1,33 @@
+questions:
+  - q: 'Design an API gateway for 500 services at 50,000 requests per second, adding under 5 ms of latency.'
+    think: Which concerns belong at the edge, and which of them can be done without a network call?
+    answer: |
+      The gateway is a stateless reverse proxy fleet behind an L4 load balancer across zones. Pipeline: TLS termination and size limits → authentication by verifying JWTs locally against cached JWKS keys (API keys looked up in a local cache backed by Redis) → rate limiting with one atomic Redis call per request → route matching from an in-memory table (host + longest path prefix + method) loaded from versioned config → forwarding with per-route timeouts, pooled connections, retries only for idempotent methods, and a circuit breaker per upstream → async access logs, metrics and trace propagation. Only the rate-limit call touches the network, so overhead stays at a millisecond or two. Configuration is validated and rolled out gradually; canaries use weighted routes. Aggregation per screen lives in BFFs, not in the shared gateway.
+followUps:
+  - q: Isn't the gateway a single point of failure?
+    intuition: What state does it hold?
+    approach: |
+      Only if deployed as one instance or one zone. Gateways hold no request state, so many identical instances can run in every zone behind a load balancer and autoscale. The real shared risks are configuration (a bad route breaks everything — validate, canary and roll back configs) and shared dependencies such as the rate-limit store (fail open with timeouts).
+  - q: How do you revoke a token if the gateway verifies JWTs locally?
+    intuition: Stateless tokens can't be "deleted".
+    approach: |
+      Keep access tokens short-lived (minutes), revoke refresh tokens at the identity provider, and for urgent cases check a small, cached deny-list (by token id or a per-user "tokens issued before T are invalid" timestamp) at the gateway. Rotate signing keys through JWKS with overlap so verification never breaks.
+  - q: API gateway vs BFF vs service mesh?
+    intuition: Which traffic, and whose concerns?
+    approach: |
+      Gateway: client-to-platform traffic and shared edge concerns. BFF: one backend per client experience, aggregating and shaping responses, owned by the UI team. Service mesh: service-to-service traffic — mTLS, retries, traffic shifting, telemetry — without application code changes.
+practice:
+  - task: Configure routes for orders, users and products with path stripping, per-route timeouts, rate limits keyed by API key or user, a circuit breaker, and a 5% canary for a new products version.
+    hint: Spring Cloud Gateway predicates (Path, Weight) and filters (StripPrefix, RequestRateLimiter, CircuitBreaker, Retry); a KeyResolver bean.
+    solution: |
+      Define a route per service with `Path` predicates and `StripPrefix`; attach `RequestRateLimiter` with a Redis limiter and a `KeyResolver` choosing API key → user → IP; a `CircuitBreaker` with a fallback per route; `Retry` limited to GET with a couple of attempts; per-route response timeouts in metadata. For the canary, two routes with the same path and `Weight` predicates of 95 and 5. JWT verification is configured once via the resource server's issuer URI.
+    solutionCode: gateway-routes
+quiz:
+  - q: Where should per-screen data aggregation for the mobile app live?
+    options: [In the shared API gateway, In a mobile backend-for-frontend, In the database, In every microservice]
+    correct: 1
+    why: A BFF owned by the mobile team keeps client-specific logic out of the shared gateway.
+  - q: Which requests can the gateway safely retry automatically?
+    options: [All of them, Idempotent ones such as GET (or those with idempotency keys), Only POST, None ever]
+    correct: 1
+    why: Retrying non-idempotent requests can duplicate side effects.

@@ -1,0 +1,93 @@
+---
+title: 'Design: Authentication and Authorization at Scale'
+summary: An identity platform for millions of users and hundreds of services — login security, single sign-on with OIDC, token issuance and revocation, fine-grained authorization, service identity, and login surges.
+track: system-design
+order: 110
+tags: [system-design, case-study, security, authentication, authorization, oauth, oidc]
+aliases: [design authentication system, identity provider, idp, single sign on, sso, oidc, oauth2 at scale, token revocation, logout everywhere, password reset, credential stuffing, mfa, passkeys, webauthn, rbac, abac, rebac, zanzibar, openfga, spicedb, opa, policy engine, mtls, spiffe, workload identity, keycloak]
+prerequisites: [backend/authn-authz, system-design/api-gateway]
+related: [databases/multi-tenant-schema, system-design/distributed-rate-limiter, databases/caching-strategies]
+quickRef:
+  points:
+    - '**Centralise authentication** in an identity provider (OIDC); **decentralise verification**: every service checks token signatures locally.'
+    - 'Short-lived access tokens (minutes) + rotating, revocable refresh tokens; per-user "revoked before" timestamp for logout-everywhere.'
+    - 'Login security: slow password hashing (Argon2id/bcrypt), uniform errors and timing, rate limits per IP *and* account, breached-password checks, MFA/passkeys.'
+    - 'Authorization: coarse roles in tokens; fine-grained, relationship-based checks in a **policy/permission service** (Zanzibar-style) with caching.'
+    - 'Service-to-service: **mTLS/workload identity** or client-credentials tokens — never shared static secrets.'
+  useWhen: Designing login/SSO for a product family, or answering "how do 500 services authenticate requests?".
+lastReviewed: 2026-10-30
+---
+
+## Requirements
+
+**Functional**: sign-up with email verification; login with password, social login and MFA/passkeys; single sign-on across several products; password reset; logout and logout-everywhere; roles and fine-grained permissions (e.g. "can edit this document"); API keys for integrations; service-to-service authentication.
+**Non-functional**: 100 M users; ~50,000 authenticated requests/s across 500 services; login p99 < 500 ms; login surges at the start of the working day; the identity platform must be more available than anything that depends on it; strong auditability.
+
+The request-level mechanics — JWT validation, OAuth flows, refresh rotation — are in [Authentication and authorization](../../backend/authn-authz/). This design is about the platform.
+
+## High-level design
+
+<Diagram id="identity-platform" caption="Authentication happens once at the identity provider; every service verifies tokens locally and asks the permission service only for fine-grained checks." />
+
+<Walkthrough id="sso-login" />
+
+## Login security
+
+<CodeTabs id="login-service" title="Login with uniform timing, lockout and rate limits; a safe password reset" />
+
+- **Passwords**: Argon2id or bcrypt with a tuned cost; optional pepper in a secrets manager; reject known-breached passwords (k-anonymity range API).
+- **Enumeration**: same message and similar timing for unknown email and wrong password; "if that email exists, we've sent a link" for resets.
+- **Credential stuffing**: rate limit per IP *and* per account, step-up challenges (CAPTCHA, MFA) on risk signals, device and location anomaly detection.
+- **MFA and passkeys**: TOTP or WebAuthn passkeys (phishing-resistant); SMS only as a fallback.
+- **Reset tokens**: 256-bit random, stored hashed, single-use (atomic claim), 15-minute expiry; on reset, revoke all sessions.
+
+## Tokens and sessions at scale
+
+- The identity provider signs tokens with keys published at a **JWKS** endpoint; services cache keys and refresh them in the background; rotation overlaps old and new keys.
+- **Access tokens**: 5–15 minutes, audience-restricted, carrying user id, tenant and coarse roles — not full permission lists.
+- **Refresh tokens**: opaque, stored hashed, rotated on every use with reuse detection (a reused old token revokes the family).
+- **Revocation**: logout deletes the refresh token; logout-everywhere/compromise sets `revoked_before = now` for the user, cached at gateways; access tokens die naturally within minutes. Very sensitive operations re-check the session server-side.
+- **Browser apps**: tokens kept server-side in a BFF with an `HttpOnly`, `Secure`, `SameSite` session cookie, rather than in `localStorage`.
+
+## Authorization at scale
+
+| Model | Fits | Where it runs |
+|---|---|---|
+| **RBAC** (roles) | coarse access: admin, member, viewer | roles in token claims; checks in each service |
+| **ABAC** (attributes/policies) | rules over attributes: region, plan, time, ownership | policy engine (OPA/Cedar) as a library or sidecar, policies distributed as bundles |
+| **ReBAC** (relationships) | sharing and hierarchies: "editors of a folder can edit its documents" | a permission service storing relationship tuples (Zanzibar-style: OpenFGA, SpiceDB) |
+
+<CodeTabs id="permission-check" title="Fine-grained checks against a relationship-based permission service" />
+
+Permission checks are on the hot path, so the permission service is replicated, caches results briefly, and supports batch checks ("which of these 50 documents can the user see?"). Freshness matters for revocation: Zanzibar-style systems use consistency tokens so a check after a change sees that change.
+
+## Service-to-service identity
+
+Each workload gets a cryptographic identity — mTLS certificates issued automatically (SPIFFE/SPIRE, a service mesh) or OAuth client-credentials tokens — and services authorise callers by identity ("only `billing` may call `POST /refunds`"). No long-lived shared secrets in config.
+
+## Scale and availability
+
+- The identity provider is stateless at the edge (horizontally scaled) with user records in a replicated database and sessions/refresh tokens in a fast store; password hashing is CPU-bound, so login capacity scales with cores — size for morning peaks and rate-limit abusers.
+- Because verification is local, **an IdP outage blocks new logins and refreshes, not existing traffic** — tokens remain valid until expiry. Run the IdP in several zones/regions.
+- Audit every authentication event (success, failure, MFA, reset, token reuse) to a durable log.
+
+<Pitfalls>
+
+- **Calling the auth service on every request.**
+- **Long-lived access tokens** with no revocation path.
+- **Fat tokens** carrying every permission — huge headers and stale permissions.
+- **Different responses for "no such user" and "wrong password".**
+- **Rate limiting logins only by IP** — botnets rotate IPs; also limit per account.
+- **Reset tokens stored in plain text or reusable.**
+- **Shared static API secrets between services.**
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- Central identity provider, local token verification, short-lived tokens, revocable refresh tokens.
+- Defend login with slow hashing, uniform responses, layered rate limits and MFA/passkeys.
+- Roles in tokens; fine-grained permissions in a dedicated, cached permission service.
+- Workload identity for services; audit everything.
+
+</KeyTakeaways>

@@ -1,0 +1,7 @@
+flowchart TD
+  C[Web · mobile · partners] --> LB[L4 load balancer<br/>multiple zones]
+  LB --> G["Gateway instances × N<br/>① TLS + size limits<br/>② verify JWT / API key (cached JWKS)<br/>③ rate limit (Redis)<br/>④ route match<br/>⑤ forward: timeout · retry · breaker"]
+  G --> S1[Orders service]
+  G --> S2[Catalogue service]
+  G --> S3[Mobile BFF]
+  G -. async .-> O[(Logs · metrics · traces)]

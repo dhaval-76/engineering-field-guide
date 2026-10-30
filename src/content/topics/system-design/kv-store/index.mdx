@@ -1,0 +1,94 @@
+---
+title: 'Design: Distributed Key-Value Store'
+summary: A Dynamo-style key-value store — partitioning with consistent hashing or hash slots, replication with tunable quorums, conflict resolution, failure detection, hinted handoff, anti-entropy and the node storage engine.
+track: system-design
+order: 120
+tags: [system-design, case-study, distributed-systems, storage, consistent-hashing]
+aliases: [design a key value store, distributed hash table, dynamo, dynamodb, cassandra, redis cluster, hash slots, consistent hashing, virtual nodes, quorum, n w r, vector clock, last write wins, hinted handoff, read repair, merkle tree, anti entropy, gossip, failure detection, lsm tree, ttl expiry]
+prerequisites: [databases/replication, databases/sharding, databases/cap-and-consistency]
+related: [system-design/messaging-system, databases/sql-vs-nosql, databases/caching-strategies]
+quickRef:
+  points:
+    - 'API: `get(key)`, `put(key, value, ttl?)`, `delete(key)` — simple operations, very large scale.'
+    - 'Partition keys with **consistent hashing + virtual nodes** (Dynamo, Cassandra) or **fixed hash slots** (Redis Cluster: 16,384) so adding nodes moves little data.'
+    - 'Replicate each key to **N** nodes; tune **W** and **R** per request (W + R > N for read-your-latest-write).'
+    - 'Conflicting concurrent writes: last-write-wins (simple, lossy) or **version vectors** with merge.'
+    - 'Self-healing: gossip failure detection, **hinted handoff**, **read repair**, **Merkle-tree anti-entropy**.'
+    - 'Per node: write-ahead log + memtable + SSTables (LSM) for writes, Bloom filters for reads.'
+  useWhen: '"Design a key-value store / Dynamo / a distributed cache" — or to understand how Cassandra and DynamoDB behave.'
+lastReviewed: 2026-10-30
+---
+
+## Requirements
+
+**Functional**: `put`, `get`, `delete` by key; values up to ~1 MB; optional TTL.
+**Non-functional**: petabytes of data and millions of operations per second; single-digit-millisecond latency; always writable even during node or zone failures (availability over strict consistency, tunable per request); add and remove nodes without downtime.
+
+## High-level design
+
+<Diagram id="kv-ring" caption="Keys hash onto a ring of virtual nodes; each key is stored on the next N distinct physical nodes clockwise." />
+
+Any node can **coordinate** a request: it hashes the key, finds the replica set, forwards the operation and waits for W (or R) responses. Clients can also be partition-aware and contact a replica directly.
+
+## Partitioning
+
+<Walkthrough id="consistent-hashing" />
+
+<CodeTabs id="hash-ring" title="A consistent hash ring with virtual nodes and replica selection" />
+
+| Scheme | How | Used by |
+|---|---|---|
+| Consistent hashing with virtual nodes | many tokens per node on a ring; key → next tokens clockwise | Dynamo, Cassandra, Riak |
+| Fixed hash slots | `CRC16(key) mod 16384` → slot; slots assigned to nodes and moved whole | Redis Cluster |
+| Range partitions that split automatically | sorted key ranges split when large or hot | Bigtable, HBase, DynamoDB (internally), CockroachDB |
+
+Virtual nodes spread each physical node's share across the ring, so adding a node takes a little from many others, and capacity differences can be expressed with more or fewer tokens.
+
+## Replication and consistency
+
+- Each key lives on **N** replicas (e.g. 3), on distinct nodes and ideally distinct zones.
+- **Writes** go to all N; the coordinator acknowledges after **W**. **Reads** ask R replicas and return the newest version. W + R > N gives overlap ([Replication](../../databases/replication/)); W = 1/R = 1 is fastest and eventually consistent.
+- **Versioning**: with concurrent writes to different replicas, versions can conflict. Last-write-wins by timestamp silently drops one; **version vectors** detect concurrency and return siblings for the client (or a CRDT merge) to resolve.
+
+<CodeTabs id="kv-node" title="One node's store: a map with TTL that's safe to overwrite" />
+
+## Handling failures
+
+| Mechanism | Problem it solves |
+|---|---|
+| **Gossip** membership + heartbeats | every node learns who's up without a central registry |
+| **Sloppy quorum + hinted handoff** | a replica is down: write to the next healthy node with a "hint", deliver when the replica returns |
+| **Read repair** | a read sees a stale replica: update it in the background |
+| **Anti-entropy with Merkle trees** | replicas compare hash trees of key ranges and sync only differing ranges |
+| **Tombstones** | deletes are recorded as markers (with expiry) so they replicate instead of being "resurrected" by stale replicas |
+
+## Storage engine on each node
+
+Writes append to a **commit log** (durability) and an in-memory **memtable**; full memtables flush to immutable sorted **SSTables**; background **compaction** merges them and drops overwritten values and expired tombstones. Reads check the memtable, then SSTables newest-first, skipping most files with **Bloom filters**. This LSM design turns random writes into sequential I/O ([B-trees vs LSM trees](../../databases/indexing/)). TTLs are enforced lazily on read and physically during compaction.
+
+## Trade-offs to discuss
+
+- **AP by default** (always writable, eventual consistency), with per-request knobs towards consistency; strongly consistent operations (compare-and-set) need consensus per key range (Paxos/Raft), at higher latency.
+- **Hot keys**: a single key's replicas carry all its load — client-side caching, key splitting, or read replicas for hot items.
+- **Large values** hurt latency and compaction — store blobs in object storage and keep references.
+- Redis Cluster differs from Dynamo: single primary per slot with async replicas (failover can lose acknowledged writes), in-memory storage with optional persistence.
+
+<Pitfalls>
+
+- **`hash(key) % N` partitioning** — almost all keys move when N changes.
+- **Replicas on the same rack/zone** — one failure loses all copies.
+- **Last-write-wins on data that can't lose updates** (counters, carts) — use CRDTs or conditional writes.
+- **Deletes without tombstones** — deleted data reappears from stale replicas.
+- **Assuming W + R > N is linearizable** in every failure case.
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- Consistent hashing or hash slots partition data; virtual nodes balance it.
+- N replicas with tunable W/R choose consistency per request.
+- Versioning resolves concurrent writes; tombstones make deletes stick.
+- Gossip, hinted handoff, read repair and Merkle trees keep replicas converging.
+- LSM storage makes each node write-optimised.
+
+</KeyTakeaways>

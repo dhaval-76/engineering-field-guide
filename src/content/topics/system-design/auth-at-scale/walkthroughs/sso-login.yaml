@@ -1,0 +1,27 @@
+title: Single sign-on across two products
+frames:
+  - caption: 'Asha opens **Docs**. It has no session for her, so it redirects her browser to the **identity provider** (authorization code + PKCE).'
+    panels:
+      - kind: rows
+        label: Browser
+        items: [{ v: 'docs.example.com → 302 → login.example.com', tone: info }]
+  - caption: 'The IdP has no session either. Asha enters her password and approves a passkey prompt. The IdP sets **its own session cookie** on `login.example.com` and redirects back to Docs with a one-time code.'
+    panels:
+      - kind: kv
+        label: Sessions
+        pairs: [[login.example.com, { v: 'IdP session ✓', tone: ok }], [docs.example.com, '(none yet)']]
+  - caption: 'Docs'' backend exchanges the code for tokens (ID token, access token, refresh token) and creates a **Docs session** for Asha.'
+    panels:
+      - kind: kv
+        label: Sessions
+        pairs: [[login.example.com, 'IdP session ✓'], [docs.example.com, { v: 'Docs session ✓', tone: ok }]]
+  - caption: 'Later she opens **Tracker**. It redirects to the IdP too — but the IdP session cookie is already there, so the IdP redirects straight back with a code. **No password prompt**: that''s SSO.'
+    panels:
+      - kind: rows
+        label: Browser
+        items: ['tracker.example.com → login.example.com', { v: 'IdP session found → back with code', tone: ok }]
+  - caption: 'Logout everywhere (e.g. a stolen laptop): the IdP ends its session, revokes all refresh tokens and sets `revoked_before = now` for Asha. Gateways reject older access tokens; products'' sessions end on their next refresh or back-channel logout.'
+    panels:
+      - kind: kv
+        label: After logout everywhere
+        pairs: [[IdP session, { v: ended, tone: warn }], [refresh tokens, { v: revoked, tone: warn }], [old access tokens, { v: 'rejected by revoked_before', tone: warn }]]

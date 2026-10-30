@@ -1,0 +1,28 @@
+title: Adding a node to a consistent hash ring
+frames:
+  - caption: 'Three nodes, each owning the arc of the ring that ends at its token. Keys hash onto the ring and belong to the next node clockwise.'
+    panels:
+      - kind: kv
+        label: Ring (0–99)
+        pairs: [['A @ 30', 'keys 91–30'], ['B @ 60', 'keys 31–60'], ['C @ 90', 'keys 61–90']]
+      - kind: rows
+        label: Keys
+        items: ['k1 → 12 → A', 'k2 → 45 → B', 'k3 → 70 → C', 'k4 → 82 → C']
+  - caption: 'Add node **D** at token 78. Only keys between 61 and 78 change owner — from C to D. Everything else stays put.'
+    panels:
+      - kind: kv
+        label: Ring
+        pairs: [['A @ 30', 'unchanged'], ['B @ 60', 'unchanged'], [{ v: 'D @ 78', tone: accent }, { v: 'keys 61–78 (from C)', tone: accent }], ['C @ 90', 'keys 79–90']]
+      - kind: rows
+        label: Keys
+        items: ['k1 → A', 'k2 → B', { v: 'k3 → 70 → D (moved)', tone: warn }, 'k4 → 82 → C']
+  - caption: 'Compare `hash % N`: going from 3 to 4 buckets remaps about 75% of keys. On the ring, roughly 1/N of the keys move — and only from one neighbour.'
+    panels:
+      - kind: kv
+        label: Keys moved
+        pairs: [['hash % N (3 → 4)', { v: '~75%', tone: bad }], ['ring, one token per node', { v: '~25%, all from C', tone: warn }]]
+  - caption: 'With one token per node, D took load only from C, and arcs can be very uneven. **Virtual nodes** give each server many tokens (e.g. 128), so D takes a little from everyone and the load stays balanced.'
+    panels:
+      - kind: kv
+        label: With virtual nodes
+        pairs: [[D takes from, 'A, B and C — ~8% each'], [arc balance, { v: 'within a few %', tone: ok }]]

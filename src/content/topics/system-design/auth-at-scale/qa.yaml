@@ -1,0 +1,39 @@
+questions:
+  - q: 'Design authentication and authorization for 100 M users and 500 services without the auth service becoming a bottleneck.'
+    think: Which work happens once per login, and which happens on every request?
+    answer: |
+      **Authenticate once, verify everywhere.** An OIDC identity provider handles login (passwords with Argon2id, MFA/passkeys, social login), SSO sessions and token issuance; it publishes signing keys via JWKS. Access tokens are short-lived (5–15 min), audience-scoped and carry user, tenant and coarse roles; gateways and services verify them locally with cached keys — zero calls to the IdP per request. Refresh tokens are opaque, hashed, rotated with reuse detection; logout-everywhere sets a per-user `revoked_before` timestamp cached at gateways.
+
+      **Authorization**: roles from the token for coarse checks; a replicated, cached relationship-based permission service (Zanzibar-style) for resource-level decisions, with batch checks for lists; or a policy engine (OPA/Cedar) evaluated locally for attribute rules. **Service-to-service**: mTLS workload identities or client-credentials tokens. **Scale**: the IdP scales horizontally for login peaks (hashing is CPU-bound) with per-IP and per-account rate limits; an IdP outage stops new logins but not existing traffic.
+  - q: 'An account is compromised. How do you cut off the attacker immediately across all services?'
+    think: Access tokens are self-contained and can't be deleted.
+    answer: |
+      Revoke at the source and shorten the window: (1) end the IdP session and revoke all refresh tokens, so no new access tokens can be minted; (2) set the user's `revoked_before = now` (or bump a token version) in a store cached at gateways (seconds of TTL) — gateways reject access tokens issued earlier; (3) force a password reset and MFA re-enrolment, revoke API keys and app passwords; (4) for highly sensitive operations, services re-check the session server-side. Access tokens' short lifetime bounds the exposure even if a cache is briefly stale. Audit what the attacker accessed.
+followUps:
+  - q: Why not put all of a user's permissions in the JWT?
+    intuition: Size and freshness.
+    approach: |
+      Permission lists can be huge (thousands of resources), bloating every request header, and they're frozen until the token expires, so revocations lag. Put stable, coarse claims (user, tenant, roles) in tokens and resolve fine-grained permissions at check time from a permission service with short caching.
+  - q: How do you defend against credential stuffing?
+    intuition: Many IPs, many accounts, valid-looking attempts.
+    approach: |
+      Rate limits per account and per IP/ASN, device and behaviour risk scoring with step-up challenges (CAPTCHA, MFA), breached-password detection on login and sign-up, MFA/passkeys to make passwords alone insufficient, uniform error responses, and monitoring for failure-rate spikes across accounts.
+  - q: How do services authenticate each other?
+    intuition: A service isn't a user.
+    approach: |
+      With workload identity: mTLS certificates issued and rotated automatically (SPIFFE/SPIRE, a service mesh) so each connection proves which service is calling, or OAuth client-credentials tokens scoped to specific audiences. Authorise by caller identity per endpoint. Avoid shared static secrets; when a user request crosses services, propagate the user's token (or a token exchanged for a narrower audience) as well.
+practice:
+  - task: Implement login that resists account enumeration and brute force, and a password reset with single-use, expiring, hashed tokens that logs the user out everywhere.
+    hint: Dummy hash for unknown users; one error message; per-IP and per-account limits; 32 random bytes; store SHA-256; atomic UPDATE … RETURNING to claim; revoke sessions.
+    solution: |
+      Login normalises the email, checks per-IP and per-account limits, always runs the password verifier (against a dummy hash for unknown accounts) and returns one generic error, recording failures for lockout/challenges. Reset requests always return the same response; for existing accounts, generate 32 random bytes, store only the hash with a 15-minute expiry, and email the raw token. Completion atomically claims the token with `UPDATE … WHERE used_at IS NULL AND expires_at > now() RETURNING user_id`, updates the password hash and revokes all sessions and refresh tokens.
+    solutionCode: login-service
+quiz:
+  - q: With local JWT verification, what does an identity provider outage break?
+    options: [All requests immediately, New logins and token refreshes, Nothing at all, Only admin requests]
+    correct: 1
+    why: Existing access tokens keep verifying with cached keys until they expire.
+  - q: Which authorization model fits "editors of a folder can edit every document in it"?
+    options: [Pure RBAC, Relationship-based (ReBAC), IP allow-lists, API keys]
+    correct: 1
+    why: Permissions derive from relationships between users and resources and between resources.

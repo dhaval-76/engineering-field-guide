@@ -1,0 +1,73 @@
+---
+title: 'Design: API Gateway'
+summary: One front door for many services — routing, TLS, authentication, rate limiting, request shaping, retries and circuit breaking, observability and canary routing — kept fast and stateless, plus when to add backends-for-frontends.
+track: system-design
+order: 100
+tags: [system-design, case-study, api-gateway, microservices, edge]
+aliases: [api gateway, design an api gateway, reverse proxy, edge service, routing, path based routing, jwt validation at gateway, jwks, bff, backend for frontend, spring cloud gateway, envoy, kong, nginx, aws api gateway, request transformation, canary routing, api composition, gateway single point of failure]
+prerequisites: [architecture/microservices, system-design/distributed-rate-limiter]
+related: [backend/authn-authz, architecture/resilience-patterns, system-design/auth-at-scale]
+quickRef:
+  points:
+    - 'A gateway handles **cross-cutting concerns** once: TLS, routing, authentication, rate limits, size limits, CORS, logging/tracing.'
+    - 'Keep it **stateless and thin**: verify JWTs locally with cached keys; state (limits) in Redis; business logic stays in services.'
+    - 'Route by host/path/header with versioned config; support **weighted routing** for canaries.'
+    - 'Per-route **timeouts**, limited retries for idempotent calls, **circuit breakers** per upstream.'
+    - 'Avoid a single point of failure: many instances behind an L4 load balancer, across zones.'
+    - '**BFFs** aggregate calls per client type; don''t turn the gateway into a monolith of composition logic.'
+  useWhen: Designing the edge of a microservice platform, or the "design an API gateway" question.
+lastReviewed: 2026-10-30
+---
+
+## Requirements
+
+**Functional**: route external requests to the right service by host, path and method; authenticate callers (user tokens, API keys) and pass identity downstream; enforce rate limits and quotas; reject oversized or malformed requests; support versioned APIs and canary releases; log and trace every request.
+**Non-functional**: tens of thousands of requests per second; under ~5 ms added latency; higher availability than any service behind it; configuration changes without redeploys.
+
+## High-level design
+
+<Diagram id="gateway-architecture" caption="A gateway request pipeline: cheap checks first, then routing to a healthy upstream with timeouts and a circuit breaker." />
+
+| Step | Work | Cost |
+|---|---|---|
+| TLS termination | decrypt, HTTP/2 or HTTP/3 | CPU; offload or reuse sessions |
+| Request limits | max body/header size, allowed methods, CORS | trivial |
+| Authentication | verify JWT signature against cached JWKS keys, or look up an API key (cached) | sub-ms, no network call |
+| Rate limiting | one Redis call per request ([distributed limiter](../distributed-rate-limiter/)) | ~1 ms |
+| Routing | match route table (host + longest path prefix + method), choose a healthy instance | microseconds |
+| Forwarding | connection pools to upstreams, per-route timeout, retries for idempotent methods, circuit breaker | upstream latency |
+| Observability | trace id, access log (async), metrics per route/status | asynchronous |
+
+<CodeTabs id="gateway-routes" title="Routes, auth and resilience in Spring Cloud Gateway" />
+
+## Deep dives
+
+**Authentication at the edge.** Validate signature, issuer, audience and expiry locally using public keys from the identity provider's JWKS endpoint (cached and refreshed in the background). Forward identity to services as a verified token or signed headers, and have services still verify — the gateway is not the only line of defence. Revocation is handled with short-lived tokens plus a small deny-list or per-user "valid after" timestamp ([Auth at scale](../auth-at-scale/)).
+
+**Availability.** Gateways are stateless: run many instances across zones behind a DNS/L4 load balancer, with health checks. Route configuration is versioned and pushed (or polled) — a bad config must be rejected or rolled back quickly, because it affects every service.
+
+**Latency.** No synchronous calls to slow systems in the pipeline; connection pooling and keep-alive to upstreams; async access logs; avoid body parsing unless a route needs transformation.
+
+**Releases.** Weighted routes (95% v1, 5% v2) or header-based routing (`X-Canary: true`) enable canaries and blue-green switches at the edge.
+
+**Gateway vs BFF vs service mesh.** The gateway handles north-south traffic (clients → services). A **backend for frontend** per client type (web, mobile) aggregates and reshapes data for one UI. A **service mesh** handles east-west traffic (service → service): mTLS, retries, traffic splitting via sidecars or ambient proxies. Putting aggregation logic for every screen into the shared gateway creates a monolith that every team must change.
+
+<Pitfalls>
+
+- **Business logic in the gateway** — every change touches a shared, critical component.
+- **Calling the auth service on every request** instead of verifying tokens locally.
+- **Retrying non-idempotent requests** at the gateway (duplicate orders).
+- **One timeout for all routes** — slow report endpoints and fast lookups need different values.
+- **A single gateway instance or zone.**
+- **Unreviewed route changes** pushed straight to production.
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- Centralise cross-cutting concerns; keep the gateway thin, stateless and fast.
+- Local JWT verification, Redis-backed limits, per-route timeouts and circuit breakers.
+- Many instances across zones; versioned, validated configuration.
+- BFFs for client-specific aggregation, a mesh for service-to-service concerns.
+
+</KeyTakeaways>

@@ -1,0 +1,37 @@
+# Spring Cloud Gateway (application.yml)
+spring:
+  cloud:
+    gateway:
+      server:
+        webflux:
+          default-filters:
+            - name: RequestSize
+              args: { maxSize: 2MB }
+            - TokenRelay=                                  # forward the verified access token downstream
+          routes:
+            - id: orders
+              uri: lb://orders                             # resolved via discovery / Kubernetes service
+              predicates: [ "Path=/api/v1/orders/**" ]
+              filters:
+                - StripPrefix=2                            # /api/v1/orders/42 → /orders/42
+                - name: RequestRateLimiter
+                  args:
+                    redis-rate-limiter.replenishRate: 50   # tokens per second per key
+                    redis-rate-limiter.burstCapacity: 100
+                    key-resolver: "#{@apiKeyResolver}"
+                - name: CircuitBreaker
+                  args: { name: orders, fallbackUri: "forward:/fallback/orders" }
+                - name: Retry                              # only safe methods
+                  args: { retries: 2, methods: GET, statuses: BAD_GATEWAY,SERVICE_UNAVAILABLE }
+              metadata: { response-timeout: 2000 }
+            - id: catalogue-canary                         # 5% of traffic to the new version
+              uri: lb://catalogue-v2
+              predicates: [ "Path=/api/v1/products/**", "Weight=catalogue, 5" ]
+            - id: catalogue
+              uri: lb://catalogue
+              predicates: [ "Path=/api/v1/products/**", "Weight=catalogue, 95" ]
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: https://login.example.com/          # keys fetched from its JWKS and cached
