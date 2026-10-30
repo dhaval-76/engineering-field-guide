@@ -1,0 +1,70 @@
+---
+title: Linked Lists
+summary: Pointer manipulation without losing nodes — dummy heads, reversing in place, fast and slow pointers for cycles and middles, merging sorted lists, and removing the nth node from the end.
+track: dsa
+order: 60
+tags: [dsa, linked-list, pointers, patterns]
+aliases: [linked list, singly linked list, doubly linked list, reverse linked list, dummy node, sentinel, fast and slow pointers, floyd cycle detection, linked list cycle, middle of linked list, merge two sorted lists, remove nth node from end, reorder list, palindrome linked list, merge k sorted lists]
+prerequisites: [dsa/two-pointers]
+related: [low-level-design/lru-cache]
+quickRef:
+  points:
+    - 'A **dummy head** removes special cases for inserting/deleting at the head.'
+    - '**Reverse** with three pointers: `prev`, `cur`, `next` — save `next` before re-pointing.'
+    - '**Fast/slow pointers**: fast moves 2, slow 1 → middle of the list, cycle detection (Floyd), cycle start.'
+    - '**Gap pointers**: advance one pointer n steps first to find the nth node from the end in one pass.'
+    - 'Draw the boxes and arrows before coding; most bugs are a lost `next` reference.'
+  complexity: 'Mostly O(n) time and O(1) extra space.'
+  useWhen: 'Problems on linked structures, in-place re-linking, or detecting cycles in sequences.'
+lastReviewed: 2026-10-30
+---
+
+## Recognise it
+
+- Input is a linked list, or a sequence defined by "next" pointers (including functional graphs like `i → nums[i]`).
+- Needs O(1) extra space where an array copy would be easy.
+- Middle, cycle, kth from end, merge, reverse a section.
+
+<Callout type="analogy">
+A treasure hunt where each clue tells you where the next one is. You can't jump to clue 50; you follow the chain. Re-linking means rewriting a clue — and if you overwrite it before reading it, the rest of the hunt is lost.
+</Callout>
+
+<CodeTabs id="dsa-list-node" title="The node type used in these examples" />
+
+## Reversing a list
+
+<Walkthrough id="reverse-list" />
+
+<CodeTabs id="dsa-reverse-list" title="Reverse a linked list — iterative O(1) space, and recursive" />
+
+## Fast and slow pointers
+
+<CodeTabs id="dsa-cycle-detection" title="Floyd's cycle detection — has a cycle, and where it starts" />
+
+Why the cycle start works: if the head is `a` steps from the cycle entry and they meet `b` steps into the cycle, slow travelled `a + b` and fast `2(a + b)`; the difference `a + b` is a multiple of the cycle length, so walking `a` more steps from the meeting point lands on the entry — exactly where a pointer from the head arrives after `a` steps.
+
+## Merging and gap pointers
+
+<CodeTabs id="dsa-merge-two-lists" title="Merge two sorted lists — dummy head" />
+
+<CodeTabs id="dsa-remove-nth-from-end" title="Remove the nth node from the end — one pass with a gap" />
+
+Merging **k** sorted lists uses a min-heap of the current heads — O(N log k) ([Heaps](../heaps-and-top-k/)).
+
+<Pitfalls>
+
+- **Losing the rest of the list** — save `next` before changing `cur.next`.
+- **Null checks for fast pointers** — `fast != null && fast.next != null`.
+- **Special-casing the head** — a dummy node avoids it.
+- **Returning the wrong head** after reversal (it's `prev`, not `head`).
+- **Modifying input lists** when the caller still needs them.
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- Dummy heads, three-pointer reversal, fast/slow and gap pointers cover most list problems.
+- Floyd's algorithm detects cycles and finds their start in O(1) space.
+- Draw before coding; preserve `next` before re-linking.
+
+</KeyTakeaways>

@@ -1,0 +1,33 @@
+questions:
+  - q: 'For each day, how many days until a warmer temperature? Do better than O(n²).'
+    think: Which days are still "waiting", and what order are they in?
+    answer: |
+      Keep a stack of indices of days still waiting for a warmer day; their temperatures are decreasing from bottom to top (a warmer day would already have resolved the ones below). For each new day, pop every waiting day that is colder and set its answer to the index difference, then push the new day. Each index is pushed and popped at most once: O(n) time, O(n) space. Days left on the stack have answer 0.
+  - q: 'Find the largest rectangle in a histogram.'
+    think: For a given bar as the height, how far can the rectangle extend?
+    answer: |
+      A rectangle of height `h[i]` extends left and right until the nearest shorter bars. An increasing stack of indices gives both: when a shorter bar at `i` arrives, pop index `j`; its right limit is `i` and its left limit is the new top (or −1), so the area is `h[j] × (i − left − 1)`. Append a sentinel 0 to flush remaining bars. O(n) time.
+followUps:
+  - q: Why use ArrayDeque instead of Stack in Java?
+    intuition: What does Stack inherit?
+    approach: |
+      `java.util.Stack` extends `Vector`: every method is synchronized (overhead) and it exposes list operations that break stack semantics. `ArrayDeque` is unsynchronized, faster, and offers `push`/`pop`/`peek`. (It doesn't allow null elements.)
+  - q: How do stacks relate to recursion?
+    intuition: What does the call stack store?
+    approach: |
+      Each recursive call pushes a frame with its local state; returning pops it. Any recursive algorithm (DFS, tree traversal, backtracking) can be made iterative with an explicit stack — useful to avoid stack overflow on deep inputs.
+practice:
+  - task: Implement a stack that supports push, pop, top and getMin, all in O(1).
+    hint: Store, with each element, the minimum of the stack at that point.
+    solution: |
+      Push pairs `(value, min(value, current min))`. The minimum is always in the top pair, so `getMin` is O(1), and popping automatically restores the previous minimum. Alternatively keep a second stack of minimums, pushing when the new value is ≤ the current minimum and popping when the popped value equals it.
+    solutionCode: dsa-min-stack
+quiz:
+  - q: 'In a "next greater element" pass, what order does the stack keep (bottom → top)?'
+    options: [Increasing, Decreasing, Random, Sorted by index only]
+    correct: 1
+    why: A larger new value pops smaller ones — they've found their next greater element.
+  - q: What's the time complexity of a monotonic stack pass?
+    options: ['O(n²)', 'O(n log n)', 'O(n)', 'O(log n)']
+    correct: 2
+    why: Each index is pushed once and popped at most once.

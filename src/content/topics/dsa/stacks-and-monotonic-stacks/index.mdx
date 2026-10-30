@@ -1,0 +1,72 @@
+---
+title: Stacks and Monotonic Stacks
+summary: Last-in-first-out for matching and nesting — valid parentheses, expressions, min-stacks — and monotonic stacks that find the next greater or smaller element in O(n) for temperatures and histogram rectangles.
+track: dsa
+order: 50
+tags: [dsa, stack, monotonic-stack, patterns]
+aliases: [stack, lifo, valid parentheses, balanced brackets, min stack, evaluate reverse polish notation, basic calculator, decode string, monotonic stack, next greater element, next smaller element, daily temperatures, largest rectangle in histogram, trapping rain water, stock span, asteroid collision]
+prerequisites: [cs-foundations/complexity]
+related: [dsa/sliding-window]
+quickRef:
+  points:
+    - '**Stack** for anything nested or "most recent unmatched": brackets, undo, expression evaluation, DFS.'
+    - '**Monotonic stack**: keep indices whose values are increasing (or decreasing); when a new value breaks the order, the popped items have found their **next greater/smaller** element.'
+    - 'Each index is pushed and popped once → **O(n)** instead of O(n²).'
+    - 'Store **indices**, not values, when you need distances or widths.'
+    - 'In Java use `ArrayDeque`, not the legacy synchronized `Stack` class.'
+  complexity: 'O(n) time, O(n) space for monotonic-stack passes.'
+  useWhen: 'Matching/nesting structures, or "for each element, find the nearest larger/smaller element on one side".'
+lastReviewed: 2026-10-30
+---
+
+## Recognise it
+
+- **Nesting and matching**: brackets, tags, nested encodings (`3[a2[c]]`), function calls → plain stack.
+- "For each element, the **next/previous greater or smaller**" — temperatures, stock spans, histogram areas, "how far can this bar extend?" → monotonic stack.
+- Iterative DFS or undo history → stack.
+
+<Callout type="analogy">
+A stack of plates: you only ever take the top one. A monotonic stack is a queue of people at a parade, each blocking the view of everyone shorter behind them — when a tall person arrives, everyone shorter in front of them "sees" their next taller person and leaves.
+</Callout>
+
+## Plain stack problems
+
+<CodeTabs id="dsa-valid-parentheses" title="Valid parentheses — push openers, match closers" />
+
+<CodeTabs id="dsa-min-stack" title="Min stack — O(1) push, pop and getMin" />
+
+## Monotonic stacks
+
+<Walkthrough id="next-greater" />
+
+<CodeTabs id="dsa-daily-temperatures" title="Daily temperatures — next warmer day with a decreasing stack" />
+
+### Largest rectangle in a histogram
+
+For each bar, the widest rectangle using its height extends until the nearest shorter bar on each side. An increasing stack finds both boundaries: when a shorter bar arrives, the popped bar's right boundary is the current index and its left boundary is the new stack top.
+
+<CodeTabs id="dsa-largest-rectangle" title="Largest rectangle in histogram — increasing stack, O(n)" />
+
+| Want | Stack order (bottom → top) | Pop when |
+|---|---|---|
+| next greater element | decreasing | new value > top |
+| next smaller element | increasing | new value < top |
+| previous greater | decreasing | read the top after popping smaller-or-equal |
+
+<Pitfalls>
+
+- **Popping an empty stack** — check before popping (unbalanced closers).
+- **Leftover items** at the end — they have no next greater element (or, for histograms, extend to the end; use a sentinel height 0).
+- **Strict vs non-strict comparisons** with equal values — decide which side "owns" ties.
+- **Storing values when widths need indices.**
+- **`java.util.Stack`** — synchronized and extends Vector; prefer `ArrayDeque`.
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- Stacks resolve "most recent unmatched" structures.
+- Monotonic stacks answer nearest-greater/smaller questions in O(n).
+- Keep indices; use sentinels to flush the stack at the end.
+
+</KeyTakeaways>

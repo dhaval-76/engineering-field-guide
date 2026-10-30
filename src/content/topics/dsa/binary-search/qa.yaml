@@ -1,0 +1,33 @@
+questions:
+  - q: 'Search for a target in a sorted array that has been rotated at an unknown pivot, in O(log n).'
+    think: After choosing mid, what do you know for certain about one of the halves?
+    answer: |
+      At any `mid`, at least one half is sorted: if `nums[lo] <= nums[mid]`, the left half is; otherwise the right half is. If the target lies within the sorted half's range, continue there; otherwise continue in the other half. Each step halves the range: O(log n). With duplicates (`nums[lo] == nums[mid] == nums[hi]`), you can't tell which half is sorted and must shrink both ends, so the worst case becomes O(n).
+  - q: 'A conveyor must ship packages in order within D days. Find the minimum ship capacity.'
+    think: If capacity C works, does C + 1 work? What's the smallest and largest possible answer?
+    answer: |
+      Feasibility is monotone in capacity, so binary search the capacity in `[max(weights), sum(weights)]` — the heaviest package must fit, and shipping everything in one day always works. For each guess, greedily fill days and count how many are needed (O(n)). Find the first feasible capacity with the first-true template: O(n log(sum)) total. The same structure solves "Koko eating bananas", "split array largest sum" and "minimum time to finish jobs".
+followUps:
+  - q: How do you avoid off-by-one errors in binary search?
+    intuition: State the invariant.
+    approach: |
+      Use one template and its invariant: the answer always lies in `[lo, hi]`; `hi` starts one past the last candidate if "not found" is possible. Move `hi = mid` when the predicate holds and `lo = mid + 1` when it doesn't, loop while `lo < hi`, and the loop ends exactly on the boundary. Test on arrays of length 0, 1 and 2 and on targets smaller/larger than all elements.
+  - q: Where else does binary search appear in systems?
+    intuition: Sorted data on disk and in memory.
+    approach: |
+      B-tree pages are searched with binary search; sorted SSTables and their sparse indexes too; `git bisect` binary-searches history for a regression; load testing finds the maximum sustainable throughput by searching the request rate.
+practice:
+  - task: Find the minimum ship capacity to deliver packages within D days.
+    hint: Binary search the capacity between max(weights) and sum(weights); check each candidate greedily.
+    solution: |
+      Set `lo = max(weights)`, `hi = sum(weights)`. While `lo < hi`, test `mid`: walk the weights, starting a new day whenever adding the next package would exceed `mid`; if the days used ≤ D, `hi = mid`, else `lo = mid + 1`. Return `lo`. O(n log(sum)) time, O(1) space.
+    solutionCode: dsa-ship-capacity
+quiz:
+  - q: How many probes does binary search need for about a million elements?
+    options: ['~1,000', '~100', '~20', '~1']
+    correct: 2
+    why: log₂(10⁶) ≈ 20.
+  - q: Why compute mid as lo + (hi − lo) / 2?
+    options: [It's faster, It avoids integer overflow, It rounds up, It handles duplicates]
+    correct: 1
+    why: lo + hi can exceed the integer range for large indices.

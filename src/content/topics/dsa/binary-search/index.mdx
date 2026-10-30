@@ -1,0 +1,82 @@
+---
+title: Binary Search
+summary: Halving the search space each step — the boundary-finding template that avoids off-by-one bugs, searching rotated arrays, and "binary search on the answer" for minimum-capacity and minimum-speed problems.
+track: dsa
+order: 40
+tags: [dsa, binary-search, arrays, patterns]
+aliases: [binary search, lower bound, upper bound, first true, leftmost, rightmost, search insert position, rotated sorted array, find minimum in rotated array, binary search on answer, koko eating bananas, capacity to ship packages, split array largest sum, sqrt, peak element, median of two sorted arrays]
+prerequisites: [cs-foundations/complexity]
+related: [dsa/two-pointers, databases/indexing]
+quickRef:
+  points:
+    - 'Needs a **monotone predicate**: false, false, …, true, true. Binary search finds the first true in O(log n).'
+    - 'Template: `lo, hi` bracket the answer; `mid = lo + (hi − lo) / 2`; keep the half that still contains it; loop while `lo < hi`.'
+    - '**Rotated sorted array**: one half around `mid` is always sorted — check whether the target lies in it.'
+    - '**Binary search on the answer**: if "can we do it with X?" is monotone in X, search X (capacity, speed, time) instead of the array.'
+    - 'Use `lo + (hi − lo) / 2` to avoid overflow.'
+  complexity: 'O(log n) probes; with an O(n) feasibility check, O(n log range).'
+  useWhen: 'Sorted data, or any yes/no question whose answer flips exactly once as a parameter grows.'
+lastReviewed: 2026-10-30
+---
+
+## Recognise it
+
+- The input is **sorted** (or sorted then rotated) and you need a position, first/last occurrence, or insertion point.
+- "Find the **minimum** X such that something is possible" or "maximum X such that…" — and feasibility is monotone in X.
+- Constraints with huge ranges (10⁹) but cheap checks → binary search over the value range.
+
+<Callout type="analogy">
+Guessing a number between 1 and 1,000 with "higher/lower" hints. Always guess the middle: at most 10 guesses, because each guess throws away half of what's left.
+</Callout>
+
+<Walkthrough id="first-true" />
+
+## The one template to remember
+
+Think of the search as finding the **first index where a predicate is true** (`nums[i] >= target`, "capacity is enough"). Maintain the invariant that the answer lies in `[lo, hi]`.
+
+<CodeTabs id="dsa-binary-search-template" title="First true / lower bound — the boundary template" />
+
+- `predicate(mid)` true → the answer is `mid` or to its left → `hi = mid`.
+- false → the answer is to the right → `lo = mid + 1`.
+- Loop ends when `lo == hi`: that's the first true (or `n` if none).
+- Last occurrence = (first index with `nums[i] > target`) − 1.
+
+## Worked problems
+
+### Search in a rotated sorted array
+
+`[4,5,6,7,0,1,2]`: at any `mid`, one side is sorted. If the target lies within the sorted side's range, search there; otherwise search the other side.
+
+<CodeTabs id="dsa-rotated-search" title="Search in rotated sorted array — O(log n)" />
+
+### Find the minimum in a rotated sorted array
+
+Compare `nums[mid]` with `nums[hi]`: if larger, the rotation point (minimum) is right of `mid`; otherwise it's at `mid` or left.
+
+<CodeTabs id="dsa-rotated-min" title="Minimum of a rotated array — first index where nums[i] ≤ nums[last]" />
+
+### Binary search on the answer: shipping capacity
+
+Ship packages in order within D days; find the minimum ship capacity. "Can we ship with capacity C?" is monotone (if C works, C + 1 works), so search C between `max(weight)` and `sum(weights)`, checking each guess greedily in O(n).
+
+<CodeTabs id="dsa-ship-capacity" title="Minimum capacity — binary search over the answer" />
+
+<Pitfalls>
+
+- **Infinite loops** from `lo = mid` with `mid` rounded down — use the first-true template, or round up when moving `lo`.
+- **Mixing conventions** (`hi = n` vs `n − 1`, `<` vs `<=`) — pick one template and keep its invariant.
+- **Overflow** in `(lo + hi) / 2` with large ints.
+- **Non-monotone predicates** — binary search silently gives wrong answers.
+- **Wrong bounds for answer search** — the lower bound must be feasible-or-not, and the upper bound must be feasible.
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- Binary search finds the boundary of a monotone predicate in O(log n).
+- One invariant-based template handles first/last occurrence and insertion points.
+- Rotated arrays: one half is always sorted.
+- Search the answer space when feasibility is monotone.
+
+</KeyTakeaways>

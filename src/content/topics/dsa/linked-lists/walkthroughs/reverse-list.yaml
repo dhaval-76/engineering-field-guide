@@ -1,0 +1,31 @@
+title: Reversing 1 → 2 → 3 in place
+frames:
+  - caption: 'Start: `prev = null`, `cur = 1`. Each step re-points `cur.next` backwards — after saving the old `next`.'
+    panels:
+      - kind: list
+        label: List
+        items: [{ v: '1', tone: accent }, '2', '3', 'null']
+      - kind: kv
+        label: Pointers
+        pairs: [[prev, 'null'], [cur, '1']]
+  - caption: 'Save next = 2. Point 1 → null. Move prev = 1, cur = 2.'
+    panels:
+      - kind: list
+        label: Reversed part
+        items: [{ v: '1', tone: ok }, 'null']
+      - kind: list
+        label: Remaining
+        items: [{ v: '2', tone: accent }, '3', 'null']
+  - caption: 'Save next = 3. Point 2 → 1. Move prev = 2, cur = 3.'
+    panels:
+      - kind: list
+        label: Reversed part
+        items: [{ v: '2', tone: ok }, '1', 'null']
+      - kind: list
+        label: Remaining
+        items: [{ v: '3', tone: accent }, 'null']
+  - caption: 'Save next = null. Point 3 → 2. prev = 3, cur = null → stop. The new head is **prev**. O(n) time, O(1) space.'
+    panels:
+      - kind: list
+        label: Reversed
+        items: [{ v: '3', tone: ok }, '2', '1', 'null']

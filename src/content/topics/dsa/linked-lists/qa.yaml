@@ -1,0 +1,33 @@
+questions:
+  - q: 'Detect whether a linked list has a cycle, and return the node where it begins, using O(1) extra space.'
+    think: Two runners on a circular track at different speeds.
+    answer: |
+      Floyd's algorithm: slow moves one step, fast two. If fast hits null there's no cycle; otherwise they meet inside the cycle. Then reset one pointer to the head and move both one step at a time — they meet at the cycle's entry, because the distance from head to entry equals the distance from the meeting point to the entry modulo the cycle length. O(n) time, O(1) space (a hash set of visited nodes would be O(n) space).
+  - q: 'Remove the nth node from the end of a list in one pass.'
+    think: How can one pointer know it's n from the end without knowing the length?
+    answer: |
+      Use a dummy node before the head, and two pointers starting there. Advance `lead` n + 1 steps, then move both until `lead` is null; `trail` is now just before the node to delete, so set `trail.next = trail.next.next`. The dummy handles deleting the head. O(L) time, O(1) space.
+followUps:
+  - q: Why use a dummy node?
+    intuition: What makes the head special?
+    approach: |
+      Operations that may change the head (deleting it, inserting before it, building a new list) otherwise need separate branches. A dummy node whose `next` is the head makes every real node have a predecessor, so one code path handles all positions; return `dummy.next` at the end.
+  - q: Array vs linked list — trade-offs?
+    intuition: Access pattern and memory layout.
+    approach: |
+      Arrays: O(1) random access, cache-friendly contiguous memory, O(n) insert/delete in the middle. Linked lists: O(1) insert/delete given a node reference, no resizing, but O(n) access, extra pointer memory and poor cache locality. In practice arrays (ArrayList) win for most workloads; linked lists shine inside structures like LRU caches (doubly linked list + hash map).
+practice:
+  - task: Merge two sorted linked lists into one sorted list without allocating new nodes.
+    hint: A dummy head and a tail pointer; attach the smaller current node each step; append the remainder.
+    solution: |
+      Create a dummy node and a `tail` pointing to it. While both lists have nodes, attach the smaller head to `tail.next` and advance that list and `tail`. When one list runs out, attach the other's remainder in one step. Return `dummy.next`. O(n + m) time, O(1) extra space.
+    solutionCode: dsa-merge-two-lists
+quiz:
+  - q: After reversing a list iteratively, which variable holds the new head?
+    options: [head, cur, prev, next]
+    correct: 2
+    why: cur ends at null; prev is the last node processed — the old tail.
+  - q: In Floyd's algorithm, what does it mean if fast reaches null?
+    options: [There is a cycle, There is no cycle, The list is empty only, slow is at the middle of the cycle]
+    correct: 1
+    why: A list with a cycle never ends, so fast can only fall off the end of an acyclic list.

@@ -1,0 +1,39 @@
+title: Next warmer day with a decreasing stack
+frames:
+  - caption: 'Temperatures `[73, 74, 75, 71, 69, 72, 76]`. The stack holds indices of days still waiting for a warmer day; their temperatures decrease from bottom to top.'
+    panels:
+      - kind: array
+        label: temps
+        items: [{ v: '73', tone: accent }, '74', '75', '71', '69', '72', '76']
+      - kind: stack
+        label: waiting (index:temp)
+        items: ['0:73']
+  - caption: 'Day 1 (74) is warmer than day 0 (73): pop 0 → answer[0] = 1 − 0 = 1. Push 1. Day 2 (75) likewise resolves day 1.'
+    panels:
+      - kind: stack
+        label: waiting
+        items: ['2:75']
+      - kind: kv
+        label: answer
+        pairs: [['day 0', '1'], ['day 1', '1']]
+  - caption: 'Days 3 (71) and 4 (69) are colder — they wait on the stack, which stays decreasing.'
+    panels:
+      - kind: stack
+        label: waiting
+        items: ['2:75', '3:71', '4:69']
+  - caption: 'Day 5 (72) is warmer than 69 and 71: pop both — answer[4] = 1, answer[3] = 2. It isn''t warmer than 75, so it waits too.'
+    panels:
+      - kind: stack
+        label: waiting
+        items: ['2:75', { v: '5:72', tone: info }]
+      - kind: kv
+        label: answer
+        pairs: [['day 3', { v: '2', tone: ok }], ['day 4', { v: '1', tone: ok }]]
+  - caption: 'Day 6 (76) resolves days 5 and 2. Each index was pushed once and popped at most once: O(n). Day 6 stays with answer 0 (no warmer day).'
+    panels:
+      - kind: stack
+        label: waiting
+        items: ['6:76']
+      - kind: kv
+        label: answer
+        pairs: [['day 2', '4'], ['day 5', '1'], ['day 6', { v: '0', tone: muted }]]
