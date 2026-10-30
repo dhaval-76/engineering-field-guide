@@ -1,0 +1,10 @@
+flowchart TD
+  P[Seller · warehouse · courier apps] -- status events --> OS[Order service<br/>state machine]
+  OS --> DB[(orders · status_history · outbox)]
+  DB -. outbox .-> K{{Kafka: order-status}}
+  K --> N[Notifications<br/>push · SMS · email]
+  K --> L[Live update fan-out]
+  L -- "pub/sub order:{id}" --> CS[Connection servers<br/>SSE / WebSocket]
+  CS --> C[Customers watching]
+  CR[Courier app] -- location every 4 s --> LS[Location service<br/>latest position · throttled]
+  LS --> CS

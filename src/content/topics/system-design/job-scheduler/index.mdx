@@ -1,0 +1,89 @@
+---
+title: 'Design: Distributed Job Scheduler'
+summary: Running millions of one-off and recurring jobs on time across a fleet — durable storage, claims with leases, idempotent at-least-once execution, retries and dead letters, cron, dependencies and partitioned scheduling.
+track: system-design
+order: 170
+tags: [system-design, case-study, scheduling, distributed-systems, queues]
+aliases: [job scheduler, distributed cron, task scheduler at scale, delayed jobs, cron jobs, quartz cluster, skip locked, lease, heartbeat, lock expiry, leader election, fencing token, retries with backoff, dead letter, job dependencies, dag, time wheel, at least once execution, airflow, temporal]
+prerequisites: [low-level-design/task-scheduler, databases/transactions-isolation]
+related: [system-design/workflow-engine, system-design/kafka-vs-rabbitmq, architecture/resilience-patterns]
+quickRef:
+  points:
+    - 'Jobs live in a **durable store** with `run_at`, status, attempts and a **lease** (owner + expiry).'
+    - 'Workers **claim** due jobs atomically (`FOR UPDATE SKIP LOCKED` or a conditional update) and **heartbeat** to extend the lease.'
+    - 'Expired leases are reclaimed → execution is **at-least-once**; jobs must be **idempotent** (and use fencing tokens for exclusive resources).'
+    - 'Retries with exponential backoff and jitter; poison jobs to a **dead-letter** state with alerts.'
+    - 'Recurring jobs: store the cron rule; compute and insert the **next run** when one is claimed or finishes.'
+    - 'Scale out by **partitioning** jobs (by id hash or time bucket) instead of a single leader polling everything.'
+  useWhen: '"Design a distributed cron / job scheduler / delayed-task system."'
+lastReviewed: 2026-10-30
+---
+
+## Requirements
+
+**Functional**: schedule one-off jobs (run at T or after a delay) and recurring jobs (cron); priorities; retries with backoff; cancel and pause; dependencies (B after A succeeds); see job history.
+**Non-functional**: 10 M executions/day; start within ~1 s of the due time; no job lost when a scheduler or worker dies; a job runs once in the normal case and never silently zero times; horizontal scale.
+
+The single-process version (a priority queue and a worker pool) is the [LLD task scheduler](../../low-level-design/task-scheduler/); here the hard part is coordination across machines.
+
+## Estimates
+
+10 M/day ≈ 115/s on average, with sharp peaks on the hour (`0 * * * *` everywhere) — 10–50× bursts. Job rows ≈ 1 KB → 10 GB/day of history; keep active rows small and archive history.
+
+## High-level design
+
+<Diagram id="scheduler-architecture" caption="An API writes jobs to a partitioned store; schedulers claim due jobs per partition with leases and hand them to workers." />
+
+<Walkthrough id="lease-claim" />
+
+## Claiming and leases
+
+<CodeTabs id="job-claim" title="Claim due jobs with SKIP LOCKED, heartbeat, complete or retry" />
+
+- A **lease** (owner, `lease_until`) marks a job as taken. A healthy worker **heartbeats** to extend it; if the worker dies, the lease expires and another worker can claim the job.
+- Therefore a job can run **twice** (a slow worker whose lease expired is still running when another starts). Make job handlers idempotent, and for exclusive resources pass a **fencing token** (a version incremented on every claim) that the resource checks, so a stale holder's writes are rejected.
+- Claim and execute in **separate** steps: commit the claim, run the job outside any database transaction, then record the result.
+
+## Retries, dead letters and recurrence
+
+<CodeTabs id="job-schema" title="Jobs, schedules and executions" />
+
+- On failure: `attempts + 1`, `run_at = now + backoff(attempts)` with jitter, until `max_attempts`; then `DEAD` with the last error and an alert. Distinguish retryable errors (timeouts, 503) from permanent ones (validation).
+- **Recurring jobs**: a schedule row holds the cron expression and time zone; each time an occurrence is created, the next occurrence is inserted (idempotently, with a unique `(schedule_id, scheduled_for)`), so missed occurrences after an outage can be detected and run or skipped by policy.
+- **Overlapping runs** of a slow recurring job: choose per job — skip if the previous run is still active, or queue sequentially.
+- **Dependencies**: store edges; when a job succeeds, decrement a pending-dependency counter on its dependents and release those reaching zero. Long multi-step pipelines belong in a [workflow engine](../workflow-engine/).
+
+## Scaling
+
+- **Partition** the job table (or Redis sorted sets of due ids) by hash of job id; each scheduler instance owns some partitions (assigned via a coordinator or consistent hashing) — no single leader scanning everything.
+- **Time-bucketed** storage (jobs grouped by due minute) makes "what's due now?" cheap for far-future schedules.
+- Decouple **scheduling** from **execution**: schedulers push due jobs to a queue (Kafka/SQS) and a separate worker pool runs them, so slow jobs don't delay triggering.
+- Smooth thundering hours with jitter for jobs that don't need an exact second.
+
+| Off-the-shelf | Fits |
+|---|---|
+| Quartz (clustered, JDBC store) / db-scheduler / ShedLock | scheduled jobs inside Java services |
+| Kubernetes CronJob | containerised batch jobs |
+| Airflow / Dagster | data pipelines with DAGs |
+| Temporal | long-running, stateful workflows with timers |
+| SQS delay queues / EventBridge Scheduler | managed delayed and cron triggers on AWS |
+
+<Pitfalls>
+
+- **Delete-then-publish** of due jobs — a crash in between loses them; claim durably first.
+- **Locks without expiry or heartbeats** — a dead worker holds a job forever.
+- **Non-idempotent jobs** with at-least-once execution.
+- **One leader scanning all jobs** — a bottleneck and single point of failure.
+- **Running jobs inside the claim transaction** — long transactions and held locks.
+- **Ignoring time zones and daylight-saving changes** in cron schedules.
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- Durable jobs + atomic claims + leases with heartbeats.
+- At-least-once execution: idempotent jobs and fencing tokens.
+- Backoff retries, dead letters, explicit recurrence and overlap policies.
+- Partition scheduling; separate triggering from execution.
+
+</KeyTakeaways>

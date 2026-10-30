@@ -1,0 +1,33 @@
+questions:
+  - q: 'Design a Zapier-like platform: "when an email arrives in Gmail, summarise it with an AI model, then create a Jira ticket". It must run reliably at scale.'
+    think: What survives a crash, what prevents duplicates, and what about slow, rate-limited APIs?
+    answer: |
+      **Definitions** are versioned JSON (trigger + steps + conditions + mappings), validated at save. **Triggers**: Gmail push notifications (webhook) or cursor-based polling create a run, de-duplicated by the source event id (unique per workflow). **Execution**: a durable run record and per-step results in a database; stateless engine workers consume "execute step" tasks from a queue, render inputs from previous outputs with a safe template language, call the connector with an idempotency key `run:step`, and in one transaction persist the result and enqueue the next step (outbox). Crashes redeliver the step task; completed steps are skipped; idempotency keys prevent duplicate tickets. **Connectors** apply per-API, per-account rate limits, park steps on 429 using timers, retry transient errors with backoff, and store OAuth tokens encrypted. **Isolation**: per-tenant fair queues and quotas, limits on steps/runtime/loops, sandboxed code steps. **Observability**: run history with each step's input/output for debugging and manual retry.
+followUps:
+  - q: How do you avoid re-running steps that already succeeded when a run fails midway?
+    intuition: Where is progress recorded?
+    approach: |
+      Persist each step's outcome before moving on and resume from the first incomplete step. Give each step an idempotency key derived from the run and step ids, used for external calls, so a step that ran but wasn't recorded (crash in between) doesn't create a second side effect when re-executed.
+  - q: How do you handle a third-party API's rate limit without blocking workers?
+    intuition: Waiting threads are expensive.
+    approach: |
+      Enforce a per-connector, per-account limiter before calling; on 429, read `Retry-After` and park the step with a wake-up time (a timer/scheduled task), releasing the worker. Use separate worker pools per connector class so a throttled API only slows its own steps.
+  - q: How do you stop one tenant's huge workload from delaying everyone else?
+    intuition: A shared FIFO queue is first-come, first-served.
+    approach: |
+      Per-tenant concurrency caps and quotas, weighted fair scheduling across tenants (per-tenant queues with round-robin dispatch, or partitioning by tenant), and limits on fan-out per run. Large tenants can get dedicated worker capacity.
+practice:
+  - task: Design the tables and the step-execution loop so that a crash at any point never loses a run and never duplicates a completed step's side effect.
+    hint: Runs and step_results tables; step tasks on a queue; results and next-task enqueue in one transaction; idempotency keys per step.
+    solution: |
+      Store immutable workflow versions, runs (with the version, trigger key unique per workflow, status, context) and step_results keyed by (run, step). A worker handling a step task first checks whether the step is already DONE (skip and re-enqueue the next task idempotently), evaluates the condition, renders input, calls the connector with key `run:step`, then in one transaction records the outcome and inserts the next step task(s) into an outbox. 429s park the step with `wake_at`; permanent failures mark the run FAILED and notify the owner.
+    solutionCode: workflow-engine
+quiz:
+  - q: Where should a workflow run's progress live?
+    options: [In the worker's memory, In a durable store, updated after every step, In the user's browser, Only in logs]
+    correct: 1
+    why: Durable per-step state lets any worker resume the run after a crash or deploy.
+  - q: A step calling an external API gets 429 Retry-After 30. Best handling?
+    options: [Retry immediately in a loop, Park the step and schedule it in 30 seconds, Fail the whole run, Sleep the worker thread 30 seconds]
+    correct: 1
+    why: Parking frees the worker and respects the provider's limit.

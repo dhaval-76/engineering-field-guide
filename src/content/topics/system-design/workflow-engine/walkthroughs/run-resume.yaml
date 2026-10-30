@@ -1,0 +1,27 @@
+title: A run survives a crash mid-workflow
+frames:
+  - caption: 'A new email triggers workflow **Support triage** (v12): ① summarise with an AI model → ② create a ticket → ③ post to Slack. Run 77 is created and step ① is queued.'
+    panels:
+      - kind: kv
+        label: Run 77
+        pairs: [[step 1 summarise, { v: queued, tone: info }], [step 2 ticket, waiting], [step 3 Slack, waiting]]
+  - caption: 'A worker runs step ①, then in **one transaction** stores its output and queues step ②.'
+    panels:
+      - kind: kv
+        label: Run 77
+        pairs: [[step 1 summarise, { v: 'done → "Login fails on iOS"', tone: ok }], [step 2 ticket, { v: queued, tone: info }], [step 3 Slack, waiting]]
+  - caption: 'Another worker calls the ticket API with idempotency key `run77:step2` — the ticket is created — and then the worker **crashes** before recording the result.'
+    panels:
+      - kind: kv
+        label: Run 77
+        pairs: [[step 1, done], [step 2 ticket, { v: 'running… worker died', tone: bad }], [step 3, waiting]]
+  - caption: 'The step-2 task wasn''t acknowledged, so it''s redelivered to a healthy worker. Calling the ticket API again with the **same key** returns the existing ticket — no duplicate. Step ② is recorded and ③ queued.'
+    panels:
+      - kind: kv
+        label: Run 77
+        pairs: [[step 1, done], [step 2 ticket, { v: 'done → TCK-4412 (same ticket)', tone: ok }], [step 3 Slack, { v: queued, tone: info }]]
+  - caption: 'Slack answers **429 Retry-After: 30**. The step is parked with a timer instead of holding a worker; 30 s later it runs and the run completes. Step ① never ran twice.'
+    panels:
+      - kind: kv
+        label: Run 77
+        pairs: [[step 1, done], [step 2, done], [step 3 Slack, { v: 'done after 1 retry', tone: ok }]]

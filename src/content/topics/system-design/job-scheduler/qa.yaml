@@ -1,0 +1,33 @@
+questions:
+  - q: 'Design a distributed job scheduler: 10 M executions a day, cron and one-off jobs, retries, dependencies, start within a second of the due time, no job lost if a machine dies.'
+    think: Where is the source of truth, how is a job claimed exactly once in the normal case, and what happens when the claimer dies?
+    answer: |
+      Jobs are rows in a durable store, partitioned by id hash, with `run_at`, status, attempts, a lease (owner, expiry) and a fencing token. Scheduler instances own partitions (assigned by a coordinator) and claim due jobs with `UPDATE … WHERE id IN (SELECT … FOR UPDATE SKIP LOCKED)`, setting the lease and bumping the fence; they hand jobs to workers (directly or via a queue). Workers heartbeat to extend leases, run idempotent handlers, and record results only if their fence still matches. Expired leases make jobs claimable again — at-least-once execution. Failures retry with exponential backoff and jitter up to a limit, then go to DEAD with alerts. Recurring schedules store cron + time zone; occurrences are inserted with a unique `(schedule, time)` so each tick exists once; overlap policy per schedule. Dependencies use pending counters released on success. Peaks on the hour are smoothed with jitter where allowed; history is archived.
+followUps:
+  - q: Why can a job still run twice, and how do you live with it?
+    intuition: Is a slow worker distinguishable from a dead one?
+    approach: |
+      A worker that pauses (GC, network partition) longer than its lease looks dead, so another worker claims the job while the first may still finish. Exactly-once execution can't be guaranteed with leases alone. Make handlers idempotent (idempotency keys, upserts, "already done?" checks) and pass a fencing token to resources that must be exclusive, so writes from a stale holder are rejected.
+  - q: Why not let one leader poll all due jobs from Redis and publish them?
+    intuition: Bottleneck, and what if it crashes mid-batch?
+    approach: |
+      A single leader is a throughput bottleneck and a failover gap, and "remove from the sorted set, then publish" loses jobs if it crashes between the two. Partition the work so several schedulers share it, and make the claim durable before publishing (or publish via an outbox), so a crash leaves the job claimable again.
+  - q: How should a recurring job that runs longer than its interval behave?
+    intuition: Does running two at once break anything?
+    approach: |
+      Decide per job: SKIP the new occurrence while one is active (reports, cache refreshes), or QUEUE it to run after (work that must not be missed), never overlapping by default. Alert when duration routinely exceeds the interval — the job needs optimisation or a longer interval.
+practice:
+  - task: Implement claiming with SKIP LOCKED and leases, heartbeats, fenced completion, and retries with backoff and dead-lettering.
+    hint: One UPDATE … RETURNING over a SKIP LOCKED subquery; heartbeat updates lease_until WHERE fence matches; finish only WHERE fence matches.
+    solution: |
+      Claim with a single statement that selects due jobs (PENDING, or RUNNING with an expired lease) in the worker's partitions `FOR UPDATE SKIP LOCKED`, marks them RUNNING with a lease, increments attempts and the fence, and returns them. Run each outside the transaction while a scheduled heartbeat extends the lease conditionally on the fence. On success set SUCCEEDED; on retryable failure set PENDING with a jittered exponential `run_at`; after max attempts or a permanent error set DEAD and alert — all conditioned on the fence so a worker that lost its lease can't overwrite the outcome.
+    solutionCode: job-claim
+quiz:
+  - q: What does a lease with heartbeats protect against?
+    options: [Duplicate job definitions, Jobs held forever by a crashed worker, Time-zone errors, SQL injection]
+    correct: 1
+    why: When heartbeats stop, the lease expires and the job becomes claimable again.
+  - q: What is a fencing token for?
+    options: [Encrypting payloads, Rejecting writes from a worker whose lease has been taken over, Sorting jobs, Rate limiting]
+    correct: 1
+    why: A monotonically increasing token lets resources ignore stale holders.

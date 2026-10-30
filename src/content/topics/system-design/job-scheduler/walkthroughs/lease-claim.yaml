@@ -1,0 +1,27 @@
+title: Leases keep jobs from being lost
+frames:
+  - caption: 'Job **j-17** (send invoices) is due at 10:00. Two workers poll. Worker A''s `SELECT … FOR UPDATE SKIP LOCKED` locks j-17; worker B''s identical query skips it and takes j-18 instead.'
+    panels:
+      - kind: kv
+        label: Jobs
+        pairs: [[j-17, { v: 'RUNNING · lease A until 10:01 · fence 7', tone: info }], [j-18, { v: 'RUNNING · lease B', tone: info }]]
+  - caption: 'A runs the job outside the claim transaction and **heartbeats** every 20 s, pushing `lease_until` forward while it''s healthy.'
+    panels:
+      - kind: rows
+        label: Worker A
+        items: ['10:00:20 heartbeat → lease 10:01:20', '10:00:40 heartbeat → lease 10:01:40']
+  - caption: 'At 10:00:50 worker A''s machine dies. No more heartbeats. At 10:01:40 the lease **expires**.'
+    panels:
+      - kind: kv
+        label: Jobs
+        pairs: [[j-17, { v: 'RUNNING · lease expired', tone: warn }]]
+  - caption: 'Worker C''s next claim finds j-17 (lease expired) and takes it, incrementing the **fencing token** to 8. The job runs again — so it must be idempotent: invoices already sent by A are recognised by their keys and skipped.'
+    panels:
+      - kind: kv
+        label: Jobs
+        pairs: [[j-17, { v: 'RUNNING · lease C · fence 8', tone: info }]]
+  - caption: 'Twist: A wasn''t dead, only paused by a long GC. It wakes and tries to write its results with fence 7. The store rejects writes with a fence lower than 8, so the stale worker can''t clobber C''s work.'
+    panels:
+      - kind: rows
+        label: Writes
+        items: [{ v: 'A (fence 7) → rejected', tone: bad }, { v: 'C (fence 8) → COMPLETED', tone: ok }]

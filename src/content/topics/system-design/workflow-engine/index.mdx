@@ -1,0 +1,88 @@
+---
+title: 'Design: Workflow Automation Engine'
+summary: A Zapier-style platform where users chain triggers and actions — definitions as data, durable step-by-step execution that resumes after crashes, third-party rate limits, branching, secrets and tenant isolation.
+track: system-design
+order: 180
+tags: [system-design, case-study, workflows, orchestration, integrations]
+aliases: [workflow engine, workflow automation, zapier, n8n, make, ifttt, trigger action, durable execution, step functions, temporal, orchestration engine, dag, conditional branching, webhooks, polling triggers, connector, third party rate limits, oauth tokens storage, noisy tenant]
+prerequisites: [system-design/job-scheduler, architecture/microservices]
+related: [system-design/kafka-vs-rabbitmq, system-design/distributed-rate-limiter, databases/multi-tenant-schema]
+quickRef:
+  points:
+    - 'Workflows are **data** (a versioned definition: trigger + steps + conditions), interpreted by a generic engine.'
+    - 'Each run is a **durable state machine**: record each step''s input/output/status so a crash resumes at the failed step, not the start.'
+    - 'Steps call external APIs: **idempotency keys**, per-connector **rate limits**, retries with backoff honouring `Retry-After`.'
+    - 'Triggers: **webhooks** when available, **polling** with cursors otherwise; de-duplicate trigger events.'
+    - 'Isolate tenants: per-tenant quotas and queues, sandboxed code steps, encrypted credentials.'
+  useWhen: '"Design Zapier / a workflow automation platform / an orchestration engine."'
+lastReviewed: 2026-10-30
+---
+
+## Requirements
+
+**Functional**: users build workflows — a trigger ("new row in a spreadsheet", "webhook received", "every Monday 9:00") followed by actions ("call an AI model", "create a ticket", "send a Slack message"), with conditions, branches, loops over lists and data mapping between steps; view run history and retry failed runs; connect accounts via OAuth.
+**Non-functional**: millions of workflows, tens of thousands of runs per second at peak; runs must not be lost or silently half-done; third-party APIs are slow, rate-limited and flaky; one tenant's surge mustn't starve others.
+
+## High-level design
+
+<Diagram id="workflow-architecture" caption="Triggers create runs; the engine advances each run step by step through a queue of step tasks, persisting state after every step." />
+
+## Definitions as data
+
+<CodeTabs id="workflow-definition" title="A workflow definition and the run/step tables" />
+
+- Definitions are **versioned**: a run always executes the version it started with; editing a workflow creates a new version.
+- Validate at save time: the graph is acyclic (or loops are bounded), referenced fields exist, connectors are authorised.
+- Data mapping between steps uses a safe template/expression language (JSONata, CEL) — never `eval` of user input.
+
+## Durable execution
+
+<Walkthrough id="run-resume" />
+
+<CodeTabs id="workflow-engine" title="Advancing a run one step at a time, safely" />
+
+- The engine is **stateless**: workers take "execute step N of run R" tasks from a queue, load the run's state, execute, persist the step result and enqueue the next step(s) — in that order, with the next-step enqueue in the same transaction as the result (outbox).
+- A crash anywhere means the step task is redelivered; because results are persisted and steps carry idempotency keys (`run-id:step-id`), re-execution is safe and completed steps are skipped.
+- Waits ("delay 3 days", "wait for approval") are timers, not sleeping threads: the run parks with a wake-up time ([Job scheduler](../job-scheduler/)).
+- General-purpose engines (Temporal, AWS Step Functions, Camunda) provide exactly this durable-execution model if you don't build your own.
+
+## Triggers
+
+| Trigger | How | Watch out |
+|---|---|---|
+| Webhook | the source calls our endpoint per event | verify signatures; de-duplicate event ids; respond fast and queue |
+| Polling | fetch "changes since cursor" on a schedule | store the cursor per workflow; respect API limits; latency = poll interval |
+| Schedule | cron rule per workflow | time zones; overlapping runs |
+| App events | internal event bus | fan-out to many workflows listening to the same event |
+
+## Calling third parties
+
+- **Per-connector, per-account rate limiters** — a 429 means "wait `Retry-After`", parking the step rather than holding a worker.
+- Retries with exponential backoff for timeouts and 5xx; no retries for 4xx validation errors; idempotency keys where the API supports them.
+- **Credentials**: OAuth tokens encrypted at rest (envelope encryption with a KMS), refreshed proactively, scoped to the minimum needed.
+- Separate worker pools (bulkheads) per slow connector so one failing API can't block all runs.
+
+## Multi-tenancy and safety
+
+Per-tenant concurrency limits and fair queues (a tenant with a million-row import shouldn't delay everyone), step and run limits (max steps, max runtime, max loop iterations), sandboxed execution for user code steps (isolated containers or WASM with CPU/memory/network limits), and audit logs of every run. Run payloads may contain personal data — retention limits and redaction in logs. See [Multi-tenant data design](../../databases/multi-tenant-schema/).
+
+<Pitfalls>
+
+- **Keeping run state in worker memory** — a deploy loses every in-flight run.
+- **Re-running a whole workflow on failure** — duplicate tickets, emails and charges from steps that already succeeded.
+- **Sleeping threads for delays** instead of persisted timers.
+- **Global rate limits** instead of per connector and account.
+- **Plain-text OAuth tokens** or tokens in logs.
+- **Unbounded loops or fan-out** from user definitions.
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- Versioned definitions as data; a generic interpreter.
+- Persist after every step; idempotent steps; resume rather than restart.
+- Webhooks or cursor-based polling for triggers, de-duplicated.
+- Per-connector rate limits, retries, bulkheads and encrypted credentials.
+- Per-tenant fairness, limits and sandboxing.
+
+</KeyTakeaways>

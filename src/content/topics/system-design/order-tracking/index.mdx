@@ -1,0 +1,77 @@
+---
+title: 'Design: Order Tracking'
+summary: Showing customers where their order is in near real time — an order state machine with append-only history, partner events, live pushes over SSE or WebSockets, courier locations and notifications.
+track: system-design
+order: 160
+tags: [system-design, case-study, realtime, state-machine, event-driven]
+aliases: [order tracking, order status, delivery tracking, food delivery tracking, swiggy, zomato, amazon order status, state machine, status history, server sent events, sse, websocket push, live location, courier location, push notifications, eta]
+prerequisites: [system-design/approach-and-estimation, architecture/microservices]
+related: [system-design/chat, system-design/kafka-deep-dive, oop-patterns/strategy-and-state]
+quickRef:
+  points:
+    - 'Model the order as a **state machine**; reject invalid transitions; keep an **append-only history** of every change.'
+    - 'Current status is a cheap key lookup (cache/table); history is a time-ordered list per order.'
+    - 'Status changes become **events** (outbox → Kafka) consumed by notifications, live updates and analytics.'
+    - 'Live updates: **SSE or WebSocket** to clients watching an order; route events to the server holding that connection.'
+    - 'Courier location is a separate, high-frequency, lossy stream — sample and throttle it, don''t store every point forever.'
+  useWhen: '"Design order tracking for an e-commerce or food-delivery app."'
+lastReviewed: 2026-10-30
+---
+
+## Requirements
+
+**Functional**: customers see the current status and timeline of each order (placed → confirmed → preparing/packed → shipped/out for delivery → delivered, plus cancelled/returned); live updates while the page is open; push notifications on key changes; for deliveries, the courier's live location and ETA; sellers, warehouses and couriers update status.
+**Non-functional**: 10 M orders/day; ~3–6 status changes per order; up to 500,000 customers watching at peak; updates visible within ~2 s; history kept for years; status must never go backwards or skip invalid steps.
+
+## Estimates
+
+Status changes ≈ 50 M/day ≈ 600/s (peaks ~5,000/s) — modest. Watchers: 500,000 open connections → a few connection servers. Courier locations: 200,000 active couriers × one point per 4 s = 50,000 updates/s — the real hot path, kept separate.
+
+## High-level design
+
+<Diagram id="tracking-architecture" caption="Status changes are validated and stored once, then fanned out as events; live location takes its own lighter path." />
+
+## The state machine
+
+<CodeTabs id="order-state-machine" title="Transitions validated in code and guarded in the database" />
+
+- Each transition writes the new status **and** a history row **and** an outbox event in one transaction, with a conditional update (`WHERE status = :expected`) so concurrent updates from two actors can't both apply.
+- Events from partners may arrive late or twice: de-duplicate by event id and ignore transitions that aren't valid from the current state (a late "packed" after "shipped").
+
+## Live updates
+
+<Walkthrough id="status-push" />
+
+| Option | Direction | Notes |
+|---|---|---|
+| Polling | client pulls | simple, wasteful at scale; fine as a fallback |
+| **Server-Sent Events** | server → client | plain HTTP, automatic reconnect with `Last-Event-ID`; ideal for status feeds |
+| WebSocket | both ways | needed when the client also sends (chat with the courier) |
+| Push notification | to the device | when the app isn't open |
+
+Connection servers subscribe to channels for the orders their clients are watching (e.g. Redis pub/sub `order:{id}`); a consumer of the status topic publishes to that channel. On reconnect, clients fetch the current status and recent history — live pushes are an optimisation, not the source of truth.
+
+<CodeTabs id="order-sse" title="Streaming an order's status with SSE" />
+
+## Courier location and ETA
+
+Couriers' apps send positions every few seconds to a location service that keeps the **latest** position per courier in memory/Redis (geo index), throttles updates pushed to watchers (one every few seconds), and samples points into storage for disputes and analytics. ETA comes from a routing service using the current position, road graph and traffic ([Maps and navigation](../maps-navigation/) covers routing).
+
+<Pitfalls>
+
+- **Overwriting status without history** — no timeline, no audit.
+- **No transition validation** — late or duplicate partner events move orders backwards.
+- **Pushing from inside the write transaction** — publish via the outbox after commit.
+- **Live updates as the only source of truth** — clients must recover state on reconnect.
+- **Storing every GPS point forever** on the hot path.
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- State machine + conditional updates + append-only history.
+- Outbox events fan out to notifications, live updates and analytics.
+- SSE (or WebSocket) for watchers, with reconnect-and-fetch as the safety net.
+- Location is a separate high-frequency stream: latest in memory, throttled, sampled.
+
+</KeyTakeaways>

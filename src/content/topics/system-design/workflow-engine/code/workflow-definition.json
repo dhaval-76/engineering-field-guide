@@ -1,0 +1,16 @@
+{
+  "id": "wf_support_triage",
+  "version": 12,
+  "trigger": { "type": "gmail.new_email", "connection": "conn_81", "filter": "label:support" },
+  "steps": [
+    { "id": "summarise", "type": "ai.summarise",
+      "input": { "text": "{{ trigger.body }}", "maxWords": 40 } },
+    { "id": "ticket", "type": "jira.create_issue", "connection": "conn_93",
+      "input": { "project": "SUP", "title": "{{ steps.summarise.output.summary }}",
+                 "description": "{{ trigger.body }}" } },
+    { "id": "notify", "type": "slack.post_message", "connection": "conn_12",
+      "when": "steps.ticket.output.priority == 'High'",
+      "input": { "channel": "#support", "text": "New high-priority ticket {{ steps.ticket.output.key }}" } }
+  ],
+  "limits": { "maxRunSeconds": 3600, "maxSteps": 50 }
+}

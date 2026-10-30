@@ -1,0 +1,27 @@
+title: A status change reaches the customer's screen
+frames:
+  - caption: 'The customer opens the tracking page. Their browser opens an **SSE** stream to connection server 3, which subscribes to channel `order:881` and immediately sends the current status: **Preparing**.'
+    panels:
+      - kind: kv
+        label: Connection server 3
+        pairs: [[subscribed, 'order:881'], [sent, { v: PREPARING, tone: info }]]
+  - caption: 'The restaurant marks the order ready and the courier picks it up. The courier app sends `picked_up`. The order service checks PREPARING → OUT_FOR_DELIVERY is valid and commits status, history row and outbox event together.'
+    panels:
+      - kind: rows
+        label: Order 881 history
+        items: ['PLACED 19:02', 'CONFIRMED 19:03', 'PREPARING 19:05', { v: 'OUT_FOR_DELIVERY 19:21', tone: accent }]
+  - caption: 'The outbox relay publishes the event to Kafka. The live-update consumer publishes it to `order:881`; server 3 receives it and writes it to the customer''s SSE stream. Elapsed: well under a second.'
+    panels:
+      - kind: rows
+        label: Path
+        items: ['outbox → Kafka', 'consumer → pub/sub order:881', { v: 'server 3 → SSE → browser', tone: ok }]
+  - caption: 'Meanwhile the notification consumer sends a push ("Your order is on the way") to the customer''s phone, which isn''t watching the page.'
+    panels:
+      - kind: rows
+        label: Phone
+        items: [{ v: 'Push: on the way 🛵', tone: plum }]
+  - caption: 'The customer''s train goes into a tunnel; the stream drops. On reconnect, the browser sends `Last-Event-ID`; the server replays anything newer from history, so no step is missed.'
+    panels:
+      - kind: rows
+        label: Reconnect
+        items: ['Last-Event-ID: 4', { v: 'replay events 5–6 from history', tone: ok }]

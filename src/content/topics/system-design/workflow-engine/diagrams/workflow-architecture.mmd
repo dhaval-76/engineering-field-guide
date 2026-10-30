@@ -1,0 +1,12 @@
+flowchart TD
+  WH[Webhooks] --> T[Trigger service<br/>verify · dedupe]
+  PL[Pollers<br/>cursor per workflow] --> T
+  CR[Schedules] --> T
+  T -- "create run (definition v12)" --> DB[(Runs · step results · outbox)]
+  DB -. "step task: run 77, step 1" .-> Q{{Step queue<br/>per-tenant fairness}}
+  Q --> E[Engine workers<br/>stateless]
+  E --> C[Connectors<br/>rate limits · retries · OAuth]
+  C --> X[Third-party APIs]
+  E -- "result + next step task<br/>(one transaction)" --> DB
+  E -. park until .-> TM[Timers<br/>delays · waits]
+  TM -. wake .-> Q

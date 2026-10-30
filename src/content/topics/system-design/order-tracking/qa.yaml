@@ -1,0 +1,29 @@
+questions:
+  - q: 'Design order tracking for a food delivery app: customers should see each status change within 2 seconds, plus the courier''s live location.'
+    think: Two very different data flows — rare, important status changes and frequent, disposable locations.
+    answer: |
+      **Status**: an order service owns a state machine; partner apps (restaurant, courier) send events that are de-duplicated, validated against allowed transitions and applied with a conditional update, writing the status, an append-only history row and an outbox event in one transaction. The outbox feeds Kafka; consumers send push notifications and publish to a per-order pub/sub channel. Customers watching the page hold an SSE (or WebSocket) connection to a connection server subscribed to their order's channel; on reconnect they replay from history with `Last-Event-ID`. **Location**: courier apps post positions every few seconds to a location service that keeps the latest per courier in memory/Redis (geo), forwards throttled updates to watchers and samples points to storage; ETA comes from a routing service. Scale: ~600 status changes/s is easy; ~50,000 location updates/s is the hot path and stays off the transactional database.
+followUps:
+  - q: SSE or WebSocket for status updates?
+    intuition: Does the client need to send anything?
+    approach: |
+      Status is one-way, so SSE is simpler: plain HTTP, works through proxies, built-in reconnection with `Last-Event-ID`. Use WebSockets when the client also sends messages in real time (chat with the courier) or for binary protocols. Either way, keep REST for the initial state and as a fallback.
+  - q: How do you stop out-of-order partner events from corrupting status?
+    intuition: A late "packed" arrives after "shipped".
+    approach: |
+      Validate every event against the state machine from the current status and ignore (and log) invalid ones; de-duplicate by event id; apply with a conditional update on the expected current status so concurrent updates can't both win. Record the event in history either way for audit if needed.
+practice:
+  - task: Implement the order state machine with valid transitions, idempotent event handling, an append-only history and an outbox event in one transaction.
+    hint: EnumMap of allowed next states; processed_events table; UPDATE … WHERE status = current.
+    solution: |
+      Define allowed transitions per status. In one transaction: insert the event id (skip on conflict), read the current status, reject invalid transitions, update with `WHERE status = current` (0 rows → concurrent change → retry), insert the history row and the outbox row. Consumers of the outbox stream drive notifications and live pushes.
+    solutionCode: order-state-machine
+quiz:
+  - q: Which transport fits one-way, server-to-browser status updates with automatic reconnect?
+    options: [Polling every second, Server-Sent Events, FTP, Email]
+    correct: 1
+    why: SSE streams events over HTTP and resumes with Last-Event-ID.
+  - q: Why keep courier locations out of the order database's transactions?
+    options: [Locations are secret, They're high-frequency and disposable; only the latest (and samples) matter, Databases can't store numbers, They never change]
+    correct: 1
+    why: Tens of thousands of updates per second would overload the transactional store for little value.
