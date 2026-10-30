@@ -1,0 +1,105 @@
+---
+title: Introducing Yourself and Your Project
+summary: A focused 90-second introduction, then your main project from six angles — architecture, a request's path, data, security, deployment and a hard problem you solved — told with numbers, honest ownership and trade-offs.
+track: interviews
+order: 20
+tags: [interviews, career, communication, behavioural]
+aliases: [tell me about yourself, introduction, project discussion, project deep dive, explain your project, architecture walkthrough, request flow, challenging problem, star, impact, why are you leaving, questions to ask]
+prerequisites: [interviews/how-interviews-work]
+related: [interviews/trade-off-vocabulary, interviews/interview-day-checklist, architecture/microservices]
+quickRef:
+  points:
+    - 'Introduction = **role + one project + one decision you''re proud of + what you want next**, in about 90 seconds.'
+    - 'Everything you mention is an invitation to be questioned — mention only what you can discuss in depth.'
+    - 'Prepare the project from **six angles**: architecture, request flow, data, security, deployment, one hard problem.'
+    - 'Hard problem: **situation → why it was hard → what you tried → what worked → measured result → what you''d do differently**.'
+    - 'Say **"I"** for your work and **"we"** for the team''s; numbers beat adjectives; admit what you don''t know.'
+  useWhen: Before any interview — almost every loop starts with or includes a project discussion.
+lastReviewed: 2026-10-30
+---
+
+## Why it matters
+
+The first minutes set the direction of an interview: interviewers follow up on whatever you mention. A focused introduction steers them to your strengths; a list of fifteen technologies invites fifteen probing questions. The project deep dive then tests things no puzzle can — whether you understood the system you worked on, made decisions for reasons, and can show impact.
+
+<Callout type="analogy">
+Your introduction is a restaurant menu: everything on it can be ordered. Don't list dishes your kitchen can't cook well.
+</Callout>
+
+## The 90-second introduction
+
+<Steps>
+
+1. **Who you are now** — role, years, domain: "Backend engineer, four years, payments at a fintech."
+2. **One project** — what it does and its scale: "I own the payout service: 400,000 payouts a day to 30 banks."
+3. **One decision you're proud of**, with its effect: "I replaced the nightly batch with an event-driven pipeline and idempotent bank calls — payout time dropped from 24 hours to 4 minutes, and duplicate payouts went to zero."
+4. **What you want next**, connected to this role: "I'm looking for larger-scale distributed systems work, which is why this platform team appeals to me."
+
+</Steps>
+
+<CodeTabs id="intro-template" title="Templates: introduction and three-minute project overview" />
+
+## Your project from six angles
+
+Prepare a two-minute overview, then be ready for the interviewer to zoom into any of these:
+
+| Angle | Be ready to explain | Typical follow-up |
+|---|---|---|
+| **Architecture** | components and why each exists | "Why Kafka rather than a REST call?" |
+| **Request flow** | one important request, end to end, with rough numbers (QPS, latency) | "What happens if step 3 fails?" |
+| **Data** | key tables/collections, one indexing or modelling decision | "How do you avoid duplicates? How big is that table?" |
+| **Security** | authentication, authorisation, secrets, sensitive data | "How does a service know which tenant a request is for?" |
+| **Deployment & operations** | CI/CD, environments, monitoring, an incident | "How do you know it's healthy? How do you roll back?" |
+| **A hard problem** | the story below | "What would you do differently?" |
+
+Draw it: a box-and-arrow diagram of five to eight components is easier to discuss than words. Know your numbers roughly — requests per second, data size, latency, team size.
+
+## Telling the hard-problem story
+
+<Steps>
+
+1. **Situation** — context in two sentences, with the stakes: "0.1% of payments were charged twice."
+2. **Why it was hard** — what made it non-obvious: intermittent, cross-service, no logs.
+3. **What you did** — investigation steps and the options you considered, including the ones you rejected and why.
+4. **Result** — measured: before and after, and how you verified it.
+5. **Reflection** — what you learned or would change.
+
+</Steps>
+
+<CodeTabs id="challenge-story" title="A complete example, and how it holds up to follow-ups" />
+
+## Honesty and ownership
+
+- Say **"I"** for what you did and **"we"** for the team. Interviewers probe exactly where your contribution ends; overclaiming collapses under two follow-ups.
+- "I don't know, but here's how I'd find out" is a strong answer. Inventing details is a fail.
+- If the project was small, discuss it deeply anyway — and say how you'd scale it. Thoughtful reasoning about a modest system beats vague claims about a huge one.
+- Confidentiality: describe architecture and numbers in rounded or relative terms; never share secrets or code.
+
+## Common closing questions
+
+| Question | A good answer |
+|---|---|
+| "Why are you looking to move?" | forward-looking and specific about what you want; never criticise your employer; if laid off, say so briefly and move on |
+| "What would you change about the project?" | a real weakness and a concrete improvement — shows judgement |
+| "Do you have questions for us?" | ask about the team's biggest technical challenge, on-call and incident handling, how decisions are made, what success looks like after six months |
+
+<Pitfalls>
+
+- **Listing every technology** in the introduction.
+- **Describing the company's product instead of your work.**
+- **No numbers** — "it was faster", "a lot of traffic".
+- **Saying "we" for everything**, or "I" for everything.
+- **Not knowing why a component exists** ("it was already there").
+- **Badmouthing a previous employer or team.**
+- **A rehearsed monologue** that doesn't adapt when the interviewer interrupts.
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- A short, focused introduction steers the interview to your strengths.
+- Prepare one project from six angles, with a diagram and rough numbers.
+- Tell one hard problem with stakes, options, measured results and reflection.
+- Be precise about your own contribution, and honest about gaps.
+
+</KeyTakeaways>

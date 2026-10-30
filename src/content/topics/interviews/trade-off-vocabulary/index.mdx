@@ -1,0 +1,95 @@
+---
+title: Talking About Trade-offs
+summary: How to compare options out loud — a four-step framework, the trade-offs that recur in every design, worked comparisons like REST vs gRPC and Redis vs Memcached, and how to defend or change a decision.
+track: interviews
+order: 30
+tags: [interviews, communication, system-design, trade-offs]
+aliases: [trade-offs, tradeoffs, design decisions, justify design, compare options, rest vs grpc, redis vs memcached, sync vs async, push vs pull, sql vs nosql, consistency vs availability, latency vs throughput, build vs buy, it depends, over-engineered, defend your design]
+prerequisites: [interviews/how-interviews-work]
+related: [databases/cap-and-consistency, architecture/microservices, databases/sql-vs-nosql]
+quickRef:
+  points:
+    - 'Framework: **name the options → pick the criteria that matter here → compare on each → decide, and say what you give up**.'
+    - '"It depends" is only half an answer — say *on what*, then choose.'
+    - 'Recurring axes: consistency vs availability/latency, simplicity vs flexibility, coupling, cost, operational load, time to build.'
+    - 'Tie every choice to a requirement or number: "at 2,000 writes/s one Postgres primary is fine".'
+    - 'When challenged, re-examine honestly: defend with reasons, or adapt and say what changes.'
+  useWhen: Any design discussion — LLD, HLD, project deep dives — and code review.
+lastReviewed: 2026-10-30
+---
+
+## Why it matters
+
+Senior engineers aren't distinguished by knowing more technologies but by choosing between them well and explaining why. Interviewers deliberately ask open-ended questions with no single right answer, then push back on your choice. What they grade is the reasoning: which factors you considered, whether the decision follows from the requirements, and whether you know what you gave up.
+
+<Callout type="analogy">
+Choosing a car: a sports car, an estate and a city hatchback are all "good". The right one depends on whether you're carrying a family, commuting in a city or racing on weekends — and every choice gives up something. A good salesperson asks how you'll use it before recommending one.
+</Callout>
+
+## A four-step framework
+
+<Steps>
+
+1. **Name the options** — at least two real ones: "Kafka or a table-backed job queue."
+2. **Pick the criteria that matter for *this* problem** — throughput, ordering, consistency, latency, operability, cost, team familiarity. Tie them to requirements and numbers.
+3. **Compare on each criterion** — briefly, honestly; each option should win something.
+4. **Decide and state the cost** — "I'll use Postgres with SKIP LOCKED: 200 jobs/s doesn't justify running Kafka; if we reach tens of thousands per second or need replay, I'd move to Kafka."
+
+</Steps>
+
+## The trade-offs that keep coming back
+
+| Axis | One side | Other side | Ask |
+|---|---|---|---|
+| Consistency vs availability / latency | correct immediately, may refuse or wait | always answers, may be stale | what breaks if this read is stale? |
+| Sync vs async | simple, immediate result, coupled | decoupled, resilient, eventually consistent | does the caller need the result now? |
+| Push vs pull | low latency, sender controls rate | receiver controls rate, simpler failure handling | who should absorb bursts? |
+| Normalised vs denormalised | one source of truth, writes simple | fast reads, copies to keep in sync | read- or write-heavy? |
+| Precompute vs compute on read | fast reads, wasted work, staleness | fresh, slower reads | read:write ratio? |
+| Monolith vs services | simple, transactional | independent deploy/scale, distributed problems | how many teams? |
+| Build vs buy / managed | control, fit | speed, less operations, cost, lock-in | is this our core business? |
+| Optimistic vs pessimistic locking | no waiting, retries on conflict | waiting, no retries | how often do conflicts happen? |
+| Strong typing / schemas vs flexibility | safety, evolution rules | fast change | how many consumers? |
+| Cost vs performance | cheaper, slower | faster, more expensive | what is the latency worth? |
+
+## Worked comparisons
+
+<CodeTabs id="comparisons" title="REST vs gRPC, Redis vs Memcached, Kafka vs a database queue" />
+
+## Phrases that carry reasoning
+
+These aren't magic words — they work because each one states a reason or a limit:
+
+- "Given the requirement that…, I'd choose…, because…"
+- "The cost of this choice is… — acceptable here because…"
+- "This works up to roughly … ; beyond that I'd …"
+- "Two options: A is simpler, B handles X better. Since X isn't a requirement yet, A."
+- "I'm assuming …; if that's wrong, the design changes like this: …"
+- "Let me check that against the numbers: … per second × … bytes ≈ … — fine for one node."
+
+## When the interviewer pushes back
+
+- **Listen for the new constraint.** "What if traffic is 100× higher?" or "Isn't that over-engineered?" usually signals a requirement you should adapt to, not a trap to resist.
+- **Defend with reasons, not repetition**: restate the requirement the choice serves and the alternative's cost.
+- **Change your mind visibly** when the argument is good: "You're right — with that constraint, B is better because…". Interviewers value updating on evidence.
+- **Simplify on request**: separate essential components from those added for anticipated needs, and drop the latter.
+
+<Pitfalls>
+
+- **"It depends" with nothing after it.**
+- **Listing pros and cons without deciding.**
+- **One-sided comparisons** where your choice wins everything.
+- **Choosing by fashion** ("microservices because they scale") rather than requirements.
+- **Ignoring operations and cost** — who runs it, what it costs per month.
+- **Digging in when given a new constraint** instead of adapting.
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- Options → criteria → comparison → decision with its cost.
+- Tie every choice to a requirement or a number, and say when you'd revisit it.
+- Each option should win something; say what you're giving up.
+- Treat pushback as new information: defend with reasons or adapt openly.
+
+</KeyTakeaways>

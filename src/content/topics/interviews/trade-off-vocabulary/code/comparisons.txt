@@ -1,0 +1,25 @@
+REST (JSON over HTTP) vs gRPC (Protobuf over HTTP/2) — internal service calls
+  Performance        gRPC: binary, smaller payloads, multiplexed connections      → gRPC
+  Streaming          gRPC: native client/server/bidirectional streams             → gRPC
+  Contracts          gRPC: .proto schema, generated clients, field-number evolution → gRPC
+  Browser / public   REST works everywhere; gRPC-Web needs a proxy                 → REST
+  Debuggability      curl, browser, Postman vs grpcurl + reflection                → REST
+  Caching            HTTP caching and CDNs work naturally with REST GETs           → REST
+  Decision: high-volume internal calls or streaming → gRPC; public, partner and browser APIs → REST.
+
+Redis vs Memcached — session store
+  Data types         Redis: strings, hashes, sets, sorted sets, streams; Memcached: strings
+  Persistence        Redis: RDB/AOF; Memcached: none — a restart logs everyone out
+  Replication / HA   Redis: replicas, Sentinel, Cluster; Memcached: client-side sharding only
+  Atomic ops         Redis: GETEX for sliding expiry, Lua scripts
+  Raw simple gets    Memcached: multithreaded, very efficient for plain key → blob caching
+  Decision: sessions → Redis (HA and persistence matter); a pure, disposable object cache at huge
+  scale → either, Memcached is fine.
+
+Kafka vs a database table as a job queue — 200 background jobs/s
+  Throughput         Kafka: far more than needed; Postgres SKIP LOCKED: enough at this rate
+  Ordering / replay  Kafka: per-partition order, consumers can rewind
+  Transactions       DB queue: enqueue in the same transaction as the business change (no outbox)
+  Operations         Kafka: another cluster to run, monitor, upgrade
+  Per-job state      DB queue: easy retries, scheduling, visibility of each job
+  Decision: DB queue now; revisit at tens of thousands of jobs/s, many consumers, or replay needs.

@@ -1,0 +1,85 @@
+---
+title: Interview Day Checklist
+summary: What to do before, during and after each round — setup, minute-by-minute plans for coding, LLD and system design rounds, habits that keep interviewers informed, recovering when stuck, and what quietly costs offers.
+track: interviews
+order: 50
+tags: [interviews, checklist, communication]
+aliases: [interview day, interview checklist, interview tips, time management, stuck in interview, thinking aloud, remote interview setup, coding round plan, system design round plan, lld round plan]
+prerequisites: [interviews/how-interviews-work]
+related: [interviews/mock-practice, interviews/trade-off-vocabulary, interviews/project-deep-dive]
+quickRef:
+  points:
+    - 'Before: test your setup, have water, a notepad and the round''s plan written down.'
+    - 'Every round: **clarify → plan aloud → build → verify → discuss trade-offs**, with time checkpoints.'
+    - 'Narrate: silence of more than ~30 seconds should be "let me think about X for a moment".'
+    - 'Stuck? Restate the problem, try a smaller example, brute force first, ask a focused question.'
+    - 'Close loops you open ("I''ll handle errors later" → do it, or say why not).'
+  useWhen: The day before and the hour before a round.
+lastReviewed: 2026-10-30
+---
+
+## Why it matters
+
+Most interviews aren't lost on knowledge but on execution: starting to code before understanding the problem, running out of time, going silent, or forgetting edge cases that you'd catch at work. A plan for each round and a few habits make your normal skill visible under pressure.
+
+## Before the interview
+
+<Steps>
+
+1. **Setup (remote)**: camera, microphone and screen sharing tested; the coding environment or whiteboard tool opened beforehand; notifications off; a charger and water nearby.
+2. **Notes**: one page — your introduction, your project's diagram and numbers, the plan for this round type, and questions to ask them.
+3. **Warm up** with one easy problem or by saying your introduction aloud. Don't learn new topics on the day.
+4. **Know the logistics**: interviewer names, round type, duration, and whether you'll need to run code.
+
+</Steps>
+
+## Minute-by-minute plans
+
+<CodeTabs id="round-plans" title="Coding, LLD / machine coding and system design rounds" />
+
+## Habits during every round
+
+- **Clarify first**, and write down what you agreed: inputs, constraints, scale, edge cases, what's out of scope.
+- **State the plan before executing** — the interviewer can redirect you before you spend twenty minutes.
+- **Think aloud**, but in conclusions, not noise: "A heap gives the k smallest in O(n log k)…".
+- **Checkpoint your time**: half-way through, you should be implementing (coding) or past the high-level design (system design).
+- **Verify unprompted**: trace an example, then edge cases (empty, one element, duplicates, overflow, concurrency).
+- **Close loops**: if you defer something ("validation later"), come back to it or say explicitly what you'd do.
+- **Use hints gracefully**: thank, connect it to your approach, adjust.
+
+## When you get stuck
+
+<Steps>
+
+1. **Restate** the problem and constraints in your own words.
+2. **Shrink it**: work through a tiny example by hand and look for the pattern.
+3. **Brute force first**: say it, give its complexity, then improve the bottleneck.
+4. **Change representation**: sort it, use a map, think of it as a graph, go from the end.
+5. **Ask a focused question**: "Is it fair to assume the input fits in memory?" rather than "Can you give me a hint?"
+
+</Steps>
+
+## After the round
+
+Write down the questions and how you answered while it's fresh; note what went well and one thing to improve. Then let it go — the next round is independent, and interviewers can't see how you think the last one went.
+
+<Pitfalls>
+
+- **Coding in the first two minutes.**
+- **Long silences** while coding.
+- **Ignoring concurrency** in a design that obviously has shared state.
+- **No testing** — waiting for the interviewer to find the bug.
+- **Over-engineering** a design before the core works.
+- **Arguing with the interviewer** instead of exploring their concern.
+- **Letting a bad round affect the next one.**
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- Prepare the setup and a one-page plan; don't cram.
+- Clarify, plan aloud, build, verify, discuss trade-offs — with time checkpoints.
+- When stuck: restate, shrink, brute force, change representation, ask precisely.
+- Review each round briefly, then reset for the next.
+
+</KeyTakeaways>

@@ -1,0 +1,33 @@
+PROMPT: "Design a library management system."
+
+0–5 min   CLARIFY
+  Actors: members (search, borrow, return, reserve), librarians (add copies, waive fines).
+  In scope: borrowing with due dates, reservations queue, overdue fines. Out: payments, e-books.
+  Scale: one library or a chain? → several branches.
+  Concurrency: two members can try to borrow the last copy at once → yes, must be safe.
+
+5–12 min  ENTITIES
+  Book (title, authors, ISBN)  1 ── *  BookCopy (barcode, branch, status)
+  Member ── * Loan (copy, borrowedAt, dueAt, returnedAt)
+  Reservation (member, book, createdAt) — FIFO per Book
+  Why Book vs BookCopy: one title, many physical copies, each with its own state.
+
+12–20 min OPERATIONS AND STATES
+  borrow(memberId, copyId) → Loan     fails if: copy not AVAILABLE, member over limit, unpaid fines
+  return(copyId) → Fine?              then: hand the copy to the next reservation, if any
+  reserve(memberId, bookId)
+  BookCopy states: AVAILABLE → ON_LOAN → AVAILABLE | ON_HOLD (for a reservation) | LOST
+
+20–35 min CLASSES AND CODE (the most interesting parts)
+  interface FinePolicy { Money fineFor(Loan loan, LocalDate returnedOn); }   ← Strategy
+  LoanService.borrow: atomically flip copy AVAILABLE → ON_LOAN
+      in memory: compareAndSet on the copy's status
+      in a database: UPDATE copies SET status='ON_LOAN' WHERE id=? AND status='AVAILABLE'
+  ReturnHandler publishes CopyReturned → ReservationService assigns the copy (Observer)
+
+35–42 min TRADE-OFFS AND EXTENSIONS
+  Concurrency: why atomic update beats check-then-act.
+  New requirement "e-books with licence counts": Copy becomes an interface — Physical / Digital.
+  Scale: search by title/author → database index or a search engine.
+
+42–45 min SUMMARY + QUESTIONS

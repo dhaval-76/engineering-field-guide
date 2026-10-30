@@ -1,0 +1,25 @@
+questions:
+  - q: 'In a mock LLD interview you''re asked to design a library system and your mind goes blank. What do you do?'
+    think: A fixed sequence removes the need to invent a plan under pressure.
+    answer: |
+      Fall back on the method and say it aloud: "Let me start by clarifying scope." Ask about actors, core use cases, what's out of scope, scale and concurrency; write the agreed list down. Then list entities and relationships (Book vs BookCopy, Member, Loan, Reservation), then operations with their failure cases, then classes and the most interesting code (atomic borrow, fine strategy, reservation notification), then trade-offs and extensions. Moving through the steps gives your mind something concrete to do, and interviewers credit the structure even before the design is complete.
+followUps:
+  - q: How do you get useful feedback from a mock?
+    intuition: Specific, rubric-based, one priority.
+    approach: |
+      Agree on the rubric beforehand, ask the interviewer to note timestamps of key moments (first question, start of coding, hints given), and ask for the single change that would most improve the outcome. Record the session and watch the opening and closing minutes yourself.
+  - q: Why re-solve a failed problem days later instead of reading the solution again?
+    intuition: Recognition vs recall.
+    approach: |
+      Reading a solution creates a feeling of familiarity that doesn't survive pressure. Retrieving and reconstructing it from scratch after a delay is what makes the pattern stick and transfer to variations of the problem.
+practice:
+  - task: Run a 45-minute mock of an LLD problem you haven't seen (e.g. a notification system with email, SMS and push, scheduled sends, and a 5-per-hour per-user limit), record it, and score it with the rubric.
+    hint: Clarify → entities → operations → classes (Strategy for channels) → rate limiting and concurrency → trade-offs.
+    solution: |
+      Clarify triggers, channels, scheduling and limits. Entities: Notification, Template, Channel (email/SMS/push behind one interface), UserPreferences, DeliveryAttempt. Operations: send now, schedule, cancel; failures: channel down, rate limit hit, user opted out. Design: `NotificationChannel` strategy chosen per user preference; a scheduler with a delay queue; a per-user sliding-window limiter; retries with backoff per channel; idempotency so a retried job doesn't double-send. Then score yourself and pick the lowest rubric row to practise next.
+    solutionCode: mock-lld-example
+quiz:
+  - q: Which practice transfers best to real interviews?
+    options: [Re-reading solutions of familiar problems, Solving unseen problems aloud under a time limit, Watching others solve problems, Memorising pattern lists]
+    correct: 1
+    why: It recreates the conditions — novelty, time pressure and explaining — that the interview tests.

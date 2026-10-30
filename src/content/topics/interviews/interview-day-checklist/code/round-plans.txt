@@ -1,0 +1,30 @@
+CODING ROUND (45 min)
+  0–5    Clarify: input sizes, value ranges, duplicates, empty input, expected output format.
+         Work one example by hand.
+  5–12   Approach: brute force + complexity → better idea + complexity. Agree before coding.
+  12–32  Code: clear names, helper functions; narrate decisions.
+  32–40  Verify: trace the example; edge cases; fix bugs aloud.
+  40–45  Discuss: complexity, alternatives, follow-up variants.
+
+LLD / MACHINE CODING (60–90 min)
+  0–8    Requirements: actors, core use cases, out of scope, concurrency, extensibility asks.
+  8–18   Entities, relationships, states; key interfaces (where behaviour varies).
+  18–60  Code the core flows end to end first, then add features; keep it runnable.
+         Handle validation and concurrency on shared state.
+  60–75  Demo with a driver/main or tests; walk through an extension request.
+  75–90  Trade-offs, what you'd improve, questions.
+
+SYSTEM DESIGN (45–60 min)
+  0–7    Functional requirements (3–5) and non-functional (scale, latency, availability, consistency).
+  7–12   Estimates: requests/s, storage per year, bandwidth — and what they imply.
+  12–17  API: key endpoints or events.
+  17–30  High-level design: components and data flow; data model and storage choice.
+  30–45  Deep dives on the hardest parts: scaling, consistency, failure handling, hot spots.
+  45–55  Trade-offs, bottlenecks at 10×, monitoring, cost.
+  55–60  Questions.
+
+QUESTIONS TO ASK THEM (pick two)
+  What's the hardest technical problem the team faces this year?
+  How do on-call and incident reviews work?
+  How are design decisions made and recorded?
+  What does a great first six months look like in this role?

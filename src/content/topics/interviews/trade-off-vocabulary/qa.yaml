@@ -1,0 +1,37 @@
+questions:
+  - q: '"Redis or Memcached for a session store?" You choose Redis. The interviewer says: "Memcached is faster for simple gets — why not use it?" How do you respond?'
+    think: Which criteria matter for sessions specifically?
+    answer: |
+      Acknowledge the true part, then return to the requirements: "Memcached is excellent at plain key-value gets. For sessions, though, what matters is that a node restart or failover doesn't log every user out, and that sliding expiry is atomic. Redis gives replication with automatic failover and optional persistence, plus `GETEX` to read and extend a session in one step. At our session volume either is fast enough, so availability decides it. If this were a disposable object cache with huge throughput, Memcached would be a fine choice."
+  - q: '"Your design is over-engineered. Simplify it."'
+    think: Which parts serve current requirements, and which serve guesses about the future?
+    answer: |
+      Take it as a new constraint, not an attack. Separate essential parts from anticipatory ones: "The core needs the API, one service and Postgres. I added Kafka for future consumers and Redis for caching; with today's 300 requests per second, Postgres handles both the queue (SKIP LOCKED) and the reads. I'll remove them and note the thresholds where we'd add them back: cache when p99 exceeds the SLA at peak, Kafka when several teams need the events." Then redraw the simpler version.
+followUps:
+  - q: How do you answer when you genuinely think "it depends"?
+    intuition: Depends on what?
+    approach: |
+      Name the deciding factors, state your assumption about each, and decide: "It depends on read/write ratio and how stale results can be. Assuming 100:1 reads and a few seconds of staleness is fine, I'd cache with a short TTL. If prices must always be exact, I'd skip the cache for that field and index the query instead."
+  - q: How do you bring cost into a design discussion?
+    intuition: Infrastructure and people both cost money.
+    approach: |
+      Estimate the big drivers — instances, storage, data transfer, managed-service pricing — and compare options roughly ("a three-node Kafka cluster plus operations vs a Postgres table we already run"). Mention operational cost (on-call, upgrades) and the cost of being wrong. Interviews increasingly grade cost reasoning explicitly.
+  - q: Synchronous or asynchronous processing — how do you decide?
+    intuition: Does the caller need the result to continue?
+    approach: |
+      Synchronous when the response is the result (payment authorisation before showing confirmation). Asynchronous when work is slow, can be retried, has several consumers, or shouldn't block the user (emails, invoices, analytics, video processing). Often both: authorise synchronously, capture and notify asynchronously.
+practice:
+  - task: Compare REST and gRPC for communication between internal services using the four-step framework, and make a decision for a specific scenario.
+    hint: Criteria — performance, streaming, contracts and evolution, tooling and debuggability, browser support, caching.
+    solution: |
+      Options: REST/JSON and gRPC/Protobuf. Criteria for internal calls: latency and payload size, streaming needs, contract strictness across teams, debuggability, existing tooling. gRPC wins on performance, streaming and generated typed clients; REST wins on universality, debugging and HTTP caching. Decision for a high-volume internal pricing service called 5,000 times per second by several teams: gRPC, accepting more tooling setup and a gateway for any external access. For a low-volume admin API: REST.
+    solutionCode: comparisons
+quiz:
+  - q: Which answer best demonstrates trade-off reasoning?
+    options: ['"Kafka, because it scales."', '"It depends."', '"Postgres queue: 200 jobs/s fits, one less system to run; Kafka if we need replay or 10k+/s."', '"Microservices are best practice."']
+    correct: 2
+    why: It names options, ties the choice to numbers, and states when it would change.
+  - q: The interviewer adds a constraint that undermines your design. Best move?
+    options: [Defend the original design regardless, Adapt and explain what changes and why, Start over silently, Argue the constraint is unrealistic]
+    correct: 1
+    why: Updating on new requirements, visibly and with reasons, is what's being assessed.

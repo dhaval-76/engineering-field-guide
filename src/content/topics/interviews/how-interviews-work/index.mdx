@@ -1,0 +1,105 @@
+---
+title: How Software Engineering Interviews Work
+summary: The rounds in a typical loop — coding, machine coding and LLD, system design, language deep dives, project and behavioural, plus newer AI-assisted and debugging rounds — what each grades, and how loops differ.
+track: interviews
+order: 10
+tags: [interviews, career, preparation]
+aliases: [interview loop, interview process, interview rounds, phone screen, online assessment, coding round, dsa round, machine coding, lld round, hld round, system design round, behavioural round, bar raiser, hiring manager round, ai assisted coding round, debugging round, code review round, rubric, hiring committee]
+prerequisites: []
+related: [interviews/project-deep-dive, interviews/trade-off-vocabulary, interviews/interview-day-checklist]
+quickRef:
+  points:
+    - 'A loop is usually **4–6 rounds**: screen → coding (DSA) → design (LLD/machine coding and/or HLD) → behavioural/project → hiring manager.'
+    - 'Every round grades **how you think** as much as the answer: clarifying, structuring, trade-offs, communication, testing your own work.'
+    - 'Mid-level engineers are expected to handle **LLD and HLD** as well as coding — not just one of them.'
+    - 'Indian product companies lean on **machine coding** (working code in 60–90 min); big tech on DSA + design + behavioural.'
+    - 'Newer formats: **AI-assisted coding** (judging and steering AI output), debugging and code-review rounds.'
+    - 'Behaviour and project discussion appear in almost every loop — prepare stories, not just algorithms.'
+  useWhen: Planning preparation, or before a loop to know what each round expects.
+lastReviewed: 2026-10-30
+---
+
+## Why it matters
+
+Preparation is most effective when it matches what you'll actually be asked. Loops vary by company, but the building blocks are the same, and each has its own grading criteria. Knowing them lets you spend effort where it counts — and avoid the most common failure: a strong engineer who answers the question they expected instead of the one in front of them.
+
+## What candidates report being asked
+
+The site's topic choices are driven by an analysis of 4,430 public, company-tagged interview reports on LeetCode Discuss (July 2024 – October 2026, 68 companies). The share of reports mentioning each area:
+
+<Chart
+  type="bar"
+  title="Share of interview reports mentioning a topic"
+  unit="%"
+  bars={[
+    ['Behavioural / leadership', 23, 'plum'],
+    ['Graphs', 9.3, 'info'],
+    ['Dynamic programming', 7.9, 'info'],
+    ['Grids / matrices', 5.4, 'info'],
+    ['Project deep dive', 5.0, 'plum'],
+    ['Machine coding', 5.0, 'accent'],
+    ['Design patterns', 4.9, 'accent'],
+    ['Binary search', 4.7, 'info'],
+    ['Heaps', 4.7, 'info'],
+    ['Concurrency', 3.7, 'warn'],
+    ['Spring / REST API design', 3.0, 'ok'],
+  ]}
+  caption="Mentions in candidate reports, not official question banks; English-language LeetCode Discuss over-represents big tech and India-based candidates. AI-related questions grew about eightfold from 2024 to 2026."
+/>
+
+## The rounds
+
+| Round | Format | What's graded | Prepare with |
+|---|---|---|---|
+| **Online assessment / screen** | 1–3 timed problems, or a short call | correctness under time, basic communication | DSA patterns, timed practice |
+| **Coding (DSA)** | 45–60 min, 1–2 problems, shared editor | problem solving, choosing data structures, clean code, complexity, testing | DSA track; talk while you code |
+| **Machine coding** | 60–120 min, build a working, extensible program (parking lot, splitwise, rate limiter) | runnable code, modelling, patterns, extensibility, edge cases | [LLD method](../../low-level-design/lld-method/) and the LLD cases |
+| **Low-level design** | 45–60 min, classes and interfaces on a whiteboard or editor | entities, relationships, SOLID, patterns, concurrency | OOP & patterns, LLD tracks |
+| **High-level design** | 45–60 min, design a system (chat, feed, payments) | requirements, estimates, components, data model, scaling, trade-offs | System design track |
+| **Language / framework** | Java, Spring, databases, concurrency questions and scenarios | depth of understanding, production experience | Java, Concurrency, Backend, Databases tracks |
+| **Project deep dive** | your past work, probed in depth | ownership, decisions, measurable impact, honesty | [Project deep dive](../project-deep-dive/) |
+| **Behavioural / leadership** | STAR stories against values (e.g. Amazon's Leadership Principles; often a "bar raiser") | ownership, conflict, failure, influence, customer focus | story bank |
+| **Hiring manager** | mix of project, behavioural and motivation | fit with the team's work, growth, communication | your stories and questions |
+| **AI-assisted coding** | solve a task with an AI assistant available | specifying, reviewing and correcting AI output, testing, judgement | practise with assistants, critically |
+| **Debugging / code review** | fix a failing service or review a PR | reading code, hypotheses, prioritising issues | read others' code; production debugging |
+
+## How loops differ
+
+| Company type | Typical emphasis |
+|---|---|
+| Big tech (Google, Meta, Amazon, Microsoft) | 2–3 DSA rounds, 1 system design (for mid-level and above), behavioural throughout; Amazon weights Leadership Principles heavily; Meta and Amazon have started AI-assisted rounds |
+| Indian product companies (Flipkart, PhonePe, Swiggy, Razorpay, Meesho) | machine coding is often the first elimination round; then DSA, HLD/LLD and a hiring-manager round |
+| Fintech and trading (Goldman Sachs, D. E. Shaw, Walmart Global Tech) | strong DSA plus Java and concurrency depth |
+| Startups | practical take-homes or pairing on real-looking tasks; system design focused on their domain |
+| Service companies and consultancies | language and framework fundamentals, SQL, project discussion |
+
+## What every round is really grading
+
+1. **Clarifying** the problem before solving it — inputs, scale, edge cases, what "done" means.
+2. **Structuring** the solution and saying the plan out loud before diving in.
+3. **Choosing with reasons** — naming alternatives and trade-offs ([Trade-off vocabulary](../trade-off-vocabulary/)).
+4. **Executing** cleanly — readable code, sensible names, correct complexity.
+5. **Verifying** — walking through examples and edge cases without being asked.
+6. **Collaborating** — taking hints, adjusting, staying calm when stuck.
+
+Mid-level and senior expectations differ in scope and independence rather than in topics: everyone is expected to code, design classes and reason about systems; more experienced candidates are expected to drive the conversation, surface risks and trade-offs unprompted, and show impact beyond their own code.
+
+<Pitfalls>
+
+- **Preparing only DSA** — design and behavioural rounds fail as many candidates.
+- **Memorising solutions** — interviewers change constraints to see whether you understand them.
+- **Coding before clarifying** — solving the wrong problem well.
+- **Silence** — the interviewer can't grade thinking they can't hear.
+- **Listing technologies you can't discuss in depth** on your CV or introduction.
+- **Treating behavioural rounds as small talk** — they often decide the outcome.
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- Know the rounds in your loop and prepare for each one's grading criteria.
+- Coding, LLD/machine coding, HLD, depth questions, projects and behaviour are all expected.
+- The process — clarify, structure, justify, execute, verify, communicate — is graded everywhere.
+- AI-assisted and debugging rounds reward judgement over speed.
+
+</KeyTakeaways>

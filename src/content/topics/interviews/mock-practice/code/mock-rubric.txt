@@ -1,0 +1,31 @@
+Score each 1 (missing) · 2 (weak) · 3 (solid) · 4 (strong)
+
+CODING ROUND
+  Clarification     asked about inputs, constraints, edge cases before solving
+  Approach          stated a plan and its complexity before coding; considered alternatives
+  Code quality      readable names, small functions, correct use of data structures
+  Correctness       worked on examples; handled edge cases
+  Verification      traced test cases unprompted; found and fixed own bugs
+  Communication     thought aloud; used hints well; managed time
+
+LLD / MACHINE CODING
+  Requirements      agreed scope: actors, core use cases, out-of-scope items
+  Modelling         entities and relationships make sense; responsibilities are clear
+  Design quality    interfaces where variation is expected; SOLID; patterns justified, not decorative
+  Working code      core flows run end to end (machine coding)
+  Concurrency/edge  identified shared state and races; validated inputs
+  Extensibility     a new requirement fits without rewriting
+
+SYSTEM DESIGN
+  Requirements      functional + non-functional, with numbers
+  Estimation        traffic, storage, bandwidth — and used them to make decisions
+  High-level design components with clear responsibilities; data flow
+  Data model        storage choice and schema fit the access patterns
+  Deep dives        scaling, consistency, failure handling for the hardest part
+  Trade-offs        alternatives, costs, what changes at 10×
+
+BEHAVIOURAL / PROJECT
+  Structure         situation → task → action → result, concise
+  Ownership         clear "I" vs "we"; decisions and their reasons
+  Impact            measured outcomes
+  Reflection        what was learned or would change

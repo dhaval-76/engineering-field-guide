@@ -1,0 +1,32 @@
+questions:
+  - q: 'You have a loop next month at a product company: machine coding, DSA, system design and a hiring-manager round. How do you split your preparation?'
+    think: Which round eliminates first, and which skills overlap between rounds?
+    answer: |
+      Start with what eliminates first and transfers most. **Machine coding** is often the first filter: practise building 4–6 classic problems end to end in 90 minutes (parking lot, splitwise, rate limiter, task scheduler) with clean interfaces, a runnable `main`, and tests for edge cases. **DSA**: cover the core patterns (hashing, two pointers, sliding window, binary search, BFS/DFS, heaps, DP) with timed practice, saying the approach aloud. **System design**: learn the method (requirements → estimates → API → data model → high-level design → deep dives → trade-offs) and do several full designs aloud. **Hiring manager**: prepare a project deep dive and 6–8 behavioural stories with numbers. Do mock interviews for each round type — performing under observation is its own skill.
+followUps:
+  - q: What do interviewers mean by "signal"?
+    intuition: Evidence they can write down in their feedback.
+    approach: |
+      Interviewers fill in a rubric (problem solving, coding, design, communication, behaviours) and must justify each rating with observed evidence. Thinking aloud, stating trade-offs, testing your code and asking good clarifying questions all create evidence. A correct answer reached silently gives them little to write.
+  - q: How is a mid-level loop different from a senior one?
+    intuition: Same topics, different scope and independence.
+    approach: |
+      Topics overlap heavily — both write code, design classes and discuss systems. Senior candidates are expected to lead the design conversation, quantify, raise operational concerns (failure modes, cost, migration) without prompting, and show impact across teams in behavioural answers. Mid-level candidates are expected to solve well-defined problems independently and reason soundly about trade-offs when asked.
+  - q: What's different about an AI-assisted coding round?
+    intuition: What can't the assistant do for you?
+    approach: |
+      You may use an AI assistant, so typing speed matters less and judgement matters more: decomposing the task, giving precise instructions, reading generated code critically, catching subtle bugs and security issues, writing tests that prove behaviour, and explaining why the final code is correct. Accepting output you can't explain is the fastest way to fail.
+practice:
+  - task: Write down the rounds of a loop you're preparing for, what each grades, and your current confidence (1–5) in each. Plan practice for the two weakest.
+    hint: Use the round table on this page; ask the recruiter for the loop structure — they usually share it.
+    solution: |
+      List each round with its format and grading criteria, rate yourself honestly, and pick concrete practice for the weakest: e.g. machine coding at 2/5 → build three LLD problems end to end under a 90-minute timer and review them against the LLD checklist; behavioural at 2/5 → write six STAR stories with numbers and rehearse them aloud. Re-rate after each mock.
+quiz:
+  - q: Which round most often eliminates candidates first at Indian product companies like Flipkart or PhonePe?
+    options: [Behavioural, Machine coding, System design, HR]
+    correct: 1
+    why: Machine coding (working, extensible code in a fixed time) is commonly the first technical filter.
+  - q: In almost every round, what is graded besides the final answer?
+    options: [Typing speed, Clarifying, reasoning aloud and verifying, Memorised solutions, Use of the latest libraries]
+    correct: 1
+    why: Interviewers record observable evidence of problem-solving process and communication.

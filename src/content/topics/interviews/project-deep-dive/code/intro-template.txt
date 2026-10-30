@@ -1,0 +1,26 @@
+90-SECOND INTRODUCTION
+"I'm a [role] with [N] years of experience, currently at [company type/company] working on [domain].
+
+The project I know best is [ONE project] — it [what it does] for [scale: users, requests, money].
+I'm responsible for [your part].
+
+A decision I'm proud of: [decision], because [reason]. It [measurable effect].
+
+Next I'm looking for [specific kind of work], which is why [this team/role] interests me."
+
+THREE-MINUTE PROJECT OVERVIEW
+1. Purpose and scale (20 s)
+   "The service handles [N requests/s, M records, peak events] for [who]."
+2. Architecture (40 s) — draw it
+   "[Client] → [gateway] → [service(s)] → [database], with [cache] for [why]
+    and [queue/stream] between [A] and [B] because [why]."
+3. One request end to end (40 s)
+   "POST /orders: authenticated at [where] → validated → written in a transaction with an
+    outbox row → event to [consumer] → [result]. p99 ≈ [x] ms."
+4. Data (20 s)
+   "Main tables: [..]. The key index is [..] because the hottest query is [..]."
+5. Security and operations (20 s)
+   "[JWT/OAuth2], roles at [level]; secrets in [store]. Deployed via [CI/CD] to [platform];
+    we watch [metrics]; we roll back by [how]."
+6. Hard problem (40 s, then expand if asked)
+   "[Problem with stakes] → [what made it hard] → [what I did] → [measured result]."

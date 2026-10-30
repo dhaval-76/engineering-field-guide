@@ -1,0 +1,25 @@
+questions:
+  - q: 'Halfway through a coding round, your solution has a bug you can''t find and 15 minutes remain. What do you do?'
+    think: What does the interviewer need to see in these 15 minutes?
+    answer: |
+      Stay systematic and visible. Say what you're doing: "Let me trace the example through the code." Walk a small input line by line, checking variable values against what you expect — most bugs show up at loop boundaries, off-by-one indices or an unhandled empty case. If you find it, fix it and re-run the example plus edge cases. If time is nearly up, explain where you think the bug is and how you'd confirm it, and state the complexity of the intended solution. A calm, methodical debugging process earns credit even if the code isn't perfect.
+followUps:
+  - q: How do you handle a question you have no idea how to solve?
+    intuition: Make progress visible.
+    approach: |
+      Restate it, work a tiny example by hand, propose a brute-force solution with its complexity, then look for the repeated work to optimise (sorting, hashing, a heap, a graph view). Ask a precise clarifying question if an assumption would unlock a simpler approach. Interviewers grade the path, and a correct brute force with a clear analysis is far better than silence.
+  - q: What should you do the evening before an interview?
+    intuition: Consolidate, don't cram.
+    approach: |
+      Review your one-page notes (introduction, project diagram and numbers, round plans, a few patterns), check logistics and setup, and rest. Learning new material the night before adds anxiety more than knowledge.
+practice:
+  - task: Write your one-page interview-day sheet — introduction, project diagram and key numbers, the plan for each round type you'll face, and two questions to ask.
+    hint: If it doesn't fit on one page, it won't help you under pressure.
+    solution: |
+      Use the round plans as a skeleton, add your own introduction and project numbers, and three personal reminders from your mock reviews (e.g. "ask three questions before coding", "trace two test cases", "mention concurrency"). Read it the evening before and an hour before — not during the round.
+    solutionCode: round-plans
+quiz:
+  - q: You're 20 minutes into a 45-minute system design round and still listing requirements. What's the problem?
+    options: [Nothing — requirements are most important, Time management — you should be into the high-level design, You should have started with the database, You should ask for more time]
+    correct: 1
+    why: Requirements and estimates should take roughly the first 10–12 minutes so the design and deep dives get time.

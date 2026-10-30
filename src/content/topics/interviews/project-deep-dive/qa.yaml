@@ -1,0 +1,44 @@
+questions:
+  - q: '"Tell me about yourself." Give a strong 90-second answer and explain why it works.'
+    think: What do you want the interviewer to ask you next?
+    answer: |
+      Example: "I'm a backend engineer with four years in fintech. I own our payout service, which sends about 400,000 payouts a day to 30 banks. The decision I'm proudest of is moving payouts from a nightly batch to an event-driven pipeline with idempotent bank calls — payout time went from a day to minutes, with no duplicates since. I'm looking to work on larger distributed systems, which is what drew me to this platform team."
+
+      It works because it's short, names one project with scale, highlights a decision with a measurable effect (inviting the conversation you want — events, idempotency, reliability), and connects to the role. It avoids a technology list and a life story.
+  - q: '"Walk me through the architecture of your current project." What does a strong answer include?'
+    think: Components, reasons, one request's path, numbers, and what you'd change.
+    answer: |
+      A quick diagram of five to eight components with a reason for each ("Kafka between orders and fulfilment because fulfilment can lag without blocking checkout"), one important request traced end to end with rough latency, the key data model and its main index, how auth and secrets work, how it's deployed and monitored, and approximate scale (requests per second, data size). Close with one weakness you'd fix and how — it shows judgement and invites a design discussion you're prepared for.
+followUps:
+  - q: '"What was your specific contribution?" — how do you answer without overclaiming or underselling?'
+    intuition: Separate "I" from "we".
+    approach: |
+      Describe the team's goal with "we", then your part precisely with "I": what you designed, built, decided or led, and what others owned. Include decisions you drove and influence beyond your code (reviews, design docs, mentoring). Interviewers probe the edges of your claim; precise claims hold up.
+  - q: '"What would you do differently?"'
+    intuition: Reflection is the signal.
+    approach: |
+      Name a genuine, specific weakness with its cost and a better alternative: "We put four services on one database for speed; schema changes now need three teams to agree. I'd give the reporting workload its own read model fed by CDC from day one." Avoid fake weaknesses or blaming others.
+  - q: What questions should you ask at the end?
+    intuition: What would you need to know to accept the offer?
+    approach: |
+      Ask about the work and the team: the biggest technical challenge this year; how on-call and incidents work; how architectural decisions are made; how success is measured in the first six months; how the team handles technical debt. Keep salary and benefits for the recruiter.
+practice:
+  - task: Write your 90-second introduction and a three-minute project overview using the templates, then say both aloud while timing yourself and record it.
+    hint: One project, one decision, numbers. Every technology you name must survive three follow-up questions.
+    solution: |
+      Fill in the templates, cut anything you can't defend in depth, and rehearse aloud — written answers always run long when spoken. Listen to the recording for filler words, vague words ("various", "a lot"), and missing numbers. Then ask a friend to interrupt you with follow-ups from the six angles until each gets a crisp answer.
+    solutionCode: intro-template
+  - task: Prepare one "hard problem" story in the five-part structure and list the four follow-up questions you'd expect, with answers.
+    hint: Stakes, why it was hard, options considered (including rejected ones), measured result, reflection.
+    solution: |
+      Use a real incident or design decision. Make the stakes concrete (users affected, money, latency), show investigation rather than luck, name at least one rejected alternative and why, give before/after numbers and how you verified them, and end with what you learned. Then anticipate the probes on reliability, scale, failure of your solution and alternatives.
+    solutionCode: challenge-story
+quiz:
+  - q: Which belongs in a 90-second introduction?
+    options: [Every technology you've used, One project with scale and a decision you're proud of, Your full career history, Your salary expectations]
+    correct: 1
+    why: Focus steers follow-ups towards your strongest material.
+  - q: You don't know the answer to a follow-up about a component your team owned. Best response?
+    options: [Make up a plausible answer, '"I don''t know — here''s how I''d find out / reason about it"', Change the subject, Say it wasn't important]
+    correct: 1
+    why: Honest reasoning earns credit; invented details are easy to expose.
