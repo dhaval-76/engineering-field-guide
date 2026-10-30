@@ -1,0 +1,12 @@
+flowchart TD
+  U[Web / mobile client] -- SSE stream --> API[Assistant API<br/>auth · session · history]
+  API --> ORC[Orchestrator<br/>prompt templates · RAG · tools]
+  ORC --> RET[(Retrieval<br/>vector + keyword)]
+  ORC --> GW[LLM gateway<br/>budgets · routing · fallback · cache · redaction]
+  GW --> P1[Provider A<br/>large model]
+  GW --> P2[Provider B<br/>fallback]
+  GW --> SH[Self-hosted small model<br/>vLLM on GPUs]
+  GW --> C[(Response cache)]
+  GW -- usage events --> K{{Event stream}}
+  K --> OBS[Cost · latency · quality dashboards]
+  K --> EV[Evaluation store<br/>sampled traces + feedback]

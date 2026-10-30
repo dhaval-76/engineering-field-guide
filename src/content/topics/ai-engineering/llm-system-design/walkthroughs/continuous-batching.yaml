@@ -1,0 +1,22 @@
+title: Static vs continuous batching on one GPU
+frames:
+  - caption: 'A GPU generates tokens for several requests at once — one forward pass produces one token for every request in the batch. Batching is how self-hosted serving gets its throughput.'
+    panels:
+      - kind: rows
+        label: Batch of 4 (tokens still to generate)
+        items: ['A — 20', 'B — 300', 'C — 40', 'D — 25']
+  - caption: '**Static batching**: the batch runs until its longest request finishes. After ~40 steps A, C and D are done, but their slots sit idle for 260 more steps while B finishes.'
+    panels:
+      - kind: rows
+        label: Step 40
+        items: [{ v: 'A — done, slot idle', tone: muted }, { v: 'B — 260 left', tone: warn }, { v: 'C — done, slot idle', tone: muted }, { v: 'D — done, slot idle', tone: muted }]
+  - caption: '**Continuous batching** (vLLM, TGI and others): as soon as a request finishes, a waiting request takes its slot at the next step. The GPU stays full; throughput rises several times.'
+    panels:
+      - kind: rows
+        label: Step 40
+        items: [{ v: 'E — new', tone: ok }, 'B — 260 left', { v: 'F — new', tone: ok }, { v: 'G — new', tone: ok }]
+  - caption: 'The limit is GPU memory for the **KV cache** — the stored attention state of every token of every active request. Paged allocation of that cache (PagedAttention) avoids fragmentation so more requests fit.'
+    panels:
+      - kind: kv
+        label: GPU memory
+        pairs: [['model weights', 'fixed'], ['KV cache', { v: 'grows with tokens × active requests', tone: warn }]]

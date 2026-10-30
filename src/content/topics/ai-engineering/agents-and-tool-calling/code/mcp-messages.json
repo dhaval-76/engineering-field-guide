@@ -1,0 +1,48 @@
+[
+  {
+    "jsonrpc": "2.0",
+    "id": 1,
+    "method": "tools/list",
+    "params": {
+      "_meta": { "io.modelcontextprotocol/protocolVersion": "2026-07-28" }
+    }
+  },
+  {
+    "jsonrpc": "2.0",
+    "id": 1,
+    "result": {
+      "resultType": "complete",
+      "tools": [
+        {
+          "name": "get_order",
+          "description": "Look up an order by id for the signed-in customer. Returns status, items and delivery estimate.",
+          "inputSchema": {
+            "type": "object",
+            "properties": { "orderId": { "type": "string", "description": "e.g. A-1001" } },
+            "required": ["orderId"]
+          },
+          "annotations": { "readOnlyHint": true }
+        }
+      ]
+    }
+  },
+  {
+    "jsonrpc": "2.0",
+    "id": 2,
+    "method": "tools/call",
+    "params": {
+      "name": "get_order",
+      "arguments": { "orderId": "A-1001" },
+      "_meta": { "io.modelcontextprotocol/protocolVersion": "2026-07-28" }
+    }
+  },
+  {
+    "jsonrpc": "2.0",
+    "id": 2,
+    "result": {
+      "resultType": "complete",
+      "content": [{ "type": "text", "text": "A-1001: shipped, 2 items, arriving Thursday" }],
+      "isError": false
+    }
+  }
+]

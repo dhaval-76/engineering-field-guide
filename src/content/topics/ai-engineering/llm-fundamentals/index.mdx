@@ -1,0 +1,125 @@
+---
+title: LLM Fundamentals for Backend Engineers
+summary: What a backend engineer needs to know to call LLMs well — tokens, context windows, next-token sampling, prompts and structured output, streaming, latency and cost, and why models hallucinate.
+track: ai-engineering
+order: 10
+tags: [ai-engineering, llm, prompting, api]
+aliases: [large language model, llm, gpt, claude, transformer, token, tokenizer, context window, temperature, top p, sampling, system prompt, few shot, prompt engineering, structured output, json mode, streaming, time to first token, ttft, tokens per second, hallucination, prompt caching, fine tuning, prompt injection]
+prerequisites: [backend/rest-api-design]
+related: [ai-engineering/rag, ai-engineering/llm-system-design, backend/idempotency]
+quickRef:
+  points:
+    - 'An LLM predicts the **next token** (≈ ¾ of an English word) again and again; everything it "knows" is in its weights plus the **context window** you send.'
+    - '**Temperature** reshapes the next-token probabilities: low → focused and repeatable, high → varied. Not a correctness dial.'
+    - 'Treat a model call like a slow, flaky, metered remote API: **timeouts, retries with backoff, streaming, budgets**.'
+    - '**Cost and latency scale with tokens** — input tokens are cheaper than output tokens; output length dominates latency.'
+    - 'Ask for **structured output** (JSON schema / tool call) and **validate** it like any untrusted input.'
+    - 'Models **hallucinate** fluent, wrong answers — ground them with retrieved data (RAG) and check outputs.'
+  useWhen: Adding any LLM-powered feature, or answering "how do LLMs work" in an interview.
+lastReviewed: 2026-10-30
+---
+
+## Why it matters
+
+Most backend roles now involve some LLM integration: summarising tickets, extracting fields from documents, chat over company data, code assistants. You don't need to train models, but you do need to know what the API is doing — or you'll ship features that are slow, expensive, non-deterministic in surprising ways, and confidently wrong.
+
+<Callout type="analogy">
+An LLM is an extremely well-read autocomplete. It has read a large part of the internet and books, and given text so far it predicts what comes next — one small piece at a time. It doesn't look things up unless you hand it the material; it answers from patterns it learned, which is why it can be fluent and wrong.
+</Callout>
+
+## Tokens and the context window
+
+- Text is split into **tokens** by a tokenizer — common words are one token, rare words several; in English ~1 token ≈ 4 characters ≈ ¾ of a word. Code and non-English text use more tokens per word.
+- The **context window** is the maximum tokens per call — system prompt + conversation + retrieved documents + the answer. Modern models offer hundreds of thousands of tokens, but long contexts cost more, are slower, and models attend less reliably to material buried in the middle.
+- The model is **stateless**: a "chat" is your application resending the whole conversation each turn. Memory is your job (trim, summarise, or retrieve history).
+
+## How generation works
+
+<Walkthrough id="next-token" />
+
+The model is a **transformer**: it turns tokens into vectors, mixes information between positions with attention, and outputs a score (logit) for every token in its vocabulary. Softmax turns scores into probabilities, a **sampler** picks one, appends it, and repeats until a stop token or `max_tokens`.
+
+| Setting | What it does | Typical use |
+|---|---|---|
+| `temperature` | Divides logits before softmax: < 1 sharpens, > 1 flattens | 0–0.3 extraction/classification; 0.7–1 drafting |
+| `top_p` | Sample only from the smallest set of tokens whose probabilities sum to p | Usually tune temperature *or* top_p, not both |
+| `max_tokens` | Hard cap on output length | Always set — bounds cost and latency |
+| `stop` sequences | End generation when a string appears | Delimited formats |
+
+Even at temperature 0, outputs aren't guaranteed identical across calls (batching and floating-point effects, model updates). Design for **variation**: validate, don't string-compare.
+
+## Prompts
+
+<Steps>
+
+1. **System prompt** — role, rules and output format; stable across requests (and cacheable).
+2. **Context** — the data the answer must be based on (retrieved documents, the user's record), clearly delimited.
+3. **Examples (few-shot)** — two or three input → output pairs teach format and edge cases better than paragraphs of rules.
+4. **The task** — specific, with what to do when information is missing ("say you don't know").
+5. **Output contract** — a JSON schema or tool definition the response must satisfy.
+
+</Steps>
+
+## Calling a model from a service
+
+<CodeTabs id="llm-call" title="A model call with a timeout, retries on 429/5xx, a token cap, and validated JSON output" />
+
+Production concerns, same as any remote dependency:
+
+- **Timeouts and retries** — retry 429 and 5xx with exponential backoff and jitter, honour `retry-after`; never retry 400s. Put a circuit breaker in front ([Resilience patterns](../../architecture/resilience-patterns/)).
+- **Streaming** — send tokens to the user as they arrive (server-sent events); **time to first token** is what users perceive.
+- **Structured output** — use the provider's JSON-schema / tool-calling mode where available, then validate anyway; on failure, retry once with the validation error in the prompt.
+- **Rate limits** are in requests *and* tokens per minute; queue and shed load accordingly.
+- **Logging** — record prompt version, model, token counts, latency and outcome (with personal data redacted) so you can debug and track cost.
+
+## Latency and cost
+
+<Chart
+  type="bar"
+  title="Where the time goes in a typical chat answer (illustrative)"
+  unit=" ms"
+  bars={[
+    ['Network, queueing', 150, 'muted'],
+    ['Read 3,000-token prompt', 300, 'info'],
+    ['Write 400 tokens (~60/s)', 6700, 'warn'],
+  ]}
+  caption="Output tokens are generated one at a time, so answer length dominates latency. Input is processed in parallel and is much faster per token."
+/>
+
+- Pricing is per million tokens, with **output priced several times higher than input**. Cost per request ≈ input tokens × input price + output tokens × output price.
+- Levers: shorter prompts and outputs, **prompt caching** (providers discount a repeated prompt prefix — put stable content first), smaller models for easy tasks, batch APIs for offline work, and caching whole answers for repeated questions.
+
+## Hallucinations and safety
+
+- The model generates *plausible* text; when it lacks the facts it still produces an answer. Mitigate with grounding (pass the source data — [RAG](../rag/)), instructions to cite or abstain, and checks on the output.
+- **Prompt injection**: text from users, documents or web pages can contain instructions ("ignore previous rules…"). Treat all model input from untrusted sources as data, keep secrets out of prompts, and enforce permissions in code — never rely on the prompt to protect data.
+- Don't send data to a provider that your contracts or regulations don't allow; check retention terms.
+
+## Fine-tuning vs prompting vs retrieval
+
+| Need | Reach for |
+|---|---|
+| Model must know your private or changing data | Retrieval (RAG) |
+| Specific output style or format, consistent behaviour | Better prompts + examples; fine-tune only if that fails |
+| Lower cost/latency on a narrow, high-volume task | Smaller model, possibly fine-tuned or distilled |
+| Take actions (look up order, create ticket) | Tool calling ([LLM system design](../llm-system-design/)) |
+
+<Pitfalls>
+
+- **No `max_tokens` or timeout** — a runaway answer burns money and threads.
+- **Parsing free text with regexes** instead of asking for structured output and validating it.
+- **Exact-match tests** on model output — test properties and use evaluation sets instead.
+- **Stuffing everything into the context** — more tokens, slower, often worse answers.
+- **Trusting the prompt for security** — permissions belong in code.
+- **Logging raw prompts with personal data.**
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- LLMs predict tokens from weights plus context; they are stateless and probabilistic.
+- Tokens drive context limits, latency and cost — output tokens most of all.
+- Wrap calls like any remote API: timeouts, retries, streaming, budgets, logging.
+- Validate structured output; ground answers; never rely on prompts for security.
+
+</KeyTakeaways>

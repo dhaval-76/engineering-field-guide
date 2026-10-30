@@ -1,0 +1,100 @@
+---
+title: Agents, Tool Calling and MCP
+summary: How LLMs take actions — tool (function) calling, the agent loop, workflows vs agents, the Model Context Protocol, and making it safe with authorization in code, confirmations, budgets and evaluation.
+track: ai-engineering
+order: 30
+tags: [ai-engineering, agents, tool-calling, mcp, security]
+aliases: [ai agent, agents, agentic, tool calling, tool use, function calling, react agent, agent loop, planning, multi agent, orchestrator worker, model context protocol, mcp, mcp server, mcp client, mcp host, json rpc, stdio transport, streamable http, tools resources prompts, human in the loop, prompt injection, excessive agency, least privilege, agent evaluation]
+prerequisites: [ai-engineering/llm-fundamentals]
+related: [ai-engineering/rag, ai-engineering/llm-system-design, backend/idempotency, backend/authn-authz]
+quickRef:
+  points:
+    - '**Tool calling**: you describe tools (name, description, JSON schema); the model returns a structured call; **your code** runs it and returns the result.'
+    - 'An **agent** is that loop repeated: model → tool calls → results → model … until it answers or hits a **step/cost budget**.'
+    - 'Prefer a **fixed workflow** when the steps are known; use an agent when the path depends on what it finds.'
+    - '**MCP** standardises how apps expose tools, resources and prompts to models: JSON-RPC over stdio (local) or Streamable HTTP (remote, OAuth).'
+    - 'Security lives in code: **authorize every tool call** as the user, least-privilege tools, confirmation for writes, treat tool output as untrusted.'
+  useWhen: Letting an LLM look things up or take actions, building on MCP, or "design an AI agent" interview questions.
+lastReviewed: 2026-10-30
+---
+
+## Why it matters
+
+A model that can only produce text can answer from what you give it; a model that can call tools can look up an order, query a database, open a ticket or run tests. That's what turns a chatbot into an assistant — and what turns a prompt-injection bug into a data breach. Backend engineers own the tools, so they own the safety.
+
+<Callout type="analogy">
+A capable new intern with a phone. They can't touch any system directly; they ask you "please run *get order A-1001*", you check they're allowed, run it, and read back the result. The better your list of what they may ask for — and your checks before doing it — the more useful and less dangerous they are.
+</Callout>
+
+## Tool calling
+
+<Walkthrough id="tool-loop" />
+
+- A tool definition is **name + description + JSON schema** for its arguments. The description is a prompt: say what the tool does, when to use it, and what it returns.
+- The model's reply contains structured tool calls (possibly several in parallel). Validate arguments against the schema — models do produce wrong ids and types.
+- Send results back tied to the call id. Return **errors as results** ("order not found") so the model can recover, rather than throwing away the turn.
+- Keep tool results small and relevant: they consume context tokens on every following step.
+
+## The agent loop
+
+<CodeTabs id="agent-loop" title="A minimal agent loop: model ↔ tools, authorization in code, errors fed back, and a step budget" />
+
+## Workflows vs agents
+
+| | Workflow (code decides the steps) | Agent (model decides the steps) |
+|---|---|---|
+| Shape | Fixed pipeline: classify → retrieve → draft → validate | Loop: model picks the next tool from what it learns |
+| Predictability, cost, latency | High, bounded | Variable; needs budgets |
+| Best for | Known processes (ticket triage, document extraction) | Open-ended tasks (investigate a bug, research a question) |
+| Testing | Like normal code | Evaluate trajectories and outcomes on task sets |
+
+Start with the simplest thing: one model call, then a workflow, and only then an agent. Common middle grounds: **routing** (a model picks which workflow), **orchestrator–workers** (a planner splits work across sub-agents with smaller contexts), and **evaluator–optimiser** (one call drafts, another critiques).
+
+## The Model Context Protocol (MCP)
+
+<Diagram id="mcp-architecture" caption="A host application runs one MCP client per server. Local servers run as subprocesses over stdio; remote servers use Streamable HTTP with OAuth." />
+
+MCP is an open protocol for connecting LLM applications to tools and data, so a tool written once works in any MCP-capable host (IDEs, chat apps, agent frameworks).
+
+- **Servers** expose **tools** (actions the model can call), **resources** (readable data such as files or records) and **prompts** (reusable templates).
+- Messages are **JSON-RPC 2.0**. Transports: **stdio** for local servers launched as subprocesses, and **Streamable HTTP** for remote servers, secured with OAuth.
+- The **2026-07-28** revision made the protocol **stateless**: no initialisation handshake or sessions — each request carries its protocol version and capabilities in `_meta`, which makes remote servers easy to load-balance like any HTTP API. Older SDKs may still speak 2025-11-25; check what your host supports.
+
+<CodeTabs id="mcp-messages" title="MCP over JSON-RPC: list tools, then call one" />
+
+Building an MCP server for your service is like building any API: authenticate the caller, authorize per user, validate inputs, rate-limit, log, and design small, well-described tools rather than exposing your whole REST surface.
+
+## Safety
+
+| Risk | Defence |
+|---|---|
+| Prompt injection via documents, emails, web pages or tool output | Treat all such text as data; restrict which tools are available when untrusted content is in context |
+| Excessive agency | Least-privilege tools (read-only by default, narrow scopes), separate credentials per tool |
+| Acting as the wrong user | Run tools with the **end user's** identity and permissions, checked in code on every call |
+| Destructive or costly actions | Human confirmation for writes, payments and messages; dry-run modes; **idempotency keys** on writes ([Idempotency](../../backend/idempotency/)) |
+| Runaway loops | Step, token, time and cost budgets; stop and report |
+| Data exfiltration | Don't give the same agent private data *and* an unrestricted way to send data out (open web fetch, email) |
+
+## Evaluating agents
+
+Measure on a set of realistic tasks: **task success** (did the order get the right status?), **trajectory quality** (unnecessary or unsafe tool calls), steps, tokens, latency and cost per task. Replay recorded tool responses for deterministic tests; use sandboxes for tools with side effects.
+
+<Pitfalls>
+
+- **Authorizing in the prompt** ("only access the user's own orders") instead of in the tool.
+- **Huge, vague tool lists** — the model picks the wrong tool; fewer, well-described tools work better.
+- **No budget** — an agent loops on an error until it runs out of money.
+- **Dumping raw API responses** into the context — noisy and expensive.
+- **Agents where a workflow would do** — slower, costlier, harder to test.
+- **Non-idempotent writes** that the agent may retry.
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- The model proposes tool calls; your code validates, authorizes and executes them.
+- An agent is a budgeted loop; prefer workflows when steps are known.
+- MCP is the standard way to expose tools and data to LLM apps; now stateless over HTTP.
+- Least privilege, user-scoped authorization, confirmations and idempotency make agents safe.
+
+</KeyTakeaways>

@@ -1,0 +1,26 @@
+title: One question, two tool calls
+frames:
+  - caption: 'The app sends the user''s message **plus tool definitions** — name, description, JSON schema for arguments. The model never runs anything itself.'
+    panels:
+      - kind: rows
+        label: Request
+        items: ['user: "Where is my order A-1001, and can you cancel it?"', { v: 'tools: get_order, cancel_order', tone: info }]
+  - caption: 'The model replies with a **tool call** instead of text: name + arguments. The application validates the arguments and checks that this user may read this order.'
+    panels:
+      - kind: kv
+        label: Model reply
+        pairs: [[tool, get_order], [args, '{"orderId": "A-1001"}'], [authz, { v: 'owner ✓', tone: ok }]]
+  - caption: 'The app runs the tool and sends the result back as a **tool result** message. The model now knows the order has shipped.'
+    panels:
+      - kind: kv
+        label: Tool result
+        pairs: [[status, shipped], [eta, Thursday]]
+  - caption: 'The model asks for `cancel_order`. It changes data, so the app does not just run it: shipped orders can''t be cancelled (a rule enforced in code), and risky actions need the user''s confirmation anyway.'
+    panels:
+      - kind: kv
+        label: Model reply
+        pairs: [[tool, cancel_order], [result, { v: 'error: already shipped', tone: bad }]]
+  - caption: 'With no more tool calls, the model writes the final answer from the tool results. The loop has a step limit so a confused model can''t call tools forever.'
+    panels:
+      - kind: note
+        text: '"A-1001 shipped and arrives Thursday, so it can''t be cancelled — you can return it after delivery."'

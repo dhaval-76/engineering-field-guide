@@ -1,0 +1,41 @@
+questions:
+  - q: 'Your LLM-powered ticket classifier returns slightly different answers for the same input, and sometimes invalid JSON. How do you make it reliable?'
+    think: Where does the randomness come from, and what do you control?
+    answer: |
+      Lower **temperature** (0–0.2) for classification, and keep the prompt stable (versioned). Use the provider's **structured output / tool-calling** mode with a JSON schema, then **validate** the result in code (enum values, lengths); on failure retry once with the validation error, then fall back (e.g. "other" + human review). Few-shot examples covering edge cases improve consistency. Accept that outputs can still vary — measure accuracy against a labelled **evaluation set** rather than expecting identical strings, and pin the model version so upgrades are deliberate.
+  - q: 'A chat feature costs far more than expected and answers take 8–10 seconds. Where do you look?'
+    think: What scales with tokens?
+    answer: |
+      Look at token counts per request. Long conversations are resent every turn, so input grows each message — trim or summarise history. Retrieved context may be too large — retrieve fewer, better chunks. Output length dominates latency — cap `max_tokens` and ask for concise answers. Then: **stream** so the first token appears quickly; enable **prompt caching** for the stable system prompt prefix; route easy requests to a smaller model; cache answers to frequent questions. Track cost and latency per feature from logged usage.
+followUps:
+  - q: What is a token and why should a backend engineer care?
+    intuition: It's the unit of everything — limits, speed, money.
+    approach: |
+      A token is a word piece from the model's tokenizer (~4 characters of English). Context limits, rate limits, latency and price are all in tokens. Output tokens are generated sequentially, so they drive latency and are priced higher than input. Estimating tokens per request lets you budget cost and choose models.
+  - q: What does temperature do?
+    intuition: Sharpen or flatten the next-token distribution.
+    approach: |
+      Logits are divided by the temperature before softmax. Below 1 the most likely tokens dominate (focused, repeatable); above 1 the distribution flattens (more varied, more errors). It controls randomness, not correctness — a model that doesn't know a fact won't learn it at temperature 0.
+  - q: Why do LLMs hallucinate and how do you reduce it?
+    intuition: Plausible continuation, not lookup.
+    approach: |
+      The model generates likely-sounding text from learned patterns; with no grounding it fills gaps with plausible fiction. Reduce it by supplying source material (RAG), instructing it to answer only from that material and to say when it doesn't know, asking for citations you can verify, using lower temperature for factual tasks, and checking outputs (validators, a second model as judge, or human review for high-stakes cases).
+  - q: What is prompt injection?
+    intuition: Data that pretends to be instructions.
+    approach: |
+      Untrusted text in the context (a user message, an email, a web page) contains instructions that the model follows — e.g. to reveal the system prompt or call a tool with attacker-chosen arguments. Defences are layered: delimit and label untrusted content, give the model minimal tools and permissions, enforce authorization in code on every tool call, require confirmation for risky actions, and filter outputs. No prompt wording fully prevents it.
+practice:
+  - task: Write a service method that classifies support tickets with an LLM and returns a typed result, robust to rate limits and bad output.
+    hint: max_tokens, temperature 0, delimited input, retry on 429/5xx with backoff, parse and validate JSON.
+    solution: |
+      Build a request with a system prompt that defines the JSON shape, the ticket text inside delimiters, `temperature: 0` and a small `max_tokens`. Send with a request timeout; retry 429 and 5xx with exponential backoff and jitter (honour `retry-after`), but fail fast on other 4xx. Parse the text as JSON into a typed record and validate enum fields; on failure retry once with the error, then fall back. Log model, token usage and latency.
+    solutionCode: llm-call
+quiz:
+  - q: Which mostly determines the latency of a long LLM answer?
+    options: [The number of input tokens, The number of output tokens, The temperature, The size of the system prompt]
+    correct: 1
+    why: Output tokens are generated one forward pass at a time; input is processed in parallel.
+  - q: 'You need the model to answer questions about internal documents that change weekly. Best first approach?'
+    options: [Fine-tune every week, Retrieval-augmented generation, Raise the temperature, Use a bigger context window and paste everything]
+    correct: 1
+    why: RAG fetches current, relevant documents per question without retraining.

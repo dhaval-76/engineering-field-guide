@@ -1,0 +1,12 @@
+flowchart TD
+  DOC[Ingest: docs · tickets · wiki · PDFs] --> P[Parse + clean<br/>keep title, section, ACL]
+  P --> C[Chunk ~300–800 tokens<br/>with overlap]
+  C --> E1[Embed chunks]
+  E1 --> DB[(Vector + keyword index<br/>pgvector · OpenSearch · vector DB)]
+  Q[Query: user question] --> E2[Embed question]
+  DB --> R[Hybrid retrieve top 50<br/>vector + BM25<br/>filtered by tenant / ACL]
+  E2 --> R
+  R --> RR[Rerank → top 5]
+  RR --> PR[Prompt: instructions +<br/>chunks with ids + question]
+  PR --> LLM[LLM]
+  LLM --> A[Answer with citations]

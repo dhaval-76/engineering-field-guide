@@ -1,0 +1,41 @@
+questions:
+  - q: Design an internal LLM platform that 50 product teams can use to add AI features.
+    think: What should every team get for free, and what must be enforced centrally?
+    answer: |
+      A shared **LLM gateway** with one API (chat, embeddings, structured output, streaming) over several providers and self-hosted models. Central concerns: authentication per team/service, **token budgets** and rate limits per team and per end-user, allowed models per data classification, personal-data redaction, provider fallback with circuit breakers, caching (exact and provider prompt caching), and usage events for **chargeback**. Add a prompt/template registry with versions, a shared RAG service (ingestion connectors, vector + keyword index with ACL filtering), an evaluation service (datasets, judges, CI integration) and tracing. Teams own their prompts and evals; the platform owns safety, cost and reliability. Scale the gateway horizontally (stateless; budgets in Redis), stream through it, and make it observable per team.
+  - q: 'Your assistant''s p95 latency is 14 s and users complain. What do you do?'
+    think: Break the request into stages and measure each.
+    answer: |
+      Trace the stages: retrieval, reranking, tool calls, and model time split into time to first token and generation. Fixes by cause: stream the answer so the first token appears in ~1 s; cut output length (concise style, `max_tokens`); trim history and retrieved context (fewer, better chunks); run independent tool calls and retrieval in parallel; use a smaller/faster model for routing and simple turns; enable prompt caching for the stable prefix; cache frequent answers; check the provider's latency and fall back if it's degraded.
+followUps:
+  - q: Why rate-limit by tokens instead of requests?
+    intuition: One request can cost 100× another.
+    approach: |
+      Cost, provider limits and GPU load are all proportional to tokens. A request with 100 k tokens of context and a long answer costs far more than a short classification. Reserve an estimate before the call (input + max output), reconcile with actual usage afterwards, and enforce per-tenant and per-user budgets per minute and per month.
+  - q: What limits throughput when self-hosting a model?
+    intuition: GPU memory.
+    approach: |
+      Weights take a fixed share of GPU memory; the rest holds the KV cache for active requests, which grows with context length and concurrency. Continuous batching keeps the GPU busy by swapping finished requests for waiting ones every step; paged KV-cache allocation reduces waste; quantization shrinks weights. Throughput is then bounded by memory bandwidth and batch size; latency per token rises as batches grow, so tune for your latency target.
+  - q: When is a semantic cache safe?
+    intuition: Same meaning, same answer — for everyone?
+    approach: |
+      Only when the answer depends on the question alone — public FAQ-style content, the same permissions, no personal data — and a near-miss is acceptable. Use a high similarity threshold, include tenant and permission scope in the key, set a TTL tied to content updates, and measure wrong-hit rate. For personalised or permissioned answers, prefer exact caching of intermediate steps (embeddings, retrieval results) instead.
+  - q: How do you evaluate an LLM feature before and after release?
+    intuition: Tests for non-deterministic output.
+    approach: |
+      Before: a dataset of representative and edge-case inputs with references or rubrics; automatic checks (schema, citations, exact fields) plus LLM-as-judge scores calibrated against human labels; run in CI on every prompt/model/retrieval change and compare against the baseline. After: sample traces for review, collect user feedback, track task success metrics, A/B test changes, and add every production failure to the dataset.
+practice:
+  - task: Implement the core of an LLM gateway — per-tenant token budgets per minute and a provider fallback chain.
+    hint: Reserve an estimate before calling; reconcile with actual usage; refund if every provider fails.
+    solution: |
+      Estimate tokens as input length / 4 + max output tokens and reserve them in the tenant's current-minute bucket, rejecting with 429 if it would exceed the limit. Try providers in order with a timeout, collecting errors. On success adjust the bucket by actual − estimate and return; if all fail, refund the estimate and raise. In production the buckets live in Redis (atomic Lua script) so all gateway instances share them.
+    solutionCode: llm-gateway
+quiz:
+  - q: What usually limits concurrent requests on a self-hosted LLM server?
+    options: [CPU cores, GPU memory for weights and the KV cache, Disk speed, Network bandwidth]
+    correct: 1
+    why: Each active request's KV cache occupies GPU memory alongside the weights.
+  - q: Which technique improves perceived latency the most for a chat answer?
+    options: [Streaming tokens as they are generated, A larger model, Higher temperature, More retrieved chunks]
+    correct: 0
+    why: Users see the first words within about a second instead of waiting for the full answer.

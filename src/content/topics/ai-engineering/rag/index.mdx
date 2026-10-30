@@ -1,0 +1,124 @@
+---
+title: RAG, Embeddings and Vector Search
+summary: Retrieval-augmented generation end to end — chunking, embeddings, vector indexes (HNSW, IVF, pgvector), hybrid search and reranking, permissions, freshness, evaluation, and debugging wrong answers.
+track: ai-engineering
+order: 20
+tags: [ai-engineering, rag, embeddings, vector-database, search]
+aliases: [retrieval augmented generation, rag, embeddings, embedding model, vector database, vector db, vector search, semantic search, cosine similarity, ann, approximate nearest neighbour, hnsw, ivfflat, pgvector, pinecone, weaviate, qdrant, milvus, opensearch knn, chunking, chunk overlap, hybrid search, bm25, reciprocal rank fusion, rrf, reranker, cross encoder, grounding, citations, rag evaluation, faithfulness, recall at k]
+prerequisites: [ai-engineering/llm-fundamentals]
+related: [system-design/search-engine, databases/indexing, ai-engineering/llm-system-design]
+quickRef:
+  points:
+    - '**RAG** = retrieve relevant passages from your data, put them in the prompt, and have the model answer only from them, with citations.'
+    - '**Embeddings** map text to vectors so that similar meaning ⇒ nearby vectors (cosine similarity).'
+    - 'Vector indexes are **approximate** (HNSW is the usual default) — tune recall vs latency (`ef_search`).'
+    - '**Hybrid search** (vector + keyword/BM25) plus a **reranker** beats either alone; exact terms like error codes need keywords.'
+    - 'Enforce **permissions in the retrieval filter**, keep the index **fresh**, and **evaluate retrieval and answers separately**.'
+  useWhen: 'Chat over docs, support assistants, internal search, "design a RAG system", or "the answer is wrong — debug it".'
+lastReviewed: 2026-10-30
+---
+
+## Why it matters
+
+An LLM knows nothing about your company's policies, tickets or code, and what it knows about the world is frozen at training time. Retrieval-augmented generation fixes that without retraining: fetch the relevant facts at question time and make the model answer from them. It is the most common LLM architecture in production, and "design a RAG system" is now a standard interview question.
+
+<Callout type="analogy">
+An open-book exam. The student (the model) is articulate but shouldn't answer from memory; a librarian (retrieval) finds the right pages and hands them over, and the student must quote the pages they used. If the librarian brings the wrong pages, even a brilliant student answers badly — most RAG failures are retrieval failures.
+</Callout>
+
+## The pipeline
+
+<Diagram id="rag-pipeline" caption="Left: ingest turns documents into searchable chunks, offline and on every change. Right: each question is embedded, retrieved (with permission filters), reranked and answered from the best chunks, with citations." />
+
+<Walkthrough id="rag-query" />
+
+## Embeddings and similarity
+
+An embedding model turns a text into a fixed-length vector (hundreds to a few thousand numbers). Texts with similar meaning land near each other, so "return window" and "refund period" match without sharing words. Similarity is usually **cosine similarity** (angle between vectors). Rules:
+
+- Use the **same embedding model** for documents and queries; changing models means re-embedding everything — store the model name with each vector.
+- Embeddings capture meaning, not exact identifiers: product codes, error numbers and names often need **keyword search**.
+
+## Chunking
+
+| Strategy | Good for | Watch out for |
+|---|---|---|
+| Fixed size with overlap (e.g. 500 tokens, 50 overlap) | Simple baseline | Cuts sentences and tables mid-way |
+| Structure-aware (headings, paragraphs, code blocks) | Docs, wikis, markdown | Very uneven sizes |
+| Small chunks for search, return the parent section | Precise retrieval with enough context | More bookkeeping |
+| Per-record (one ticket, one FAQ entry) | Naturally small items | — |
+
+Prepend the document title and section heading to each chunk before embedding — it gives short chunks context.
+
+<CodeTabs id="rag-chunk" title="Paragraph-aware chunking with overlap" />
+
+## Vector indexes
+
+Exact nearest-neighbour search compares the query with every vector — fine for tens of thousands, too slow for millions. **Approximate** (ANN) indexes trade a little recall for speed:
+
+| Index | Idea | Trade-off |
+|---|---|---|
+| Flat (brute force) | Compare with all | Exact; O(n) per query |
+| **HNSW** | Multi-layer graph; greedy walk toward the query | Fast, high recall; more memory, slower builds. pgvector defaults `m = 16`, `ef_construction = 64`, `ef_search = 40` |
+| IVF (IVFFlat) | Cluster vectors; search only the nearest `probes` clusters | Faster builds, less memory; recall drops if data drifts from the clusters |
+| Product quantization | Compress vectors | Much less memory; lower accuracy |
+
+**Where to store vectors**: start with what you run — **pgvector** in PostgreSQL, OpenSearch/Elasticsearch k-NN — so metadata filters, transactions and backups come free. Move to a dedicated vector database (Qdrant, Weaviate, Milvus, Pinecone…) when scale, filtering performance or operations demand it.
+
+<CodeTabs id="rag-schema" title="pgvector: schema, HNSW and keyword indexes, filtered searches" />
+
+## Retrieval quality: hybrid search and reranking
+
+<Steps>
+
+1. **Retrieve wide** — top ~50 from vector search and top ~50 from keyword (BM25) search, both **filtered** by tenant and access rights.
+2. **Fuse** — reciprocal rank fusion (RRF) merges the lists without comparing incompatible scores.
+3. **Rerank** — a cross-encoder reranker reads each (question, chunk) pair and scores relevance precisely; keep the top 3–8.
+4. **Prompt** — chunks with ids, instructions to answer only from them, cite ids, and abstain when the answer isn't there.
+
+</Steps>
+
+<CodeTabs id="rag-fuse" title="Reciprocal rank fusion and a grounded prompt with citations" />
+
+Other techniques when basic retrieval falls short: rewrite the query (resolve "it" from conversation history, expand acronyms), split multi-part questions, filter by metadata (product, date), and add a recency boost.
+
+## Production concerns
+
+- **Permissions** — copy document ACLs onto chunks and filter in the query. Never retrieve everything and ask the model to hide what the user mustn't see.
+- **Freshness** — re-index on change events (CDC, webhooks) rather than nightly; delete chunks when documents are deleted; version documents to avoid citing outdated policies.
+- **Multi-tenancy** — a tenant filter on every query, or a separate index per large tenant ([Multi-tenant schemas](../../databases/multi-tenant-schema/)).
+- **Latency budget** — embedding the query ~20–50 ms, retrieval ~10–50 ms, reranking ~50–200 ms; generation dominates. Cache embeddings and frequent answers.
+- **Cost** — embedding is cheap per document but re-embedding a large corpus after a model change is a project; plan for it.
+
+## Evaluation and debugging
+
+Evaluate the two halves separately, on a set of real questions with known good sources:
+
+| Stage | Metric | Question it answers |
+|---|---|---|
+| Retrieval | Recall@k, MRR | Was the right chunk in the top k, and how high? |
+| Generation | Faithfulness / groundedness | Is every claim supported by the retrieved chunks? |
+| Generation | Answer relevance / correctness | Does it answer the question (vs a reference answer)? |
+| End to end | User feedback, escalation rate | Is it actually helping? |
+
+**Debugging a wrong answer**: (1) Was the right document indexed, current and visible to this user? (2) Was it retrieved in the top 50 — if not, chunking, embedding or query wording is the problem; check keyword search. (3) Did it survive reranking into the prompt? (4) Was it in the prompt but ignored or contradicted — then fix the prompt, reduce noise, or use a stronger model. Logging the retrieved chunk ids per answer makes this a five-minute investigation.
+
+<Pitfalls>
+
+- **Filtering permissions after retrieval** — or in the prompt — leaks data.
+- **Only vector search** — misses exact identifiers and rare terms.
+- **Too many chunks in the prompt** — more cost, slower, and the answer gets worse.
+- **No evaluation set** — every prompt or chunking change becomes a guess.
+- **Stale or deleted documents still in the index.**
+- **Mixing embedding models** in one index.
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- RAG = retrieve, then generate from what was retrieved, with citations.
+- Retrieval quality decides answer quality: hybrid search + reranking + good chunking.
+- HNSW is the default ANN index; pgvector is a good start.
+- Enforce permissions in the query, keep the index fresh, and evaluate retrieval and generation separately.
+
+</KeyTakeaways>

@@ -1,0 +1,40 @@
+questions:
+  - q: Design an AI agent that can answer customer questions about their orders and perform simple actions like changing the delivery address.
+    think: Which tools, whose permissions, and what can go wrong?
+    answer: |
+      **Tools**: `get_order(orderId)`, `list_recent_orders()`, `change_delivery_address(orderId, address)`, `create_support_ticket(summary)` — small, well-described, with JSON schemas. Each runs with the **signed-in customer's identity**: ownership checks in the tool, not in the prompt. Writes validate business rules (address changes only before dispatch), use **idempotency keys**, and require **explicit user confirmation** (the agent proposes; the UI confirms).
+      **Loop**: orchestrator with a step limit (~8), token/time budget, parallel read calls, errors returned as tool results. Retrieval over help articles for policy questions.
+      **Safety**: order notes and emails are untrusted text (injection); no tool can send data to arbitrary destinations; audit-log every tool call.
+      **Quality**: evaluation set of real conversations with expected outcomes and allowed tool sequences; monitor escalation rate, task success, cost per conversation; human hand-off path.
+  - q: What is MCP and why would a company expose its services as MCP servers?
+    think: The integration problem it solves.
+    answer: |
+      The Model Context Protocol is an open standard for connecting LLM applications to tools and data. Without it, every AI app writes custom integrations for every system (N × M). With it, a service exposes one MCP server — tools, resources and prompts over JSON-RPC, via stdio locally or Streamable HTTP remotely with OAuth — and any MCP-capable host (IDE assistants, chat apps, internal agents) can use it. The server is a normal API in security terms: authenticate, authorize per user, validate, rate-limit and audit. Since the 2026-07-28 revision it is stateless, so remote servers scale behind a load balancer like other HTTP services.
+followUps:
+  - q: How does tool calling actually work?
+    intuition: The model emits structured intent; the app executes.
+    approach: |
+      The request includes tool definitions (name, description, JSON schema). The model, trained to use them, may reply with a tool call — a name and JSON arguments — instead of text. The application validates the arguments, checks permissions, runs the function, and sends the result back in a tool-result message referencing the call id. The model continues, possibly calling more tools, until it returns a final answer.
+  - q: When should you not use an agent?
+    intuition: Known steps don't need a planner.
+    approach: |
+      When the process is known and stable — classify, retrieve, draft, validate — a fixed workflow is cheaper, faster, predictable and testable like normal code. Use an agent only when the next step depends on intermediate findings and the task space is open-ended, and then bound it with budgets and evaluations.
+  - q: How do you defend an agent against prompt injection?
+    intuition: Assume some input will contain hostile instructions.
+    approach: |
+      Treat documents, emails, web pages and tool outputs as untrusted data; enforce authorization in every tool as the end user; minimise tool privileges; require human confirmation for consequential actions; avoid combining access to private data with unrestricted outbound channels; restrict tools when untrusted content is in context; log and monitor tool calls for anomalies. No prompt wording is a sufficient defence.
+practice:
+  - task: Implement an agent loop that calls a model, executes requested tools with an authorization check, feeds results (and errors) back, and stops after a step budget.
+    hint: Loop until the model replies without tool calls or the step limit is reached.
+    solution: |
+      Keep a message history starting with the user request. Each step: call the model with history and tool definitions; append its reply; if it has no tool calls, return its text. Otherwise, for each call look up the tool (unknown → error result), run the authorization predicate (denied → error result), execute and catch exceptions (→ error result), and append a tool-result message with the call id. After the step limit, return a "stopped" message instead of looping forever.
+    solutionCode: agent-loop
+quiz:
+  - q: Where must "users can only cancel their own orders" be enforced in an agent?
+    options: [In the system prompt, In the cancel_order tool implementation, In the model's fine-tuning, In the tool description]
+    correct: 1
+    why: Prompts can be bypassed by injection or mistakes; the tool must check permissions in code.
+  - q: Which MCP transport is used for a server launched locally as a subprocess?
+    options: [WebSockets, stdio, gRPC, Streamable HTTP]
+    correct: 1
+    why: Local servers exchange JSON-RPC over the subprocess's standard input and output.

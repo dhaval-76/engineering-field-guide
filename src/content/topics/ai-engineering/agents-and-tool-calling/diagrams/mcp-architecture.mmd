@@ -1,0 +1,7 @@
+flowchart TD
+  LLM[Model] <--> H[Host app: agent loop<br/>IDE · chat app · your service]
+  H --> C1[MCP client]
+  H --> C2[MCP client]
+  C1 -- stdio --> S1[Local MCP server<br/>files · git]
+  C2 -- Streamable HTTP + OAuth --> S2[Remote MCP server<br/>orders API]
+  S2 --> API[(Orders service)]

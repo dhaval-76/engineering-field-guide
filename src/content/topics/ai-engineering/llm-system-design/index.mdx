@@ -1,0 +1,115 @@
+---
+title: 'Design: LLM-Powered Applications'
+summary: System design for LLM features at scale — an LLM gateway with budgets, routing and fallback, streaming, caching, self-hosted serving and batching, guardrails, evaluation, and cost and latency observability.
+track: ai-engineering
+order: 40
+tags: [ai-engineering, system-design, case-study, llm]
+aliases: [llm system design, genai system design, design chatgpt, design an ai assistant, llm gateway, ai gateway, model router, model routing, fallback provider, semantic cache, prompt cache, llm serving, vllm, tgi, continuous batching, kv cache, paged attention, quantization, gpu inference, guardrails, llm evaluation, llm as judge, evals, llm observability, token budget, cost per request]
+prerequisites: [ai-engineering/llm-fundamentals, ai-engineering/rag, system-design/approach-and-estimation]
+related: [ai-engineering/agents-and-tool-calling, system-design/api-gateway, system-design/distributed-rate-limiter, architecture/resilience-patterns]
+quickRef:
+  points:
+    - 'Put an **LLM gateway** between services and models: auth, per-tenant **token budgets**, routing, **fallback**, caching, redaction, usage logging.'
+    - '**Stream** responses (SSE); run long jobs **asynchronously** with a queue.'
+    - '**Route by difficulty**: small/cheap model first for easy tasks, large model when needed.'
+    - 'Self-hosting: GPU memory (weights + **KV cache**) is the constraint; **continuous batching** and quantization drive throughput.'
+    - 'Quality needs **evals**: offline test sets, LLM-as-judge with spot checks, online feedback — rerun on every prompt or model change.'
+  useWhen: '"Design ChatGPT / an AI assistant / an LLM platform for internal teams / a document Q&A product."'
+lastReviewed: 2026-10-30
+---
+
+## Requirements
+
+Example: an AI assistant inside a SaaS product (answers questions over the customer's data, drafts replies, takes simple actions).
+
+**Functional**: chat with history; answers grounded in the tenant's documents with citations; a few actions (create ticket, look up order); streaming responses; feedback (thumbs up/down).
+**Non-functional**: first token < 1.5 s, full answer typically < 10 s; tenant isolation of data; per-tenant cost limits; survive a provider outage; cost per conversation tracked and bounded.
+
+## Estimates
+
+| | |
+|---|---|
+| Traffic | 1 M daily users × 5 messages ≈ 5 M requests/day ≈ 60/s average, ~200/s peak |
+| Tokens | ~2,000 input (system + history + retrieved chunks) + ~300 output per request ⇒ 10 B input + 1.5 B output tokens/day |
+| Output rate | 1.5 B / 86,400 s ≈ 17,000 tokens/s average |
+| Cost | dominated by tokens — trimming history and retrieved context is the biggest lever |
+
+## High-level design
+
+<Diagram id="llm-platform" caption="The assistant API holds sessions; the orchestrator builds prompts with retrieval and tools; every model call goes through a gateway that enforces budgets, routes, falls back, caches and records usage." />
+
+<Steps>
+
+1. **Assistant API** authenticates, loads the conversation, and opens a **server-sent events** stream to the client.
+2. **Orchestrator** selects a prompt template (versioned), retrieves context ([RAG](../rag/)), and runs the tool loop if the model asks for tools ([Agents and tool calling](../agents-and-tool-calling/)).
+3. **LLM gateway** checks the tenant's token budget, picks a model, calls the provider with a timeout, falls back on failure, streams tokens back, and emits a usage event.
+4. **Usage events** feed cost dashboards, per-tenant billing, and a sampled trace store for evaluation.
+
+</Steps>
+
+## The LLM gateway
+
+<CodeTabs id="llm-gateway" title="A gateway core: per-tenant token budget reserved up front, reconciled after, with a provider fallback chain" />
+
+| Responsibility | Why |
+|---|---|
+| Provider abstraction | Swap or mix models without touching callers |
+| Per-tenant **token** rate limits and budgets | Requests per second isn't enough — one request can cost 100× another |
+| Routing | Cheap model for classification/extraction, large model for hard reasoning; A/B new models |
+| Fallback + circuit breaker | Provider outages and 429s happen; degrade to a second provider or smaller model |
+| Caching | Exact-match cache for repeated prompts; provider prompt caching for stable prefixes; semantic cache only where a near-duplicate answer is safe |
+| Redaction and policy | Strip personal data before it leaves; enforce allowed models per data class |
+| Usage logging | Tokens, latency (time to first token, total), model, prompt version, tenant |
+
+## Streaming and long work
+
+- Stream tokens over SSE (or WebSockets if the client also sends mid-stream) — users judge speed by the first token.
+- Generation can take tens of seconds: set generous but finite timeouts at every hop, and make sure load balancers don't cut idle streams.
+- Long jobs (summarise 500 documents) go on a queue with workers and a job status endpoint, not a request thread ([Job scheduler](../../system-design/job-scheduler/)).
+
+## Self-hosting models
+
+Use hosted APIs by default. Self-host when data can't leave, volume makes it cheaper, or a small specialised model is enough.
+
+<Walkthrough id="continuous-batching" />
+
+- **Memory**: weights ≈ parameters × bytes per parameter — an 8 B-parameter model is ~16 GB in 16-bit, ~5 GB in 4-bit; a 70 B model is ~140 GB in 16-bit (multiple GPUs). The **KV cache** grows with context length × concurrent requests.
+- **Throughput**: serving engines (vLLM, TGI, TensorRT-LLM) use continuous batching and paged KV caches; quantization trades a little quality for memory and speed.
+- **Scaling**: autoscale on queue depth and GPU utilisation, not CPU; cold starts (loading weights) take minutes, so keep warm capacity.
+
+## Quality: guardrails and evaluation
+
+- **Input guardrails**: size limits, abuse/moderation checks, prompt-injection heuristics on retrieved and user content.
+- **Output guardrails**: schema validation, moderation, citation checks (cited ids must be among retrieved ones), blocking secrets and personal data.
+- **Offline evals**: a versioned set of real questions with references or rubrics; score with exact checks where possible and an LLM-as-judge (spot-checked by humans) otherwise. Run on every prompt, retrieval or model change — like a test suite.
+- **Online**: thumbs up/down, escalation and retry rates, A/B tests between prompt or model versions.
+
+## Observability
+
+Trace each request across retrieval, every model call and every tool call (OpenTelemetry spans with prompt version, model, tokens and cost as attributes). Dashboards: cost per tenant and feature, p50/p95 time to first token, error and fallback rates, cache hit rate, eval scores over time ([Logging and monitoring](../../system-design/logging-monitoring/)).
+
+## Deep dives interviewers like
+
+- **Provider outage** — circuit breaker opens, traffic shifts to the fallback; quality may drop, so flag degraded answers and alert.
+- **A tenant runs a script that burns the budget** — token-based rate limits per tenant and per user, hard monthly caps, alerts at 80%.
+- **Model upgrade** — run the eval suite, shadow traffic, then a gradual rollout with rollback; pin model versions.
+- **Conversation memory** — keep the last N turns verbatim, summarise older ones, retrieve relevant past messages for very long sessions.
+
+<Pitfalls>
+
+- **Rate limiting by requests only** — token usage varies by orders of magnitude.
+- **No fallback** — a provider incident becomes your outage.
+- **Semantic caching personalised or permissioned answers** — users see each other's data.
+- **Shipping prompt changes without evals.**
+- **Unbounded history and context** — cost and latency creep up every turn.
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- Route every model call through a gateway: budgets, routing, fallback, caching, redaction, usage.
+- Stream for perceived latency; queue long work.
+- Self-hosting is a GPU-memory and batching problem.
+- Treat prompts and models like code: version, evaluate, roll out gradually, observe.
+
+</KeyTakeaways>

@@ -1,0 +1,27 @@
+title: How a model produces its next token
+frames:
+  - caption: 'The prompt is split into **tokens** — word pieces with integer ids. Everything the model sees for this call is this sequence.'
+    panels:
+      - kind: array
+        label: Tokens
+        items: [The, ' cache', ' is', { v: '?', tone: accent, tag: next }]
+  - caption: 'The model scores every token in its vocabulary (tens of thousands). Softmax turns scores into probabilities. Here are the top four after "The cache is".'
+    panels:
+      - kind: kv
+        label: 'temperature = 1.0'
+        pairs: [[' full', '0.53'], [' empty', '0.24'], [' stale', '0.16'], [' warm', '0.07']]
+  - caption: '**Temperature 0.5** divides scores by 0.5 before softmax: the favourite gets more likely, rare options nearly vanish. Use low temperature when you want consistent answers.'
+    panels:
+      - kind: kv
+        label: 'temperature = 0.5'
+        pairs: [[' full', { v: '0.76', tone: ok }], [' empty', '0.15'], [' stale', '0.07'], [' warm', { v: '0.01', tone: muted }]]
+  - caption: '**Temperature 1.5** flattens the distribution: more variety, more risk of odd choices. Temperature changes randomness, not knowledge.'
+    panels:
+      - kind: kv
+        label: 'temperature = 1.5'
+        pairs: [[' full', '0.43'], [' empty', '0.26'], [' stale', '0.20'], [' warm', { v: '0.11', tone: warn }]]
+  - caption: 'The sampler picks one token, appends it, and the whole step repeats for the next token — until a stop token or `max_tokens`. That is why long answers take long: one forward pass per output token.'
+    panels:
+      - kind: array
+        label: Tokens
+        items: [The, ' cache', ' is', { v: ' full', tone: ok }, { v: '?', tone: accent, tag: next }]

@@ -1,0 +1,44 @@
+questions:
+  - q: Design a support assistant that answers customer questions from your help centre, policies and past tickets.
+    think: Ingest, retrieve, generate, evaluate — and who can see what.
+    answer: |
+      **Ingest**: connectors for the help centre, policy docs and resolved tickets; parse, strip boilerplate, chunk by section with titles prepended, embed, and store in pgvector (or OpenSearch) with tenant, ACL, source URL, version and timestamps; update on change events and delete on removal. Redact personal data from tickets before indexing.
+      **Query**: rewrite the question using the conversation, embed it, hybrid-retrieve (vector + BM25) filtered by tenant/visibility, fuse with RRF, rerank to the top ~5, then prompt the model to answer only from those sources, cite them, and hand off to a human when unsure. Stream the answer.
+      **Safety and ops**: permission filtering in the query, prompt-injection defences (ticket text is untrusted), rate limits and budgets, logging of retrieved chunk ids, model and tokens.
+      **Quality**: an evaluation set of real questions with expected sources; measure recall@k and faithfulness before every change; track deflection rate and thumbs-down feedback in production.
+  - q: 'A RAG answer is wrong even though the correct document exists. How do you debug it?'
+    think: Walk the pipeline from the end backwards, or from the start forwards.
+    answer: |
+      Check each stage using logged ids: (1) **Indexing** — is the document there, current, and chunked sensibly (not split mid-table)? Is it visible to this user's ACL? (2) **Retrieval** — is the right chunk in the top 50 for this query? If not, try keyword search (an identifier the embedding misses), query rewriting, better chunk titles, or a different embedding model. (3) **Reranking** — did it make the top k? (4) **Generation** — if it was in the prompt, was it drowned by noisy chunks, contradicted by an outdated one, or ignored? Fix with fewer, better chunks, version filtering, a clearer prompt, or a stronger model. Add the case to the evaluation set.
+followUps:
+  - q: Why use hybrid search instead of only vector search?
+    intuition: Meaning vs exact words.
+    approach: |
+      Embeddings match meaning ("refund period" ≈ "return window") but are weak on exact tokens — error codes, SKUs, names, rare jargon. BM25 keyword search is strong exactly there. Running both and fusing (RRF) improves recall; a reranker then orders the merged list by true relevance.
+  - q: How does HNSW work and what do you tune?
+    intuition: A skip-list-like graph of neighbours.
+    approach: |
+      HNSW builds layered proximity graphs: upper layers have few nodes and long links, lower layers dense local links. A search starts at the top, greedily moves toward the query, and descends, keeping a candidate list of size `ef_search`. Larger `m` (links per node) and `ef_construction` give better graphs at more memory and build time; larger `ef_search` raises recall at the cost of latency — the main runtime dial.
+  - q: How do you handle document permissions in RAG?
+    intuition: Filter before the model sees anything.
+    approach: |
+      Store ACLs (groups, tenant) on each chunk at ingest time and keep them in sync with the source system. Apply them as filters in the retrieval query itself, so unauthorised chunks never enter the prompt. Do not rely on instructing the model to hide content — prompt injection or simple mistakes would leak it.
+  - q: Fine-tuning or RAG for company knowledge?
+    intuition: Knowledge changes; style doesn't.
+    approach: |
+      RAG for facts: it stays current by re-indexing, supports citations and per-user permissions, and needs no training pipeline. Fine-tuning changes behaviour and style or teaches a narrow task cheaply, but bakes in facts that go stale and can't enforce per-user access. They combine: fine-tune for format, RAG for knowledge.
+practice:
+  - task: Implement hybrid retrieval — given vector and keyword result lists, fuse them with reciprocal rank fusion and build a grounded prompt with citable source ids.
+    hint: score(chunk) = Σ 1 / (60 + rank) over the lists it appears in.
+    solution: |
+      Walk each list with its rank, accumulate `1 / (k + rank)` per chunk id (k = 60), keep the first-seen chunk text, sort by score descending and take the top N. Build the prompt with an instruction to answer only from the sources and cite ids, each chunk wrapped in a `<source id="…">` block, then the question.
+    solutionCode: rag-fuse
+quiz:
+  - q: A user searches for error code "E-4012" and vector search returns unrelated results. Best fix?
+    options: [Increase ef_search, Add keyword (BM25) search and fuse the results, Use a larger LLM, Raise the temperature]
+    correct: 1
+    why: Exact identifiers are matched well by keyword search; embeddings capture meaning, not codes.
+  - q: Where should per-user document permissions be enforced in RAG?
+    options: [In the system prompt, In the retrieval query filter, After the answer is generated, In the embedding model]
+    correct: 1
+    why: Filtering at retrieval keeps unauthorised content out of the prompt entirely.

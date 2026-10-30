@@ -1,0 +1,28 @@
+title: Answering one question with RAG
+frames:
+  - caption: 'A user asks: "How many days do customers have to request a refund?" The model alone would guess. We need the policy text.'
+    panels:
+      - kind: note
+        text: 'Question → embed → retrieve → rerank → prompt → answer'
+  - caption: 'The question is **embedded**: turned into a vector (say 1,024 numbers) so that texts with similar meaning end up close together.'
+    panels:
+      - kind: array
+        label: question vector
+        items: ['0.12', '-0.40', '0.07', '…', { v: '1,024 dims', tone: muted }]
+  - caption: '**Hybrid retrieval**: a vector search finds chunks with similar meaning ("return window"), a keyword search finds exact terms ("refund", "REF-30"). Both are filtered to documents this user may see.'
+    panels:
+      - kind: kv
+        label: vector top hits
+        pairs: [['returns-policy#2', '0.83'], ['shipping-faq#4', '0.71'], ['refunds-2023#1', { v: '0.70 (outdated)', tone: warn }]]
+      - kind: kv
+        label: keyword top hits
+        pairs: [['returns-policy#2', 'rank 1'], ['billing-terms#7', 'rank 2']]
+  - caption: 'Results are merged (reciprocal rank fusion) and a **reranker** scores each (question, chunk) pair more precisely. Keep the best few — fewer, better chunks beat many mediocre ones.'
+    panels:
+      - kind: rows
+        label: after rerank
+        items: [{ v: 'returns-policy#2 — "within 30 days of delivery…"', tone: ok }, { v: 'billing-terms#7', tone: ok }, { v: 'shipping-faq#4 (dropped)', tone: muted }]
+  - caption: 'The prompt contains instructions, the chunks with ids, and the question. The model answers **only from the chunks** and cites them; if they don''t contain the answer it says so.'
+    panels:
+      - kind: note
+        text: '"Customers can request a refund within 30 days of delivery [returns-policy#2]."'
