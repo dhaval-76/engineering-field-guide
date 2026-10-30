@@ -1,0 +1,41 @@
+questions:
+  - q: A payment service processes 500 concurrent transactions. Each reads the balance, checks it's sufficient and deducts the amount. Under load some accounts go negative. Diagnose and fix.
+    think: Two requests both read 1000 and both see that 900 is affordable. Where must the check and the write happen together?
+    answer: |
+      The read-check-write isn't atomic, so concurrent requests act on the same stale balance (a lost update / double spend). A Java lock doesn't fix it in production: each request loads its own entity, and there are several instances. Make the database do it atomically: `UPDATE accounts SET balance = balance - ? WHERE id = ? AND balance >= ?` and treat 0 updated rows as insufficient funds. For multi-step rules or transfers, lock the rows with `SELECT … FOR UPDATE` in id order inside one short transaction; for rarely-conflicting updates, use a `@Version` column and retry. Add an idempotency key per payment, a ledger entry per movement, `BigDecimal` for money and a `CHECK (balance >= 0)` constraint as a safety net. Test it with many concurrent requests against a real database (Testcontainers).
+followUps:
+  - q: Two transactions transfer money between accounts A and B in opposite directions at the same time. How do you prevent a deadlock?
+    intuition: What order do the two transactions lock the rows in?
+    approach: |
+      Lock rows in a consistent global order regardless of direction — `SELECT … WHERE id IN (:a, :b) ORDER BY id FOR UPDATE`, or lock min(id) then max(id). The database detects any deadlock that slips through and aborts one transaction, so also retry on deadlock errors.
+  - q: Optimistic or pessimistic locking for account balances?
+    intuition: How often do two requests touch the same account at the same moment?
+    approach: |
+      For a single-row debit, neither — a conditional `UPDATE` is simpler and faster. For multi-row money movement where conflicts are common and retries are costly, pessimistic locking. Optimistic suits entities where conflicts are rare; on a hot account it degenerates into retry storms. Whichever you pick, keep transactions short and never hold a row lock across a call to an external provider.
+  - q: How do you write a test that reliably catches this race?
+    intuition: How do you make many threads hit the same code at the same moment?
+    approach: |
+      Start N threads (or virtual threads) that wait on a `CountDownLatch`, release them together, each debiting the same account against a real database (Testcontainers), and assert that the number of successes × amount ≤ the starting balance and the balance is never negative. Repeat the test several times. For in-memory concurrent code, `jcstress` explores interleavings systematically.
+  - q: Why do you need idempotency if the balance update is already atomic?
+    intuition: What does a client do when its request times out?
+    approach: |
+      Atomicity stops two different debits from corrupting the balance; it doesn't stop the same debit from being applied twice. A timed-out request that actually succeeded will be retried by the client or gateway. Store an idempotency key with the result (unique constraint), and on a repeat return the stored result instead of charging again.
+practice:
+  - task: An account has balance 1000. Two concurrent requests each try to debit 900. Show, step by step in SQL, how SELECT … FOR UPDATE makes exactly one succeed.
+    hint: The second transaction blocks on the row lock until the first commits, then reads the new balance.
+    solution: |
+      A: `BEGIN; SELECT balance FROM accounts WHERE id='ACC1' FOR UPDATE;` → 1000, row locked. B runs the same `SELECT … FOR UPDATE` and blocks. A: 1000 ≥ 900, `UPDATE … SET balance = 100`, `COMMIT` (lock released). B's select now returns 100; 100 < 900 → `ROLLBACK` with "insufficient funds". Final balance 100, never negative.
+  - task: Rewrite deduct(accountId, amount) so it returns true when the debit succeeded and false when funds were insufficient, never allowing a negative balance and without any application-level lock.
+    hint: One UPDATE with the balance condition in its WHERE clause; inspect the row count.
+    solution: |
+      `UPDATE accounts SET balance = balance - ? WHERE id = ? AND balance >= ?` and return `rows == 1`.
+    solutionCode: payment-atomic-update
+quiz:
+  - q: The service runs on 4 pods. Does making debit() synchronized prevent double spending?
+    options: [Yes, 'No — each pod (and each request) has its own object and lock; only the database sees all requests', Only with volatile fields, Only with fair locks]
+    correct: 1
+    why: JVM locks are local to one process and one object instance.
+  - q: 'UPDATE accounts SET balance = balance - 900 WHERE id = 1 AND balance >= 900 returns 0 rows updated. What does it mean?'
+    options: [A deadlock occurred, 'Insufficient funds (or no such account)', The update will be retried automatically, The row was locked]
+    correct: 1
+    why: The condition didn't match, so nothing was changed.

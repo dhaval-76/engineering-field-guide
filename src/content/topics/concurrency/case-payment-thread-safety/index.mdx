@@ -1,0 +1,87 @@
+---
+title: 'Case Study: Thread-Safe Payments'
+summary: The classic interview scenario — concurrent debits against one balance. Why Java locks don't help across instances, and the database tools that do — atomic conditional updates, row locks, optimistic versioning — plus idempotency keys.
+track: concurrency
+order: 110
+tags: [concurrency, payments, locking, transactions, idempotency, case-study]
+aliases: [payment gateway thread safety, concurrent balance update, double spending, lost update, select for update, optimistic vs pessimistic locking, version column]
+prerequisites: [concurrency/threads-and-race-conditions, concurrency/deadlock-livelock-starvation]
+related: [concurrency/volatile-and-synchronized, concurrency/concurrenthashmap]
+quickRef:
+  points:
+    - 'The bug: **read → check → write** with other requests in between (lost update / double spend).'
+    - '`synchronized` only works inside **one JVM on one shared object**; real services run several instances and load fresh objects per request.'
+    - 'Simplest correct fix: `UPDATE … SET balance = balance - ? WHERE id = ? AND balance >= ?` and check rows updated.'
+    - 'Complex logic: **pessimistic** `SELECT … FOR UPDATE` (lock rows in id order) or **optimistic** `@Version` + retry.'
+    - Money as `BigDecimal`/integer minor units, a ledger row per movement, and an **idempotency key** per request.
+  useWhen: Any shared counter or balance — wallets, inventory, seat booking, quotas — updated by concurrent requests.
+lastReviewed: 2026-10-30
+---
+
+## The question
+
+> "You're building a payment service where many transactions are processed concurrently. How do you make account balance updates thread-safe?"
+
+It tests whether you can spot the race, whether you know that application-level locks stop working when there are several instances, and whether you can weigh database locking strategies, retries and idempotency like someone who has run such a system.
+
+<Callout type="analogy">
+Two cashiers at different branches both look up the same joint account on their screens, see enough money, and each hand out cash. Each followed the rules; the problem is that both decisions were made on a number that was already out of date.
+</Callout>
+
+## The race
+
+<CodeTabs id="payment-broken" title="The naive version" />
+
+<Walkthrough id="lost-update" />
+
+## Fix 1: atomic conditional update (start here)
+
+<CodeTabs id="payment-atomic-update" title="Check and debit in one statement — Java, SQL, Node, Python" />
+
+The database takes a row lock for the update, so concurrent debits of the same account are serialised, and debits of different accounts run in parallel. It's correct across any number of application instances, needs no retries for the common case, and costs one round trip. In PostgreSQL at the default READ COMMITTED level the waiting update re-checks its `WHERE` against the committed row; at REPEATABLE READ or SERIALIZABLE it fails with a serialization error instead, which you retry.
+
+## Fix 2: pessimistic locking (multi-row or complex rules)
+
+When the decision needs more than one statement — a transfer between two accounts, limits, fees, fraud rules — lock the rows first and keep the transaction short.
+
+<CodeTabs id="payment-pessimistic" title="SELECT … FOR UPDATE in a consistent order" />
+
+## Fix 3: optimistic locking (low contention)
+
+<CodeTabs id="payment-optimistic" title="@Version and a bounded retry" />
+
+| | Atomic update | Pessimistic (`FOR UPDATE`) | Optimistic (`@Version`) |
+|---|---|---|---|
+| How | Condition inside the `UPDATE` | Lock rows, then decide | Detect a changed version at write time |
+| Contention | Waits briefly on the row lock | Waiters queue on the lock | Conflicts → retries |
+| Best for | Single-row balance and counter changes | Multi-row, conflict-heavy money movement | Read-mostly entities, rare conflicts (profiles, settings) |
+| Risks | Limited to what SQL can express | Deadlocks (lock in id order), long transactions | Retry storms on hot rows |
+
+## Beyond locking
+
+- **Idempotency.** Clients and gateways retry on timeouts. Without an idempotency key, a retried request debits twice even with perfect locking.
+
+<CodeTabs id="payment-idempotency" title="Idempotency key: one execution per key" />
+
+- **Ledger, not just a balance.** Write an immutable entry for each movement (double-entry: debit one account, credit another) in the same transaction; the balance is derived or reconciled from it. That gives you an audit trail and a way to detect mistakes.
+- **Money types.** `BigDecimal` with an explicit scale and rounding mode, or integer minor units (paise, cents). Never `double`.
+- **Hot accounts.** One very busy account (a merchant receiving thousands of payments a second) turns its row lock into a bottleneck: split it into sub-accounts or buffer credits and apply them in batches.
+- **Across services.** When the debit and the order live in different services, a single transaction isn't available: use a saga with compensations and the outbox pattern for events.
+
+<Pitfalls>
+
+- **`synchronized` or a `ConcurrentHashMap` of locks** as the main defence in a horizontally scaled service.
+- **Read in one transaction, write in another** — the check is stale by the time you write.
+- **Long transactions holding row locks** while calling external payment providers. Reserve funds, commit, call out, then confirm or release.
+- **Retrying optimistic failures without a limit or jitter**.
+- **No idempotency** on payment endpoints.
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- The bug is a non-atomic read-check-write; with several instances, only the database can coordinate.
+- Prefer one conditional `UPDATE`; use `FOR UPDATE` (ordered) for multi-row logic and `@Version` where conflicts are rare.
+- Add idempotency keys, a ledger and exact money types.
+
+</KeyTakeaways>

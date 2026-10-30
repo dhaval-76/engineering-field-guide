@@ -1,0 +1,57 @@
+title: Two debits of 900 against a balance of 1000
+frames:
+  - caption: 'Read-check-write in application code. Request A reads the balance: **1000**.'
+    panels:
+      - kind: kv
+        label: Database
+        pairs: [[ACC1 balance, { v: '1000', tone: info }]]
+      - kind: list
+        label: Request A
+        items: [{ v: 'read 1000', tone: accent }]
+      - kind: list
+        label: Request B
+        items: []
+  - caption: 'Before A writes, request B (another thread or another instance) also reads **1000**. Both checks pass.'
+    panels:
+      - kind: kv
+        label: Database
+        pairs: [[ACC1 balance, { v: '1000', tone: info }]]
+      - kind: list
+        label: Request A
+        items: ['read 1000', { v: '1000 ≥ 900 ✓', tone: ok }]
+      - kind: list
+        label: Request B
+        items: [{ v: 'read 1000', tone: accent }, { v: '1000 ≥ 900 ✓', tone: ok }]
+  - caption: 'Both write `1000 − 900`. The balance ends at **100** after paying out **1800** — a lost update. (With `balance = balance − 900` computed in SQL but checked in Java, it ends at −800.)'
+    panels:
+      - kind: kv
+        label: Database
+        pairs: [[ACC1 balance, { v: '100', tone: bad }]]
+      - kind: list
+        label: Request A
+        items: [{ v: 'write 100', tone: bad }]
+      - kind: list
+        label: Request B
+        items: [{ v: 'write 100', tone: bad }]
+  - caption: 'Fix: let the database check and write in one step: `UPDATE … SET balance = balance − 900 WHERE id = ? AND balance >= 900`. A updates first and holds the row lock.'
+    panels:
+      - kind: kv
+        label: Database
+        pairs: [[ACC1 balance, { v: '100 (locked by A)', tone: warn }]]
+      - kind: list
+        label: Request A
+        items: [{ v: '1 row updated ✓', tone: ok }]
+      - kind: list
+        label: Request B
+        items: [{ v: waiting for row lock, tone: muted }]
+  - caption: 'After A commits, B re-evaluates its `WHERE` on the new row: `100 ≥ 900` is false → **0 rows** → "insufficient funds". Exactly one debit succeeds, on any number of instances.'
+    panels:
+      - kind: kv
+        label: Database
+        pairs: [[ACC1 balance, { v: '100', tone: ok }]]
+      - kind: list
+        label: Request A
+        items: [{ v: committed, tone: ok }]
+      - kind: list
+        label: Request B
+        items: [{ v: '0 rows → rejected', tone: warn }]
