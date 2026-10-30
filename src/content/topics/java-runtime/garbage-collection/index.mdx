@@ -1,0 +1,114 @@
+---
+title: Garbage Collection and Memory Leaks
+summary: How the JVM decides what's garbage, why generational collection works, how G1, ZGC and Parallel differ, what a "leak" means in a garbage-collected language, and a practical workflow for diagnosing memory problems.
+track: java-runtime
+order: 35
+tags: [java, gc, g1, zgc, memory-leak, performance]
+aliases: [garbage collection java, young generation old generation, g1 vs zgc, java memory leak, heap dump, outofmemoryerror]
+prerequisites: [java-runtime/jvm-architecture, java-runtime/data-types-and-memory]
+related: [java-runtime/collections, low-level-design/lru-cache]
+quickRef:
+  points:
+    - An object is garbage when it's **unreachable** from GC roots (stack variables, static fields, active threads, JNI). Cycles don't matter.
+    - '**Generational hypothesis**: most objects die young → collect a small young generation often and cheaply; promote survivors to the old generation.'
+    - '**G1** (default): region-based, pause-time goal. **ZGC/Shenandoah**: concurrent, sub-millisecond pauses. **Parallel**: maximum throughput, longer pauses.'
+    - 'A Java "leak" = objects still **reachable** but never used again: unbounded caches/collections, ThreadLocals in pools, unremoved listeners, class-loader references.'
+    - 'Diagnose with evidence: GC logs → `jcmd GC.class_histogram` → heap dump → dominator tree in Eclipse MAT; JFR for allocation profiling.'
+  useWhen: Latency spikes from GC pauses, steadily growing memory, OutOfMemoryError, or choosing JVM settings for a service.
+lastReviewed: 2026-10-30
+---
+
+## Why it matters
+
+Garbage collection frees you from manual memory management, but not from memory problems. Services still run out of memory, still freeze during long pauses, and still leak — because "garbage" means *unreachable*, and plenty of useless objects remain reachable. Understanding the collector turns GC from a black box into something you can reason about and tune with evidence.
+
+<Callout type="analogy">
+A building's cleaning crew doesn't ask whether you'll need a document again — it throws away anything not connected to a desk that's in use. Papers in your drawer stay forever, even if you'll never read them. A memory leak is a drawer that keeps filling up.
+</Callout>
+
+## What counts as garbage
+
+The collector starts from **GC roots** — local variables on thread stacks, static fields, active threads, JNI references — and marks everything reachable by following references. Everything unmarked is garbage, including cycles of objects that reference each other but nothing live references them (unlike naive reference counting).
+
+## Generational collection
+
+Most objects live very briefly; a few live for the whole process. The heap is split to exploit this.
+
+<Diagram id="generational-heap" caption="Young generation (Eden + two survivor spaces) collected frequently; old generation collected rarely." />
+
+<Walkthrough id="gc-generations" />
+
+- **Minor (young) GC**: copy live objects out of Eden into a survivor space; wipe Eden. Cost ∝ live objects, so it's cheap when most die young.
+- **Promotion**: objects surviving several minor GCs move to the old generation.
+- **Old-generation collection**: mostly concurrent marking in G1/ZGC, with short pauses; a **full GC** (everything, stop-the-world) is the expensive fallback and usually a symptom.
+
+## The collectors
+
+| Collector | How | Pauses | Throughput | Use when |
+|---|---|---|---|---|
+| **G1** (default since 9) | Heap of equal regions; collects regions with the most garbage first; concurrent marking | Tens to a few hundred ms, aims for `MaxGCPauseMillis` | Good | General-purpose services, 2–64 GB heaps |
+| **ZGC** | Concurrent marking, relocation and compaction (generational since 21, default mode since 23) | Sub-millisecond, independent of heap size | Slightly lower | Latency-sensitive services, very large heaps |
+| **Shenandoah** | Concurrent compaction | Single-digit ms | Slightly lower | Low latency (available in many OpenJDK builds) |
+| **Parallel** | Multi-threaded stop-the-world | Long | Highest | Batch jobs where pauses don't matter |
+| **Serial** | Single-threaded stop-the-world | Long | Low | Tiny heaps, single-CPU containers, CLIs |
+
+<Chart
+  type="bar"
+  title="Typical worst-case pause, order of magnitude (ms) — your numbers depend on heap size and allocation rate"
+  log
+  bars={[
+    ['Parallel / Serial (full GC)', 1000, 'bad'],
+    ['G1', 100, 'warn'],
+    ['Shenandoah', 5, 'ok'],
+    ['ZGC', 1, 'ok'],
+  ]}
+  unit=" ms"
+  caption="Concurrent collectors trade a little throughput and CPU for pauses that don't grow with the heap."
+/>
+
+<CodeTabs id="gc-flags" title="Sizing, choosing a collector, and collecting evidence" />
+
+## Memory leaks in a garbage-collected language
+
+<CodeTabs id="gc-leaks" title="The usual suspects — in Java and JavaScript" />
+
+The pattern is always the same: something long-lived (a static field, a singleton, a pool thread, an event bus) holds references to things that should have been short-lived. Fixes: bound caches by size and time, remove `ThreadLocal`s in `finally`, unsubscribe listeners, make inner classes static, close class loaders on redeploy.
+
+## Diagnosing memory problems
+
+<Steps>
+
+1. **Confirm the pattern** with GC logs or metrics: if old-generation usage *after* each collection keeps climbing, something is retaining memory (a leak). If it's flat but pauses are long, it's a sizing/collector problem.
+2. **Quick look**: `jcmd <pid> GC.class_histogram` twice, a few minutes apart — which classes grow?
+3. **Heap dump** (`jcmd <pid> GC.heap_dump` or automatically on OOM) and open it in Eclipse MAT or VisualVM. The **dominator tree** shows which objects retain the most memory; "path to GC roots" shows *why* they're still reachable.
+4. **Allocation profiling** with Java Flight Recorder (or async-profiler) when the problem is allocation *rate*, not retention.
+5. **Fix and verify** — then tune: right-size the heap, set a pause goal, or switch collectors if latency needs it.
+
+</Steps>
+
+| Error | Meaning | Usual cause |
+|---|---|---|
+| `Java heap space` | Heap full of live objects | Leak, or heap too small for the working set |
+| `GC overhead limit exceeded` | (Parallel GC) almost all time spent in GC for little gain | Heap nearly full of live objects |
+| `Metaspace` | Too much class metadata | Class-loader leak, runaway proxy/class generation |
+| `unable to create native thread` | OS refused another thread | Thread leak or limits; not a heap problem |
+| Container OOM-killed (no Java error) | Process exceeded the container limit | Heap + non-heap > limit; size heap as a percentage |
+
+<Pitfalls>
+
+- **Tuning before measuring** — copying JVM flags from a blog without a GC log.
+- **Calling `System.gc()`** — usually triggers a full GC and helps nothing.
+- **Huge heaps for a leak** — buys time before the same crash.
+- **Using `WeakHashMap` as a cache** — eviction depends on key reachability, not memory pressure.
+- **Ignoring allocation rate** — even "short-lived" garbage costs CPU when you allocate gigabytes per second.
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- Reachability from GC roots decides what's garbage.
+- Generational collection makes short-lived objects nearly free; G1 by default, ZGC for low latency, Parallel for throughput.
+- Leaks are unintended reachability — bounded caches, ThreadLocal cleanup, unsubscribing.
+- Measure (GC logs, histograms, heap dumps, JFR) before tuning.
+
+</KeyTakeaways>

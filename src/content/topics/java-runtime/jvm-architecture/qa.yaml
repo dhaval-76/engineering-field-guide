@@ -1,0 +1,42 @@
+questions:
+  - q: 'A Docker build fails with "javac: not found" on an image that runs Java apps fine. Why, and how should the Dockerfile look?'
+    think: Running and compiling need different tools.
+    answer: |
+      The base image has only a JRE, which runs bytecode but has no compiler. Use a multi-stage build: compile and package in a JDK image, then copy the JAR into a JRE (or `jlink`-built) image for runtime. The result is smaller, has fewer tools for an attacker, and should run as a non-root user with the heap sized via `-XX:MaxRAMPercentage`.
+  - q: After a dependency upgrade, production throws NoSuchMethodError on a method that clearly exists. What's going on?
+    think: The code compiled against one version of a class and is running against another.
+    answer: |
+      Two versions of the library are on the classpath (often via transitive dependencies) and the JVM loaded the older class, which lacks that method. Find it with `mvn dependency:tree`/`gradle dependencies`, or `-verbose:class` / `X.class.getProtectionDomain().getCodeSource().getLocation()` to see which JAR loaded the class. Fix by pinning one version (dependency management/BOM) and excluding the other; add a build check (Maven Enforcer `dependencyConvergence`).
+followUps:
+  - q: What is the difference between interpretation and JIT compilation?
+    intuition: Why do Java services get faster after running for a while?
+    approach: |
+      The JVM starts by interpreting bytecode, profiling which methods and loops are hot. Hot code is compiled by C1 (quick, light optimisation), and the hottest by C2 using the collected profile — inlining, escape analysis, loop optimisations. Startup is fast but peak throughput needs warm-up; if a profile assumption breaks, code is deoptimised and recompiled. CDS/AppCDS, CRaC or GraalVM native image address startup time.
+  - q: Explain parent delegation in class loading and why it exists.
+    intuition: What would happen if your classpath could define java.lang.String?
+    approach: |
+      A loader first asks its parent to load a class (Application → Platform → Bootstrap) and only loads it itself if the parent can't. Core classes therefore always come from the trusted Bootstrap loader, each class is loaded once per hierarchy, and types stay consistent. Plugin systems may use child-first loading for isolation while still delegating shared API packages to the parent.
+  - q: ClassNotFoundException vs NoClassDefFoundError?
+    intuition: One is a request by name; the other is a broken link from compiled code.
+    approach: |
+      `ClassNotFoundException` (checked) — `Class.forName`/`loadClass` couldn't find a class you asked for by name, e.g. an optional plugin or driver. `NoClassDefFoundError` (Error) — code that compiled against a class can't find it at runtime (missing JAR), or the class's static initialiser previously failed. The latter points to a deployment/classpath problem.
+practice:
+  - task: Compile a tiny class, inspect it with `javap -c`, and explain each instruction of a method that adds two ints.
+    hint: The JVM is a stack machine — instructions push and pop an operand stack.
+    solution: |
+      `iload_0` and `iload_1` push the two int arguments, `iadd` pops both and pushes their sum, `ireturn` returns the top of the stack. Locals live in numbered slots; static methods start at slot 0, instance methods reserve slot 0 for `this`.
+    solutionCode: jvm-javap
+  - task: Load plugins from separate JARs so each can use its own version of a library, without breaking the shared plugin API.
+    hint: Child-first for plugin classes, parent-first for the API and the JDK.
+    solution: |
+      A `URLClassLoader` per plugin that overrides `loadClass`: JDK and API packages delegate to the parent; everything else is looked up in the plugin JAR first, then falls back to the parent. Close the loader and drop references to unload a plugin.
+    solutionCode: jvm-plugin-loader
+quiz:
+  - q: Where are class metadata and method bytecode stored in modern HotSpot JVMs?
+    options: [PermGen in the heap, Metaspace in native memory, The stack, The code cache]
+    correct: 1
+    why: PermGen was removed in Java 8 and replaced by Metaspace, which lives outside the Java heap.
+  - q: A container has a 2 GB limit and the JVM runs with -Xmx2g. What's likely?
+    options: [Perfect fit, The process can exceed 2 GB due to non-heap memory and be OOM-killed, The GC will use less heap, Nothing happens]
+    correct: 1
+    why: Metaspace, thread stacks, code cache and direct memory are on top of the heap.

@@ -1,0 +1,9 @@
+flowchart TB
+  B["Bootstrap loader<br/>java.base and core modules"]
+  P["Platform loader<br/>other JDK modules (java.sql, …)"]
+  A["Application loader<br/>your classpath / module path"]
+  C["Custom loaders<br/>plugins, app servers"]
+  C -- "1. ask parent first" --> A
+  A -- "ask parent" --> P
+  P -- "ask parent" --> B
+  class B accent

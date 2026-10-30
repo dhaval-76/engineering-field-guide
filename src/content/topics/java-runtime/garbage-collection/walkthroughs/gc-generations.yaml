@@ -1,0 +1,37 @@
+title: A minor GC in a generational heap
+frames:
+  - caption: 'New objects are allocated in **Eden** by bumping a pointer — about as cheap as allocation gets. Most of them will be garbage within milliseconds (request DTOs, temporary strings).'
+    panels:
+      - kind: array
+        label: Eden
+        items: [{ v: A, tone: info }, { v: B, tone: info }, { v: C, tone: info }, { v: D, tone: info }, { v: E, tone: info }, { v: F, tone: info }]
+      - kind: array
+        label: Survivor S0
+        items: []
+      - kind: array
+        label: Old generation
+        items: [{ v: cache, tone: muted }, { v: config, tone: muted }]
+  - caption: 'Eden is full → **minor GC**. The collector traces from GC roots (stack variables, static fields, …). Only **B** and **E** are still reachable.'
+    panels:
+      - kind: array
+        label: Eden
+        items: [{ v: A, tone: bad }, { v: B, tone: ok, tag: live }, { v: C, tone: bad }, { v: D, tone: bad }, { v: E, tone: ok, tag: live }, { v: F, tone: bad }]
+  - caption: 'Live objects are **copied** to a survivor space and their age increases. Eden is then wiped in one go — the cost depends on the few **live** objects, not the many dead ones.'
+    panels:
+      - kind: array
+        label: Eden
+        items: []
+      - kind: array
+        label: Survivor S0
+        items: [{ v: 'B age 1', tone: ok }, { v: 'E age 1', tone: ok }]
+      - kind: array
+        label: Old generation
+        items: [{ v: cache, tone: muted }, { v: config, tone: muted }]
+  - caption: 'Objects that survive several collections are **promoted** to the old generation. It is collected less often — mostly concurrently in G1/ZGC — which is where long-lived caches and leaks accumulate.'
+    panels:
+      - kind: array
+        label: Survivor S1
+        items: [{ v: 'B age 2', tone: ok }]
+      - kind: array
+        label: Old generation
+        items: [{ v: cache, tone: muted }, { v: config, tone: muted }, { v: 'E (promoted)', tone: warn }]

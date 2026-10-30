@@ -1,0 +1,29 @@
+title: From source code to fast machine code
+frames:
+  - caption: '`javac` compiles `.java` source to **bytecode** in `.class` files — instructions for a stack-based virtual machine, not for any real CPU.'
+    panels:
+      - kind: list
+        label: Build time
+        items: [{ v: Add.java, tone: info }, javac, { v: Add.class (bytecode), tone: accent }]
+  - caption: 'At runtime a **class loader** finds the class, the JVM **verifies** the bytecode is safe, prepares static fields, and runs static initialisers on first use.'
+    panels:
+      - kind: list
+        label: Runtime
+        items: [{ v: load, tone: accent }, verify, prepare, resolve, initialise]
+  - caption: 'Methods start **interpreted** — each bytecode instruction is executed one by one. Startup is quick, steady-state speed is low. The JVM counts calls and loop iterations.'
+    panels:
+      - kind: kv
+        label: Execution tier
+        pairs: [[add(), { v: 'interpreted · 120 calls', tone: muted }], [main(), 'interpreted']]
+  - caption: 'Once a method is **hot**, the **C1** compiler quickly turns it into native code with light optimisation and profiling.'
+    panels:
+      - kind: kv
+        label: Execution tier
+        pairs: [[add(), { v: 'C1 native · 2,500 calls', tone: info }]]
+  - caption: 'If it stays hot, **C2** recompiles it with aggressive optimisations based on the profile: inlining, loop unrolling, escape analysis. This is why Java services get faster after warm-up.'
+    panels:
+      - kind: kv
+        label: Execution tier
+        pairs: [[add(), { v: 'C2 native · inlined into caller', tone: ok }]]
+      - kind: note
+        text: 'If an assumption breaks (a new subclass appears), the JVM deoptimises back to the interpreter and recompiles later.'

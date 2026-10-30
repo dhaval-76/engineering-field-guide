@@ -1,0 +1,40 @@
+questions:
+  - q: A Spring Boot service runs fine for two hours, then slows to a crawl. GC logs show full GCs every 30 seconds, each taking 8 seconds, on a 4 GB heap. What's happening and what do you do?
+    think: Frequent full GCs that reclaim little mean the heap is nearly full of live objects. Is it growing?
+    answer: |
+      The old generation fills with live objects, so the collector runs full GCs back to back and the app spends most of its time paused. If old-gen usage after GC climbs steadily over the two hours, it's a leak.
+      1. Take two class histograms minutes apart, then a heap dump (or enable `-XX:+HeapDumpOnOutOfMemoryError`).
+      2. In Eclipse MAT, open the dominator tree and the path to GC roots for the biggest retainer — typically an unbounded cache/map, a ThreadLocal in pool threads, or listeners never removed.
+      3. Fix the retention (bounded Caffeine cache, `ThreadLocal.remove()` in `finally`, unsubscribe).
+      Only then tune: right-size the heap, set `MaxGCPauseMillis`, or use ZGC if latency requires it.
+  - q: What is a memory leak in Java if garbage collection is automatic?
+    answer: |
+      An object that's still reachable from a GC root but will never be used again. GC only frees unreachable objects, so anything held by a long-lived reference — static collections, unbounded caches, pool threads' ThreadLocals, registered listeners, inner classes held by schedulers, old class loaders — stays forever.
+followUps:
+  - q: How does young-generation collection work?
+    intuition: Most objects die young — make collecting them cost almost nothing.
+    approach: |
+      Allocation is a pointer bump in Eden. When Eden fills, a minor GC traces live objects from roots (plus references from old-gen tracked by card tables), copies them to a survivor space (or the other survivor, alternating), increments their age, and clears Eden entirely. Survivors past an age threshold (or when survivor space overflows) are promoted to the old generation. Cost scales with live objects, so it's cheap when most objects are garbage.
+  - q: G1 vs ZGC — how do you choose?
+    intuition: What does each optimise for?
+    approach: |
+      G1 (default) balances throughput and pause times with a pause goal; it suits most services. ZGC does almost all work concurrently, keeping pauses below a millisecond regardless of heap size, at the cost of some CPU and throughput — choose it when tail latency matters (trading, ad serving, interactive APIs) or heaps are very large. Parallel GC suits batch jobs that only care about total throughput. Decide from GC logs and latency SLOs, not by default.
+  - q: How do you capture and analyse a heap dump in production safely?
+    intuition: Dumps pause the JVM and can be large.
+    approach: |
+      Prefer automatic dumps on OOM (`-XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=...`). For a live dump use `jcmd <pid> GC.heap_dump` — it pauses the JVM for seconds and writes roughly heap-sized files, so take the instance out of the load balancer first. Copy it off the box (it can contain sensitive data) and analyse in Eclipse MAT: leak suspects, dominator tree, path to GC roots.
+practice:
+  - task: For each case, explain what happens to memory — a local list going out of scope, a static map that only grows, a non-static inner class scheduled on an executor.
+    hint: Ask "what still references it?" for each.
+    solution: |
+      Local list: the stack frame is popped, no references remain, it's collected at the next suitable GC. Static map: reachable from a class (a GC root) for the JVM's lifetime — never collected; bound it or use a real cache. Inner class: holds an implicit reference to its outer instance; the executor keeps the task, the task keeps the outer object — make the class static and pass only what it needs, and cancel the task on shutdown.
+    solutionCode: gc-leaks
+quiz:
+  - q: Two objects reference each other but nothing else references them. What does the JVM's GC do?
+    options: [Keeps them forever, Collects them — they are unreachable from GC roots, Throws an exception, Collects only one]
+    correct: 1
+    why: Tracing collectors start from roots, so unreachable cycles are garbage.
+  - q: Which collector targets sub-millisecond pauses independent of heap size?
+    options: [Serial, Parallel, G1, ZGC]
+    correct: 3
+    why: ZGC performs marking, relocation and compaction concurrently with the application.

@@ -1,0 +1,16 @@
+flowchart TB
+  T["Throwable"] --> E["Exception — checked"]
+  T --> ER["Error — don't catch"]
+  E --> RE["RuntimeException — unchecked"]
+  E --> IO["IOException"]
+  E --> SQL["SQLException"]
+  E --> IE["InterruptedException"]
+  RE --> NPE["NullPointerException"]
+  RE --> IAE["IllegalArgumentException"]
+  RE --> ISE["IllegalStateException"]
+  RE --> UOE["UnsupportedOperationException"]
+  ER --> OOM["OutOfMemoryError"]
+  ER --> SOE["StackOverflowError"]
+  class E accent
+  class RE ok
+  class ER bad

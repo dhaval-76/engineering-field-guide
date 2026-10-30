@@ -22,6 +22,11 @@ export const codeLanguages = [
   { id: 'bash', label: 'Shell', ext: 'sh' },
   { id: 'yaml', label: 'YAML', ext: 'yaml' },
   { id: 'json', label: 'JSON', ext: 'json' },
+  { id: 'dockerfile', label: 'Dockerfile', ext: 'dockerfile' },
+  { id: 'properties', label: 'Properties', ext: 'properties' },
+  { id: 'xml', label: 'XML', ext: 'xml' },
+  { id: 'http', label: 'HTTP', ext: 'http' },
+  { id: 'text', label: 'Text', ext: 'txt' },
 ] as const;
 
 export type CodeLanguageId = (typeof codeLanguages)[number]['id'];

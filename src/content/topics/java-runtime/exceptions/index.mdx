@@ -1,0 +1,102 @@
+---
+title: Exceptions — Checked, Unchecked, finally and Resources
+summary: The exception hierarchy, when to use checked vs unchecked, exactly how try/catch/finally executes, try-with-resources and suppressed exceptions, and the handling anti-patterns that hide production failures.
+track: java-runtime
+order: 25
+tags: [java, exceptions, error-handling, try-with-resources]
+aliases: [checked vs unchecked exceptions, try catch finally, try with resources, custom exception, final finally finalize, exception handling best practices]
+related: [java-runtime/data-types-and-memory]
+quickRef:
+  points:
+    - '`Throwable` → `Exception` (**checked**: must be caught or declared) and `Error` (don''t catch); `RuntimeException` is the **unchecked** branch of `Exception`.'
+    - 'Checked for **recoverable, expected** conditions the caller should decide on; unchecked for **bugs and broken invariants**.'
+    - '`finally` runs after `try`/`catch` even on `return`; a `return` or `throw` inside `finally` **overrides** and can hide the original.'
+    - '**try-with-resources** closes in reverse order; exceptions from `close()` become **suppressed**, not lost.'
+    - 'When wrapping, always pass the **cause**; log once where the error is handled; restore the interrupt flag.'
+  useWhen: Designing an API's failure modes, reviewing error handling, or debugging "the error disappeared".
+lastReviewed: 2026-10-30
+---
+
+## Why it matters
+
+How a system fails matters as much as how it works. Swallowed exceptions, lost stack traces, leaked connections and log files full of duplicated errors are some of the most expensive problems to diagnose in production. Exception design also shapes APIs: a checked exception in an interface forces every caller to deal with it.
+
+<Callout type="analogy">
+A checked exception is a delivery that needs a signature — the courier won't leave until someone at the address accepts responsibility. An unchecked exception is a fire alarm — it's not something you plan to handle on every floor; it means something went wrong that needs fixing.
+</Callout>
+
+## The hierarchy
+
+<Diagram id="exception-hierarchy" caption="Checked exceptions extend Exception; unchecked extend RuntimeException; Errors signal JVM-level problems you shouldn't catch." />
+
+- **Checked** (`IOException`, `SQLException`, `InterruptedException`): the compiler requires `catch` or `throws`.
+- **Unchecked** (`NullPointerException`, `IllegalArgumentException`, `IllegalStateException`): no compiler enforcement.
+- **Errors** (`OutOfMemoryError`, `StackOverflowError`): the JVM is in trouble; catching them rarely helps.
+
+## Checked or unchecked?
+
+| Use checked when… | Use unchecked when… |
+|---|---|
+| The condition is expected and the immediate caller can do something about it (retry, choose another file, show a message) | It indicates a bug or violated precondition (null argument, illegal state) |
+| It's part of the method's contract | The caller can't sensibly recover at that point |
+| You're writing a library API where explicit failure modes help | It must pass through lambdas and streams (checked exceptions don't compose with `Function`) |
+
+Modern frameworks (Spring, Hibernate) lean unchecked: `JdbcTemplate` translates `SQLException` into an unchecked `DataAccessException` hierarchy, so callers aren't forced to write boilerplate for failures they can't handle and don't leak the persistence technology through every signature. Many teams also model *expected business outcomes* as return values (a sealed `Result` type) rather than exceptions at all.
+
+<CodeTabs id="exc-custom" title="A checked business exception, an unchecked invariant violation, and a result type" />
+
+## How try/catch/finally executes
+
+<CodeTabs id="exc-finally" title="finally after return — and the two ways finally can destroy information" />
+
+<Steps>
+
+1. The `try` block runs. If it throws, the first `catch` whose type matches runs.
+2. `finally` runs **next, no matter what** — after a normal finish, after a `return` (the value is already computed), after a caught or uncaught exception.
+3. Then the method returns the held value or the pending exception continues to propagate.
+
+</Steps>
+
+Two traps: a `return` in `finally` replaces the result **and silently discards any exception**; a `throw` in `finally` replaces the original exception. Keep `finally` blocks to cleanup that can't fail — or, better, use try-with-resources.
+
+## try-with-resources
+
+<CodeTabs id="exc-resources" title="Automatic closing, suppressed exceptions, and the JS/Python equivalents" />
+
+Any `AutoCloseable` declared in the parentheses is closed automatically, in reverse order of declaration. If both the body and `close()` throw, the body's exception propagates and `close()`'s is attached via `getSuppressed()` — unlike a hand-written `finally`, nothing is lost. Python's `with` and JavaScript's `finally` (and newer `using` declarations) play the same role.
+
+## Handling well
+
+<CodeTabs id="exc-wrapping" title="Anti-patterns and their fixes" />
+
+- **Never swallow** an exception silently. If ignoring is genuinely right, say why in a comment and log at debug level.
+- **Keep the cause** when translating: `new XException("context", e)`.
+- **Add context** the original lacks: which user, which order, which file.
+- **Log once**, at the place that finally handles the error (often a global handler), not at every layer that rethrows.
+- **Catch narrowly** — `catch (Exception e)` also catches bugs you didn't mean to handle.
+- **`InterruptedException`**: either rethrow it or call `Thread.currentThread().interrupt()` so cancellation still works.
+
+## final, finally, finalize
+
+- `final` — a keyword: variables can't be reassigned, methods can't be overridden, classes can't be extended.
+- `finally` — the block that always runs after `try`.
+- `finalize()` — a method the GC might call before reclaiming an object. Unreliable timing, performance cost, can resurrect objects; **deprecated for removal** since Java 18 (JEP 421). Use try-with-resources or `java.lang.ref.Cleaner` instead.
+
+<Pitfalls>
+
+- **Empty catch blocks** — failures vanish; the system continues in a bad state.
+- **`throw new RuntimeException(e.getMessage())`** — loses the stack trace and type.
+- **Exceptions for control flow** in hot paths — creating stack traces is expensive.
+- **Catching `Throwable` / `Error`** — hides out-of-memory and similar conditions.
+- **Leaking resources** with manual `close()` calls that are skipped on exceptions.
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- Checked = expected and recoverable by the caller; unchecked = bugs and broken invariants.
+- `finally` always runs; never `return` or `throw` from it.
+- try-with-resources closes reliably and keeps suppressed exceptions.
+- Translate with the cause, add context, log once.
+
+</KeyTakeaways>

@@ -1,0 +1,36 @@
+questions:
+  - q: '`Integer a = 127, b = 127;` prints `a == b` as true, but with 128 it prints false. Why?'
+    think: How does autoboxing create the Integer objects?
+    answer: |
+      Autoboxing uses `Integer.valueOf`, which returns cached instances for −128..127. Two boxed 127s are the same object, so reference comparison is true; 128 creates two different objects. Compare wrappers with `equals` (or unbox). `Long`, `Short`, `Byte` and `Character` (0–127) cache similarly; `Double`/`Float` don't cache at all; `Boolean` has just two instances.
+  - q: Is Java pass-by-value or pass-by-reference?
+    answer: |
+      Always pass-by-value. For object types, the value passed is a copy of the reference. The callee can mutate the object through that reference (the caller sees the change) but reassigning the parameter doesn't affect the caller's variable. That's why `list.add(x)` inside a method is visible outside, while `list = new ArrayList<>()` isn't.
+followUps:
+  - q: Where do primitive fields of an object live — stack or heap?
+    intuition: Where does the object itself live?
+    approach: |
+      On the heap, inside the object. Only local variables (primitives and references) live in stack frames. Escape analysis may let the JIT scalar-replace a non-escaping object's fields into registers/stack, but semantically objects and their fields are heap-resident and shared.
+  - q: What is the difference between a shallow and a deep copy?
+    intuition: What happens to nested mutable objects?
+    approach: |
+      Shallow: copy the outer object, share inner references — mutating a nested object through either copy affects both. Deep: recursively copy nested mutable objects so the copies are independent. Copy constructors and copy factories are clearer than `clone()`. Immutable data removes the need for deep copies.
+  - q: Why does `int total = count + 1;` throw a NullPointerException?
+    intuition: There's an invisible method call.
+    approach: |
+      If `count` is an `Integer` that is null, auto-unboxing calls `count.intValue()`, which throws. Common with `Map<String, Integer>.get(...)` on a missing key — use `getOrDefault(key, 0)` or `merge`.
+practice:
+  - task: Write `deepCopy(List<int[]> original)` so that changing the copy or its arrays never affects the original.
+    hint: '`new ArrayList<>(original)` shares the arrays.'
+    solution: |
+      Copy the list and each array: `original.stream().map(a -> Arrays.copyOf(a, a.length)).collect(toCollection(ArrayList::new))`.
+    solutionCode: types-copy
+quiz:
+  - q: 'What does `Long sum = 0L; for (long i = 0; i < 1_000_000; i++) sum += i;` cost compared with a `long sum`?'
+    options: [Nothing, Up to a million Long allocations from boxing, A compile error, It overflows]
+    correct: 1
+    why: Each += unboxes, adds and re-boxes a new Long (outside the small cache range).
+  - q: A method does `param = new ArrayList<>()`. What happens to the caller's variable?
+    options: [It now points to the new list, Nothing — only the method's copy of the reference changed, It becomes null, It throws]
+    correct: 1
+    why: Java passes references by value; reassignment is local to the method.

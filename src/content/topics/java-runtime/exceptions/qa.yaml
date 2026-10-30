@@ -1,0 +1,41 @@
+questions:
+  - q: A library method throws a checked IOException. A teammate wraps it in RuntimeException; the tech lead calls that an anti-pattern. Who's right?
+    think: Can the immediate caller do anything useful about the failure? Is the cause preserved?
+    answer: |
+      It depends on recoverability and how it's done. Wrapping is fine when the caller can't meaningfully recover (missing config at startup, a database outage inside a request) — translate to a specific unchecked exception **with the original as the cause** and useful context, as Spring does with `DataAccessException`. It's wrong when the caller should decide (retry, fallback, user prompt), or when the wrap discards the cause (`new RuntimeException(e.getMessage())`) or swallows the error. Log once where it's handled.
+  - q: What does this method return? `try { return 1; } finally { return 2; }`
+    answer: |
+      2. The `try`'s return value is computed, then `finally` runs and its own `return` replaces it. Worse, if the `try` had thrown, the `return` in `finally` would discard the exception entirely. Avoid control flow (`return`, `throw`, `break`) in `finally`.
+followUps:
+  - q: Why do Spring and other frameworks prefer unchecked exceptions?
+    intuition: What does a checked exception in an interface signature force on every caller?
+    approach: |
+      Checked exceptions in signatures leak implementation details (an interface that throws `SQLException` reveals JDBC) and force boilerplate on callers who can't handle the failure anyway. They also don't work with lambdas/streams. Spring translates technology-specific checked exceptions into a consistent unchecked hierarchy; callers can still catch specific subtypes when they can do something useful, and the rest reach a global `@ExceptionHandler`.
+  - q: What happens when both the try block and the resource's close() throw in try-with-resources?
+    intuition: Only one exception can propagate.
+    approach: |
+      The body's exception propagates; the `close()` exception is added to it as a suppressed exception (`getSuppressed()`). With a hand-written `finally` that calls `close()`, a throwing `close()` would replace and lose the original exception.
+  - q: What is the difference between final, finally and finalize?
+    intuition: Three unrelated things with similar names.
+    approach: |
+      `final` restricts reassignment/overriding/extension. `finally` is the always-run block after try/catch. `finalize()` was a GC callback, unreliable and slow, deprecated for removal since Java 18 — replace with try-with-resources or `Cleaner`.
+practice:
+  - task: Implement `readConfig(path)` that throws a checked `ConfigNotFoundException` if the file doesn't exist, an unchecked `ConfigParseException` (with cause) if the JSON is invalid, and always closes the file.
+    hint: try-with-resources for the reader; catch `NoSuchFileException` separately from parse errors.
+    solution: |
+      Open with `Files.newBufferedReader` inside try-with-resources; catch `NoSuchFileException` → `ConfigNotFoundException(path)` (checked — the caller may fall back to defaults); catch the JSON library's parse exception → `ConfigParseException(path, e)` (unchecked — a bad deployment, not recoverable at runtime). The reader closes in all cases.
+    solutionCode: exc-resources
+  - task: Design exceptions for `BankAccount.withdraw` — insufficient funds and a frozen account — and show how a caller treats each.
+    hint: One is an expected outcome, the other a broken invariant.
+    solution: |
+      `InsufficientFundsException` (checked, carries the shortfall) — the UI offers a smaller amount. `AccountFrozenException` (unchecked) — reaching withdraw for a frozen account is a flow bug; it propagates to a global handler. Alternatively return a sealed `WithdrawResult` for the expected case.
+    solutionCode: exc-custom
+quiz:
+  - q: Which of these is a checked exception?
+    options: [NullPointerException, IllegalStateException, IOException, ArithmeticException]
+    correct: 2
+    why: IOException extends Exception but not RuntimeException, so the compiler enforces handling.
+  - q: 'You catch InterruptedException but can''t rethrow it. What should you do?'
+    options: [Ignore it, 'Call Thread.currentThread().interrupt() to restore the flag', Call System.exit, Wrap it in an Error]
+    correct: 1
+    why: Catching clears the interrupt status; restoring it lets callers up the stack see that cancellation was requested.

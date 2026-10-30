@@ -1,0 +1,92 @@
+---
+title: Data Types, Stack vs Heap, and Pass-by-Value
+summary: Primitives vs objects, where values actually live (stack frames vs the heap), boxing traps, numeric surprises, why Java is always pass-by-value, and shallow vs deep copies.
+track: java-runtime
+order: 10
+tags: [java, primitives, boxing, stack, heap, memory, pass-by-value]
+aliases: [stack vs heap, primitive vs wrapper, autoboxing, integer cache, pass by value or reference, shallow copy vs deep copy]
+related: [java-runtime/equals-and-hashcode, java-runtime/collections]
+quickRef:
+  points:
+    - '8 primitives (`int`, `long`, `double`, `boolean`, `char`, `byte`, `short`, `float`) hold values; everything else is a **reference** to a heap object.'
+    - '**Stack**: one per thread, holds method frames (local primitives and references). **Heap**: shared, holds all objects — including their primitive fields.'
+    - '**Boxing traps**: `==` on `Integer` works only for −128..127; unboxing `null` throws NPE; boxing in hot loops creates garbage.'
+    - '**Numbers**: `int` overflows silently (use `Math.addExact`); `0.1 + 0.2 != 0.3` — money uses integers or `BigDecimal`.'
+    - '**Always pass-by-value**: for objects the *reference* is copied — callees can mutate the object but not rebind your variable.'
+  useWhen: Explaining memory and performance basics, debugging NPEs from unboxing, or "why did my method change the caller's list?"
+lastReviewed: 2026-10-30
+---
+
+## Why it matters
+
+Knowing where values live and how they're passed explains a long list of everyday bugs: a `NullPointerException` on a line with no visible dereference, two "equal" numbers that `==` says are different, a method that changes a caller's list but not its variable, money that's off by a paisa. It's also the foundation for understanding garbage collection and thread safety.
+
+<Callout type="analogy">
+Each thread has a notepad (its stack) where it jots down small numbers and **addresses**. The objects themselves live in a shared warehouse (the heap). Handing someone an address doesn't hand them the warehouse — but with the address, they can go and rearrange what's on that shelf.
+</Callout>
+
+## Primitives and references
+
+| Type | Size | Default (fields) | Wrapper |
+|---|---|---|---|
+| `boolean` | JVM-dependent | `false` | `Boolean` |
+| `byte` / `short` | 8 / 16 bits | `0` | `Byte` / `Short` |
+| `int` | 32 bits | `0` | `Integer` |
+| `long` | 64 bits | `0L` | `Long` |
+| `float` / `double` | 32 / 64 bits | `0.0` | `Float` / `Double` |
+| `char` | 16 bits (UTF-16 code unit) | `'\u0000'` | `Character` |
+
+Everything that isn't one of these is an object, and variables of those types hold references (or `null`). Wrappers exist so primitives can go into collections and generics, and to represent "no value" with `null`.
+
+## Stack and heap
+
+<Diagram id="stack-heap" caption="Local variables live in the thread's stack frames; objects — and the primitive fields inside them — live on the shared heap." />
+
+- Each thread has its own **stack** of frames, one per method call, holding local primitives and references. Frames disappear when methods return — no GC needed.
+- **Objects** live on the **heap**, shared by all threads and reclaimed by the garbage collector. An object's primitive fields are stored inside the object, on the heap — "primitives live on the stack" is only true for local variables.
+- The JIT may avoid heap allocation for objects that never escape a method (**escape analysis**), but that's an optimisation, not a rule to rely on.
+
+Because the heap is shared, objects reachable from several threads need synchronisation; values confined to one thread's stack don't.
+
+## Boxing and numeric traps
+
+<CodeTabs id="types-boxing" title="Caching, null unboxing, overflow and floating point" />
+
+- **Autoboxing** silently converts `int` ↔ `Integer`. The hidden `intValue()` call is why `int total = maybe + 1` throws when `maybe` is null.
+- **Overflow** wraps around silently for `int` and `long`; `Math.addExact`/`multiplyExact` throw instead.
+- **Floating point** can't represent 0.1 exactly. For money use integer minor units (paise, cents) or `BigDecimal` constructed from strings.
+
+JavaScript has a single floating-point number type (exact integers only up to 2⁵³ − 1, `BigInt` beyond); Python integers never overflow but floats have the same 0.1 problem.
+
+## Pass-by-value, always
+
+<CodeTabs id="types-pass-by-value" title="Reassigning a parameter vs mutating the object it points to" />
+
+Java copies the argument's value into the parameter. For an object that value is a **reference**, so the callee can mutate the shared object, but reassigning the parameter only changes the callee's copy. There is no pass-by-reference in Java. (JavaScript and Python behave the same way, often called "call by sharing".)
+
+## Shallow vs deep copies
+
+<CodeTabs id="types-copy" title="Copying containers vs copying their contents" />
+
+- A **shallow copy** duplicates the outer object but shares the inner ones — changes through one copy appear in the other.
+- A **deep copy** duplicates everything reachable. It's needed only for **mutable** contents.
+- The cheapest deep copy is no copy: make data immutable (records, `List.copyOf`) and share it freely.
+
+<Pitfalls>
+
+- **`==` on wrappers** — compare with `equals` or unbox first.
+- **Unboxing nullable values** — check for null, or keep primitives where null isn't meaningful.
+- **Boxed types in hot loops and large collections** — memory and GC overhead; consider primitive arrays or specialised collections.
+- **`double` for money** — rounding errors accumulate.
+- **Assuming a copy is deep** — `new ArrayList<>(list)` copies references, not the elements.
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- Primitives hold values; everything else is a reference to a heap object.
+- Stacks are per-thread frames; the heap is shared and garbage-collected.
+- Watch boxing (caching, null, garbage) and numeric limits (overflow, floating point).
+- Java is pass-by-value; references are copied, objects are shared.
+
+</KeyTakeaways>

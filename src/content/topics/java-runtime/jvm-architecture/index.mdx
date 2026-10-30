@@ -1,0 +1,99 @@
+---
+title: JVM Architecture — JDK, Bytecode, Class Loading and JIT
+summary: What the JDK, JRE and JVM are, how source becomes bytecode and then fast native code, the JVM's memory areas, class loaders and delegation, and how to diagnose classpath problems.
+track: java-runtime
+order: 30
+tags: [java, jvm, jit, class-loading, bytecode, metaspace]
+aliases: [jvm vs jre vs jdk, how jvm works, class loader, parent delegation, jit compiler, metaspace, classnotfoundexception vs noclassdeffounderror]
+prerequisites: [java-runtime/data-types-and-memory]
+related: [java-runtime/garbage-collection, java-runtime/exceptions]
+quickRef:
+  points:
+    - '**JDK** = tools (javac, jar, jcmd, jfr…) + runtime. **JRE** = runtime only (modern JDKs ship runtimes via jlink/JRE images). **JVM** = the engine that runs bytecode.'
+    - '`javac` → **bytecode** (portable); at runtime classes are **loaded → verified → initialised**, interpreted, then JIT-compiled (C1, then C2) when hot.'
+    - 'Memory: per-thread **stacks** and PC; shared **heap** (objects) and **Metaspace** (class metadata, native memory); code cache for JIT output.'
+    - 'Class loaders delegate **parent-first** (Bootstrap → Platform → Application) so core classes can''t be replaced.'
+    - '`ClassNotFoundException` = asked by name, not found; `NoClassDefFoundError` = was there at compile time, missing or broken at runtime.'
+  useWhen: Explaining "write once, run anywhere", warm-up behaviour, Metaspace OOMs, or a NoClassDefFoundError after a dependency change.
+lastReviewed: 2026-10-30
+---
+
+## Why it matters
+
+Most Java developers never think about the JVM — until a service is slow for the first minute after deploy, a container is killed for using more memory than `-Xmx`, or a dependency upgrade produces `NoSuchMethodError` in production. Each of these is explained by how the JVM loads, runs and stores your code.
+
+<Callout type="analogy">
+A universal translator. You write in one language (Java); the compiler turns it into a neutral script (bytecode) that a translator on each machine (the JVM) reads aloud. At first the translator reads word by word; for phrases that come up constantly, it memorises a fluent native version (JIT compilation).
+</Callout>
+
+## JDK, JRE, JVM
+
+| | Contains | You need it to… |
+|---|---|---|
+| **JVM** | Interpreter, JIT compilers, garbage collectors, class loading | Execute bytecode |
+| **JRE** | JVM + standard class library | Run a packaged application |
+| **JDK** | JRE + `javac`, `jar`, `jlink`, `jcmd`, `jfr`, `javap`, debuggers | Build, package, profile and diagnose |
+
+Since Java 11 there's no separate JRE download from Oracle; vendors (Eclipse Temurin and others) still publish JRE images, and `jlink` builds a minimal runtime with only the modules your app uses. In containers, build with a JDK and run on a JRE:
+
+<CodeTabs id="jvm-docker" title="Multi-stage image: compile with the JDK, run on the JRE" />
+
+## From source to native code
+
+<Walkthrough id="jvm-pipeline" />
+
+<CodeTabs id="jvm-javap" title="Inspecting bytecode with javap" />
+
+- **Bytecode** is portable: the same `.class` runs on any OS/CPU with a JVM — and Kotlin, Scala and Groovy compile to the same bytecode, which is why they interoperate with Java.
+- **Tiered compilation**: interpreter → C1 (fast to compile) → C2 (heavily optimised), driven by runtime profiling. Peak performance arrives after warm-up, which is why the first requests after a deploy are slower.
+- Startup options: Class Data Sharing (CDS/AppCDS) to load classes faster, CRaC checkpoints, or GraalVM **native image** (ahead-of-time compiled, fast startup and low memory, at the cost of build time and some dynamic features).
+
+## Runtime memory areas
+
+<Diagram id="jvm-memory-areas" caption="Per-thread areas (stack, PC register, native stack) and shared areas (heap, method area/Metaspace, constant pool)." />
+
+| Area | Per thread? | Holds | Typical failure |
+|---|---|---|---|
+| Java stack | Yes | Frames: locals, operand stack | `StackOverflowError` (deep/infinite recursion) |
+| PC register, native stack | Yes | Current instruction; native calls | — |
+| **Heap** | Shared | All objects and arrays | `OutOfMemoryError: Java heap space` |
+| **Metaspace** | Shared (native memory) | Class metadata, method bytecode | `OutOfMemoryError: Metaspace` (class loader leaks, runaway proxies) |
+| Code cache | Shared | JIT-compiled native code | JIT stops compiling; slowdowns |
+
+The JVM's total memory is more than `-Xmx`: add Metaspace, thread stacks (~1 MB each by default), code cache, direct buffers and GC structures. In containers size the heap as a percentage (`-XX:MaxRAMPercentage`) and leave headroom, or the container gets OOM-killed even though the heap looks fine.
+
+## Class loading
+
+A class is **loaded** (bytes found, `Class` object created), **linked** (bytecode verified, static fields allocated, references resolved) and **initialised** (static initialisers run) — once per class loader, on first active use.
+
+<CodeTabs id="jvm-classloading" title="Initialisation order and finding which JAR a class came from" />
+
+<Diagram id="class-loaders" caption="Each loader asks its parent first; only if the parent can't find the class does the child load it." />
+
+**Parent-first delegation** means `java.lang.String` always comes from the Bootstrap loader, so code on the classpath can't replace core classes. Application servers and plugin systems sometimes invert this (**child-first**) so each plugin can carry its own library versions:
+
+<CodeTabs id="jvm-plugin-loader" title="A child-first plugin class loader with a shared API" />
+
+## Classpath problems in practice
+
+- **`NoSuchMethodError` / `NoClassDefFoundError` after an upgrade** — two versions of a library on the classpath, and the wrong one won. Inspect with `mvn dependency:tree` or `gradle dependencies`, pin versions with dependency management, and exclude the stray transitive version.
+- **`ClassCastException: X cannot be cast to X`** — the same class name loaded by two different loaders; they're different types to the JVM.
+- **Metaspace growth on redeploys** — something (a static cache, a thread, a `ThreadLocal`, a JDBC driver registration) holds a reference to an old class loader, so none of its classes can be unloaded.
+
+<Pitfalls>
+
+- **Judging performance from the first requests** — the JIT hasn't warmed up yet; benchmark with JMH or after warm-up.
+- **`-Xmx` equal to the container limit** — non-heap memory pushes the process over the limit.
+- **Fat JARs with duplicate classes** — silent "last one wins" behaviour.
+- **Heavy static initialisers** — slow startup and, if they throw, `ExceptionInInitializerError` followed by `NoClassDefFoundError` on every later use.
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- JDK builds, JRE runs, JVM executes bytecode with interpreter + tiered JIT.
+- Heap for objects, Metaspace for classes, stacks per thread — and the process uses more than `-Xmx`.
+- Classes load → link → initialise; loaders delegate parent-first.
+- Most "impossible" runtime errors after upgrades are classpath conflicts.
+
+</KeyTakeaways>
