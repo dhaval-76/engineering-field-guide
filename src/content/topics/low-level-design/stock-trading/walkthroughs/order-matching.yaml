@@ -1,0 +1,34 @@
+title: A market BUY of 200 shares hits the order book
+frames:
+  - caption: 'Book before the order. Best **bid** ₹102 (highest buyer), best **ask** ₹103 (lowest seller). The ₹1 gap is the spread — nothing trades.'
+    panels:
+      - kind: kv
+        label: Asks (sell) — lowest first
+        pairs: [[{ v: '₹103', tone: accent }, '150 (S1)'], ['₹104', '100 (S2)']]
+      - kind: kv
+        label: Bids (buy) — highest first
+        pairs: [[{ v: '₹102', tone: info }, '100'], ['₹101', '200']]
+  - caption: 'A **market BUY 200** arrives. It takes the best ask first: 150 shares at **₹103** from S1. S1 is fully filled and its level disappears.'
+    panels:
+      - kind: kv
+        label: Asks
+        pairs: [[{ v: '₹103', tone: bad }, { v: '0 — removed', tone: bad }], [{ v: '₹104', tone: accent }, '100 (S2)']]
+      - kind: list
+        label: Trades
+        items: [{ v: '150 @ ₹103', tone: ok }]
+  - caption: '50 shares still to buy. Next best ask is ₹104: buy 50 from S2, which keeps 50 resting.'
+    panels:
+      - kind: kv
+        label: Asks
+        pairs: [[{ v: '₹104', tone: accent }, { v: '50 (S2)', tone: warn }]]
+      - kind: list
+        label: Trades
+        items: ['150 @ ₹103', { v: '50 @ ₹104', tone: ok }]
+  - caption: 'Filled. Average price (150×103 + 50×104) / 200 = **₹103.25**. Bids are untouched. Had the asks run out, the leftover market quantity would be cancelled, not rested.'
+    panels:
+      - kind: kv
+        label: Asks
+        pairs: [['₹104', '50 (S2)']]
+      - kind: kv
+        label: Bids
+        pairs: [['₹102', '100'], ['₹101', '200']]

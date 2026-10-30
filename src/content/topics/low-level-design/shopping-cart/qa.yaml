@@ -1,0 +1,46 @@
+questions:
+  - q: A user has three competing promotions — 10% off, flat ₹200 off, and buy-2-get-1-free. How do you design the discount logic?
+    think: Each promotion is an algorithm that inspects the cart. The other half of the question is the business policy for combining them.
+    answer: |
+      `interface Promotion { String group(); Optional<Adjustment> evaluate(lines, runningTotal); }` with one class per promotion type. A `PricingEngine` runs groups in a fixed order (item → order percentage → coupon), picks the best adjustment within each group (so two order-level percentages never stack), applies it to the running total, then computes tax on the result. All adjustments are recorded in the price breakdown.
+      If the business says "best single promotion only", the policy changes to "evaluate all, keep the max" — still no change to the promotion classes. Buy-2-get-1 makes the cheapest eligible unit free.
+  - q: 'Cart: laptop ₹50,000, two mice at ₹1,000, keyboard ₹2,000. 10% off above ₹10,000, coupon SAVE500, 18% GST on the discounted amount. What is payable?'
+    answer: |
+      Subtotal ₹54,000 → 10% off −₹5,400 → ₹48,600 → coupon −₹500 → ₹48,100 → GST ₹8,658 → **₹56,758** (if the coupon stacks). If only the best single discount applies: ₹54,000 − ₹5,400 = ₹48,600, GST ₹8,748, payable ₹57,348. Clarify the stacking rule with the interviewer — it changes the answer.
+followUps:
+  - q: An item in the cart goes out of stock before checkout. How do you handle it?
+    intuition: The cart isn't a reservation; checkout is where stock is claimed.
+    approach: |
+      At checkout, reserve stock with a conditional update per line inside one transaction (`… WHERE available >= qty`). If any line fails, roll back the whole reservation and return a clear response listing short items (with available quantities) so the UI can update the cart. Reservations expire after ~15 minutes if payment never completes. Optionally warn earlier: show low-stock badges on the cart page.
+  - q: How do you prevent double charges when a user double-clicks "Place order"?
+    intuition: Two identical requests must have one effect.
+    approach: |
+      Generate a checkout id on the client when the checkout page loads and send it with every attempt. The server looks up an order with that id first and returns it if present; the payment call uses the same id as its idempotency key; a unique constraint on `orders.checkout_id` is the final guard against races.
+  - q: How do you merge a guest cart when the user logs in?
+    intuition: The user may already have items in their saved cart.
+    approach: |
+      Load both, add quantities per SKU (capped at per-item limits), union coupon codes (re-validated at pricing), save the user cart, delete the guest cart. Do it in one transaction or with optimistic locking on the user cart's version so a concurrent add from another device isn't lost.
+practice:
+  - task: Implement `applyBestDiscount(cart, promotions)` returning the winning promotion and the amount.
+    hint: Evaluate every promotion, keep the largest saving; use integers for money.
+    solution: |
+      Map each promotion to its proposed adjustment, filter empty ones, take the minimum (most negative) amount. The pipeline version generalises this to "best per group, applied in order".
+    solutionCode: cart-pricing
+  - task: Write the checkout flow with idempotency, re-pricing, all-or-nothing stock reservation and rollback on payment failure.
+    hint: Reserve before charging; release in a catch block; return the existing order for a repeated checkout id.
+    solution: |
+      See the checkout service: lookup by checkout id, re-price, `reserveAll` with conditional updates, charge with the checkout id as the idempotency key, save the order, commit the reservation, clear the cart; release the reservation on any exception.
+    solutionCode: cart-checkout
+quiz:
+  - q: Why shouldn't the cart store the price of each item when it's added?
+    options:
+      - It wastes memory
+      - Prices and promotions change; the server must price from the catalogue at checkout
+      - Carts can't store numbers
+      - It makes add-to-cart slower
+    correct: 1
+    why: Stored prices go stale and client-supplied prices can't be trusted.
+  - q: In buy-2-get-1-free on items priced ₹900, ₹500 and ₹300, which is free?
+    options: ['₹900', '₹500', '₹300', 'The first one added']
+    correct: 2
+    why: The cheapest eligible unit is free, which bounds the discount the promotion intends to give.

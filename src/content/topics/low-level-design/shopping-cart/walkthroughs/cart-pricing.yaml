@@ -1,0 +1,31 @@
+title: Pricing a cart step by step (₹)
+frames:
+  - caption: Lines are priced from the **catalogue** at checkout time — not from whatever price was shown when the item was added.
+    panels:
+      - kind: kv
+        label: Lines
+        pairs: [['Laptop × 1', '50,000'], ['Mouse × 2', '2,000'], ['Keyboard × 1', '2,000']]
+      - kind: kv
+        label: Running total
+        pairs: [[Subtotal, { v: '54,000', tone: accent }]]
+  - caption: 'Order-level promotion: **10% off above ₹10,000** → −5,400. Only the best offer in each non-stacking group applies.'
+    panels:
+      - kind: kv
+        label: Adjustments
+        pairs: [['10% off', { v: '−5,400', tone: ok }]]
+      - kind: kv
+        label: Running total
+        pairs: [[After promotions, { v: '48,600', tone: accent }]]
+  - caption: 'Coupon **SAVE500** is in a different group, so it stacks (if the business allows) → −500. Coupons are applied after percentage promotions so they aren''t scaled down by them.'
+    panels:
+      - kind: kv
+        label: Adjustments
+        pairs: [['10% off', '−5,400'], ['Coupon SAVE500', { v: '−500', tone: ok }]]
+      - kind: kv
+        label: Running total
+        pairs: [[Taxable, { v: '48,100', tone: accent }]]
+  - caption: '**18% GST** on the discounted amount → 8,658. Payable **₹56,758**. Every step is stored as a line in the price breakdown, so the receipt can explain itself.'
+    panels:
+      - kind: kv
+        label: Final
+        pairs: [[Taxable, '48,100'], ['GST 18%', '8,658'], [Payable, { v: '56,758', tone: accent }]]

@@ -1,0 +1,101 @@
+---
+title: Design a Shopping Cart and Checkout
+summary: Cart lines as intent, a pricing pipeline of pluggable promotions with explicit stacking rules, tax on the discounted amount, and a checkout that re-prices, reserves stock all-or-nothing and charges idempotently.
+track: low-level-design
+order: 30
+tags: [lld, e-commerce, cart, pricing, promotions, inventory, idempotency]
+aliases: [shopping cart lld, e-commerce checkout design, discount engine, coupon system, promotion engine, amazon cart]
+prerequisites: [low-level-design/lld-method, oop-patterns/strategy-and-state]
+related: [low-level-design/movie-booking, low-level-design/splitwise]
+quickRef:
+  points:
+    - The cart stores **SKU + quantity**, not prices; price it from the catalogue each time (and always at checkout).
+    - 'Pricing is a **pipeline**: item promos → order promos → coupons → tax. Each promotion is a **strategy**; a **stacking policy** picks the best per group.'
+    - Money in integer minor units; free items in "buy X get Y" are the **cheapest** units.
+    - 'Checkout: idempotency key → re-price → **reserve stock all-or-nothing** (conditional updates) → charge → create order → commit stock; release on any failure.'
+    - Guest cart merges into the user's cart at login.
+  useWhen: '"Design an e-commerce cart / discount engine / checkout" and any pricing-rules engine.'
+lastReviewed: 2026-10-30
+---
+
+## Why it matters
+
+A cart looks like a list with add and remove. The interesting parts are **pricing** — promotions that interact, rounding, tax order — and **checkout**, where stale prices, stock running out and double-clicks all have to be handled. Interviewers use it to see if you can keep business rules pluggable and money exact, and whether you can make a multi-step checkout safe.
+
+<Callout type="analogy">
+A shopping basket holds items, not price stickers. At the till, the cashier scans each item at today's price, applies offers in a fixed order, adds tax, and only then takes payment — after checking the items are actually in stock.
+</Callout>
+
+## Clarify
+
+- Logged-in and guest carts? Both; merge at login.
+- Promotion types: percentage above a threshold, flat coupons, buy-X-get-Y, category discounts? Yes, and new ones will keep coming.
+- Can promotions stack? Defined per group: one order-level percentage, one coupon, item promos independent.
+- Tax: on the discounted amount; per-category rates possible.
+- Stock reservation at checkout? Yes, with a timeout.
+
+## The cart
+
+<CodeTabs id="cart-model" title="Cart lines as SKU + quantity, with guest merge" />
+
+Store **intent**, not prices. Prices change, promotions expire and the client can't be trusted to send prices — so the server prices the cart from the catalogue whenever it's displayed, and authoritatively at checkout. Persist logged-in carts in a database (they survive devices); guest carts can live in Redis with a TTL keyed by a session id, merged into the user's cart at login.
+
+## Pricing pipeline
+
+<Walkthrough id="cart-pricing" />
+
+<CodeTabs id="cart-pricing" title="Promotions as strategies in an ordered pipeline" />
+
+Design choices that matter:
+
+- **Promotions are strategies** — `PercentOffAbove`, `FlatCoupon`, `BuyXGetYFree`, and next quarter's ideas are new classes. The engine doesn't change.
+- **Order of application** is explicit: item-level offers first, then order-level percentages, then fixed coupons, then tax. Changing the order changes the total, so it's a business decision, not an accident of code.
+- **Stacking policy**: promotions belong to groups; within a group only the best applies. Across groups they stack. A `maxDiscountPercent` cap guards against unintended combinations.
+- **Every adjustment is recorded** with a label — the breakdown is what the receipt, refunds and customer support rely on.
+- **Exact money**: integers in paise; percentage discounts round in the customer's favour (or per policy), consistently.
+
+<Callout type="tip" title="Buy X get Y: which units are free?">
+Expand the eligible units, sort by price, and make the **cheapest** ones free. Otherwise a customer buying one expensive and two cheap items gets more discount than intended.
+</Callout>
+
+## Checkout
+
+<CodeTabs id="cart-checkout" title="Idempotent checkout with all-or-nothing stock reservation" />
+
+<Steps>
+
+1. **Idempotency** — the client sends a `checkoutId`; a repeat returns the existing order instead of charging again.
+2. **Re-price** the cart on the server with currently active promotions; if the total changed since the user saw it, show the new total before charging.
+3. **Reserve stock** for every line atomically (`UPDATE … SET available = available - qty WHERE available >= qty`, SKUs in sorted order). If any line fails, roll back and tell the user which items are short.
+4. **Charge** with the checkout id as the payment idempotency key.
+5. **Create the order** with the price breakdown; **commit** the reservation; clear the cart.
+6. On any failure, **release** the reservation. Reservations also expire on their own.
+
+</Steps>
+
+"Check stock, then reserve" in two separate steps is racy — the conditional update *is* the check.
+
+## Extensions
+
+- **Price changed while in cart** — show a notice on the cart page and require confirmation at checkout.
+- **Saved for later / wishlist** — another list keyed by user; no pricing.
+- **Coupon usage limits** — per-user and global redemption counts updated atomically when the order is created.
+- **Multiple sellers** — split the cart into per-seller shipments at checkout; promotions may be seller-scoped.
+
+<Pitfalls>
+
+- **Trusting client-sent prices** or prices stored when the item was added.
+- **`double` money** and inconsistent rounding across lines.
+- **Implicit promotion order** buried in code — totals change unexpectedly when someone reorders a list.
+- **Check-then-reserve stock** in two steps — overselling under load.
+- **Non-idempotent checkout** — double charges on double-click or retry.
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- Cart = SKUs and quantities; prices come from the catalogue at pricing time.
+- Promotions are strategies in an explicit, ordered pipeline with a stacking policy; record every adjustment.
+- Checkout: idempotency key, re-price, reserve all-or-nothing with conditional updates, charge, commit or release.
+
+</KeyTakeaways>

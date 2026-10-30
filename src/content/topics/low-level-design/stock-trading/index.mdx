@@ -1,0 +1,110 @@
+---
+title: Design a Stock Exchange Order Book
+summary: The matching engine at the heart of trading apps — price-time priority with sorted price levels, limit and market orders, cancellation, integer prices, single-threaded matching per symbol, and pre-trade risk checks.
+track: low-level-design
+order: 29
+tags: [lld, order-book, matching-engine, treemap, trading, concurrency]
+aliases: [stock trading platform, order matching engine, limit order book, zerodha design, groww lld, exchange design]
+prerequisites: [low-level-design/lld-method]
+related: [low-level-design/splitwise, low-level-design/task-scheduler]
+quickRef:
+  points:
+    - 'Two sides: **bids** (best = highest price) and **asks** (best = lowest). Each price level is a FIFO queue → **price-time priority**.'
+    - 'Sorted map of price → queue (`TreeMap`): best price O(1)/O(log n), insert O(log n); a `Map<orderId, Order>` gives O(1) cancel lookup.'
+    - An incoming order matches while it **crosses** the best opposite price; trades execute at the **resting** order's price.
+    - Unfilled **limit** quantity rests in the book; unfilled **market** quantity is cancelled.
+    - 'Prices as integer ticks; **one thread per symbol** (shards by symbol) instead of locks; risk checks before the book.'
+  complexity: 'Submit O(log P + k) for P price levels and k fills; cancel O(1) lookup + removal from its level.'
+  useWhen: '"Design Zerodha/Groww/a stock exchange", auction/bidding engines, any priority-matching marketplace.'
+lastReviewed: 2026-10-30
+---
+
+## Why it matters
+
+A brokerage app has many parts — accounts, KYC, portfolios, charts — but interviews zoom in on the **order book and matching engine**, because that's where data-structure choice, correctness rules and concurrency all matter. The same price-time priority idea powers crypto exchanges, ad auctions and any marketplace that matches the best bid with the best offer.
+
+<Callout type="analogy">
+A queue at a market stall, but organised by price. Buyers willing to pay more stand at the front of the buyers' line; sellers asking less stand at the front of the sellers' line. Among people offering the same price, whoever arrived first goes first. A deal happens whenever the front buyer will pay at least what the front seller asks.
+</Callout>
+
+## Clarify
+
+- Order types: limit and market first; stop-loss, IOC/FOK as extensions.
+- One exchange process per symbol, or the whole platform? (Matching engine first; brokerage features are separate services.)
+- Cancel and modify orders? Yes.
+- Latency/throughput targets? Microseconds per order at exchanges; milliseconds at a broker's internal crossing engine.
+
+## Entities
+
+<CodeTabs id="orderbook-model" title="Orders and trades with integer prices" />
+
+- **Order** — side, type, limit price (ticks), remaining quantity, arrival sequence, status.
+- **Trade** — buy order, sell order, price, quantity.
+- **OrderBook** — per symbol: bids, asks, id index.
+- **Account / Portfolio** — cash, holdings, open orders; updated from trade events.
+
+## The order book
+
+<Walkthrough id="order-matching" />
+
+<CodeTabs id="orderbook-engine" title="Price levels in sorted maps, FIFO within a level" />
+
+The rules the code enforces:
+
+<Steps>
+
+1. **Crossing**: a buy crosses if its limit ≥ best ask; a sell crosses if its limit ≤ best bid. Market orders always cross while the opposite side has liquidity.
+2. **Price-time priority**: the best price matches first; within a price level, the earliest order (lowest sequence) matches first.
+3. **Trade price**: the **resting** order's price. An aggressive buy at ₹105 against a resting ask at ₹103 trades at ₹103 — price improvement for the incoming order.
+4. **Leftovers**: a limit order's remaining quantity rests on its side of the book; a market order's remaining quantity is cancelled (it has no price to rest at).
+5. **Cancel**: look up by id, remove from its price level, drop empty levels.
+
+</Steps>
+
+| Operation | Structure | Cost |
+|---|---|---|
+| Best bid / ask | `TreeMap.firstKey()` | O(log P) (O(1) with a cached pointer) |
+| Add at a price | `computeIfAbsent(price).addLast` | O(log P) |
+| Fill against best | `peekFirst` / `pollFirst` | O(1) per fill |
+| Cancel | `Map<id, Order>` + remove from level | O(1) lookup (+ level removal) |
+
+Production engines often replace the tree with an **array indexed by price tick** around the current price (price levels are dense integers) and intrusive linked lists for O(1) cancel, avoiding allocation entirely.
+
+## Concurrency: serialise per symbol
+
+Matching must be strictly ordered — two threads matching the same book concurrently would break price-time priority. Rather than a lock per book, real systems give each symbol (or shard of symbols) **one thread** fed by a queue: deterministic, lock-free inside the book, and parallel across symbols.
+
+<CodeTabs id="orderbook-threading" title="Single-threaded shards per symbol, plus a pre-trade risk check" />
+
+Around the engine:
+
+- **Pre-trade risk** (broker side): enough cash/margin for buys, enough holdings for sells, price bands, max order value.
+- **Sequencing and recovery**: every accepted order and trade is written to a log in sequence; the book can be rebuilt by replaying it.
+- **Market data**: trades and top-of-book changes are published as events to charts and tickers.
+- **Circuit breakers**: halt a symbol if its price moves beyond a band within a time window; resume with a call auction.
+
+## Extensions
+
+- **Modify order** — reducing quantity keeps time priority; changing price or increasing quantity is cancel + new order (loses priority).
+- **IOC / FOK** — immediate-or-cancel fills what it can now; fill-or-kill checks available quantity first and fills all or nothing.
+- **Stop-loss** — held outside the book and injected as a market/limit order when the last trade price crosses the trigger.
+- **Portfolio** — consumes trade events: update holdings and average cost, release blocked cash.
+
+<Pitfalls>
+
+- **`double` prices** — equality and rounding bugs in matching; use integer ticks.
+- **Trading at the incoming order's price** instead of the resting order's.
+- **Resting market orders** in the book.
+- **Locking the whole book with `synchronized`** under high load — correct but a bottleneck; single-threaded per symbol is simpler and faster.
+- **No id index** — cancel becomes a scan of the whole book.
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- Bids and asks are sorted price levels of FIFO queues: price first, then time.
+- Match while crossing; trade at the resting price; rest limit leftovers, cancel market leftovers.
+- Integer ticks, an id index for cancels, and one thread per symbol.
+- Risk checks, sequencing logs and market-data events surround the engine.
+
+</KeyTakeaways>

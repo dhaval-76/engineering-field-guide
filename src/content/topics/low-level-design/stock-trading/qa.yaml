@@ -1,0 +1,37 @@
+questions:
+  - q: Design the order book for a trading platform. What data structures give fast best-price access and matching?
+    think: You need the best price on each side, FIFO within a price, and fast cancels.
+    answer: |
+      Per symbol, two sorted maps from price (integer ticks) to a FIFO queue of orders: bids sorted descending, asks ascending. The best price is the first key; within a level, the queue head is the oldest order (price-time priority). A hash map from order id to order supports O(1) cancel lookup.
+      Matching: while the incoming order crosses the best opposite price, fill against the head of that level at the resting price, pop filled orders and empty levels. Leftover limit quantity rests; leftover market quantity is cancelled. Run each book on a single thread (shard by symbol) to avoid locks.
+  - q: 'Book: bids ₹102×100, ₹101×200; asks ₹103×150, ₹104×100. A market BUY for 200 arrives. What happens?'
+    answer: |
+      It takes 150 @ ₹103 (that level is exhausted), then 50 @ ₹104. The ask book is left with ₹104×50; bids are unchanged. Average fill price = (150×103 + 50×104)/200 = ₹103.25.
+followUps:
+  - q: How do you make the matching engine thread-safe without making it a bottleneck?
+    intuition: Does matching for INFY ever need to coordinate with matching for TCS?
+    approach: |
+      No — books are independent. Assign each symbol to one thread (hash the symbol to a shard) and feed it through a queue. Inside the book everything is single-threaded: no locks, deterministic order. Parallelism comes from many symbols across many threads. This is the LMAX/disruptor style used by exchanges; recovery comes from replaying the sequenced input log.
+  - q: Why do trades execute at the resting order's price?
+    intuition: Who set the price that was in the book first?
+    approach: |
+      The resting order was already displayed in the book; the incoming order chose to cross it. Executing at the resting price means an aggressive buyer at ₹105 against an ask at ₹103 pays ₹103 — they get price improvement, and the seller gets exactly what they asked. It's the standard continuous-matching rule.
+  - q: What is a trading circuit breaker and where would you implement it?
+    intuition: It protects against runaway price moves.
+    approach: |
+      If a symbol's price moves more than a configured band (e.g. 10%) from a reference price within a window, the exchange halts trading in it: new orders are rejected or queued, and trading resumes after a cooling-off period with a call auction that matches accumulated orders at a single clearing price. Implement it in the symbol's matching thread — check after each trade and before accepting orders.
+practice:
+  - task: Implement `submit` and `cancel` for an order book supporting limit and market orders, with tests for partial fills, price-time priority and market-order leftovers.
+    hint: Use TreeMaps of ArrayDeques and a map from id to order. Test two sells at the same price to verify the earlier one fills first.
+    solution: |
+      The engine above. Key tests: (1) two asks at ₹100 from S1 then S2; a buy of the first's size fills only S1. (2) A limit buy below the best ask rests without trading. (3) A market buy larger than all asks fills everything and is CANCELLED for the rest. (4) Cancelling a resting order removes it and its empty level.
+    solutionCode: orderbook-engine
+quiz:
+  - q: Two sell orders rest at ₹100 — S1 placed at 9:15:01, S2 at 9:15:03. A buy for 100 shares at ₹100 arrives. Which fills?
+    options: [S2, S1, Both half, Neither]
+    correct: 1
+    why: Same price, so time priority applies — the earlier order fills first.
+  - q: What happens to the unfilled part of a market order when the opposite side runs out?
+    options: [It rests at the last trade price, It is cancelled, It waits until liquidity returns, It converts to a limit order at ₹0]
+    correct: 1
+    why: A market order has no limit price to rest at, so leftover quantity is cancelled.
