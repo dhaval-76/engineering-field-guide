@@ -1,0 +1,10 @@
+flowchart TD
+  M[Measure: which endpoint, since when,<br/>p50 vs p99, error rate, traffic] --> S{All requests slow<br/>or only some?}
+  S -- "all (p50 up)" --> SYS[Systemic: saturation or a dependency<br/>CPU · GC · pools · DB · downstream]
+  S -- "some (p99 up)" --> IN[Input-specific: big accounts,<br/>N+1, missing index, cold cache, lock waits]
+  SYS --> T[Trace one slow request:<br/>where does the time go?]
+  IN --> T
+  T --> DB[DB spans dominate] --> DB1[EXPLAIN ANALYZE<br/>indexes, N+1<br/>lock and pool waits]
+  T --> DS[Downstream calls dominate] --> DS1[Timeouts, parallelise<br/>cache, circuit breaker]
+  T --> APP[Time in our code] --> APP1[Flame graph, GC logs<br/>serialisation<br/>thread dump]
+  T --> Q[Waiting before work starts] --> Q1[Thread and connection<br/>pool queues<br/>rate limits]

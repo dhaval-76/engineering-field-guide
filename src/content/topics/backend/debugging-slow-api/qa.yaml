@@ -1,0 +1,33 @@
+questions:
+  - q: An order-details endpoint that used to take 200 ms now takes 3 seconds. Walk through how you'd find out why.
+    think: What would you look at first, and how do you avoid guessing?
+    answer: |
+      **Scope:** since when (correlate with deploys, traffic, data growth, dependency incidents), all requests or some (p50 vs p99), all endpoints or one. **Trace:** open a slow trace — is the time in database spans, an HTTP client span, our own code, or before the controller (waiting for a thread or connection)? **Narrow by layer:** database → `pg_stat_statements` for top queries, `EXPLAIN (ANALYZE, BUFFERS)` on the slow one, statement count per request for N+1, lock waits in `pg_stat_activity`; downstream → its latency and our timeouts; our code → async-profiler flame graph, GC logs; queueing → Tomcat busy threads, Hikari `pending`. **Fix one thing**, then confirm with the same p99. A typical finding: a new field added a lazy association loaded per item (N+1), or data growth made an unindexed filter scan millions of rows.
+  - q: A service handling 30k requests/s starts dropping requests during a load test at 40% CPU with plenty of memory. Where's the bottleneck?
+    think: If not CPU or memory, what else limits throughput?
+    answer: |
+      Something requests wait for: Tomcat's worker threads (default 200), the connection pool, a downstream's rate limit or latency, locks, or the load balancer's connection limits. A thread dump shows where threads are parked (`HikariPool.getConnection` → pool; socket reads → downstream; `BLOCKED` → locks), and metrics confirm it (busy threads at max, `hikaricp.connections.pending`). Fixes target the cause: shorter connection hold times, bounded timeouts, parallelising or caching downstream calls, removing lock contention. If requests are mostly waiting on I/O, virtual threads (or a reactive stack) raise concurrency without more platform threads — but the downstream limits still apply.
+followUps:
+  - q: SQL logs show only two queries of under 5 ms each, but the endpoint takes 2 seconds. What next?
+    intuition: The database is fast — where else can time go?
+    approach: |
+      Check the trace for downstream HTTP calls (and their timeouts), time spent waiting for a thread or connection before the handler runs, serialisation of large responses, GC pauses at the same timestamps, lock contention in our code, and CPU hot spots via a flame graph (use wall-clock mode to include waiting).
+  - q: How would you make an API handle many more requests per second?
+    intuition: Work through layers, starting with the cheapest wins.
+    approach: |
+      Measure first, then: cut per-request work (N+1, projections, pagination); index; cache hot reads at the right layer (CDN for public GETs, Redis for computed data) with clear invalidation; move non-critical work to queues; parallelise independent calls; scale stateless instances horizontally behind a load balancer and add read replicas; use virtual threads for I/O-heavy endpoints; protect dependencies with timeouts, rate limits and circuit breakers.
+practice:
+  - task: A /dashboard endpoint takes 3 seconds because it fetches the profile, the last 10 orders, the unread-notification count and the balance one after another (~750 ms each). Make it fast without making it fragile.
+    hint: The calls are independent. Which parts are essential, and what should a failure in an optional part do?
+    solution: |
+      Run the four calls in parallel on an I/O executor with per-call timeouts; essential parts (profile, balance) fail the request, optional ones fall back (empty list, unknown count). Wall time ≈ the slowest call (~750 ms). Then investigate why each takes 750 ms.
+    solutionCode: slow-dashboard
+quiz:
+  - q: p50 latency is unchanged but p99 has tripled. Which is the most likely category?
+    options: [The whole service is CPU-saturated, 'Specific inputs or intermittent waits (big accounts, lock waits, GC pauses, cold cache)', The load balancer is misconfigured for all traffic, Network bandwidth is exhausted]
+    correct: 1
+    why: Systemic problems move the median; tail-only changes point to particular requests or intermittent stalls.
+  - q: An endpoint issues 1 + N queries for a list of N orders. What's the usual fix?
+    options: [A bigger connection pool, 'Fetch join / entity graph / batch fetching or a DTO projection', More application instances, Turning off SQL logging]
+    correct: 1
+    why: Load the associations in one (or a few) queries instead of one per row.

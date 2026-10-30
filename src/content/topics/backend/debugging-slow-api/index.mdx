@@ -1,0 +1,95 @@
+---
+title: Debugging a Slow API
+summary: A systematic way to find why an endpoint is slow — measure percentiles, trace where the time goes, then narrow to the database, downstream calls, our own code or queueing — with the tools and fixes for each, including N+1 queries.
+track: backend
+order: 60
+tags: [backend, performance, debugging, observability, spring-boot, n-plus-one]
+aliases: [slow spring boot api, api latency, n+1 query, p99 latency, thread dump, flame graph, explain analyze, performance troubleshooting]
+prerequisites: [backend/connection-pooling]
+related: [concurrency/completablefuture, java-runtime/garbage-collection, concurrency/deadlock-livelock-starvation]
+quickRef:
+  points:
+    - '**Measure first**: which endpoint, since when, p50 vs p99, traffic and errors. p50 up = systemic; only p99 up = specific inputs or contention.'
+    - '**Trace one slow request**: spans show whether time is in the DB, downstream calls, our code, or waiting in a queue.'
+    - 'Database: `pg_stat_statements`, `EXPLAIN (ANALYZE, BUFFERS)`, N+1, missing indexes, lock waits, pool wait time.'
+    - 'Our code: flame graph (async-profiler / JFR), GC logs, thread dumps (3, a few seconds apart).'
+    - 'Fixes in order of payoff: remove work (N+1, over-fetching), index, parallelise independent calls, cache, move work off the request path.'
+  useWhen: An endpoint is slow or timing out, or an interviewer asks "how would you debug a slow API?"
+lastReviewed: 2026-10-30
+---
+
+## Why it matters
+
+"Check the database" is a guess, not a method. Slowness can come from a missing index, a hundred tiny queries, a downstream service, GC pauses, lock contention, or requests waiting for threads or connections before any work starts. A systematic approach finds the cause quickly and avoids "fixes" that make it worse (like doubling the pool size). It's also one of the most common practical interview questions, because the answer reveals real production experience.
+
+<Callout type="analogy">
+A doctor doesn't prescribe on "I feel unwell". They take vitals (metrics), ask when it started and what changed (deploys, traffic), run targeted tests (traces, profiles) and only then treat — and they check the treatment worked.
+</Callout>
+
+## The method
+
+<Diagram id="slow-api-triage" caption="Measure, find where the time goes, then use the right tool for that layer." />
+
+1. **Scope it.** Which endpoints? Since when — a deploy, a traffic change, data growth, a dependency incident? Everyone or certain customers?
+2. **Read the percentiles.** p50 rising means everything is slower — saturation or a dependency. Only p99 rising means some requests take a slow path — big accounts, cold caches, lock waits, GC pauses.
+3. **Trace a slow request.** Distributed tracing breaks the request into spans: database, HTTP clients, cache, queues. The biggest span is where to dig.
+4. **Use the layer's tools** (below), form a hypothesis, change one thing, and **verify with the same metrics**.
+
+<CodeTabs id="slow-metrics" title="Percentiles and tracing in Spring Boot" />
+
+<CodeTabs id="slow-timer" title="Timing a specific step" />
+
+## The usual suspects
+
+| Symptom | Likely cause | Confirm with |
+|---|---|---|
+| Hundreds of similar queries per request | N+1 lazy loading | SQL log / statement count per request |
+| One query slow, grows with data | Missing or unusable index | `EXPLAIN (ANALYZE, BUFFERS)` |
+| Slow only under load, DB idle | Pool or thread exhaustion, long transactions | Pool `pending`, thread dump |
+| Periodic spikes across all endpoints | GC pauses, cron jobs, cache expiry stampedes | GC log, schedule, cache metrics |
+| Sequential downstream calls | Latency adds up | Trace waterfall |
+| Big responses | Over-fetching, serialising huge graphs | Response size, profiler |
+| Requests stuck, CPU low | Lock waits (DB or JVM), deadlock | `pg_stat_activity`, thread dump |
+| High CPU in our code | Hot loop, regex, logging, JSON | Flame graph |
+
+## N+1 queries
+
+<CodeTabs id="n-plus-one" title="Detecting and fixing N+1 in JPA" />
+
+## Independent calls in sequence
+
+<CodeTabs id="slow-dashboard" title="A dashboard that called four services one after another" />
+
+## Tools by layer
+
+<CodeTabs id="slow-diagnostics" title="Thread dumps, profilers, GC logs and PostgreSQL views" />
+
+## Fixes, in order of payoff
+
+1. **Do less work**: fix N+1, select only needed columns (projections), paginate, stop computing things nobody reads.
+2. **Make the work cheaper**: indexes that match filters and sorts, better queries, batch writes.
+3. **Overlap waiting**: run independent calls in parallel with timeouts.
+4. **Avoid repeating work**: cache hot reads (with explicit invalidation and TTLs), precompute aggregates.
+5. **Move work off the request path**: queue emails, analytics, PDFs; return 202 and finish asynchronously.
+6. **Add capacity last**: scale out stateless instances, read replicas, bigger database — after the above.
+
+For high concurrency with mostly-waiting requests, **virtual threads** (`spring.threads.virtual.enabled=true`, Spring Boot 3.2+) remove thread-pool limits while keeping blocking code; reactive stacks (WebFlux) achieve the same with a different programming model. Neither fixes slow queries.
+
+<Pitfalls>
+
+- **Guessing and tuning** (bigger pools, more instances) before measuring.
+- **Looking only at averages** — they hide the slow tail users complain about.
+- **Testing with tiny datasets** where every query is fast; reproduce with production-like data volumes.
+- **Fixing the symptom only** (a cache over a query that's missing an index).
+- **Not verifying** the fix with the same percentiles that showed the problem.
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- Scope → percentiles → trace → layer-specific tools → one change → verify.
+- p50 vs p99 tells you whether it's systemic or input-specific.
+- N+1, missing indexes, sequential calls and pool waits explain most slow endpoints.
+- Remove and cheapen work before adding capacity.
+
+</KeyTakeaways>

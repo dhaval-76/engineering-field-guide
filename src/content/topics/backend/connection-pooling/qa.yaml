@@ -1,0 +1,38 @@
+questions:
+  - q: Under load, a Spring Boot service logs "Connection is not available, request timed out after 30000ms". 50 threads wait for a connection; the pool size is 10. The database's CPU is at 15%. What's wrong and how do you fix it?
+    think: The database is idle, yet no connections are free. What are the connections doing?
+    answer: |
+      The pool is saturated while the database is idle, so connections are being **held**, not used: long transactions, slow downstream calls inside `@Transactional`, open-in-view keeping connections until rendering, or leaks. Diagnose with HikariCP metrics (active = 10, pending high, usage time high), leak detection stack traces, a thread dump (who holds connections, and what are they doing?) and `pg_stat_activity` (`idle in transaction`). Fix the holders: move HTTP calls and heavy processing out of transactions, disable open-in-view, close resources properly, add indexes to slow queries. Then set a short `connection-timeout` to fail fast. Only raise the pool size if hold times are already short and the database has spare capacity — keeping `instances × pool` under `max_connections`.
+followUps:
+  - q: How big should a connection pool be?
+    intuition: How many queries can the database actually run at the same moment?
+    approach: |
+      Start from the database's capacity, not the app's thread count: roughly (database cores × 2) + spindles for all clients together, then divide among instances. Check against demand with Little's law (rate × hold time). Measure under load: if the database has headroom and `pending` stays high with short holds, grow gradually. Use fixed-size pools (min = max) to avoid ramp-up latency.
+  - q: When does @Transactional acquire and release a connection?
+    intuition: Connection lifetime equals transaction lifetime.
+    approach: |
+      On entering the outermost transactional method (via the Spring proxy), the transaction manager borrows a connection and binds it to the thread; it's returned at commit or rollback when that method exits. Everything inside — including remote calls and slow loops — holds the connection. Keep transactions small and do I/O outside them. With open-in-view enabled, the persistence context (and a connection once used) can stay open until the response is written.
+  - q: The service runs fine on 3 instances but the database rejects connections after autoscaling to 12. Why?
+    intuition: Multiply.
+    approach: |
+      Each instance opens its own pool: 12 × 20 = 240 connections, over PostgreSQL's `max_connections` of 100 (or the configured limit). Lower per-instance pool size, cap autoscaling, or put a pooler such as PgBouncer (transaction pooling) or RDS Proxy between the services and the database so many client connections share few server connections.
+practice:
+  - task: Reproduce pool exhaustion — a pool of 2, ten concurrent tasks each holding a connection for 2 seconds, connection-timeout 3 seconds — and explain the output.
+    hint: Use pg_sleep in the query and virtual threads to start all tasks at once.
+    solution: |
+      Two tasks finish after ~2 s, two more after ~4 s (each waited ~2 s for a connection), and the remaining six fail after waiting 3 s with `SQLTransientConnectionException`. That's exhaustion: the database did almost no work, but callers failed.
+    solutionCode: pool-exhaustion-demo
+  - task: Configure HikariCP for PostgreSQL with at most 20 connections, failing fast after 3 seconds without a free connection, logging connections held longer than 20 seconds, and surviving a firewall that drops idle connections after 30 minutes.
+    hint: maximum-pool-size, minimum-idle, connection-timeout, leak-detection-threshold, max-lifetime and keepalive-time.
+    solution: |
+      See the YAML: fixed pool of 20, `connection-timeout: 3000`, `leak-detection-threshold: 20000`, `max-lifetime` below 30 minutes and a `keepalive-time` ping; plus `open-in-view: false` and pool metrics exposed.
+    solutionCode: hikari-config
+quiz:
+  - q: 'At 500 requests/s, each request holds a connection for 40 ms. Roughly how many connections are busy on average?'
+    options: ['12', '20', '40', '500']
+    correct: 1
+    why: Little's law — 500/s × 0.04 s = 20.
+  - q: What does Connection.close() do on a pooled connection?
+    options: [Closes the TCP connection, Returns it to the pool, Commits the transaction, Nothing]
+    correct: 1
+    why: The pool wraps the connection; close means "give it back".

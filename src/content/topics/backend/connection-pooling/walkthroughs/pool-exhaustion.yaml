@@ -1,0 +1,34 @@
+title: A pool of 3 connections under load
+frames:
+  - caption: 'Three request threads borrow the three connections. Queries take 5 ms, so each connection is back almost immediately — a small pool serves many requests.'
+    panels:
+      - kind: array
+        label: Pool (max 3)
+        items: [{ v: 'c1 → req A', tone: info }, { v: 'c2 → req B', tone: info }, { v: 'c3 → req C', tone: info }]
+      - kind: queue
+        label: Waiting for a connection
+        items: []
+  - caption: 'Request D arrives while all three are busy. It **waits** in the pool''s queue (cheap: the thread just parks) rather than opening a new connection.'
+    panels:
+      - kind: array
+        label: Pool (max 3)
+        items: [{ v: 'c1 → req A', tone: info }, { v: 'c2 → req B', tone: info }, { v: 'c3 → req C', tone: info }]
+      - kind: queue
+        label: Waiting for a connection
+        items: [{ v: req D, tone: warn }]
+  - caption: 'Now a code path holds its connection during a slow HTTP call (or never closes it — a **leak**). Each such request takes a connection out of circulation.'
+    panels:
+      - kind: array
+        label: Pool (max 3)
+        items: [{ v: 'c1 → req E (HTTP call, 2 s)', tone: bad }, { v: 'c2 → req F (leaked)', tone: bad }, { v: 'c3 → req G', tone: info }]
+      - kind: queue
+        label: Waiting for a connection
+        items: [req H, req I, req J]
+  - caption: 'Soon every connection is stuck. Waiters hit `connection-timeout` and fail; Tomcat threads fill up waiting, so even endpoints that don''t use the database slow down. The database itself is idle.'
+    panels:
+      - kind: array
+        label: Pool (max 3)
+        items: [{ v: 'c1 stuck', tone: bad }, { v: 'c2 leaked', tone: bad }, { v: 'c3 stuck', tone: bad }]
+      - kind: queue
+        label: Waiting for a connection
+        items: [{ v: req H ✗ timeout, tone: bad }, { v: req I ✗ timeout, tone: bad }, req J, req K, req L]

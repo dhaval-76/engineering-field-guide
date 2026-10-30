@@ -1,0 +1,90 @@
+---
+title: Connection Pooling
+summary: Why services reuse a small set of database connections, how to size a pool (smaller than you think), what exhaustion and leaks look like, and how transaction scope, open-in-view and instance count decide whether a pool holds up.
+track: backend
+order: 50
+tags: [backend, databases, connection-pool, hikaricp, performance]
+aliases: [hikaricp, connection pool size, unable to acquire jdbc connection, pool exhaustion, connection leak, open-in-view, pgbouncer, max_connections]
+prerequisites: [concurrency/executors-thread-pools]
+related: [backend/debugging-slow-api, concurrency/case-payment-thread-safety]
+quickRef:
+  points:
+    - 'Opening a connection costs a TCP + TLS handshake, authentication and a server process/thread — reuse them.'
+    - '**Connections needed ≈ request rate × time each request holds a connection** (Little''s law). Shorten hold time before growing the pool.'
+    - 'Start small: HikariCP suggests about **(DB cores × 2) + disks** for the *total*. Sum across all instances must fit `max_connections`.'
+    - 'Exhaustion symptom: "Connection is not available, request timed out" while the database is idle. Causes: leaks, long transactions, slow calls inside transactions.'
+    - 'Always `try-with-resources` / `finally release()`; set `open-in-view: false`; fixed-size pool, short `connection-timeout`, leak detection on.'
+  useWhen: Configuring any service that talks to a relational database, or diagnosing timeouts under load.
+lastReviewed: 2026-10-30
+---
+
+## Why it matters
+
+Opening a database connection takes a network round trip or several (TCP, TLS, authentication) and makes the database start a process or thread for it — milliseconds of latency and real memory on the server. Doing that per request is slow; doing it without a limit lets a traffic spike open thousands of connections and take the database down. A pool keeps a fixed set of open connections and lends them out. Most "the database is slow" incidents in Spring services are actually pool problems: connections held too long, leaked, or too many instances × pool size.
+
+<Callout type="analogy">
+A car-sharing club with 20 cars. Members book a car, drive, and return it — nobody buys a new car per trip. Trouble starts when people keep a car parked outside a shop for hours (a slow call inside a transaction) or never return it (a leak): the cars aren't being driven, yet nobody else can get one.
+</Callout>
+
+## How a pool behaves under load
+
+<Walkthrough id="pool-exhaustion" />
+
+## Sizing
+
+<Chart
+  type="bar"
+  title="Connections busy at 1,000 requests/s, by how long each request holds its connection"
+  bars={[
+    ['5 ms — one indexed query', 5, 'ok'],
+    ['20 ms — a few queries', 20, 'info'],
+    ['100 ms — slow query or chatty ORM', 100, 'warn'],
+    ['500 ms — HTTP call inside @Transactional', 500, 'bad'],
+  ]}
+  caption="Little's law: busy connections = arrival rate × hold time. Cutting hold time is far more effective than raising the pool size."
+/>
+
+- A database can only execute about as many queries at once as it has CPU cores (plus some for I/O waits). Beyond that, extra connections queue *inside the database*, where they cost memory and context switches. Queuing in the pool is cheaper.
+- HikariCP's starting point is `connections = (cores × 2) + effective spindle count` — the **database server's** cores, and the **total** across all clients. A 16-core database → ~33 connections total, shared by all instances.
+- Account for every client: `instances × pool size` for each service, plus migrations, batch jobs and admin tools, under the database's `max_connections` (PostgreSQL defaults to 100).
+- Many instances or serverless functions? Put a pooler (PgBouncer in transaction mode, RDS Proxy) in front of the database.
+- Size thread pools and connection pools together: 200 Tomcat threads sharing 10 connections means up to 190 threads waiting — fine if waits are short, fatal with long holds. With virtual threads, the connection pool becomes the main concurrency limit.
+
+## Configuration
+
+<CodeTabs id="hikari-config" title="HikariCP settings that matter" />
+
+## Using connections correctly
+
+<CodeTabs id="pool-usage" title="Borrow and always return — JDBC, node-postgres, SQLAlchemy" />
+
+<CodeTabs id="pool-transaction-scope" title="Don't hold a connection across slow calls" />
+
+`@Transactional` borrows a connection at the start of the method and returns it at commit or rollback. **Open Session in View** (`spring.jpa.open-in-view`, on by default, with a startup warning) keeps a persistence context — and its connection once used — open until the response is written. Turn it off and load what views need explicitly.
+
+## Diagnosing
+
+- **Metrics:** `active` near max and `pending` > 0 → saturated; high `usage` (hold time) → long transactions; `timeout` count → user-visible errors.
+- **Leak detection:** `leak-detection-threshold` logs the stack trace that borrowed a connection and hasn't returned it.
+- **Thread dump:** many threads in `HikariPool.getConnection` → waiting on the pool; threads holding connections in socket reads → slow queries or downstream calls.
+- **Database side:** `pg_stat_activity` shows connections `idle in transaction` — an application holding a transaction open while doing something else.
+
+<Pitfalls>
+
+- **Raising `maximum-pool-size` as the first fix** — it moves the queue into the database and can exceed `max_connections` when you scale out.
+- **Remote calls, file I/O or sleeps inside transactions**.
+- **Forgetting to close/release** on error paths.
+- **Default 30-second `connection-timeout`** — requests hang instead of failing fast.
+- **`max-lifetime` longer than a proxy's or firewall's idle timeout** — "connection reset" errors.
+- **One pool shared by fast queries and slow reports** — use separate pools (bulkheads) or a read replica.
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- Reuse connections; cap them; fail fast when none is free.
+- Busy connections = rate × hold time; shrink hold time first.
+- Size for the database's cores across all instances; add a pooler at large fan-in.
+- Short transactions, no remote calls inside them, open-in-view off, leak detection on.
+
+</KeyTakeaways>
