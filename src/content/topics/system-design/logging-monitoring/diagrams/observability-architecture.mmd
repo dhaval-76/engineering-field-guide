@@ -1,0 +1,8 @@
+flowchart TD
+  S[Services<br/>OpenTelemetry SDKs · JSON logs] --> C[Collectors / agents<br/>enrich · redact · batch]
+  C --> K{{Kafka buffer}}
+  K --> LS[(Logs<br/>OpenSearch / Loki · hot → object storage)]
+  C --> MS[(Metrics<br/>Prometheus-compatible TSDB)]
+  C -- tail sampling --> TS[(Traces<br/>Tempo / Jaeger)]
+  MS --> AL[Alerting<br/>SLO burn rates → on-call]
+  LS & MS & TS --> G[Dashboards and explore<br/>linked by trace id]

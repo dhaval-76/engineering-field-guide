@@ -1,0 +1,22 @@
+title: From documents to an inverted index to a ranked answer
+frames:
+  - caption: 'Three documents. Analysis lowercases, splits on non-letters, drops stop words ("the", "on", "a") and stems ("deploying" → "deploy").'
+    panels:
+      - kind: kv
+        label: Documents → terms
+        pairs: [['D1 "Deploying the API on Kubernetes"', 'deploy, api, kubernet'], ['D2 "Kubernetes pods and nodes"', 'kubernet, pod, node'], ['D3 "API rate limits"', 'api, rate, limit']]
+  - caption: 'The **inverted index** maps each term to its posting list: which documents contain it (and how often, and where — for phrases and highlighting).'
+    panels:
+      - kind: kv
+        label: Inverted index
+        pairs: [[api, 'D1, D3'], [deploy, D1], [kubernet, 'D1, D2'], [limit, D3], [node, D2], [pod, D2], [rate, D3]]
+  - caption: 'Query "kubernetes api" is analysed the same way → `kubernet`, `api`. Two posting-list lookups — no scan of any document.'
+    panels:
+      - kind: kv
+        label: Postings
+        pairs: [[kubernet, 'D1, D2'], [api, 'D1, D3']]
+  - caption: 'BM25 scores each candidate: D1 matches both terms; D2 and D3 one each. Each term contributes less if it appears in many documents. Result: **D1** first, then D2/D3 by their scores and boosts.'
+    panels:
+      - kind: rows
+        label: Ranked
+        items: [{ v: 'D1 — both terms', tone: ok }, 'D2 — kubernet', 'D3 — api']

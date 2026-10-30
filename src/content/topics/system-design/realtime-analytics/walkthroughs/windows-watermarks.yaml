@@ -1,0 +1,27 @@
+title: Event time, watermarks and a late event
+frames:
+  - caption: 'Count purchases per one-minute tumbling window, by **event time**. Events for 10:00–10:01 arrive; the window''s running count is 3.'
+    panels:
+      - kind: kv
+        label: Window 10:00–10:01
+        pairs: [[events seen, '10:00:05, 10:00:31, 10:00:58'], [count, { v: '3 (open)', tone: info }]]
+  - caption: 'Events keep arriving, slightly out of order. The **watermark** trails the largest event time seen by 10 s (the expected delay). At 10:01:12 event time, the watermark reaches 10:01:02.'
+    panels:
+      - kind: kv
+        label: Progress
+        pairs: [[max event time, '10:01:12'], [watermark, { v: '10:01:02', tone: accent }]]
+  - caption: 'The watermark has passed the window''s end (10:01), so the window **emits** its result: 3 purchases. The sink upserts `(10:00, purchases) = 3`.'
+    panels:
+      - kind: kv
+        label: Window 10:00–10:01
+        pairs: [[count, { v: '3 emitted', tone: ok }]]
+  - caption: 'A phone that was offline sends an event stamped **10:00:40** at 10:03. It''s within the 5-minute **allowed lateness**: the window updates and re-emits 4; the idempotent sink overwrites 3 with 4.'
+    panels:
+      - kind: kv
+        label: Window 10:00–10:01
+        pairs: [[count, { v: '4 (updated)', tone: warn }]]
+  - caption: 'Another event for 10:00 arrives at 11:30 — beyond allowed lateness. It goes to a **side output**; the nightly batch job reconciles the day''s totals. Processing-time windows would have counted all of these in the wrong minute.'
+    panels:
+      - kind: rows
+        label: Late event 10:00:12 (arrived 11:30)
+        items: [{ v: 'side output → batch correction', tone: muted }]

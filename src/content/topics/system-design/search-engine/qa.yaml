@@ -1,0 +1,33 @@
+questions:
+  - q: 'Design search for a knowledge base with 10 M documents: relevance-ranked results in under 200 ms, filters, permissions, and new edits searchable within seconds.'
+    think: What is the source of truth, how does the index stay in sync, and how do you make queries fast and safe?
+    answer: |
+      The documents database stays the source of truth. Edits write an outbox event; an indexer consumes it, loads the latest document with its ACLs and metadata, and upserts it into an Elasticsearch/OpenSearch index using external versioning so stale events can't overwrite newer ones — lag of a few seconds. The index uses language analysers (stemming, stop words, synonyms) on title and body, keyword fields for filters and facets, and an `allowed` field with principals. Queries are built server-side: `multi_match` with title boosted, a phrase-match boost, fuzziness for typos, and filters for the user's groups and selected facets (filters are cached), plus highlighting. ~200 GB of text → a handful of primary shards with replicas for throughput and failover. Autocomplete uses a prefix field or precomputed suggestions. Mapping changes reindex into a new index and switch an alias.
+followUps:
+  - q: Why not just use SQL LIKE?
+    intuition: What does the database have to read?
+    approach: |
+      `LIKE '%term%'` can't use a B-tree index, so it scans every row; it has no notion of word forms, typos or relevance, and can't rank or highlight. An inverted index looks terms up directly and scores matches. (PostgreSQL full-text search with GIN indexes is a reasonable middle ground for smaller corpora.)
+  - q: How do you keep the search index consistent with the database?
+    intuition: Dual writes drift.
+    approach: |
+      Never write to both from the request. Publish changes through an outbox or CDC, index asynchronously and idempotently, using the document's version to ignore out-of-order updates, and run periodic reconciliation (compare counts/checksums, reindex differences). Accept a few seconds of staleness, and for "I just edited this" UX, read the edited document from the database.
+  - q: How do you add semantic search?
+    intuition: Words vs meaning.
+    approach: |
+      Generate embeddings for document chunks and queries with an embedding model, store them in a vector index (HNSW), and retrieve nearest neighbours. Combine with BM25 results using reciprocal rank fusion or a reranking model — keyword search keeps exact matches (error codes, names) precise while vectors catch paraphrases. Keep permission filters on both paths.
+practice:
+  - task: Build a small inverted index with BM25 ranking and consistent analysis for documents and queries.
+    hint: term → (doc → term frequency); track document lengths; idf = log(1 + (N − df + 0.5)/(df + 0.5)); BM25 normalisation with k1 = 1.2, b = 0.75.
+    solution: |
+      Analyse text (lowercase, split, drop stop words, stem) identically for indexing and querying. For each document store term frequencies in posting maps and its length. To search, for each query term compute idf from its document frequency and add `idf × tf(k1+1)/(tf + k1(1 − b + b·len/avgLen))` to each matching document's score; return the top k. This reproduces the core of Lucene's default ranking.
+    solutionCode: inverted-index
+quiz:
+  - q: What does BM25 add over plain TF-IDF?
+    options: [Spell checking, Term-frequency saturation and document-length normalisation, Vector embeddings, Permissions]
+    correct: 1
+    why: Repeated occurrences give diminishing returns, and long documents don't win just by being long.
+  - q: Where should document permissions be enforced in search?
+    options: [By hiding results in the UI, As filters inside the search query, Only at index time, Not at all]
+    correct: 1
+    why: Query filters keep counts, facets and pagination correct and leak nothing.

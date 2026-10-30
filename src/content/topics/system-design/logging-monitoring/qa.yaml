@@ -1,0 +1,37 @@
+questions:
+  - q: 'Design logging and monitoring for 500 microservices producing about 1 M log lines per second, with no loss during incidents.'
+    think: Three signals, a pipeline that survives bursts, storage that's affordable, and alerts people trust.
+    answer: |
+      **Instrumentation**: OpenTelemetry SDKs (or Micrometer + OTel) in every service; W3C trace context propagated over HTTP and messaging; JSON logs to stdout with trace and span ids; RED metrics with low-cardinality labels; histograms for latency. **Pipeline**: node agents/OTel Collectors enrich, redact and batch; logs go through Kafka so indexers can lag during a 10× incident spike without loss or back-pressure on services; metrics remote-write to a Prometheus-compatible TSDB; traces are tail-sampled (all errors and slow traces, ~5% of the rest) into Tempo/Jaeger. **Storage**: logs hot for ~7 days in OpenSearch/Loki, then compressed in object storage; metrics downsampled over time; ~43 TB/day raw logs cut by levels and sampling. **Use**: dashboards per service (RED/USE) with links between metrics, traces and logs via trace ids/exemplars. **Alerting**: SLO burn-rate alerts that page the owning team with runbooks; everything else becomes tickets. Run the observability stack in a separate failure domain.
+  - q: 'A user says their order is stuck. How do you trace what happened across ten services?'
+    think: What connects the services' records of the same request?
+    answer: |
+      Find the order's trace id (logged when the order was created, or searchable via order id in logs), open the trace to see every span across the gateway, order, payment, inventory and messaging hops with timings and errors, including async hops if the trace context was propagated in Kafka headers. Then filter logs by that trace id for details of the failing or stuck step (e.g. a consumer retrying a poison message). Without propagated trace context, you'd be correlating timestamps across ten log streams by hand.
+followUps:
+  - q: Why is metric cardinality a problem?
+    intuition: What does each unique label combination cost?
+    approach: |
+      Every distinct combination of label values is its own time series, with memory and index cost in the metrics store. Labels like user id, order id or full URL create millions of series, slowing queries and exhausting memory. Keep metric labels bounded (service, route template, status class, region) and put high-cardinality details in logs and traces.
+  - q: Head-based or tail-based trace sampling?
+    intuition: When is the decision made, and what do you want to keep?
+    approach: |
+      Head-based sampling decides at the start of a request (e.g. keep 1%) — cheap and simple but discards most error traces. Tail-based sampling waits for the trace to finish and keeps all errors and slow traces plus a small random share — far more useful for debugging, but the collector must buffer spans and see whole traces (route by trace id).
+  - q: What should trigger a page?
+    intuition: Who is affected?
+    approach: |
+      User-visible symptoms against SLOs — error rate and latency burning the error budget fast — not causes like high CPU or a single pod restart. Multi-window burn-rate alerts catch both sharp outages and slow degradation with few false positives. Each page needs an owner, a dashboard and a runbook; anything not urgent becomes a ticket.
+practice:
+  - task: Instrument a service with structured JSON logs that include trace ids, latency histograms and outcome counters with bounded labels, and define an SLO burn-rate alert.
+    hint: Micrometer Timer with percentile histograms; counters tagged by outcome and payment method only; logs with key-value details; Prometheus recording rules for error ratios over 5m and 1h.
+    solution: |
+      Use a JSON log encoder so the MDC's traceId/spanId appear in every line; log details like cart id as key-values (not metric labels). Record checkout latency with a Timer publishing histograms and an SLO bucket at 500 ms, and count outcomes with low-cardinality tags. In Prometheus, record 5-minute and 1-hour error ratios and page when both exceed 14.4× the error budget rate, linking the runbook and dashboard.
+    solutionCode: instrumentation
+quiz:
+  - q: Which signal is cheapest per question answered at scale for "is the error rate up?"
+    options: [Logs, Metrics, Traces, Heap dumps]
+    correct: 1
+    why: Metrics are pre-aggregated numbers — ideal for dashboards and alerts.
+  - q: Which should NOT be a metric label?
+    options: [HTTP status class, Service name, User id, Region]
+    correct: 2
+    why: User ids create unbounded cardinality; put them in logs or traces.

@@ -1,0 +1,90 @@
+---
+title: 'Design: Logging, Metrics and Tracing Platform'
+summary: Observability for hundreds of services — structured logs, metrics and traces with OpenTelemetry, a buffered pipeline, storage tiers, sampling and cardinality control, and alerting on SLOs instead of noise.
+track: system-design
+order: 210
+tags: [system-design, case-study, observability, logging, monitoring, tracing]
+aliases: [logging system, monitoring system, observability, structured logging, log aggregation, elk, elasticsearch, opensearch, loki, metrics, prometheus, grafana, cardinality, distributed tracing, opentelemetry, otel collector, jaeger, tempo, trace id, span, mdc, sampling, head sampling, tail sampling, slo, sli, error budget, burn rate alerts, red method, use method, retention tiers]
+prerequisites: [architecture/microservices, system-design/kafka-deep-dive]
+related: [backend/debugging-slow-api, architecture/resilience-patterns, system-design/realtime-analytics]
+quickRef:
+  points:
+    - '**Metrics** (cheap aggregates) tell you *something is wrong*; **traces** show *where*; **logs** explain *why*.'
+    - 'Instrument with **OpenTelemetry**; propagate a trace context (`traceparent`) through every hop; put trace ids in every log line.'
+    - 'Pipeline: agents/collectors → **buffer (Kafka)** → storage per signal; bursts during incidents must not lose data or take down services.'
+    - 'Control cost: structured logs at sensible levels, **sampling** (tail-based keeps errors and slow traces), **retention tiers**, and bounded metric **cardinality**.'
+    - 'Alert on **symptoms users feel** — SLO burn rates — not on every CPU spike.'
+  useWhen: '"Design a logging/monitoring system" — or setting up observability for a fleet of services.'
+lastReviewed: 2026-10-30
+---
+
+## Requirements
+
+**Functional**: collect logs, metrics and traces from ~500 services; search logs by time, service, level, trace id and text; dashboards for traffic, errors, latency and saturation; find which service made a request slow; alert the right team.
+**Non-functional**: ~1 M log lines/s (bursting 10× during incidents), ~10 M active metric series, traces for ~100,000 requests/s; logs searchable within ~10 s; no loss during bursts; observability must keep working when production is failing; controlled cost.
+
+## Estimates
+
+1 M lines/s × ~500 bytes ≈ 500 MB/s ≈ 43 TB/day of logs before compression — the dominant cost. Seven days hot ≈ 300 TB (less with compression and sampling); older data in object storage. Metrics are far cheaper per insight: 10 M series × one sample per 15 s ≈ 670,000 samples/s, compressing to ~1–2 bytes per sample.
+
+## High-level design
+
+<Diagram id="observability-architecture" caption="Services emit all three signals via OpenTelemetry; collectors buffer and route them to stores built for each signal." />
+
+## The three signals
+
+| Signal | What it is | Good for | Storage |
+|---|---|---|---|
+| Metrics | numeric time series with labels (`http_requests_total{service,route,status}`) | dashboards, alerts, trends — cheap and fast | Prometheus, Mimir/Thanos, VictoriaMetrics |
+| Traces | a tree of timed spans for one request across services | finding which hop is slow or failing | Tempo, Jaeger, vendor APMs |
+| Logs | structured events with context | the details of one failure | OpenSearch/Elasticsearch, Loki, ClickHouse |
+
+Start dashboards from the **RED** method for services (Rate, Errors, Duration) and **USE** for resources (Utilisation, Saturation, Errors).
+
+<CodeTabs id="instrumentation" title="Structured logs with trace ids, and metrics with bounded labels" />
+
+## Collection pipeline
+
+- Services write JSON logs to stdout; node agents or OpenTelemetry Collectors ship them, add metadata (service, pod, region), drop noise, and batch.
+- A **buffer** (Kafka) absorbs incident spikes; indexers consume at a sustainable rate and catch up afterwards. Applications never block on the logging pipeline — dropping debug logs under pressure beats slowing requests.
+- Separate pipelines per signal, so a log flood can't delay metrics and alerts.
+
+<CodeTabs id="otel-collector" title="An OpenTelemetry Collector pipeline with tail sampling" />
+
+## Storage, retention and cost
+
+- **Hot** (days): indexed for fast search; **warm** (weeks): compressed, slower; **cold** (months–years): object storage, queried rarely (compliance, audits).
+- **Log levels and sampling**: keep all errors and warnings, sample high-volume INFO; never log per-request DEBUG in production by default.
+- **Tail-based trace sampling**: decide after the trace completes — keep every trace with an error or high latency plus a small percentage of the rest.
+- **Cardinality**: each unique label combination is a separate series; user ids, request ids or raw URLs as metric labels can create millions of series and break the metrics store. Put high-cardinality data in logs and traces instead.
+- Redact secrets and personal data at the collector; access to logs is itself audited.
+
+## Alerting
+
+<Walkthrough id="incident-debug" />
+
+- Define **SLIs** (e.g. share of checkout requests under 500 ms and non-5xx) and **SLOs** (99.9% over 30 days). The **error budget** is the allowed failure (0.1%).
+- Alert on **burn rate** — how fast the budget is being consumed — with a fast window for severe incidents and a slow one for steady degradation. Fewer, more meaningful pages.
+- Every alert links to a dashboard and runbook and routes to the owning team; non-urgent signals become tickets, not pages.
+
+<CodeTabs id="slo-alerts" title="Multi-window burn-rate alerts in Prometheus" />
+
+<Pitfalls>
+
+- **Unstructured logs** — grepping free text across 500 services.
+- **No trace context propagation** — logs from different services can't be joined for one request.
+- **High-cardinality metric labels** (user id, full URL).
+- **Writing logs straight into the search cluster** — the first incident spike drops data or backs up applications.
+- **Alerting on causes** (CPU at 80%) instead of user-facing symptoms — alert fatigue.
+- **Observability stack in the same failure domain** as the system it watches.
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- Metrics for detection, traces for location, logs for explanation — connected by trace ids.
+- OpenTelemetry instrumentation; collectors + Kafka buffer; per-signal stores.
+- Cost via levels, sampling (tail-based for traces), retention tiers and bounded cardinality.
+- SLO burn-rate alerts with runbooks; keep observability independent of production failures.
+
+</KeyTakeaways>

@@ -1,0 +1,85 @@
+---
+title: 'Design: Real-Time Analytics and Top-K'
+summary: Turning millions of events per second into live dashboards and reports — ingestion, stream processing with windows and watermarks, approximate counting and top-K, OLAP storage, and replayable pipelines.
+track: system-design
+order: 200
+tags: [system-design, case-study, streaming, analytics, kafka, olap]
+aliases: [real time analytics, stream processing, flink, kafka streams, spark streaming, tumbling window, sliding window, session window, watermark, late events, event time vs processing time, exactly once, top k, heavy hitters, trending, count min sketch, hyperloglog, unique visitors, olap, clickhouse, druid, pinot, bigquery, lambda architecture, kappa architecture, rollups]
+prerequisites: [system-design/kafka-deep-dive, system-design/approach-and-estimation]
+related: [system-design/logging-monitoring, system-design/search-engine, databases/sql-vs-nosql]
+quickRef:
+  points:
+    - 'Ingest events into a durable log (Kafka); everything downstream is **replayable**.'
+    - 'Stream processors aggregate over **windows** (tumbling, sliding, session) in **event time**, with **watermarks** deciding when a window is complete and how late data is handled.'
+    - 'Exact distinct counts and top-K at scale are expensive: **HyperLogLog** (~0.8% error in 12 KB), **Count-Min Sketch** + heap for heavy hitters.'
+    - 'Store pre-aggregated rollups in an **OLAP** store (ClickHouse, Druid, Pinot, BigQuery) for fast slice-and-dice; keep raw events in cheap object storage.'
+    - '**Kappa**: one streaming path, reprocess by replaying the log; **Lambda**: separate batch and speed layers.'
+  useWhen: '"Design a real-time dashboard / trending topics / ad-click aggregation / top-K songs."'
+lastReviewed: 2026-10-30
+---
+
+## Requirements
+
+**Functional**: live dashboard (events per second, revenue per minute, unique users in the last hour, top 10 products right now); historical queries (revenue by product by day for 90 days, filter by country/device); alerts on anomalies.
+**Non-functional**: 1–5 M events/s at peak; dashboard lag < a few seconds; historical queries < 2 s; counts correct even with retries and late mobile events; reprocess when logic changes.
+
+## Estimates
+
+5 M events/s × ~200 bytes ≈ 1 GB/s ≈ 86 TB/day raw — raw events go to compressed columnar files in object storage (Parquet, ~10× smaller); dashboards read rollups that are orders of magnitude smaller (per minute × dimensions).
+
+## High-level design
+
+<Diagram id="analytics-architecture" caption="Events flow through Kafka into a stream processor that maintains windowed aggregates; rollups land in an OLAP store; raw events in a lake." />
+
+## Windows and late data
+
+<Walkthrough id="windows-watermarks" />
+
+| Window | Shape | Example |
+|---|---|---|
+| Tumbling | fixed, non-overlapping | orders per minute |
+| Sliding / hopping | fixed size, overlapping | rolling 5-minute average every 10 s |
+| Session | per key, closes after inactivity | user sessions with a 30-minute gap |
+
+- **Event time** (when it happened) vs **processing time** (when it arrived): use event time for correct numbers; mobile clients may send events minutes or hours late.
+- A **watermark** says "we've probably seen everything up to time T". Windows emit when the watermark passes their end; **allowed lateness** updates results for stragglers; anything later goes to a side output (and is fixed in batch).
+- **Exactly-once results**: the processor checkpoints its state together with Kafka offsets (Flink checkpoints, Kafka Streams transactions), and sinks are idempotent (upsert by window + key).
+
+<CodeTabs id="windowed-aggregation" title="Windowed aggregation with watermarks — Kafka Streams and Flink" />
+
+## Counting at scale
+
+<CodeTabs id="sketches" title="Unique users with HyperLogLog, top-K with Count-Min Sketch and a heap" />
+
+| Question | Exact approach | At scale |
+|---|---|---|
+| How many events? | counter per window | sharded counters, pre-aggregation in the stream |
+| How many **unique** users? | set of ids (memory grows with users) | HyperLogLog: ~12 KB per counter, ~0.81% standard error (Redis), mergeable across windows |
+| Which items are **top-K**? | count every item, sort | Count-Min Sketch + min-heap, or count per partition and merge top-K candidates |
+| Percentiles (p99 latency)? | sort all values | t-digest / HDR histograms |
+
+## Storage and serving
+
+- **Live**: the processor writes current window results to Redis or the OLAP store's real-time ingestion; dashboards read the latest few minutes.
+- **Historical**: rollups (e.g. per minute → hour → day, by product, country, device) in a columnar OLAP store, partitioned by time and sorted by common filters; a 90-day revenue query reads a few thousand rows, not billions.
+- **Raw events** in Parquet on object storage for ad-hoc analysis and reprocessing.
+- **Reprocessing**: with logs retained (or the lake), fix a bug by replaying into new tables and switching — the **Kappa** approach. Lambda keeps a separate batch path that recomputes truth nightly, at the cost of two codebases.
+
+<Pitfalls>
+
+- **Querying raw events for dashboards.**
+- **Processing-time windows** for business metrics — late or replayed events land in the wrong minute.
+- **Non-idempotent sinks** — reprocessing or failover double-counts.
+- **Exact distinct counts in memory** for billions of ids.
+- **Hot keys** (one viral product) overloading one partition — pre-aggregate locally before the shuffle, or split the key.
+- **No schema for events** — fields drift and pipelines break silently; use a schema registry.
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- Kafka in, stream processing with event-time windows and watermarks, idempotent sinks.
+- Sketches for uniques, heavy hitters and percentiles when exactness is too costly.
+- Rollups in an OLAP store for queries; raw data in a lake; replay to fix and backfill.
+
+</KeyTakeaways>

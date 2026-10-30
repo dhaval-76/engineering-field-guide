@@ -1,0 +1,77 @@
+---
+title: 'Design: Search for a Product or Knowledge Base'
+summary: Full-text search over millions of documents — inverted indexes, analysis, BM25 ranking, indexing from change events, shards and replicas, autocomplete, typo tolerance, permissions and semantic search.
+track: system-design
+order: 190
+tags: [system-design, case-study, search, elasticsearch, information-retrieval]
+aliases: [design search, search engine, full text search, inverted index, posting list, tokenizer, analyzer, stemming, stop words, synonyms, tf idf, bm25, elasticsearch, opensearch, lucene, relevance ranking, autocomplete, typeahead, fuzzy search, did you mean, faceted search, document level security, hybrid search, vector search, semantic search, reciprocal rank fusion]
+prerequisites: [databases/indexing, system-design/kafka-deep-dive]
+related: [low-level-design/autocomplete, databases/sql-vs-nosql, system-design/realtime-analytics]
+quickRef:
+  points:
+    - '`LIKE ''%term%''` scans every row; an **inverted index** maps each term to the documents containing it.'
+    - '**Analysis** decides what matches: tokenise, lowercase, remove stop words, stem, synonyms — the same at index and query time.'
+    - 'Rank with **BM25** (term frequency with saturation × inverse document frequency × length normalisation), then boosts: title, freshness, popularity.'
+    - 'The database is the source of truth; an **indexer** consumes change events (outbox/CDC) — search is eventually consistent.'
+    - 'Scale with **shards** (split documents) and **replicas** (more query throughput, availability).'
+    - 'Enforce **permissions** inside the query (filters), not by hiding results afterwards.'
+  useWhen: '"Design search for Confluence / an e-commerce catalogue / a help centre."'
+lastReviewed: 2026-10-30
+---
+
+## Requirements
+
+**Functional**: keyword search over titles and bodies with relevance ranking; filters and facets (space, category, author, date); highlighted snippets; autocomplete; typo tolerance; results only from documents the user may see; new and edited documents searchable within seconds.
+**Non-functional**: 10 M documents (~20 KB average → ~200 GB of text), ~1 M queries/day with peaks of a few hundred per second; p99 < 200 ms; indexing lag < ~10 s.
+
+## How an inverted index works
+
+<Walkthrough id="inverted-index" />
+
+<CodeTabs id="inverted-index" title="A tiny inverted index with BM25 scoring" />
+
+## Relevance
+
+- **TF-IDF**: a term matters more if it appears often in this document and rarely across all documents.
+- **BM25** (Lucene/Elasticsearch default) adds **saturation** (the tenth occurrence adds little) and **length normalisation** (matches in short documents count more).
+- Then business signals: boost title over body, phrase matches, recent or popular documents, the user's own space; tune with relevance judgements and click data, measured offline (NDCG) and online (A/B tests).
+
+## Architecture
+
+<Diagram id="search-architecture" caption="Writes go to the database; an indexer keeps the search cluster in sync; queries go only to the search cluster." />
+
+- **Indexing pipeline**: the document service writes to its database and an outbox; a consumer (or CDC) loads the full document, enriches it (permissions, tags), analyses and upserts it — idempotently, using the document version so out-of-order updates don't regress the index.
+- **Reindexing**: build a new index from a snapshot + catch up with the event stream, then switch an alias — no downtime when analysers or mappings change.
+- **Sharding**: documents spread across primary shards (size each to ~10–50 GB); every query fans out to all shards and merges top-K. **Replicas** serve reads and survive node loss. Very large multi-tenant corpora can route by tenant to keep queries on few shards.
+
+<CodeTabs id="search-query" title="Mapping and a query: boosts, filters, permissions, highlighting, fuzziness" />
+
+## Autocomplete, typos and semantics
+
+- **Autocomplete** needs prefix lookups in milliseconds: an edge-n-gram field or completion suggester, or precomputed top suggestions per prefix from query logs (a [trie](../../low-level-design/autocomplete/)) cached in memory.
+- **Typos**: fuzzy matching by edit distance (`fuzziness: AUTO`) on longer terms, and "did you mean" from frequent queries.
+- **Semantic search**: embed documents and queries as vectors and retrieve by similarity (HNSW indexes in OpenSearch/Elasticsearch or pgvector) to match meaning, not words; combine with BM25 via **hybrid search** (e.g. reciprocal rank fusion) — keyword precision plus semantic recall.
+
+## Permissions
+
+Index each document with its access control (space ids, groups) and add a filter for the user's memberships to every query — filters are cached and cheap. Filtering after retrieval leaks counts and breaks pagination. Permission changes trigger reindexing of affected documents (or store ACLs at a coarser level, like spaces, that change rarely).
+
+<Pitfalls>
+
+- **SQL `LIKE '%…%'` for search** — full scans and no relevance.
+- **Different analysis at index and query time** — "Running" never matches "run".
+- **Dual writes** from the application to the database and search index — they drift; use an outbox/CDC.
+- **Post-filtering for permissions.**
+- **One giant shard** (slow recovery) or thousands of tiny ones (overhead).
+- **Changing mappings in place** instead of reindexing behind an alias.
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- Inverted index + consistent analysis + BM25, then business boosts tuned with data.
+- Database as source of truth; asynchronous, idempotent, versioned indexing; alias-based reindexing.
+- Shards for size, replicas for throughput and availability.
+- Permissions as query filters; autocomplete and typo tolerance as separate structures; hybrid search for meaning.
+
+</KeyTakeaways>

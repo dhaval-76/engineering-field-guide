@@ -1,0 +1,37 @@
+{
+  "mappings": {
+    "properties": {
+      "title":       { "type": "text", "analyzer": "english",
+                       "fields": { "prefix": { "type": "search_as_you_type" } } },
+      "body":        { "type": "text", "analyzer": "english" },
+      "space_id":    { "type": "keyword" },
+      "allowed":     { "type": "keyword" },
+      "updated_at":  { "type": "date" },
+      "version":     { "type": "long" }
+    }
+  },
+
+  "query": {
+    "bool": {
+      "must": {
+        "multi_match": {
+          "query": "kubernetes deploy",
+          "fields": ["title^3", "body"],
+          "type": "best_fields",
+          "fuzziness": "AUTO"
+        }
+      },
+      "should": [
+        { "match_phrase": { "title": { "query": "kubernetes deploy", "boost": 2 } } }
+      ],
+      "filter": [
+        { "terms": { "allowed": ["group:eng", "group:all", "user:u42"] } },
+        { "term":  { "space_id": "devops" } },
+        { "range": { "updated_at": { "gte": "now-2y" } } }
+      ]
+    }
+  },
+  "aggs": { "by_space": { "terms": { "field": "space_id" } } },
+  "highlight": { "fields": { "body": { "fragment_size": 150, "number_of_fragments": 2 } } },
+  "size": 10
+}

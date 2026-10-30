@@ -1,0 +1,10 @@
+flowchart TD
+  SRC[Apps · web · services] -- events --> IN[Ingest API / collectors]
+  IN --> K{{Kafka<br/>partitioned by key · retained}}
+  K --> SP[Stream processor<br/>windows · watermarks · sketches · checkpoints]
+  SP -- current windows --> RT[(Live store<br/>Redis / OLAP real-time)]
+  SP -- rollups --> OLAP[(OLAP store<br/>ClickHouse · Druid · Pinot)]
+  K --> LK[(Data lake<br/>Parquet on object storage)]
+  RT --> D[Live dashboards · alerts]
+  OLAP --> Q[Historical queries · BI]
+  LK -. replay / backfill .-> SP

@@ -1,0 +1,22 @@
+# SLO: 99.9% of checkout requests succeed (non-5xx) over 30 days → error budget 0.1%.
+# Burn rate 14.4 for 1h ≈ 2% of the monthly budget in an hour: page. Burn rate 6 over 6h: page.
+# Slower burns open a ticket instead.
+groups:
+  - name: checkout-slo
+    rules:
+      - record: checkout:error_ratio:rate5m
+        expr: |
+          sum(rate(http_server_requests_seconds_count{service="checkout",status=~"5.."}[5m]))
+          / sum(rate(http_server_requests_seconds_count{service="checkout"}[5m]))
+      - record: checkout:error_ratio:rate1h
+        expr: |
+          sum(rate(http_server_requests_seconds_count{service="checkout",status=~"5.."}[1h]))
+          / sum(rate(http_server_requests_seconds_count{service="checkout"}[1h]))
+
+      - alert: CheckoutErrorBudgetFastBurn
+        expr: checkout:error_ratio:rate1h > (14.4 * 0.001) and checkout:error_ratio:rate5m > (14.4 * 0.001)
+        labels: { severity: page, team: payments }
+        annotations:
+          summary: "Checkout is burning its error budget fast"
+          runbook: "https://runbooks.example.com/checkout-errors"
+          dashboard: "https://grafana.example.com/d/checkout"

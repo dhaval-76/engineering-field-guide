@@ -1,0 +1,27 @@
+title: From a page to the root cause
+frames:
+  - caption: 'A **burn-rate alert** fires: checkout''s SLO (99.9% of requests OK and < 500 ms) is consuming error budget 14× faster than sustainable over the last 5 minutes and the last hour.'
+    panels:
+      - kind: kv
+        label: Checkout SLI
+        pairs: [[good requests, { v: '98.6% (target 99.9%)', tone: bad }], [p99 latency, { v: '2.4 s', tone: bad }]]
+  - caption: 'The dashboard (RED) shows errors and latency rising on `POST /checkout` only, starting 14:02 — right after a deploy of the pricing service.'
+    panels:
+      - kind: rows
+        label: Clues
+        items: ['only POST /checkout', { v: 'started 14:02', tone: warn }, { v: 'pricing v3.8 deployed 14:01', tone: warn }]
+  - caption: 'An exemplar on the latency graph links to a slow **trace**: 2.3 s of the 2.4 s is a span in pricing calling the promotions database with a new query.'
+    panels:
+      - kind: rows
+        label: Trace 4bf9…
+        items: ['gateway 2.4 s', 'checkout 2.38 s', { v: 'pricing → SELECT promotions … 2.3 s', tone: bad }]
+  - caption: 'Filtering **logs** by that trace id shows the pricing service''s slow-query warning with the exact SQL and parameters — a missing index on the new filter column.'
+    panels:
+      - kind: rows
+        label: Logs (trace_id = 4bf9…)
+        items: [{ v: 'WARN slow query 2,301 ms: … WHERE campaign_id = ? AND …', tone: warn }]
+  - caption: 'Mitigate first (roll back pricing v3.8), confirm the SLI recovers, then fix forward (add the index), and note it in the incident review. Metrics detected, traces located, logs explained.'
+    panels:
+      - kind: kv
+        label: After rollback
+        pairs: [[good requests, { v: '99.97%', tone: ok }], [p99 latency, { v: '310 ms', tone: ok }]]

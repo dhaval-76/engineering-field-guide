@@ -1,0 +1,10 @@
+flowchart TD
+  A[Authors] --> DS[Document service]
+  DS --> DB[(Documents DB<br/>+ outbox)]
+  DB -. events / CDC .-> K{{Kafka}}
+  K --> IX[Indexer<br/>enrich · analyse · versioned upsert]
+  IX --> ES[(Search cluster<br/>shards × replicas)]
+  U[Readers] --> SS[Search API<br/>build query · permission filter]
+  SS --> ES
+  SS --> AC[(Autocomplete<br/>prefix index / cache)]
+  QL[Query logs] --> AC

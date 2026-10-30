@@ -1,0 +1,33 @@
+questions:
+  - q: 'Events arrive at 5 M per second. Build a live dashboard (events/s, revenue per minute, unique users, top products) and support 90-day revenue-by-product queries in under 2 seconds.'
+    think: Two workloads — continuous small aggregates and ad-hoc historical slices. Neither should touch raw events.
+    answer: |
+      Ingest into Kafka partitioned by a sensible key and retained for replay; also land raw events in Parquet on object storage. A stream processor (Flink or Kafka Streams) computes event-time windows with watermarks and allowed lateness: per-second counts, per-minute revenue per product, HyperLogLog uniques, and per-partition top-K merged globally — checkpointed with offsets for exactly-once state, writing to idempotent sinks. Live results go to Redis or the OLAP store's real-time tables for the dashboard. Minute rollups (by product, country, device) feed a columnar OLAP store partitioned by time; the 90-day query aggregates rollups, not raw events, in well under 2 s. Late events beyond the grace period go to a side output and a nightly batch reconciles. Logic changes are deployed by replaying Kafka/the lake into new tables (Kappa).
+followUps:
+  - q: Event time or processing time?
+    intuition: When did it happen vs when did we see it?
+    approach: |
+      Business metrics should use event time so that delayed, retried or replayed events count in the right window. That requires watermarks to decide when windows are complete and a policy for late data. Processing time is simpler and fine for operational metrics about the pipeline itself (throughput, lag).
+  - q: How do you count unique users across billions of events cheaply?
+    intuition: Do you need the exact number?
+    approach: |
+      HyperLogLog estimates cardinality with ~0.81% standard error (Redis) using about 12 KB per counter, and sketches can be merged (hours into days, shards into totals). Store sketch states in rollups (ClickHouse `uniq` states) so any time range can be merged at query time. Use exact sets only for small, critical counts.
+  - q: How do you find the top 10 trending items at this scale?
+    intuition: Counting every item exactly needs huge state.
+    approach: |
+      Partition by item for exact per-item counts if feasible, keeping a top-K per partition and merging candidates periodically. Otherwise use a Count-Min Sketch with a min-heap of leaders (heavy hitters) per window. For "trending", compare the current window to a baseline (rate of change) rather than raw counts, and decay old windows.
+practice:
+  - task: Implement per-minute revenue per product by event time with a grace period, and approximate unique visitors and top-K products.
+    hint: Kafka Streams windowedBy(ofSizeAndGrace), suppress until window closes; HyperLogLog PFADD/PFCOUNT; Count-Min Sketch + heap.
+    solution: |
+      Group purchases by product, window by one minute in event time with a five-minute grace, aggregate revenue, suppress until the window closes and emit keyed by product+window for idempotent upserts (exactly-once processing). Track uniques with PFADD into hourly HyperLogLog keys and PFCOUNT across keys for longer ranges. Estimate item counts with a Count-Min Sketch (min over rows) and keep the top k estimates in a small map/heap per partition, merging partitions for the global answer.
+    solutionCode: windowed-aggregation
+quiz:
+  - q: What does a watermark represent in stream processing?
+    options: [A security marker, An estimate that events up to time T have arrived, The Kafka offset, The window size]
+    correct: 1
+    why: Windows ending before the watermark can be emitted; later events count as late.
+  - q: Approximately how much memory does a Redis HyperLogLog need for a billion unique ids?
+    options: ['About 12 KB', 'About 12 MB', 'About 12 GB', 'It depends linearly on the count']
+    correct: 0
+    why: HLL memory is constant; the trade-off is ~0.81% standard error.
