@@ -1,0 +1,27 @@
+title: Counting the work in a duplicate check
+frames:
+  - caption: 'Task: does the array contain a duplicate? **Brute force** compares every pair. For n = 5, the outer loop picks i, the inner loop checks every j after it.'
+    panels:
+      - kind: array
+        label: nums
+        items: [{ v: '4', tone: accent }, '7', '1', '9', '7']
+      - kind: note
+        text: 'i = 0: compare with 7, 1, 9, 7 → 4 comparisons'
+  - caption: 'Comparisons: 4 + 3 + 2 + 1 = 10 = n(n−1)/2. For n = 100,000 that is about **5 billion** comparisons — O(n²).'
+    panels:
+      - kind: kv
+        label: Comparisons
+        pairs: [['n = 5', '10'], ['n = 1,000', '~500,000'], ['n = 100,000', { v: '~5,000,000,000', tone: bad }]]
+  - caption: '**Sort first**, then duplicates are neighbours: one pass comparing nums[i] with nums[i+1]. Cost: O(n log n) to sort + O(n) to scan = **O(n log n)**.'
+    panels:
+      - kind: array
+        label: sorted
+        items: ['1', '4', { v: '7', tone: warn }, { v: '7', tone: warn }, '9']
+  - caption: '**Hash set**: walk once, checking whether each value was seen. Each lookup is O(1) on average → **O(n) time**, but **O(n) extra space**. Trading memory for time is the most common optimisation.'
+    panels:
+      - kind: array
+        label: nums
+        items: ['4', '7', '1', '9', { v: '7 ← seen!', tone: ok }]
+      - kind: kv
+        label: seen
+        pairs: [[set, '{4, 7, 1, 9}']]

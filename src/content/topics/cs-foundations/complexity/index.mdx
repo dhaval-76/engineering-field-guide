@@ -1,0 +1,124 @@
+---
+title: Time and Space Complexity (Big-O)
+summary: How to estimate how an algorithm's cost grows with input size — Big-O and its siblings, the common complexity classes, analysing loops and recursion, amortised and space cost, and what input sizes each complexity can handle.
+track: cs-foundations
+order: 10
+tags: [cs-foundations, complexity, big-o, algorithms, dsa]
+aliases: [big o, big-o notation, time complexity, space complexity, asymptotic analysis, big theta, big omega, o(1), o(log n), o(n log n), o(n^2), exponential, amortized, amortised analysis, master theorem, recursion tree, best worst average case, input size limits]
+prerequisites: []
+related: [java-runtime/collections]
+quickRef:
+  points:
+    - 'Big-O describes how cost **grows** as input size n grows — constants and smaller terms are dropped.'
+    - 'Common classes: O(1) < O(log n) < O(n) < O(n log n) < O(n²) < O(2ⁿ) < O(n!).'
+    - 'Sequential steps **add** (keep the largest); nested loops **multiply**; halving each step gives **log n**.'
+    - 'Recursion: cost = (number of calls) × (work per call); draw the recursion tree.'
+    - '**Amortised** O(1): an occasional expensive step (array resize) averaged over many cheap ones.'
+    - 'Rule of thumb ~10⁸ simple operations/second: n ≤ 10⁵ needs O(n log n) or better; n ≤ 20 allows O(2ⁿ).'
+  complexity: 'n = 10⁶: O(log n) ≈ 20 · O(n) = 10⁶ · O(n log n) ≈ 2×10⁷ · O(n²) = 10¹² (too slow)'
+  useWhen: Choosing between solutions, stating the complexity of your code in an interview, or predicting whether something will scale.
+lastReviewed: 2026-10-30
+---
+
+## Why it matters
+
+Two correct solutions can differ by a factor of a million in running time on real inputs. Complexity analysis lets you see that *before* running anything: an O(n²) duplicate check is fine for 1,000 items and hopeless for 10 million. Every coding interview expects you to state the time and space complexity of your solution and to improve it; every production system eventually meets the input size where the slow approach stops working.
+
+<Callout type="analogy">
+Looking for a name in a phone book. Reading every page is O(n): twice the book, twice the time. Opening in the middle and halving each time is O(log n): doubling the book adds just one more step. Comparing every name with every other name (looking for duplicates) is O(n²): double the book, four times the work.
+</Callout>
+
+## Growth rates
+
+<Chart
+  type="line"
+  title="Operations needed as input size grows"
+  log
+  x={['10', '100', '1,000', '10,000', '100,000', '1,000,000']}
+  series={[
+    { name: 'O(log n)', values: [3, 7, 10, 13, 17, 20], tone: 'ok' },
+    { name: 'O(n)', values: [10, 100, 1000, 10000, 100000, 1000000], tone: 'info' },
+    { name: 'O(n log n)', values: [33, 664, 9966, 132877, 1660964, 19931569], tone: 'plum' },
+    { name: 'O(n²)', values: [100, 10000, 1000000, 100000000, 10000000000, 1000000000000], tone: 'bad' },
+  ]}
+  yLabel="ops"
+  caption="Log scale: each gridline is ×10. At a million items, O(n log n) is ~20 million operations; O(n²) is a trillion."
+/>
+
+| Class | Name | Typical example |
+|---|---|---|
+| O(1) | constant | array index, hash map get (average) |
+| O(log n) | logarithmic | binary search, balanced-tree lookup, heap push/pop |
+| O(n) | linear | one pass over an array, linked-list search |
+| O(n log n) | linearithmic | good sorting (merge sort, Timsort), heap of n items |
+| O(n²) | quadratic | all pairs, nested loops over the same input |
+| O(2ⁿ) | exponential | all subsets, naive recursive Fibonacci |
+| O(n!) | factorial | all permutations |
+
+## Which complexity fits the input size?
+
+A simple operation in Java, C++ or Go runs roughly 10⁸ times per second (Python ~10⁷). With a 1–2 second budget:
+
+| n up to | Acceptable time complexity |
+|---|---|
+| 10–12 | O(n!) |
+| 20–25 | O(2ⁿ), O(2ⁿ · n) |
+| 500 | O(n³) |
+| 5,000 | O(n²) |
+| 10⁵–10⁶ | O(n log n), O(n) |
+| 10⁹ and beyond | O(log n), O(1), or a formula |
+
+Reading constraints backwards is one of the best hints in an interview: `n ≤ 10⁵` rules out O(n²).
+
+## Analysing code
+
+<Walkthrough id="counting-steps" />
+
+<CodeTabs id="complexity-examples" title="Recognising complexity from the shape of the code" />
+
+- **Sequence**: O(a) then O(b) → O(a + b), keep the dominant term.
+- **Nesting**: a loop of n around a loop of m → O(n · m). Careful: the inner loop's bound may depend on the outer (the triangle n(n−1)/2 is still O(n²)).
+- **Halving or doubling**: `i *= 2` or discarding half the input each step → O(log n).
+- **Different inputs get different letters**: merging lists of sizes n and m is O(n + m), not O(n).
+- **Hidden costs**: `list.contains` in a loop (O(n) each), string concatenation in a loop (copies), `substring`/slicing (copies in Java and Python), sorting inside a loop.
+
+## Recursion
+
+Cost = number of calls × work per call. Draw the **recursion tree**: how many levels, how many nodes per level, how much work at each.
+
+| Recurrence | Shape | Result |
+|---|---|---|
+| T(n) = T(n/2) + O(1) | one branch, halving | O(log n) — binary search |
+| T(n) = 2T(n/2) + O(n) | two branches, linear merge | O(n log n) — merge sort |
+| T(n) = T(n−1) + O(1) | chain | O(n) |
+| T(n) = 2T(n−1) + O(1) | two branches, shrinking by 1 | O(2ⁿ) — naive Fibonacci |
+
+Recursion also uses **stack space** proportional to its depth: O(log n) for balanced divide-and-conquer, O(n) for a chain (and a stack overflow risk for large n). Memoisation turns exponential recursion with repeated subproblems into polynomial time ([Dynamic programming](../../dsa/dynamic-programming/)).
+
+<CodeTabs id="fib-complexity" title="The same function at O(2ⁿ), O(n) and O(n) with O(1) space" />
+
+## Space, amortised and average cost
+
+- **Space complexity** counts extra memory beyond the input: a hash set of all elements is O(n) space; two pointers are O(1). Recursion depth counts.
+- **Amortised**: appending to a dynamic array is usually O(1) but occasionally O(n) when it doubles its capacity; over n appends the total is O(n), so each is **amortised O(1)**.
+- **Average vs worst case**: hash map operations are O(1) on average but O(n) in the worst case (Java bins with many collisions become trees, giving O(log n)); quicksort is O(n log n) average, O(n²) worst.
+- **Big-O, Θ and Ω**: O is an upper bound, Ω a lower bound, Θ both. In interviews, "Big-O" conventionally means the tight bound for the worst case.
+
+<Pitfalls>
+
+- **Ignoring library costs** — `contains` on a list, `indexOf`, slicing, `sort` are not O(1).
+- **Dropping a variable** — O(n + m) is not O(n) when m can be larger.
+- **Forgetting recursion stack space.**
+- **Calling hash maps O(1) unconditionally** — it's average-case; poor hashes degrade.
+- **Optimising constants before the complexity** — a faster O(n²) loses to a plain O(n log n) at scale.
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- Big-O is about growth; keep the dominant term.
+- Add for sequence, multiply for nesting, log for halving; draw recursion trees.
+- Use input constraints to infer the target complexity.
+- Account for space, hidden library costs, and amortised vs worst-case behaviour.
+
+</KeyTakeaways>

@@ -136,6 +136,13 @@ const barLen = (v: number) => {
       ))}
     </svg>
   )}
+  {type === 'line' && series.length > 1 && (
+    <ul class="legend">
+      {series.map((s, si) => (
+        <li style={`--c:${toneVar(s.tone, si)}`}>{s.name}</li>
+      ))}
+    </ul>
+  )}
   {caption && <figcaption>{caption}</figcaption>}
 </figure>
 
@@ -198,6 +205,28 @@ const barLen = (v: number) => {
     font-size: 12px;
     font-weight: 600;
     font-variant-numeric: tabular-nums;
+  }
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 16px;
+    list-style: none;
+    margin: 8px 0 0;
+    padding: 0;
+    font-size: 0.8125rem;
+    color: var(--ink-2);
+  }
+  .legend li {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .legend li::before {
+    content: '';
+    width: 14px;
+    height: 3px;
+    border-radius: 2px;
+    background: var(--c);
   }
   figcaption {
     margin-top: 8px;

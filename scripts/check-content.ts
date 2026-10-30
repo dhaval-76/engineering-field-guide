@@ -48,6 +48,16 @@ for (const [id, files] of snippetIds) {
 }
 const diagramIds = new Set(diagramFiles.map(stem));
 const walkIds = new Set(walkFiles.map(stem));
+// Diagram and walkthrough ids are global: two files with the same name would silently shadow each other.
+for (const [kind, files] of [['diagram', diagramFiles.filter((f) => f.endsWith('.svg') || !diagramFiles.includes(f.replace(/\.mmd$/, '.svg')))], ['walkthrough', walkFiles]] as const) {
+  const seen = new Map<string, string>();
+  for (const f of files) {
+    const id = stem(f);
+    const prev = seen.get(id);
+    if (prev) errors.push(`Duplicate ${kind} id "${id}": ${prev} and ${f}`);
+    else seen.set(id, f);
+  }
+}
 const termIds = new Set(glossaryFiles.map(stem));
 
 const used = { code: new Set<string>(), diagram: new Set<string>(), walk: new Set<string>() };

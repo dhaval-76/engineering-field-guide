@@ -1,0 +1,41 @@
+questions:
+  - q: 'What is the time and space complexity of checking an array for duplicates, and how would you improve the brute-force solution?'
+    think: Compare all pairs, sort, or remember what you've seen.
+    answer: |
+      Brute force compares every pair: n(n−1)/2 comparisons → O(n²) time, O(1) space. Sorting first puts duplicates next to each other: O(n log n) time, O(1) or O(n) extra space depending on the sort (and it mutates or copies the input). A hash set checks membership in O(1) on average: O(n) time, O(n) space — usually the best answer, trading memory for time. If values are in a small known range (e.g. 0..n−1), a boolean array or in-place marking gives O(n) time with O(1) extra space.
+  - q: 'The constraints say n ≤ 10⁵. Your solution is O(n²). Is it acceptable?'
+    think: How many operations is that, and what's the budget?
+    answer: |
+      O(n²) at 10⁵ is 10¹⁰ operations — about 100 seconds at ~10⁸ simple operations per second. Too slow. The constraint signals that an O(n log n) or O(n) solution is expected: sorting, hashing, two pointers, a heap, or binary search usually gets you there.
+followUps:
+  - q: Why is appending to an ArrayList O(1) if it sometimes copies the whole array?
+    intuition: Average over many operations.
+    approach: |
+      When full, the list allocates a larger array (×1.5 in Java) and copies — O(n) for that append. Because capacity grows geometrically, copies happen rarely: the total copying over n appends is bounded by a constant times n, so the amortised cost per append is O(1). Individual appends can still be slow, which matters for latency-sensitive code — pre-size when you know the size.
+  - q: What is the complexity of recursive Fibonacci, and how do you fix it?
+    intuition: Draw the call tree.
+    approach: |
+      Each call makes two calls, so the tree has about φⁿ ≈ 1.6ⁿ nodes — exponential, O(2ⁿ) as an upper bound — because the same subproblems are recomputed. Memoising each result makes it O(n) time and space; iterating with two variables makes it O(n) time and O(1) space. (Matrix exponentiation gives O(log n).)
+  - q: Is a hash map lookup really O(1)?
+    intuition: Average vs worst case.
+    approach: |
+      On average, with a good hash function and load factor, yes. In the worst case many keys collide in one bucket: O(n) for a list, O(log n) in Java 8+ where large bins become balanced trees. Adversarial inputs can exploit weak hashes, which is why languages randomise string hashing.
+practice:
+  - task: 'State the time and space complexity of: (a) fib by plain recursion, (b) fib with memoisation, (c) fib with two variables — and explain why.'
+    hint: Count calls and the work per call; count what's kept in memory, including the stack.
+    solution: |
+      (a) ~2ⁿ calls with O(1) work each → O(2ⁿ) time; recursion depth n → O(n) stack space. (b) Each value 0..n computed once → O(n) time; memo table + recursion depth → O(n) space. (c) A loop of n iterations with constant work → O(n) time, O(1) space.
+    solutionCode: fib-complexity
+quiz:
+  - q: 'A loop runs while i < n with i *= 2 each iteration. Its complexity?'
+    options: ['O(n)', 'O(log n)', 'O(n log n)', 'O(1)']
+    correct: 1
+    why: i doubles each time, reaching n after log₂ n iterations.
+  - q: 'Two nested loops: outer over n items, inner over m items. Complexity?'
+    options: ['O(n)', 'O(n + m)', 'O(n · m)', 'O(n²)']
+    correct: 2
+    why: The inner loop runs fully for each outer iteration; use separate variables for separate inputs.
+  - q: 'Which n is about the limit for an O(2ⁿ) algorithm within a second?'
+    options: ['10⁶', '10⁴', '20–25', '1,000']
+    correct: 2
+    why: 2²⁵ ≈ 3×10⁷ — feasible; 2⁴⁰ is not.
