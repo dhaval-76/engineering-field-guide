@@ -3,26 +3,28 @@ import BaseLayout from '~/layouts/BaseLayout.astro';
 import { getCompanyIndex } from '~/lib/companies';
 import { url } from '~/lib/url';
 
-const companies = await getCompanyIndex();
+const companies = (await getCompanyIndex())
+  .map((c) => ({ ...c, total: c.items.reduce((n, i) => n + (i.reports ?? 1), 0) }))
+  .sort((a, b) => b.total - a.total || a.name.localeCompare(b.name));
 ---
 
 <BaseLayout
   title="Companies"
-  description="Topics and questions reported in interviews, grouped by company, with sources."
+  description="Interview topics grouped by company, counted from public interview reports, with sources."
 >
   <div class="wrap">
     <h1>Companies</h1>
     <p class="lede">
-      Topics and questions candidates have publicly reported being asked, grouped by company. Every
-      tag links to its source. Reports reflect what was asked at some point — not a guarantee of
-      what will be asked.
+      Which topics come up at which companies, counted from public interview write-ups (2024–2026)
+      and linked to the original posts. Reports show what some candidates were asked — useful for
+      prioritising, not a guarantee.
     </p>
-    {companies.length === 0 && <p class="muted">No company reports have been added yet.</p>}
+    {companies.length === 0 && <p class="lede">No company data yet.</p>}
     <ul>
       {companies.map((c) => (
         <li>
           <a href={url(`companies/${c.slug}/`)}>{c.name}</a>
-          <span>{c.items.length} topics/questions</span>
+          <span>{c.items.length} topics</span>
         </li>
       ))}
     </ul>
@@ -31,7 +33,7 @@ const companies = await getCompanyIndex();
 
 <style>
   .wrap {
-    max-width: 760px;
+    max-width: 860px;
   }
   h1 {
     font-family: var(--font-serif);
@@ -39,20 +41,23 @@ const companies = await getCompanyIndex();
     font-size: var(--step-4);
     margin: 0;
   }
-  .lede,
-  .muted {
+  .lede {
     color: var(--ink-2);
+    max-width: var(--measure);
   }
   ul {
     list-style: none;
     padding: 0;
-    columns: 2 220px;
+    columns: 3 220px;
+    column-gap: 32px;
+    margin-top: 24px;
   }
   li {
     display: flex;
     justify-content: space-between;
     gap: 8px;
     padding: 6px 0;
+    border-bottom: 1px solid var(--rule);
     break-inside: avoid;
   }
   span {

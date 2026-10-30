@@ -1,0 +1,41 @@
+questions:
+  - q: Remove all even numbers from a list while iterating, without ConcurrentModificationException.
+    think: Why does a for-each loop with list.remove() throw?
+    answer: |
+      The for-each iterator is fail-fast: `list.remove` changes the list's modification count behind the iterator's back. Options: use the iterator's own `remove()`, or better, `list.removeIf(n -> n % 2 == 0)`, which for `ArrayList` marks removals and compacts the array in one pass (O(n) rather than O(n²) repeated shifting).
+  - q: When would you choose TreeMap over HashMap?
+    answer: |
+      When you need keys in sorted order or ordered queries: iterate in key order, `firstKey/lastKey`, `floorKey/ceilingKey` (e.g. "the price tier for this amount"), or range views like `subMap(from, to)` ("all events in the last hour"). You pay O(log n) per operation instead of O(1) and can't use null keys.
+followUps:
+  - q: Why is ArrayList usually faster than LinkedList, even for inserts?
+    intuition: Big-O ignores memory layout.
+    approach: |
+      Inserting into a linked list in the middle first requires walking to the position — O(n) pointer chasing with cache misses at each node. An ArrayList shifts elements with a single `System.arraycopy` over contiguous memory, which is very fast. LinkedList also allocates a ~24-byte node per element, adding GC pressure. LinkedList wins only when you already hold an iterator at the position and do many local inserts — rare in practice.
+  - q: What is the difference between fail-fast and weakly consistent (fail-safe) iterators?
+    intuition: What happens if the collection changes during iteration?
+    approach: |
+      Fail-fast iterators (ArrayList, HashMap) detect structural modification not made through the iterator and throw `ConcurrentModificationException` — best-effort bug detection, not a concurrency guarantee. Concurrent collections' iterators (ConcurrentHashMap, CopyOnWriteArrayList) never throw; CopyOnWriteArrayList iterates a snapshot, ConcurrentHashMap may reflect some concurrent updates.
+  - q: Why is ArrayList's add amortised O(1)?
+    intuition: Resizes are expensive but rare.
+    approach: |
+      When the backing array is full it grows by ~1.5× and copies. The copies form a geometric series that sums to O(n) over n appends, so the average cost per append is constant. Pre-sizing removes resizes entirely.
+practice:
+  - task: You need to add and remove at both the front and the back, and peek at either end, efficiently. What structure?
+    hint: ArrayList can't do the front cheaply; LinkedList can but is slow in practice.
+    solution: |
+      `ArrayDeque`: a circular array with head/tail indexes, O(1) `addFirst/addLast/pollFirst/pollLast/peekFirst/peekLast`, no per-element allocation. (It rejects nulls.)
+    solutionCode: coll-choose
+  - task: Return the k largest numbers from an array of n numbers.
+    hint: You don't need to sort everything.
+    solution: |
+      Keep a min-heap of size k: push each number, pop when the heap exceeds k. O(n log k) time, O(k) memory. Alternatives: quickselect for O(n) average if order inside the top k doesn't matter.
+    solutionCode: coll-patterns
+quiz:
+  - q: Which is the recommended class for a stack in modern Java?
+    options: [java.util.Stack, LinkedList, ArrayDeque, Vector]
+    correct: 2
+    why: ArrayDeque is faster and unsynchronized; Stack extends the legacy synchronized Vector.
+  - q: '`List<String> v = Collections.unmodifiableList(src); src.add("x");` — does v contain "x"?'
+    options: ['Yes — it is a view of src', 'No — it is a copy', 'It throws', 'Only after refresh()']
+    correct: 0
+    why: unmodifiableList wraps the original; use List.copyOf for an immutable snapshot.

@@ -1,0 +1,98 @@
+---
+import type { CollectionEntry } from 'astro:content';
+import { slugifyCompany } from '~/lib/nav';
+import { url } from '~/lib/url';
+
+interface Props {
+  report: CollectionEntry<'reports'>['data'];
+}
+const { report } = Astro.props;
+const shown = report.companies.slice(0, 8);
+const total = report.companies.reduce((n, c) => n + c.reports, 0);
+---
+
+<div class="reported" data-pagefind-ignore>
+  <span class="label">Reported in interviews at</span>
+  <span class="chips">
+    {shown.map((c) => (
+      <a
+        class="chip"
+        href={url(`companies/${slugifyCompany(c.company)}/`)}
+        title={`${c.reports} public report(s), latest ${c.latestYear}`}
+      >
+        {c.company}
+        <span class="n">{c.reports}</span>
+      </a>
+    ))}
+  </span>
+  <details>
+    <summary>Sources ({total} reports)</summary>
+    <p class="note">
+      Counted from {report.source.split(' (')[0]} ({report.window}). A report means a candidate
+      mentioned this topic in a public interview write-up — not an official question bank.
+    </p>
+    <ul>
+      {report.companies.map((c) => (
+        <li>
+          <strong>{c.company}</strong>
+          {c.sources.map((s, i) => (
+            <>
+              {i > 0 && ' · '}
+              <a href={s.url} rel="nofollow noopener" target="_blank">
+                {s.title}
+              </a>{' '}
+              <span class="yr">({s.year})</span>
+            </>
+          ))}
+        </li>
+      ))}
+    </ul>
+  </details>
+</div>
+
+<style>
+  .reported {
+    max-width: var(--measure);
+    margin: 18px 0 0;
+    font-size: 0.875rem;
+  }
+  .label {
+    display: block;
+    color: var(--ink-3);
+    font-size: 0.75rem;
+    margin-bottom: 6px;
+  }
+  .chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .n {
+    font-variant-numeric: tabular-nums;
+    color: var(--ink-3);
+    font-size: 0.75rem;
+  }
+  details {
+    margin-top: 8px;
+  }
+  summary {
+    cursor: pointer;
+    color: var(--ink-3);
+    font-size: 0.8125rem;
+  }
+  .note {
+    color: var(--ink-3);
+    font-size: 0.8125rem;
+  }
+  ul {
+    padding-left: 1.1em;
+    margin: 6px 0 0;
+  }
+  li {
+    margin: 4px 0;
+    color: var(--ink-2);
+  }
+  .yr {
+    color: var(--ink-3);
+  }
+</style>

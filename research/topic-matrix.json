@@ -1,0 +1,3652 @@
+{
+  "meta": {
+    "generatedAt": "2026-10-30",
+    "source": "LeetCode Discuss public interview posts (company-tagged), via scripts/research/leetcode-discuss.ts",
+    "postsAnalysed": 4430,
+    "companies": 68,
+    "window": "2024-07-01 → 2026-10-30",
+    "method": "Conservative phrase matching on title + body. A post counts once per topic. Counts are mentions in candidate reports, not official question banks."
+  },
+  "topics": [
+    {
+      "key": "behavioral",
+      "label": "Behavioural / leadership",
+      "category": "behavioral",
+      "posts": 1022,
+      "share": 23.07,
+      "companies": 57,
+      "topCompanies": [
+        "Amazon (117)",
+        "Salesforce (62)",
+        "Goldman Sachs (62)",
+        "Flipkart (56)",
+        "Meta (55)",
+        "Uber (54)",
+        "LinkedIn (53)",
+        "Google (53)",
+        "Microsoft (40)",
+        "Walmart (39)",
+        "Oracle (34)",
+        "PayPal (31)"
+      ],
+      "byYear": {
+        "2024": 247,
+        "2025": 437,
+        "2026": 338
+      }
+    },
+    {
+      "key": "dsa-graphs",
+      "label": "Graphs (BFS/DFS)",
+      "category": "dsa",
+      "posts": 412,
+      "share": 9.3,
+      "companies": 46,
+      "topCompanies": [
+        "Amazon (48)",
+        "Google (41)",
+        "Uber (36)",
+        "Microsoft (29)",
+        "LinkedIn (28)",
+        "Salesforce (20)",
+        "Goldman Sachs (19)",
+        "Flipkart (15)",
+        "Meta (15)",
+        "Walmart (11)",
+        "Swiggy (10)",
+        "Apple (9)"
+      ],
+      "byYear": {
+        "2024": 77,
+        "2025": 174,
+        "2026": 161
+      }
+    },
+    {
+      "key": "dsa-dp",
+      "label": "Dynamic programming",
+      "category": "dsa",
+      "posts": 351,
+      "share": 7.92,
+      "companies": 48,
+      "topCompanies": [
+        "Amazon (46)",
+        "Google (42)",
+        "Goldman Sachs (32)",
+        "Salesforce (26)",
+        "Uber (19)",
+        "Microsoft (17)",
+        "Flipkart (16)",
+        "LinkedIn (13)",
+        "Apple (11)",
+        "D. E. Shaw (9)",
+        "Meesho (8)",
+        "Swiggy (8)"
+      ],
+      "byYear": {
+        "2024": 76,
+        "2025": 129,
+        "2026": 146
+      }
+    },
+    {
+      "key": "dsa-matrix",
+      "label": "Matrix / grid",
+      "category": "dsa",
+      "posts": 241,
+      "share": 5.44,
+      "companies": 40,
+      "topCompanies": [
+        "Uber (28)",
+        "Goldman Sachs (23)",
+        "Google (19)",
+        "Amazon (19)",
+        "Meta (12)",
+        "Microsoft (12)",
+        "Atlassian (9)",
+        "Walmart (9)",
+        "Oracle (8)",
+        "PhonePe (7)",
+        "Flipkart (7)",
+        "Salesforce (7)"
+      ],
+      "byYear": {
+        "2024": 64,
+        "2025": 101,
+        "2026": 76
+      }
+    },
+    {
+      "key": "concept-big-o",
+      "label": "Complexity analysis",
+      "category": "cs",
+      "posts": 232,
+      "share": 5.24,
+      "companies": 44,
+      "topCompanies": [
+        "Amazon (28)",
+        "Google (25)",
+        "Goldman Sachs (17)",
+        "Uber (15)",
+        "LinkedIn (12)",
+        "Microsoft (12)",
+        "Salesforce (10)",
+        "Atlassian (8)",
+        "Meta (8)",
+        "Apple (7)",
+        "Flipkart (6)",
+        "Oracle (6)"
+      ],
+      "byYear": {
+        "2024": 42,
+        "2025": 102,
+        "2026": 88
+      }
+    },
+    {
+      "key": "lld-machine-coding",
+      "label": "Machine coding round",
+      "category": "lld",
+      "posts": 223,
+      "share": 5.03,
+      "companies": 30,
+      "topCompanies": [
+        "Flipkart (89)",
+        "PhonePe (31)",
+        "Uber (19)",
+        "Meesho (18)",
+        "Razorpay (16)",
+        "Atlassian (8)",
+        "Groww (5)",
+        "CRED (4)",
+        "Zepto (3)",
+        "Swiggy (3)",
+        "Microsoft (3)",
+        "American Express (2)"
+      ],
+      "byYear": {
+        "2024": 87,
+        "2025": 96,
+        "2026": 40
+      }
+    },
+    {
+      "key": "java-design-patterns",
+      "label": "Design patterns",
+      "category": "lld",
+      "posts": 217,
+      "share": 4.9,
+      "companies": 37,
+      "topCompanies": [
+        "Flipkart (35)",
+        "Walmart (27)",
+        "Goldman Sachs (18)",
+        "Zepto (15)",
+        "Amazon (12)",
+        "Oracle (11)",
+        "Microsoft (11)",
+        "Meesho (9)",
+        "PayPal (8)",
+        "PhonePe (6)",
+        "Swiggy (6)",
+        "Salesforce (6)"
+      ],
+      "byYear": {
+        "2024": 83,
+        "2025": 91,
+        "2026": 43
+      }
+    },
+    {
+      "key": "project-deep-dive",
+      "label": "Project deep dive",
+      "category": "behavioral",
+      "posts": 209,
+      "share": 4.72,
+      "companies": 45,
+      "topCompanies": [
+        "LinkedIn (25)",
+        "Amazon (20)",
+        "Microsoft (15)",
+        "Salesforce (12)",
+        "Uber (11)",
+        "Goldman Sachs (11)",
+        "Oracle (8)",
+        "Walmart (8)",
+        "Adobe (7)",
+        "Cisco (6)",
+        "Paytm (6)",
+        "Expedia (5)"
+      ],
+      "byYear": {
+        "2024": 48,
+        "2025": 90,
+        "2026": 71
+      }
+    },
+    {
+      "key": "dsa-binary-search",
+      "label": "Binary search",
+      "category": "dsa",
+      "posts": 207,
+      "share": 4.67,
+      "companies": 37,
+      "topCompanies": [
+        "Amazon (27)",
+        "Google (20)",
+        "Flipkart (14)",
+        "Microsoft (11)",
+        "Salesforce (10)",
+        "Apple (10)",
+        "Uber (10)",
+        "Goldman Sachs (10)",
+        "Meta (9)",
+        "ServiceNow (7)",
+        "Walmart (7)",
+        "LinkedIn (6)"
+      ],
+      "byYear": {
+        "2024": 38,
+        "2025": 88,
+        "2026": 81
+      }
+    },
+    {
+      "key": "dsa-heap",
+      "label": "Heap / priority queue / top-k",
+      "category": "dsa",
+      "posts": 206,
+      "share": 4.65,
+      "companies": 41,
+      "topCompanies": [
+        "LinkedIn (24)",
+        "Amazon (20)",
+        "Meta (16)",
+        "Uber (13)",
+        "Google (13)",
+        "Microsoft (12)",
+        "Salesforce (11)",
+        "Goldman Sachs (11)",
+        "Flipkart (8)",
+        "Oracle (8)",
+        "Atlassian (7)",
+        "Apple (7)"
+      ],
+      "byYear": {
+        "2024": 53,
+        "2025": 97,
+        "2026": 56
+      }
+    },
+    {
+      "key": "dsa-trees",
+      "label": "Trees / BST",
+      "category": "dsa",
+      "posts": 193,
+      "share": 4.36,
+      "companies": 42,
+      "topCompanies": [
+        "Meta (26)",
+        "Amazon (23)",
+        "LinkedIn (17)",
+        "Google (12)",
+        "Adobe (10)",
+        "Flipkart (9)",
+        "Microsoft (9)",
+        "Oracle (8)",
+        "Walmart (8)",
+        "Salesforce (7)",
+        "Apple (7)",
+        "Atlassian (6)"
+      ],
+      "byYear": {
+        "2024": 37,
+        "2025": 90,
+        "2026": 66
+      }
+    },
+    {
+      "key": "java-oops",
+      "label": "OOP / SOLID",
+      "category": "lld",
+      "posts": 175,
+      "share": 3.95,
+      "companies": 46,
+      "topCompanies": [
+        "Amazon (22)",
+        "Flipkart (15)",
+        "Walmart (11)",
+        "Oracle (9)",
+        "Goldman Sachs (9)",
+        "PayPal (8)",
+        "Uber (7)",
+        "Apple (7)",
+        "DoorDash (6)",
+        "Intuit (6)",
+        "Microsoft (6)",
+        "Salesforce (5)"
+      ],
+      "byYear": {
+        "2024": 38,
+        "2025": 76,
+        "2026": 61
+      }
+    },
+    {
+      "key": "concurrency-threads",
+      "label": "Threads / synchronization / locks",
+      "category": "concurrency",
+      "posts": 164,
+      "share": 3.7,
+      "companies": 43,
+      "topCompanies": [
+        "Walmart (17)",
+        "Goldman Sachs (10)",
+        "Oracle (9)",
+        "LinkedIn (8)",
+        "D. E. Shaw (8)",
+        "Amazon (8)",
+        "Uber (7)",
+        "PayPal (6)",
+        "Salesforce (6)",
+        "Flipkart (6)",
+        "Meesho (6)",
+        "Apple (6)"
+      ],
+      "byYear": {
+        "2024": 47,
+        "2025": 70,
+        "2026": 47
+      }
+    },
+    {
+      "key": "dsa-sliding-window",
+      "label": "Sliding window",
+      "category": "dsa",
+      "posts": 137,
+      "share": 3.09,
+      "companies": 35,
+      "topCompanies": [
+        "Amazon (17)",
+        "Goldman Sachs (11)",
+        "Salesforce (10)",
+        "Google (10)",
+        "JPMorgan Chase (8)",
+        "Microsoft (8)",
+        "Meta (7)",
+        "Apple (6)",
+        "Uber (6)",
+        "Oracle (4)",
+        "Visa (4)",
+        "Nutanix (3)"
+      ],
+      "byYear": {
+        "2024": 20,
+        "2025": 58,
+        "2026": 59
+      }
+    },
+    {
+      "key": "spring-core",
+      "label": "Spring / Spring Boot (DI, beans, AOP)",
+      "category": "backend",
+      "posts": 134,
+      "share": 3.02,
+      "companies": 29,
+      "topCompanies": [
+        "Walmart (21)",
+        "Goldman Sachs (17)",
+        "Apple (14)",
+        "Amazon (10)",
+        "Oracle (8)",
+        "JPMorgan Chase (8)",
+        "Paytm (7)",
+        "Visa (7)",
+        "Swiggy (5)",
+        "Morgan Stanley (4)",
+        "Uber (4)",
+        "Google (4)"
+      ],
+      "byYear": {
+        "2024": 35,
+        "2025": 63,
+        "2026": 36
+      }
+    },
+    {
+      "key": "dsa-stack",
+      "label": "Stack / monotonic stack",
+      "category": "dsa",
+      "posts": 126,
+      "share": 2.84,
+      "companies": 31,
+      "topCompanies": [
+        "Amazon (16)",
+        "Walmart (12)",
+        "Goldman Sachs (10)",
+        "Microsoft (10)",
+        "Google (10)",
+        "Salesforce (7)",
+        "LinkedIn (7)",
+        "Meta (6)",
+        "Oracle (5)",
+        "Apple (5)",
+        "Zepto (4)",
+        "ServiceNow (4)"
+      ],
+      "byYear": {
+        "2024": 31,
+        "2025": 56,
+        "2026": 39
+      }
+    },
+    {
+      "key": "dsa-string",
+      "label": "Strings",
+      "category": "dsa",
+      "posts": 124,
+      "share": 2.8,
+      "companies": 35,
+      "topCompanies": [
+        "Oracle (11)",
+        "Salesforce (11)",
+        "Goldman Sachs (11)",
+        "Meta (11)",
+        "Uber (8)",
+        "Atlassian (8)",
+        "Amazon (7)",
+        "Walmart (5)",
+        "Apple (4)",
+        "Google (4)",
+        "JPMorgan Chase (3)",
+        "Zeta (3)"
+      ],
+      "byYear": {
+        "2024": 31,
+        "2025": 63,
+        "2026": 30
+      }
+    },
+    {
+      "key": "concept-rest-api",
+      "label": "REST API design",
+      "category": "backend",
+      "posts": 119,
+      "share": 2.69,
+      "companies": 37,
+      "topCompanies": [
+        "Zepto (13)",
+        "Flipkart (8)",
+        "Atlassian (8)",
+        "Oracle (7)",
+        "Walmart (6)",
+        "Microsoft (6)",
+        "Salesforce (5)",
+        "Intuit (5)",
+        "Goldman Sachs (5)",
+        "Meta (5)",
+        "Amazon (5)",
+        "Rippling (4)"
+      ],
+      "byYear": {
+        "2024": 43,
+        "2025": 48,
+        "2026": 28
+      }
+    },
+    {
+      "key": "dsa-greedy",
+      "label": "Greedy",
+      "category": "dsa",
+      "posts": 117,
+      "share": 2.64,
+      "companies": 34,
+      "topCompanies": [
+        "Amazon (22)",
+        "Microsoft (10)",
+        "Flipkart (9)",
+        "Google (8)",
+        "Swiggy (5)",
+        "PayPal (5)",
+        "Uber (5)",
+        "Goldman Sachs (5)",
+        "Salesforce (4)",
+        "Apple (4)",
+        "Zomato (4)",
+        "Walmart (3)"
+      ],
+      "byYear": {
+        "2024": 30,
+        "2025": 37,
+        "2026": 50
+      }
+    },
+    {
+      "key": "dsa-backtracking",
+      "label": "Backtracking",
+      "category": "dsa",
+      "posts": 103,
+      "share": 2.33,
+      "companies": 32,
+      "topCompanies": [
+        "Google (14)",
+        "LinkedIn (8)",
+        "Microsoft (8)",
+        "Amazon (8)",
+        "Apple (7)",
+        "Oracle (6)",
+        "Swiggy (5)",
+        "Salesforce (4)",
+        "Paytm (3)",
+        "Uber (3)",
+        "Confluent (3)",
+        "Adobe (3)"
+      ],
+      "byYear": {
+        "2024": 30,
+        "2025": 35,
+        "2026": 38
+      }
+    },
+    {
+      "key": "concept-microservices",
+      "label": "Microservices",
+      "category": "architecture",
+      "posts": 101,
+      "share": 2.28,
+      "companies": 29,
+      "topCompanies": [
+        "Apple (13)",
+        "Oracle (9)",
+        "Salesforce (8)",
+        "Goldman Sachs (7)",
+        "Google (7)",
+        "Amazon (6)",
+        "Adobe (4)",
+        "Zepto (4)",
+        "Walmart (4)",
+        "Visa (4)",
+        "Flipkart (3)",
+        "PayPal (3)"
+      ],
+      "byYear": {
+        "2024": 29,
+        "2025": 41,
+        "2026": 31
+      }
+    },
+    {
+      "key": "lld-lru-cache",
+      "label": "LRU cache",
+      "category": "lld",
+      "posts": 97,
+      "share": 2.19,
+      "companies": 35,
+      "topCompanies": [
+        "Goldman Sachs (11)",
+        "Microsoft (10)",
+        "LinkedIn (7)",
+        "Meta (6)",
+        "Salesforce (6)",
+        "Oracle (5)",
+        "Apple (4)",
+        "Freshworks (4)",
+        "Uber (3)",
+        "PayPal (3)",
+        "Walmart (3)",
+        "ServiceNow (3)"
+      ],
+      "byYear": {
+        "2024": 21,
+        "2025": 43,
+        "2026": 33
+      }
+    },
+    {
+      "key": "dsa-intervals",
+      "label": "Intervals",
+      "category": "dsa",
+      "posts": 95,
+      "share": 2.14,
+      "companies": 30,
+      "topCompanies": [
+        "Google (9)",
+        "Walmart (8)",
+        "Amazon (8)",
+        "Goldman Sachs (7)",
+        "LinkedIn (6)",
+        "Salesforce (5)",
+        "Microsoft (5)",
+        "Oracle (4)",
+        "Meta (4)",
+        "Zoho (3)",
+        "Apple (3)",
+        "Uber (3)"
+      ],
+      "byYear": {
+        "2024": 24,
+        "2025": 39,
+        "2026": 32
+      }
+    },
+    {
+      "key": "concept-kafka",
+      "label": "Kafka / message brokers",
+      "category": "architecture",
+      "posts": 94,
+      "share": 2.12,
+      "companies": 34,
+      "topCompanies": [
+        "Goldman Sachs (15)",
+        "Walmart (13)",
+        "Uber (8)",
+        "Visa (4)",
+        "LinkedIn (4)",
+        "Zomato (4)",
+        "Flipkart (3)",
+        "Intuit (3)",
+        "Apple (3)",
+        "Atlassian (3)",
+        "Amazon (3)",
+        "American Express (2)"
+      ],
+      "byYear": {
+        "2024": 32,
+        "2025": 37,
+        "2026": 25
+      }
+    },
+    {
+      "key": "concept-nosql",
+      "label": "SQL vs NoSQL / MongoDB / Cassandra",
+      "category": "database",
+      "posts": 91,
+      "share": 2.05,
+      "companies": 31,
+      "topCompanies": [
+        "Goldman Sachs (10)",
+        "Walmart (8)",
+        "Amazon (8)",
+        "Flipkart (7)",
+        "Zomato (7)",
+        "Microsoft (6)",
+        "Oracle (5)",
+        "Uber (4)",
+        "Zepto (3)",
+        "Swiggy (3)",
+        "Intuit (2)",
+        "ServiceNow (2)"
+      ],
+      "byYear": {
+        "2024": 33,
+        "2025": 35,
+        "2026": 23
+      }
+    },
+    {
+      "key": "lld-rate-limiter",
+      "label": "Rate limiter",
+      "category": "lld",
+      "posts": 90,
+      "share": 2.03,
+      "companies": 32,
+      "topCompanies": [
+        "Microsoft (11)",
+        "Atlassian (9)",
+        "Apple (8)",
+        "Amazon (8)",
+        "Flipkart (6)",
+        "Zomato (6)",
+        "Goldman Sachs (5)",
+        "Salesforce (4)",
+        "Google (3)",
+        "Visa (2)",
+        "Meta (2)",
+        "Uber (2)"
+      ],
+      "byYear": {
+        "2024": 19,
+        "2025": 33,
+        "2026": 38
+      }
+    },
+    {
+      "key": "concept-sql-queries",
+      "label": "SQL queries / joins / window functions",
+      "category": "database",
+      "posts": 87,
+      "share": 1.96,
+      "companies": 39,
+      "topCompanies": [
+        "Goldman Sachs (9)",
+        "Oracle (8)",
+        "JPMorgan Chase (7)",
+        "Walmart (6)",
+        "Swiggy (4)",
+        "Arcesium (3)",
+        "LinkedIn (3)",
+        "Morgan Stanley (3)",
+        "Meesho (3)",
+        "Paytm (3)",
+        "PayPal (2)",
+        "Intuit (2)"
+      ],
+      "byYear": {
+        "2024": 33,
+        "2025": 42,
+        "2026": 12
+      }
+    },
+    {
+      "key": "dsa-two-pointers",
+      "label": "Two pointers",
+      "category": "dsa",
+      "posts": 83,
+      "share": 1.87,
+      "companies": 26,
+      "topCompanies": [
+        "Google (14)",
+        "Microsoft (12)",
+        "Amazon (12)",
+        "Goldman Sachs (8)",
+        "Apple (6)",
+        "Salesforce (5)",
+        "TikTok (3)",
+        "LinkedIn (3)",
+        "Uber (3)",
+        "Flipkart (1)",
+        "D. E. Shaw (1)",
+        "Myntra (1)"
+      ],
+      "byYear": {
+        "2024": 12,
+        "2025": 35,
+        "2026": 36
+      }
+    },
+    {
+      "key": "concept-cloud",
+      "label": "Cloud (AWS/GCP/Azure)",
+      "category": "devops",
+      "posts": 82,
+      "share": 1.85,
+      "companies": 25,
+      "topCompanies": [
+        "Microsoft (14)",
+        "Amazon (9)",
+        "Salesforce (8)",
+        "Walmart (7)",
+        "Uber (6)",
+        "JPMorgan Chase (5)",
+        "Goldman Sachs (5)",
+        "Meta (4)",
+        "Oracle (3)",
+        "ServiceNow (3)",
+        "Google (3)",
+        "LinkedIn (2)"
+      ],
+      "byYear": {
+        "2024": 18,
+        "2025": 38,
+        "2026": 26
+      }
+    },
+    {
+      "key": "hld-analytics",
+      "label": "Real-time analytics / counting",
+      "category": "hld",
+      "posts": 71,
+      "share": 1.6,
+      "companies": 20,
+      "topCompanies": [
+        "LinkedIn (14)",
+        "Amazon (10)",
+        "Uber (7)",
+        "Meta (6)",
+        "Atlassian (5)",
+        "Salesforce (4)",
+        "Microsoft (4)",
+        "Google (4)",
+        "Apple (3)",
+        "Oracle (3)",
+        "Goldman Sachs (2)",
+        "Intuit (1)"
+      ],
+      "byYear": {
+        "2024": 14,
+        "2025": 35,
+        "2026": 22
+      }
+    },
+    {
+      "key": "dsa-shortest-path",
+      "label": "Shortest path (Dijkstra etc.)",
+      "category": "dsa",
+      "posts": 71,
+      "share": 1.6,
+      "companies": 19,
+      "topCompanies": [
+        "Google (14)",
+        "Microsoft (11)",
+        "Amazon (9)",
+        "Uber (5)",
+        "Goldman Sachs (5)",
+        "LinkedIn (4)",
+        "Atlassian (3)",
+        "Meta (3)",
+        "Salesforce (3)",
+        "Zoho (2)",
+        "Juspay (2)",
+        "Zomato (2)"
+      ],
+      "byYear": {
+        "2024": 9,
+        "2025": 30,
+        "2026": 32
+      }
+    },
+    {
+      "key": "dsa-topo-sort",
+      "label": "Topological sort",
+      "category": "dsa",
+      "posts": 65,
+      "share": 1.47,
+      "companies": 22,
+      "topCompanies": [
+        "Amazon (11)",
+        "Google (8)",
+        "LinkedIn (7)",
+        "Microsoft (5)",
+        "Uber (4)",
+        "Apple (4)",
+        "Goldman Sachs (4)",
+        "Walmart (4)",
+        "Zomato (2)",
+        "ServiceNow (2)",
+        "Flipkart (2)",
+        "Meta (2)"
+      ],
+      "byYear": {
+        "2024": 10,
+        "2025": 27,
+        "2026": 28
+      }
+    },
+    {
+      "key": "concept-caching",
+      "label": "Caching strategies / Redis",
+      "category": "database",
+      "posts": 60,
+      "share": 1.35,
+      "companies": 26,
+      "topCompanies": [
+        "Goldman Sachs (6)",
+        "Salesforce (4)",
+        "Uber (4)",
+        "Microsoft (4)",
+        "LinkedIn (3)",
+        "Flipkart (3)",
+        "Paytm (3)",
+        "Swiggy (3)",
+        "Zomato (3)",
+        "Meta (3)",
+        "Google (3)",
+        "Amazon (3)"
+      ],
+      "byYear": {
+        "2024": 12,
+        "2025": 27,
+        "2026": 21
+      }
+    },
+    {
+      "key": "dsa-arrays-hashing",
+      "label": "Arrays & hashing",
+      "category": "dsa",
+      "posts": 59,
+      "share": 1.33,
+      "companies": 21,
+      "topCompanies": [
+        "Google (10)",
+        "Atlassian (6)",
+        "Amazon (5)",
+        "Apple (4)",
+        "Goldman Sachs (4)",
+        "Meta (4)",
+        "Oracle (3)",
+        "LinkedIn (3)",
+        "Walmart (3)",
+        "Microsoft (3)",
+        "PayPal (2)",
+        "Uber (2)"
+      ],
+      "byYear": {
+        "2024": 20,
+        "2025": 18,
+        "2026": 21
+      }
+    },
+    {
+      "key": "lld-shopping-cart",
+      "label": "Shopping cart / e-commerce",
+      "category": "lld",
+      "posts": 58,
+      "share": 1.31,
+      "companies": 22,
+      "topCompanies": [
+        "Zepto (10)",
+        "Flipkart (6)",
+        "Uber (6)",
+        "Goldman Sachs (5)",
+        "Amazon (5)",
+        "TikTok (4)",
+        "Meesho (3)",
+        "Walmart (3)",
+        "PayPal (2)",
+        "Salesforce (2)",
+        "Zeta (1)",
+        "PhonePe (1)"
+      ],
+      "byYear": {
+        "2024": 24,
+        "2025": 25,
+        "2026": 9
+      }
+    },
+    {
+      "key": "lld-task-scheduler",
+      "label": "Task / job scheduler",
+      "category": "lld",
+      "posts": 54,
+      "share": 1.22,
+      "companies": 25,
+      "topCompanies": [
+        "LinkedIn (7)",
+        "Salesforce (6)",
+        "Amazon (5)",
+        "Swiggy (4)",
+        "Microsoft (4)",
+        "Walmart (3)",
+        "Uber (3)",
+        "JPMorgan Chase (2)",
+        "Razorpay (2)",
+        "Flipkart (2)",
+        "PhonePe (2)",
+        "Freshworks (1)"
+      ],
+      "byYear": {
+        "2024": 11,
+        "2025": 25,
+        "2026": 18
+      }
+    },
+    {
+      "key": "concept-os",
+      "label": "OS (process/thread, memory, scheduling)",
+      "category": "cs",
+      "posts": 54,
+      "share": 1.22,
+      "companies": 23,
+      "topCompanies": [
+        "LinkedIn (12)",
+        "Microsoft (4)",
+        "Oracle (3)",
+        "Goldman Sachs (3)",
+        "Amazon (3)",
+        "TikTok (2)",
+        "Cisco (2)",
+        "Juspay (2)",
+        "Apple (2)",
+        "Walmart (2)",
+        "Intuit (2)",
+        "D. E. Shaw (2)"
+      ],
+      "byYear": {
+        "2024": 16,
+        "2025": 24,
+        "2026": 14
+      }
+    },
+    {
+      "key": "lld-wallet",
+      "label": "Digital wallet / payments",
+      "category": "lld",
+      "posts": 52,
+      "share": 1.17,
+      "companies": 27,
+      "topCompanies": [
+        "Zepto (7)",
+        "PhonePe (4)",
+        "Walmart (4)",
+        "Flipkart (3)",
+        "Goldman Sachs (3)",
+        "Salesforce (3)",
+        "PayPal (3)",
+        "Apple (2)",
+        "American Express (2)",
+        "Meesho (2)",
+        "Google (2)",
+        "Amazon (2)"
+      ],
+      "byYear": {
+        "2024": 16,
+        "2025": 18,
+        "2026": 18
+      }
+    },
+    {
+      "key": "dsa-union-find",
+      "label": "Union-find",
+      "category": "dsa",
+      "posts": 52,
+      "share": 1.17,
+      "companies": 19,
+      "topCompanies": [
+        "Amazon (11)",
+        "Uber (10)",
+        "Google (8)",
+        "Microsoft (4)",
+        "Goldman Sachs (3)",
+        "Zeta (2)",
+        "Juspay (2)",
+        "PhonePe (1)",
+        "Salesforce (1)",
+        "Oracle (1)",
+        "CRED (1)",
+        "NVIDIA (1)"
+      ],
+      "byYear": {
+        "2024": 7,
+        "2025": 17,
+        "2026": 28
+      }
+    },
+    {
+      "key": "lld-movie-booking",
+      "label": "Movie / ticket booking (BookMyShow)",
+      "category": "lld",
+      "posts": 51,
+      "share": 1.15,
+      "companies": 25,
+      "topCompanies": [
+        "Flipkart (8)",
+        "Walmart (5)",
+        "Zepto (4)",
+        "Meta (4)",
+        "Oracle (3)",
+        "PayPal (3)",
+        "Dream11 (2)",
+        "Twilio (2)",
+        "Expedia (2)",
+        "ServiceNow (2)",
+        "Apple (2)",
+        "Confluent (1)"
+      ],
+      "byYear": {
+        "2024": 16,
+        "2025": 28,
+        "2026": 7
+      }
+    },
+    {
+      "key": "lld-meeting-room",
+      "label": "Meeting room / calendar booking",
+      "category": "lld",
+      "posts": 50,
+      "share": 1.13,
+      "companies": 18,
+      "topCompanies": [
+        "Uber (6)",
+        "Zepto (6)",
+        "Microsoft (6)",
+        "Amazon (6)",
+        "Salesforce (5)",
+        "Google (5)",
+        "Flipkart (3)",
+        "Apple (2)",
+        "Swiggy (2)",
+        "Pinterest (1)",
+        "Walmart (1)",
+        "ServiceNow (1)"
+      ],
+      "byYear": {
+        "2024": 14,
+        "2025": 16,
+        "2026": 20
+      }
+    },
+    {
+      "key": "hld-chat",
+      "label": "Chat / messaging (WhatsApp)",
+      "category": "hld",
+      "posts": 50,
+      "share": 1.13,
+      "companies": 25,
+      "topCompanies": [
+        "Uber (7)",
+        "Meta (5)",
+        "Amazon (5)",
+        "Salesforce (4)",
+        "Walmart (3)",
+        "Adobe (3)",
+        "Microsoft (3)",
+        "TikTok (2)",
+        "D. E. Shaw (2)",
+        "Flipkart (1)",
+        "Arcesium (1)",
+        "Airbnb (1)"
+      ],
+      "byYear": {
+        "2024": 11,
+        "2025": 27,
+        "2026": 12
+      }
+    },
+    {
+      "key": "hld-payment",
+      "label": "Payment system",
+      "category": "hld",
+      "posts": 50,
+      "share": 1.13,
+      "companies": 28,
+      "topCompanies": [
+        "PhonePe (7)",
+        "Goldman Sachs (3)",
+        "Salesforce (3)",
+        "Walmart (3)",
+        "PayPal (3)",
+        "Flipkart (2)",
+        "Zepto (2)",
+        "Apple (2)",
+        "CRED (2)",
+        "American Express (2)",
+        "Meesho (2)",
+        "Google (2)"
+      ],
+      "byYear": {
+        "2024": 16,
+        "2025": 18,
+        "2026": 16
+      }
+    },
+    {
+      "key": "ai-llm-concepts",
+      "label": "LLM concepts (embeddings, vector DB, prompting)",
+      "category": "ai",
+      "posts": 50,
+      "share": 1.13,
+      "companies": 21,
+      "topCompanies": [
+        "Amazon (7)",
+        "Intuit (6)",
+        "Microsoft (6)",
+        "Google (5)",
+        "LinkedIn (3)",
+        "Apple (3)",
+        "Adobe (2)",
+        "Flipkart (2)",
+        "Meta (2)",
+        "Expedia (2)",
+        "Freshworks (2)",
+        "Zeta (1)"
+      ],
+      "byYear": {
+        "2024": 3,
+        "2025": 18,
+        "2026": 29
+      }
+    },
+    {
+      "key": "dsa-trie",
+      "label": "Trie",
+      "category": "dsa",
+      "posts": 49,
+      "share": 1.11,
+      "companies": 19,
+      "topCompanies": [
+        "Goldman Sachs (6)",
+        "Google (5)",
+        "Uber (4)",
+        "Apple (4)",
+        "Swiggy (4)",
+        "Amazon (4)",
+        "Salesforce (3)",
+        "DoorDash (3)",
+        "Atlassian (3)",
+        "Walmart (2)",
+        "Razorpay (2)",
+        "Flipkart (2)"
+      ],
+      "byYear": {
+        "2024": 12,
+        "2025": 21,
+        "2026": 16
+      }
+    },
+    {
+      "key": "lld-parking-lot",
+      "label": "Parking lot",
+      "category": "lld",
+      "posts": 47,
+      "share": 1.06,
+      "companies": 17,
+      "topCompanies": [
+        "Uber (6)",
+        "Goldman Sachs (6)",
+        "Amazon (6)",
+        "Salesforce (5)",
+        "JPMorgan Chase (4)",
+        "Microsoft (4)",
+        "Swiggy (3)",
+        "Flipkart (2)",
+        "Apple (2)",
+        "Razorpay (2)",
+        "Zoho (1)",
+        "NVIDIA (1)"
+      ],
+      "byYear": {
+        "2024": 9,
+        "2025": 24,
+        "2026": 14
+      }
+    },
+    {
+      "key": "hld-news-feed",
+      "label": "News feed / timeline",
+      "category": "hld",
+      "posts": 46,
+      "share": 1.04,
+      "companies": 20,
+      "topCompanies": [
+        "Meta (7)",
+        "Flipkart (5)",
+        "PhonePe (5)",
+        "Apple (3)",
+        "Goldman Sachs (3)",
+        "Uber (3)",
+        "Salesforce (3)",
+        "Amazon (3)",
+        "Rippling (2)",
+        "Microsoft (2)",
+        "DoorDash (1)",
+        "Zepto (1)"
+      ],
+      "byYear": {
+        "2024": 8,
+        "2025": 30,
+        "2026": 8
+      }
+    },
+    {
+      "key": "concept-indexing",
+      "label": "Database indexing",
+      "category": "database",
+      "posts": 46,
+      "share": 1.04,
+      "companies": 28,
+      "topCompanies": [
+        "Zomato (4)",
+        "D. E. Shaw (3)",
+        "Goldman Sachs (3)",
+        "LinkedIn (3)",
+        "Meta (3)",
+        "Zepto (2)",
+        "Apple (2)",
+        "TikTok (2)",
+        "ServiceNow (2)",
+        "Oracle (2)",
+        "Google (2)",
+        "Amazon (2)"
+      ],
+      "byYear": {
+        "2024": 15,
+        "2025": 20,
+        "2026": 11
+      }
+    },
+    {
+      "key": "lld-notification",
+      "label": "Notification service",
+      "category": "lld",
+      "posts": 45,
+      "share": 1.02,
+      "companies": 23,
+      "topCompanies": [
+        "Microsoft (6)",
+        "Salesforce (4)",
+        "PhonePe (3)",
+        "Uber (3)",
+        "Walmart (3)",
+        "Goldman Sachs (3)",
+        "Amazon (3)",
+        "Flipkart (2)",
+        "Razorpay (2)",
+        "Oracle (2)",
+        "Zomato (2)",
+        "Ola (1)"
+      ],
+      "byYear": {
+        "2024": 11,
+        "2025": 15,
+        "2026": 19
+      }
+    },
+    {
+      "key": "hld-notification",
+      "label": "Notification system at scale",
+      "category": "hld",
+      "posts": 45,
+      "share": 1.02,
+      "companies": 23,
+      "topCompanies": [
+        "Microsoft (6)",
+        "Salesforce (4)",
+        "PhonePe (3)",
+        "Uber (3)",
+        "Walmart (3)",
+        "Goldman Sachs (3)",
+        "Amazon (3)",
+        "Flipkart (2)",
+        "Razorpay (2)",
+        "Oracle (2)",
+        "Zomato (2)",
+        "Ola (1)"
+      ],
+      "byYear": {
+        "2024": 11,
+        "2025": 15,
+        "2026": 19
+      }
+    },
+    {
+      "key": "testing",
+      "label": "Unit testing / mocking",
+      "category": "backend",
+      "posts": 44,
+      "share": 0.99,
+      "companies": 26,
+      "topCompanies": [
+        "Atlassian (7)",
+        "Intuit (4)",
+        "Flipkart (3)",
+        "Goldman Sachs (3)",
+        "Microsoft (3)",
+        "Oracle (2)",
+        "DoorDash (2)",
+        "Meta (2)",
+        "American Express (1)",
+        "Airbnb (1)",
+        "Uber (1)",
+        "OpenAI (1)"
+      ],
+      "byYear": {
+        "2024": 14,
+        "2025": 22,
+        "2026": 8
+      }
+    },
+    {
+      "key": "concept-sharding",
+      "label": "Sharding / partitioning",
+      "category": "database",
+      "posts": 43,
+      "share": 0.97,
+      "companies": 25,
+      "topCompanies": [
+        "Amazon (6)",
+        "Uber (4)",
+        "Oracle (3)",
+        "Zomato (3)",
+        "Google (3)",
+        "Dream11 (2)",
+        "Flipkart (2)",
+        "Salesforce (2)",
+        "LinkedIn (2)",
+        "Apple (1)",
+        "Airbnb (1)",
+        "Confluent (1)"
+      ],
+      "byYear": {
+        "2024": 12,
+        "2025": 14,
+        "2026": 17
+      }
+    },
+    {
+      "key": "concept-load-balancing",
+      "label": "Load balancing",
+      "category": "architecture",
+      "posts": 43,
+      "share": 0.97,
+      "companies": 25,
+      "topCompanies": [
+        "Goldman Sachs (6)",
+        "Atlassian (3)",
+        "Flipkart (3)",
+        "Walmart (3)",
+        "Amazon (3)",
+        "LinkedIn (2)",
+        "Paytm (2)",
+        "Oracle (2)",
+        "Google (2)",
+        "Zomato (2)",
+        "D. E. Shaw (1)",
+        "Sprinklr (1)"
+      ],
+      "byYear": {
+        "2024": 10,
+        "2025": 20,
+        "2026": 13
+      }
+    },
+    {
+      "key": "java-exceptions",
+      "label": "Exceptions",
+      "category": "java",
+      "posts": 41,
+      "share": 0.93,
+      "companies": 17,
+      "topCompanies": [
+        "Flipkart (11)",
+        "Goldman Sachs (4)",
+        "Walmart (4)",
+        "JPMorgan Chase (4)",
+        "Intuit (3)",
+        "Atlassian (3)",
+        "Zoho (2)",
+        "D. E. Shaw (1)",
+        "Oracle (1)",
+        "ServiceNow (1)",
+        "Meesho (1)",
+        "Visa (1)"
+      ],
+      "byYear": {
+        "2024": 9,
+        "2025": 26,
+        "2026": 6
+      }
+    },
+    {
+      "key": "ai-assisted-coding",
+      "label": "AI-assisted coding round",
+      "category": "ai",
+      "posts": 40,
+      "share": 0.9,
+      "companies": 12,
+      "topCompanies": [
+        "Meta (11)",
+        "Amazon (10)",
+        "Atlassian (7)",
+        "LinkedIn (3)",
+        "Microsoft (2)",
+        "Cisco (1)",
+        "Rippling (1)",
+        "Shopify (1)",
+        "Goldman Sachs (1)",
+        "Apple (1)",
+        "Zomato (1)",
+        "Google (1)"
+      ],
+      "byYear": {
+        "2025": 12,
+        "2026": 28
+      }
+    },
+    {
+      "key": "concept-networking",
+      "label": "Networking (TCP/HTTP/DNS)",
+      "category": "cs",
+      "posts": 39,
+      "share": 0.88,
+      "companies": 24,
+      "topCompanies": [
+        "Zeta (4)",
+        "Salesforce (3)",
+        "Microsoft (3)",
+        "Flipkart (2)",
+        "Walmart (2)",
+        "Goldman Sachs (2)",
+        "Swiggy (2)",
+        "Zomato (2)",
+        "Oracle (2)",
+        "Meesho (2)",
+        "Amazon (2)",
+        "Atlassian (1)"
+      ],
+      "byYear": {
+        "2024": 10,
+        "2025": 19,
+        "2026": 10
+      }
+    },
+    {
+      "key": "java-streams",
+      "label": "Streams / lambdas / Java 8+",
+      "category": "java",
+      "posts": 39,
+      "share": 0.88,
+      "companies": 16,
+      "topCompanies": [
+        "Walmart (8)",
+        "JPMorgan Chase (6)",
+        "Goldman Sachs (4)",
+        "Oracle (3)",
+        "Paytm (3)",
+        "D. E. Shaw (2)",
+        "Meta (2)",
+        "ServiceNow (2)",
+        "Microsoft (2)",
+        "Zscaler (1)",
+        "Razorpay (1)",
+        "American Express (1)"
+      ],
+      "byYear": {
+        "2024": 15,
+        "2025": 17,
+        "2026": 7
+      }
+    },
+    {
+      "key": "concept-docker-k8s",
+      "label": "Docker / Kubernetes",
+      "category": "devops",
+      "posts": 36,
+      "share": 0.81,
+      "companies": 17,
+      "topCompanies": [
+        "Walmart (5)",
+        "Salesforce (4)",
+        "Microsoft (4)",
+        "ServiceNow (3)",
+        "Uber (3)",
+        "Oracle (2)",
+        "Apple (2)",
+        "Goldman Sachs (2)",
+        "LinkedIn (2)",
+        "NVIDIA (2)",
+        "Arcesium (1)",
+        "Cisco (1)"
+      ],
+      "byYear": {
+        "2024": 9,
+        "2025": 19,
+        "2026": 8
+      }
+    },
+    {
+      "key": "java-gc-jvm",
+      "label": "JVM / garbage collection",
+      "category": "java",
+      "posts": 36,
+      "share": 0.81,
+      "companies": 20,
+      "topCompanies": [
+        "Walmart (6)",
+        "LinkedIn (6)",
+        "D. E. Shaw (3)",
+        "Goldman Sachs (3)",
+        "TikTok (2)",
+        "Flipkart (2)",
+        "Arcesium (1)",
+        "Oracle (1)",
+        "Zscaler (1)",
+        "Paytm (1)",
+        "Twilio (1)",
+        "American Express (1)"
+      ],
+      "byYear": {
+        "2024": 12,
+        "2025": 18,
+        "2026": 6
+      }
+    },
+    {
+      "key": "dsa-linked-list",
+      "label": "Linked lists",
+      "category": "dsa",
+      "posts": 35,
+      "share": 0.79,
+      "companies": 15,
+      "topCompanies": [
+        "Apple (6)",
+        "Microsoft (5)",
+        "Paytm (4)",
+        "Flipkart (3)",
+        "Oracle (3)",
+        "Google (3)",
+        "Meta (2)",
+        "Amazon (2)",
+        "Walmart (1)",
+        "Salesforce (1)",
+        "Dream11 (1)",
+        "Myntra (1)"
+      ],
+      "byYear": {
+        "2024": 9,
+        "2025": 16,
+        "2026": 10
+      }
+    },
+    {
+      "key": "lld-inventory",
+      "label": "Inventory / warehouse management",
+      "category": "lld",
+      "posts": 34,
+      "share": 0.77,
+      "companies": 15,
+      "topCompanies": [
+        "Amazon (10)",
+        "Flipkart (5)",
+        "Zepto (3)",
+        "DoorDash (3)",
+        "Walmart (2)",
+        "TikTok (2)",
+        "Airbnb (1)",
+        "NVIDIA (1)",
+        "Swiggy (1)",
+        "Oracle (1)",
+        "Visa (1)",
+        "Uber (1)"
+      ],
+      "byYear": {
+        "2024": 11,
+        "2025": 8,
+        "2026": 15
+      }
+    },
+    {
+      "key": "hld-search",
+      "label": "Search engine / search service",
+      "category": "hld",
+      "posts": 34,
+      "share": 0.77,
+      "companies": 18,
+      "topCompanies": [
+        "Razorpay (6)",
+        "Confluent (3)",
+        "Microsoft (3)",
+        "Amazon (3)",
+        "Goldman Sachs (2)",
+        "Apple (2)",
+        "Meta (2)",
+        "LinkedIn (2)",
+        "Swiggy (2)",
+        "DoorDash (1)",
+        "Twilio (1)",
+        "Dream11 (1)"
+      ],
+      "byYear": {
+        "2024": 8,
+        "2025": 16,
+        "2026": 10
+      }
+    },
+    {
+      "key": "hld-file-storage",
+      "label": "File storage / sync (Dropbox, S3)",
+      "category": "hld",
+      "posts": 33,
+      "share": 0.74,
+      "companies": 16,
+      "topCompanies": [
+        "Meta (6)",
+        "Amazon (6)",
+        "Zepto (4)",
+        "Salesforce (3)",
+        "Microsoft (3)",
+        "Flipkart (1)",
+        "Walmart (1)",
+        "Cisco (1)",
+        "JPMorgan Chase (1)",
+        "Juspay (1)",
+        "Zoho (1)",
+        "DocuSign (1)"
+      ],
+      "byYear": {
+        "2024": 8,
+        "2025": 15,
+        "2026": 10
+      }
+    },
+    {
+      "key": "concept-transactions",
+      "label": "Transactions / isolation levels",
+      "category": "database",
+      "posts": 33,
+      "share": 0.74,
+      "companies": 22,
+      "topCompanies": [
+        "Dream11 (4)",
+        "Zomato (4)",
+        "Swiggy (3)",
+        "D. E. Shaw (2)",
+        "Paytm (2)",
+        "Amazon (2)",
+        "Meesho (1)",
+        "Zepto (1)",
+        "Intuit (1)",
+        "Myntra (1)",
+        "PhonePe (1)",
+        "Airbnb (1)"
+      ],
+      "byYear": {
+        "2024": 7,
+        "2025": 19,
+        "2026": 7
+      }
+    },
+    {
+      "key": "java-collections",
+      "label": "Collections framework",
+      "category": "java",
+      "posts": 32,
+      "share": 0.72,
+      "companies": 20,
+      "topCompanies": [
+        "Flipkart (3)",
+        "Juspay (3)",
+        "Apple (3)",
+        "Atlassian (3)",
+        "Amazon (3)",
+        "Walmart (2)",
+        "Microsoft (2)",
+        "Razorpay (1)",
+        "Uber (1)",
+        "Oracle (1)",
+        "Salesforce (1)",
+        "LinkedIn (1)"
+      ],
+      "byYear": {
+        "2024": 7,
+        "2025": 16,
+        "2026": 9
+      }
+    },
+    {
+      "key": "lld-stock-exchange",
+      "label": "Stock exchange / order matching",
+      "category": "lld",
+      "posts": 30,
+      "share": 0.68,
+      "companies": 14,
+      "topCompanies": [
+        "Coinbase (7)",
+        "Uber (5)",
+        "Groww (3)",
+        "Meesho (3)",
+        "Goldman Sachs (2)",
+        "Google (2)",
+        "Flipkart (1)",
+        "Apple (1)",
+        "Zepto (1)",
+        "Bloomberg (1)",
+        "Swiggy (1)",
+        "Expedia (1)"
+      ],
+      "byYear": {
+        "2024": 13,
+        "2025": 8,
+        "2026": 9
+      }
+    },
+    {
+      "key": "hld-location",
+      "label": "Location / proximity (Yelp, nearby)",
+      "category": "hld",
+      "posts": 30,
+      "share": 0.68,
+      "companies": 14,
+      "topCompanies": [
+        "Uber (8)",
+        "Flipkart (4)",
+        "Meta (3)",
+        "Goldman Sachs (2)",
+        "Salesforce (2)",
+        "Microsoft (2)",
+        "Amazon (2)",
+        "Zepto (1)",
+        "PayPal (1)",
+        "DoorDash (1)",
+        "Groww (1)",
+        "Apple (1)"
+      ],
+      "byYear": {
+        "2024": 6,
+        "2025": 18,
+        "2026": 6
+      }
+    },
+    {
+      "key": "lld-lfu-cache",
+      "label": "LFU cache",
+      "category": "lld",
+      "posts": 28,
+      "share": 0.63,
+      "companies": 17,
+      "topCompanies": [
+        "Salesforce (5)",
+        "Amazon (5)",
+        "Walmart (3)",
+        "Freshworks (2)",
+        "Dream11 (1)",
+        "Uber (1)",
+        "Nutanix (1)",
+        "Flipkart (1)",
+        "Meesho (1)",
+        "Oracle (1)",
+        "LinkedIn (1)",
+        "Meta (1)"
+      ],
+      "byYear": {
+        "2024": 4,
+        "2025": 8,
+        "2026": 16
+      }
+    },
+    {
+      "key": "lld-ride-sharing",
+      "label": "Ride sharing (Uber/Ola)",
+      "category": "lld",
+      "posts": 28,
+      "share": 0.63,
+      "companies": 16,
+      "topCompanies": [
+        "Uber (4)",
+        "Meesho (3)",
+        "Zeta (3)",
+        "Amazon (3)",
+        "Zepto (2)",
+        "PayPal (2)",
+        "Walmart (2)",
+        "Oracle (1)",
+        "Razorpay (1)",
+        "Apple (1)",
+        "Meta (1)",
+        "Google (1)"
+      ],
+      "byYear": {
+        "2024": 12,
+        "2025": 8,
+        "2026": 8
+      }
+    },
+    {
+      "key": "hld-collab-editing",
+      "label": "Collaborative editing (Google Docs)",
+      "category": "hld",
+      "posts": 28,
+      "share": 0.63,
+      "companies": 16,
+      "topCompanies": [
+        "Microsoft (4)",
+        "Flipkart (3)",
+        "Google (3)",
+        "Amazon (3)",
+        "Paytm (2)",
+        "Razorpay (2)",
+        "Meta (2)",
+        "Swiggy (1)",
+        "Zeta (1)",
+        "Nutanix (1)",
+        "Apple (1)",
+        "Goldman Sachs (1)"
+      ],
+      "byYear": {
+        "2024": 6,
+        "2025": 10,
+        "2026": 12
+      }
+    },
+    {
+      "key": "concept-replication",
+      "label": "Replication",
+      "category": "database",
+      "posts": 27,
+      "share": 0.61,
+      "companies": 17,
+      "topCompanies": [
+        "Dream11 (4)",
+        "Amazon (3)",
+        "Nutanix (2)",
+        "Walmart (2)",
+        "PayPal (2)",
+        "Goldman Sachs (2)",
+        "Google (2)",
+        "Flipkart (1)",
+        "Myntra (1)",
+        "TikTok (1)",
+        "Zepto (1)",
+        "LinkedIn (1)"
+      ],
+      "byYear": {
+        "2024": 8,
+        "2025": 8,
+        "2026": 11
+      }
+    },
+    {
+      "key": "jpa-hibernate",
+      "label": "JPA / Hibernate (N+1, lazy loading)",
+      "category": "backend",
+      "posts": 27,
+      "share": 0.61,
+      "companies": 14,
+      "topCompanies": [
+        "Oracle (5)",
+        "Uber (4)",
+        "Intuit (3)",
+        "Walmart (3)",
+        "American Express (2)",
+        "Goldman Sachs (2)",
+        "JPMorgan Chase (1)",
+        "D. E. Shaw (1)",
+        "Myntra (1)",
+        "Salesforce (1)",
+        "Visa (1)",
+        "Google (1)"
+      ],
+      "byYear": {
+        "2024": 10,
+        "2025": 12,
+        "2026": 5
+      }
+    },
+    {
+      "key": "node-event-loop",
+      "label": "Node.js event loop / async",
+      "category": "concurrency",
+      "posts": 27,
+      "share": 0.61,
+      "companies": 16,
+      "topCompanies": [
+        "Adobe (3)",
+        "Apple (3)",
+        "Amazon (3)",
+        "Swiggy (2)",
+        "Oracle (2)",
+        "Uber (2)",
+        "Salesforce (2)",
+        "Microsoft (2)",
+        "TikTok (1)",
+        "Myntra (1)",
+        "Walmart (1)",
+        "ServiceNow (1)"
+      ],
+      "byYear": {
+        "2024": 4,
+        "2025": 19,
+        "2026": 4
+      }
+    },
+    {
+      "key": "hld-metrics-logging",
+      "label": "Metrics / logging / monitoring",
+      "category": "hld",
+      "posts": 26,
+      "share": 0.59,
+      "companies": 14,
+      "topCompanies": [
+        "Google (5)",
+        "LinkedIn (4)",
+        "Dream11 (3)",
+        "Microsoft (3)",
+        "Oracle (2)",
+        "Flipkart (1)",
+        "Freshworks (1)",
+        "DocuSign (1)",
+        "PhonePe (1)",
+        "Apple (1)",
+        "Confluent (1)",
+        "DoorDash (1)"
+      ],
+      "byYear": {
+        "2024": 4,
+        "2025": 11,
+        "2026": 11
+      }
+    },
+    {
+      "key": "concept-cap",
+      "label": "CAP / consistency models",
+      "category": "architecture",
+      "posts": 26,
+      "share": 0.59,
+      "companies": 20,
+      "topCompanies": [
+        "Zomato (3)",
+        "Zeta (2)",
+        "Expedia (2)",
+        "Google (2)",
+        "Paytm (2)",
+        "Airbnb (1)",
+        "Freshworks (1)",
+        "Zepto (1)",
+        "Walmart (1)",
+        "Intuit (1)",
+        "Meesho (1)",
+        "Apple (1)"
+      ],
+      "byYear": {
+        "2024": 5,
+        "2025": 12,
+        "2026": 9
+      }
+    },
+    {
+      "key": "concept-cicd",
+      "label": "CI/CD",
+      "category": "devops",
+      "posts": 26,
+      "share": 0.59,
+      "companies": 16,
+      "topCompanies": [
+        "Goldman Sachs (4)",
+        "Walmart (3)",
+        "Oracle (3)",
+        "Flipkart (2)",
+        "Apple (2)",
+        "Salesforce (2)",
+        "Zepto (1)",
+        "Swiggy (1)",
+        "JPMorgan Chase (1)",
+        "LinkedIn (1)",
+        "D. E. Shaw (1)",
+        "Meta (1)"
+      ],
+      "byYear": {
+        "2024": 6,
+        "2025": 15,
+        "2026": 5
+      }
+    },
+    {
+      "key": "hld-booking",
+      "label": "Booking / reservation at scale",
+      "category": "hld",
+      "posts": 25,
+      "share": 0.56,
+      "companies": 13,
+      "topCompanies": [
+        "Zepto (5)",
+        "Flipkart (4)",
+        "D. E. Shaw (3)",
+        "Expedia (2)",
+        "Apple (2)",
+        "Walmart (2)",
+        "Uber (1)",
+        "ServiceNow (1)",
+        "PayPal (1)",
+        "Meta (1)",
+        "JPMorgan Chase (1)",
+        "Swiggy (1)"
+      ],
+      "byYear": {
+        "2024": 11,
+        "2025": 11,
+        "2026": 3
+      }
+    },
+    {
+      "key": "hld-url-shortener",
+      "label": "URL shortener",
+      "category": "hld",
+      "posts": 24,
+      "share": 0.54,
+      "companies": 14,
+      "topCompanies": [
+        "Goldman Sachs (5)",
+        "Oracle (3)",
+        "Uber (3)",
+        "Apple (2)",
+        "Microsoft (2)",
+        "Flipkart (1)",
+        "PhonePe (1)",
+        "Confluent (1)",
+        "Zepto (1)",
+        "Razorpay (1)",
+        "Paytm (1)",
+        "Salesforce (1)"
+      ],
+      "byYear": {
+        "2024": 5,
+        "2025": 14,
+        "2026": 5
+      }
+    },
+    {
+      "key": "lld-food-delivery",
+      "label": "Food delivery (Swiggy/Zomato)",
+      "category": "lld",
+      "posts": 23,
+      "share": 0.52,
+      "companies": 13,
+      "topCompanies": [
+        "Flipkart (6)",
+        "Amazon (3)",
+        "Uber (2)",
+        "Swiggy (2)",
+        "Microsoft (2)",
+        "Walmart (1)",
+        "Zoho (1)",
+        "Oracle (1)",
+        "Apple (1)",
+        "Meta (1)",
+        "Google (1)",
+        "Salesforce (1)"
+      ],
+      "byYear": {
+        "2024": 5,
+        "2025": 8,
+        "2026": 10
+      }
+    },
+    {
+      "key": "concept-auth",
+      "label": "AuthN/AuthZ, JWT, OAuth",
+      "category": "backend",
+      "posts": 23,
+      "share": 0.52,
+      "companies": 18,
+      "topCompanies": [
+        "Oracle (3)",
+        "Walmart (2)",
+        "Microsoft (2)",
+        "Apple (2)",
+        "JPMorgan Chase (1)",
+        "Intuit (1)",
+        "Zepto (1)",
+        "Nutanix (1)",
+        "LinkedIn (1)",
+        "Twilio (1)",
+        "Zomato (1)",
+        "Visa (1)"
+      ],
+      "byYear": {
+        "2024": 6,
+        "2025": 9,
+        "2026": 8
+      }
+    },
+    {
+      "key": "hld-video-streaming",
+      "label": "Video streaming (YouTube/Netflix)",
+      "category": "hld",
+      "posts": 22,
+      "share": 0.5,
+      "companies": 14,
+      "topCompanies": [
+        "Amazon (4)",
+        "Meta (3)",
+        "Expedia (2)",
+        "Apple (2)",
+        "Google (2)",
+        "Flipkart (1)",
+        "TikTok (1)",
+        "Dream11 (1)",
+        "Walmart (1)",
+        "Twilio (1)",
+        "Uber (1)",
+        "Paytm (1)"
+      ],
+      "byYear": {
+        "2024": 4,
+        "2025": 9,
+        "2026": 9
+      }
+    },
+    {
+      "key": "dsa-bit",
+      "label": "Bit manipulation",
+      "category": "dsa",
+      "posts": 22,
+      "share": 0.5,
+      "companies": 14,
+      "topCompanies": [
+        "Apple (3)",
+        "Google (3)",
+        "Amazon (3)",
+        "Goldman Sachs (2)",
+        "Microsoft (2)",
+        "D. E. Shaw (1)",
+        "Cisco (1)",
+        "Meesho (1)",
+        "Adobe (1)",
+        "Meta (1)",
+        "Salesforce (1)",
+        "Stripe (1)"
+      ],
+      "byYear": {
+        "2024": 3,
+        "2025": 8,
+        "2026": 11
+      }
+    },
+    {
+      "key": "concept-consistent-hashing",
+      "label": "Consistent hashing",
+      "category": "architecture",
+      "posts": 21,
+      "share": 0.47,
+      "companies": 12,
+      "topCompanies": [
+        "Atlassian (9)",
+        "Goldman Sachs (2)",
+        "Flipkart (1)",
+        "Freshworks (1)",
+        "Adobe (1)",
+        "Nutanix (1)",
+        "PayPal (1)",
+        "DoorDash (1)",
+        "Microsoft (1)",
+        "Meta (1)",
+        "Amazon (1)",
+        "Zomato (1)"
+      ],
+      "byYear": {
+        "2024": 11,
+        "2025": 7,
+        "2026": 3
+      }
+    },
+    {
+      "key": "lld-thread-pool",
+      "label": "Thread pool / executor",
+      "category": "lld",
+      "posts": 20,
+      "share": 0.45,
+      "companies": 13,
+      "topCompanies": [
+        "Walmart (8)",
+        "D. E. Shaw (1)",
+        "Goldman Sachs (1)",
+        "Zeta (1)",
+        "Oracle (1)",
+        "Microsoft (1)",
+        "Salesforce (1)",
+        "LinkedIn (1)",
+        "Flipkart (1)",
+        "Uber (1)",
+        "Databricks (1)",
+        "Apple (1)"
+      ],
+      "byYear": {
+        "2024": 4,
+        "2025": 8,
+        "2026": 8
+      }
+    },
+    {
+      "key": "hld-id-generator",
+      "label": "Unique ID generator",
+      "category": "hld",
+      "posts": 20,
+      "share": 0.45,
+      "companies": 16,
+      "topCompanies": [
+        "Uber (3)",
+        "Flipkart (2)",
+        "Microsoft (2)",
+        "LinkedIn (1)",
+        "Myntra (1)",
+        "Nutanix (1)",
+        "DoorDash (1)",
+        "Walmart (1)",
+        "Swiggy (1)",
+        "Snowflake (1)",
+        "Bloomberg (1)",
+        "Adobe (1)"
+      ],
+      "byYear": {
+        "2024": 6,
+        "2025": 8,
+        "2026": 6
+      }
+    },
+    {
+      "key": "lld-splitwise",
+      "label": "Splitwise / expense sharing",
+      "category": "lld",
+      "posts": 19,
+      "share": 0.43,
+      "companies": 12,
+      "topCompanies": [
+        "Meesho (3)",
+        "Flipkart (2)",
+        "Rippling (2)",
+        "Zepto (2)",
+        "Walmart (2)",
+        "Salesforce (2)",
+        "Swiggy (1)",
+        "Goldman Sachs (1)",
+        "PhonePe (1)",
+        "Razorpay (1)",
+        "Uber (1)",
+        "Amazon (1)"
+      ],
+      "byYear": {
+        "2024": 11,
+        "2025": 3,
+        "2026": 5
+      }
+    },
+    {
+      "key": "lld-pub-sub",
+      "label": "Pub/sub or message queue (in-memory)",
+      "category": "lld",
+      "posts": 19,
+      "share": 0.43,
+      "companies": 14,
+      "topCompanies": [
+        "PhonePe (4)",
+        "Zomato (2)",
+        "Uber (2)",
+        "Flipkart (1)",
+        "Oracle (1)",
+        "TikTok (1)",
+        "Zepto (1)",
+        "Nutanix (1)",
+        "Dream11 (1)",
+        "Razorpay (1)",
+        "Goldman Sachs (1)",
+        "Netflix (1)"
+      ],
+      "byYear": {
+        "2024": 7,
+        "2025": 6,
+        "2026": 6
+      }
+    },
+    {
+      "key": "lld-file-system",
+      "label": "File system / unix find",
+      "category": "lld",
+      "posts": 19,
+      "share": 0.43,
+      "companies": 10,
+      "topCompanies": [
+        "Uber (8)",
+        "Flipkart (2)",
+        "Oracle (2)",
+        "Walmart (1)",
+        "Juspay (1)",
+        "TikTok (1)",
+        "Apple (1)",
+        "Nutanix (1)",
+        "Microsoft (1)",
+        "Meta (1)"
+      ],
+      "byYear": {
+        "2024": 6,
+        "2025": 6,
+        "2026": 7
+      }
+    },
+    {
+      "key": "lld-coupon",
+      "label": "Coupons / offers engine",
+      "category": "lld",
+      "posts": 19,
+      "share": 0.43,
+      "companies": 13,
+      "topCompanies": [
+        "Meesho (3)",
+        "Groww (2)",
+        "PayPal (2)",
+        "Swiggy (2)",
+        "Cisco (2)",
+        "Atlassian (1)",
+        "Zepto (1)",
+        "PhonePe (1)",
+        "TikTok (1)",
+        "Paytm (1)",
+        "Goldman Sachs (1)",
+        "JPMorgan Chase (1)"
+      ],
+      "byYear": {
+        "2024": 8,
+        "2025": 6,
+        "2026": 5
+      }
+    },
+    {
+      "key": "concept-observability",
+      "label": "Observability / monitoring",
+      "category": "devops",
+      "posts": 19,
+      "share": 0.43,
+      "companies": 14,
+      "topCompanies": [
+        "Dream11 (3)",
+        "Microsoft (3)",
+        "Freshworks (2)",
+        "Zepto (1)",
+        "Goldman Sachs (1)",
+        "Razorpay (1)",
+        "Walmart (1)",
+        "Swiggy (1)",
+        "Morgan Stanley (1)",
+        "Sprinklr (1)",
+        "Apple (1)",
+        "Salesforce (1)"
+      ],
+      "byYear": {
+        "2024": 3,
+        "2025": 10,
+        "2026": 6
+      }
+    },
+    {
+      "key": "hld-llm-app",
+      "label": "LLM / RAG application",
+      "category": "ai",
+      "posts": 18,
+      "share": 0.41,
+      "companies": 11,
+      "topCompanies": [
+        "Amazon (4)",
+        "Apple (2)",
+        "Intuit (2)",
+        "Freshworks (2)",
+        "Razorpay (2)",
+        "Meta (1)",
+        "Microsoft (1)",
+        "Salesforce (1)",
+        "Morgan Stanley (1)",
+        "Google (1)",
+        "Paytm (1)"
+      ],
+      "byYear": {
+        "2025": 6,
+        "2026": 12
+      }
+    },
+    {
+      "key": "concept-idempotency",
+      "label": "Idempotency",
+      "category": "backend",
+      "posts": 18,
+      "share": 0.41,
+      "companies": 14,
+      "topCompanies": [
+        "Microsoft (3)",
+        "Twilio (2)",
+        "Amazon (2)",
+        "LinkedIn (1)",
+        "American Express (1)",
+        "Swiggy (1)",
+        "Paytm (1)",
+        "Uber (1)",
+        "Salesforce (1)",
+        "Visa (1)",
+        "PhonePe (1)",
+        "Groww (1)"
+      ],
+      "byYear": {
+        "2025": 4,
+        "2026": 14
+      }
+    },
+    {
+      "key": "lld-snake-ladder",
+      "label": "Snake and ladder",
+      "category": "lld",
+      "posts": 17,
+      "share": 0.38,
+      "companies": 13,
+      "topCompanies": [
+        "Swiggy (3)",
+        "Walmart (2)",
+        "Microsoft (2)",
+        "Flipkart (1)",
+        "Uber (1)",
+        "Salesforce (1)",
+        "Goldman Sachs (1)",
+        "Oracle (1)",
+        "Morgan Stanley (1)",
+        "PhonePe (1)",
+        "Amazon (1)",
+        "Twilio (1)"
+      ],
+      "byYear": {
+        "2024": 6,
+        "2025": 8,
+        "2026": 3
+      }
+    },
+    {
+      "key": "lld-key-value-store",
+      "label": "Key-value store / in-memory DB",
+      "category": "lld",
+      "posts": 17,
+      "share": 0.38,
+      "companies": 11,
+      "topCompanies": [
+        "Flipkart (3)",
+        "LinkedIn (3)",
+        "Rippling (2)",
+        "Confluent (2)",
+        "Apple (1)",
+        "OpenAI (1)",
+        "Coinbase (1)",
+        "Microsoft (1)",
+        "Meta (1)",
+        "Uber (1)",
+        "Shopify (1)"
+      ],
+      "byYear": {
+        "2024": 7,
+        "2025": 5,
+        "2026": 5
+      }
+    },
+    {
+      "key": "hld-recommendation",
+      "label": "Recommendation system",
+      "category": "hld",
+      "posts": 17,
+      "share": 0.38,
+      "companies": 10,
+      "topCompanies": [
+        "Amazon (6)",
+        "LinkedIn (2)",
+        "Meta (2)",
+        "Expedia (1)",
+        "Adobe (1)",
+        "Uber (1)",
+        "Google (1)",
+        "ServiceNow (1)",
+        "Paytm (1)",
+        "DocuSign (1)"
+      ],
+      "byYear": {
+        "2024": 1,
+        "2025": 6,
+        "2026": 10
+      }
+    },
+    {
+      "key": "concept-cdn",
+      "label": "CDN",
+      "category": "architecture",
+      "posts": 17,
+      "share": 0.38,
+      "companies": 8,
+      "topCompanies": [
+        "Goldman Sachs (5)",
+        "Amazon (4)",
+        "Flipkart (2)",
+        "Walmart (2)",
+        "Freshworks (1)",
+        "Zepto (1)",
+        "Oracle (1)",
+        "Netflix (1)"
+      ],
+      "byYear": {
+        "2024": 5,
+        "2025": 7,
+        "2026": 5
+      }
+    },
+    {
+      "key": "java-concurrenthashmap",
+      "label": "ConcurrentHashMap",
+      "category": "concurrency",
+      "posts": 17,
+      "share": 0.38,
+      "companies": 11,
+      "topCompanies": [
+        "Goldman Sachs (3)",
+        "Flipkart (3)",
+        "Apple (2)",
+        "JPMorgan Chase (2)",
+        "Oracle (1)",
+        "Atlassian (1)",
+        "Paytm (1)",
+        "Adobe (1)",
+        "Walmart (1)",
+        "LinkedIn (1)",
+        "PhonePe (1)"
+      ],
+      "byYear": {
+        "2024": 5,
+        "2025": 6,
+        "2026": 6
+      }
+    },
+    {
+      "key": "lld-elevator",
+      "label": "Elevator / lift system",
+      "category": "lld",
+      "posts": 16,
+      "share": 0.36,
+      "companies": 11,
+      "topCompanies": [
+        "Amazon (4)",
+        "LinkedIn (2)",
+        "Adobe (2)",
+        "Flipkart (1)",
+        "Oracle (1)",
+        "Apple (1)",
+        "Microsoft (1)",
+        "Salesforce (1)",
+        "Uber (1)",
+        "Google (1)",
+        "Goldman Sachs (1)"
+      ],
+      "byYear": {
+        "2024": 2,
+        "2025": 7,
+        "2026": 7
+      }
+    },
+    {
+      "key": "lld-chess",
+      "label": "Chess",
+      "category": "lld",
+      "posts": 16,
+      "share": 0.36,
+      "companies": 11,
+      "topCompanies": [
+        "Goldman Sachs (3)",
+        "Zepto (2)",
+        "Meta (2)",
+        "Google (2)",
+        "Flipkart (1)",
+        "Juspay (1)",
+        "Uber (1)",
+        "Apple (1)",
+        "PhonePe (1)",
+        "Amazon (1)",
+        "Zomato (1)"
+      ],
+      "byYear": {
+        "2024": 5,
+        "2025": 6,
+        "2026": 5
+      }
+    },
+    {
+      "key": "lld-leaderboard",
+      "label": "Leaderboard",
+      "category": "lld",
+      "posts": 16,
+      "share": 0.36,
+      "companies": 11,
+      "topCompanies": [
+        "Meta (4)",
+        "Meesho (2)",
+        "Uber (2)",
+        "Atlassian (1)",
+        "PhonePe (1)",
+        "Flipkart (1)",
+        "Robinhood (1)",
+        "Microsoft (1)",
+        "Nutanix (1)",
+        "LinkedIn (1)",
+        "Zomato (1)"
+      ],
+      "byYear": {
+        "2024": 4,
+        "2025": 8,
+        "2026": 4
+      }
+    },
+    {
+      "key": "lld-auction",
+      "label": "Online auction",
+      "category": "lld",
+      "posts": 16,
+      "share": 0.36,
+      "companies": 9,
+      "topCompanies": [
+        "Meta (4)",
+        "Google (3)",
+        "Flipkart (2)",
+        "Razorpay (2)",
+        "Apple (1)",
+        "Salesforce (1)",
+        "Uber (1)",
+        "Microsoft (1)",
+        "Cisco (1)"
+      ],
+      "byYear": {
+        "2024": 4,
+        "2025": 7,
+        "2026": 5
+      }
+    },
+    {
+      "key": "hld-ecommerce",
+      "label": "E-commerce / order management",
+      "category": "hld",
+      "posts": 16,
+      "share": 0.36,
+      "companies": 12,
+      "topCompanies": [
+        "Meesho (3)",
+        "Flipkart (2)",
+        "Paytm (2)",
+        "Cisco (1)",
+        "TikTok (1)",
+        "Zepto (1)",
+        "Adobe (1)",
+        "Swiggy (1)",
+        "Salesforce (1)",
+        "Goldman Sachs (1)",
+        "DocuSign (1)",
+        "Groww (1)"
+      ],
+      "byYear": {
+        "2024": 5,
+        "2025": 5,
+        "2026": 6
+      }
+    },
+    {
+      "key": "lld-logger",
+      "label": "Logging framework",
+      "category": "lld",
+      "posts": 15,
+      "share": 0.34,
+      "companies": 10,
+      "topCompanies": [
+        "Google (3)",
+        "Flipkart (2)",
+        "PhonePe (2)",
+        "Microsoft (2)",
+        "Uber (1)",
+        "Freshworks (1)",
+        "Salesforce (1)",
+        "Oracle (1)",
+        "Confluent (1)",
+        "Amazon (1)"
+      ],
+      "byYear": {
+        "2024": 5,
+        "2025": 3,
+        "2026": 7
+      }
+    },
+    {
+      "key": "lld-stack-overflow",
+      "label": "Q&A site (Stack Overflow)",
+      "category": "lld",
+      "posts": 15,
+      "share": 0.34,
+      "companies": 9,
+      "topCompanies": [
+        "Flipkart (6)",
+        "D. E. Shaw (2)",
+        "Oracle (1)",
+        "Databricks (1)",
+        "Meta (1)",
+        "Rippling (1)",
+        "Goldman Sachs (1)",
+        "LinkedIn (1)",
+        "Google (1)"
+      ],
+      "byYear": {
+        "2024": 8,
+        "2025": 6,
+        "2026": 1
+      }
+    },
+    {
+      "key": "lld-music-streaming",
+      "label": "Music streaming (Spotify)",
+      "category": "lld",
+      "posts": 15,
+      "share": 0.34,
+      "companies": 10,
+      "topCompanies": [
+        "Rippling (2)",
+        "Flipkart (2)",
+        "Atlassian (2)",
+        "Microsoft (2)",
+        "Amazon (2)",
+        "Twilio (1)",
+        "Apple (1)",
+        "Goldman Sachs (1)",
+        "Meta (1)",
+        "Salesforce (1)"
+      ],
+      "byYear": {
+        "2024": 2,
+        "2025": 8,
+        "2026": 5
+      }
+    },
+    {
+      "key": "hld-ride-hailing",
+      "label": "Ride hailing at scale (Uber)",
+      "category": "hld",
+      "posts": 15,
+      "share": 0.34,
+      "companies": 7,
+      "topCompanies": [
+        "Uber (7)",
+        "PayPal (2)",
+        "Amazon (2)",
+        "Oracle (1)",
+        "Zepto (1)",
+        "Meta (1)",
+        "Flipkart (1)"
+      ],
+      "byYear": {
+        "2024": 8,
+        "2025": 3,
+        "2026": 4
+      }
+    },
+    {
+      "key": "lld-autocomplete",
+      "label": "Autocomplete / typeahead",
+      "category": "lld",
+      "posts": 14,
+      "share": 0.32,
+      "companies": 11,
+      "topCompanies": [
+        "Amazon (3)",
+        "Adobe (2)",
+        "Flipkart (1)",
+        "Goldman Sachs (1)",
+        "Oracle (1)",
+        "Rippling (1)",
+        "PhonePe (1)",
+        "Meta (1)",
+        "Salesforce (1)",
+        "Zoho (1)",
+        "Google (1)"
+      ],
+      "byYear": {
+        "2024": 3,
+        "2025": 5,
+        "2026": 6
+      }
+    },
+    {
+      "key": "dsa-design-ds",
+      "label": "Design a data structure",
+      "category": "dsa",
+      "posts": 14,
+      "share": 0.32,
+      "companies": 8,
+      "topCompanies": [
+        "Goldman Sachs (3)",
+        "Walmart (2)",
+        "LinkedIn (2)",
+        "Uber (2)",
+        "Google (2)",
+        "D. E. Shaw (1)",
+        "Meta (1)",
+        "Amazon (1)"
+      ],
+      "byYear": {
+        "2024": 4,
+        "2025": 4,
+        "2026": 6
+      }
+    },
+    {
+      "key": "concept-websocket",
+      "label": "WebSockets / long polling / SSE",
+      "category": "backend",
+      "posts": 13,
+      "share": 0.29,
+      "companies": 12,
+      "topCompanies": [
+        "Amazon (2)",
+        "Flipkart (1)",
+        "Zepto (1)",
+        "Twilio (1)",
+        "Adobe (1)",
+        "Meta (1)",
+        "Uber (1)",
+        "Microsoft (1)",
+        "Salesforce (1)",
+        "Paytm (1)",
+        "Zomato (1)",
+        "DoorDash (1)"
+      ],
+      "byYear": {
+        "2024": 2,
+        "2025": 3,
+        "2026": 8
+      }
+    },
+    {
+      "key": "java-hashmap",
+      "label": "HashMap internals",
+      "category": "java",
+      "posts": 13,
+      "share": 0.29,
+      "companies": 8,
+      "topCompanies": [
+        "Goldman Sachs (3)",
+        "Morgan Stanley (3)",
+        "Walmart (2)",
+        "JPMorgan Chase (1)",
+        "Apple (1)",
+        "Paytm (1)",
+        "LinkedIn (1)",
+        "Rippling (1)"
+      ],
+      "byYear": {
+        "2024": 4,
+        "2025": 4,
+        "2026": 5
+      }
+    },
+    {
+      "key": "lld-blocking-queue",
+      "label": "Blocking queue / producer-consumer",
+      "category": "lld",
+      "posts": 12,
+      "share": 0.27,
+      "companies": 11,
+      "topCompanies": [
+        "Salesforce (2)",
+        "PayPal (1)",
+        "Airbnb (1)",
+        "Arcesium (1)",
+        "Intuit (1)",
+        "LinkedIn (1)",
+        "Uber (1)",
+        "Oracle (1)",
+        "Microsoft (1)",
+        "Walmart (1)",
+        "PhonePe (1)"
+      ],
+      "byYear": {
+        "2024": 4,
+        "2025": 5,
+        "2026": 3
+      }
+    },
+    {
+      "key": "hld-web-crawler",
+      "label": "Web crawler",
+      "category": "hld",
+      "posts": 12,
+      "share": 0.27,
+      "companies": 12,
+      "topCompanies": [
+        "Flipkart (1)",
+        "Zeta (1)",
+        "Zepto (1)",
+        "Meta (1)",
+        "ServiceNow (1)",
+        "Expedia (1)",
+        "Sprinklr (1)",
+        "Atlassian (1)",
+        "Uber (1)",
+        "PayPal (1)",
+        "Microsoft (1)",
+        "PhonePe (1)"
+      ],
+      "byYear": {
+        "2024": 3,
+        "2025": 4,
+        "2026": 5
+      }
+    },
+    {
+      "key": "hld-api-gateway",
+      "label": "API gateway",
+      "category": "hld",
+      "posts": 12,
+      "share": 0.27,
+      "companies": 10,
+      "topCompanies": [
+        "Uber (2)",
+        "Meta (2)",
+        "LinkedIn (1)",
+        "Bloomberg (1)",
+        "Morgan Stanley (1)",
+        "Google (1)",
+        "Apple (1)",
+        "Visa (1)",
+        "Goldman Sachs (1)",
+        "DoorDash (1)"
+      ],
+      "byYear": {
+        "2024": 1,
+        "2025": 5,
+        "2026": 6
+      }
+    },
+    {
+      "key": "concept-saga",
+      "label": "Saga / distributed transactions",
+      "category": "architecture",
+      "posts": 12,
+      "share": 0.27,
+      "companies": 10,
+      "topCompanies": [
+        "Flipkart (2)",
+        "Oracle (2)",
+        "Twilio (1)",
+        "Salesforce (1)",
+        "Zepto (1)",
+        "Visa (1)",
+        "PhonePe (1)",
+        "Groww (1)",
+        "Paytm (1)",
+        "Amazon (1)"
+      ],
+      "byYear": {
+        "2024": 2,
+        "2025": 4,
+        "2026": 6
+      }
+    },
+    {
+      "key": "lld-spreadsheet",
+      "label": "Spreadsheet / Excel",
+      "category": "lld",
+      "posts": 11,
+      "share": 0.25,
+      "companies": 8,
+      "topCompanies": [
+        "Rippling (3)",
+        "Apple (2)",
+        "ServiceNow (1)",
+        "Uber (1)",
+        "Meesho (1)",
+        "LinkedIn (1)",
+        "Microsoft (1)",
+        "Meta (1)"
+      ],
+      "byYear": {
+        "2024": 5,
+        "2025": 5,
+        "2026": 1
+      }
+    },
+    {
+      "key": "concept-grpc-graphql",
+      "label": "gRPC / GraphQL",
+      "category": "backend",
+      "posts": 11,
+      "share": 0.25,
+      "companies": 8,
+      "topCompanies": [
+        "Salesforce (3)",
+        "Microsoft (2)",
+        "D. E. Shaw (1)",
+        "Walmart (1)",
+        "ServiceNow (1)",
+        "Uber (1)",
+        "Apple (1)",
+        "Google (1)"
+      ],
+      "byYear": {
+        "2024": 4,
+        "2025": 4,
+        "2026": 3
+      }
+    },
+    {
+      "key": "hld-distributed-cache",
+      "label": "Distributed cache",
+      "category": "hld",
+      "posts": 10,
+      "share": 0.23,
+      "companies": 7,
+      "topCompanies": [
+        "Walmart (2)",
+        "Meta (2)",
+        "Microsoft (2)",
+        "Nutanix (1)",
+        "Goldman Sachs (1)",
+        "Salesforce (1)",
+        "Google (1)"
+      ],
+      "byYear": {
+        "2024": 1,
+        "2025": 6,
+        "2026": 3
+      }
+    },
+    {
+      "key": "debugging-round",
+      "label": "Debugging / code review round",
+      "category": "behavioral",
+      "posts": 10,
+      "share": 0.23,
+      "companies": 5,
+      "topCompanies": [
+        "DoorDash (5)",
+        "Amazon (2)",
+        "JPMorgan Chase (1)",
+        "Nutanix (1)",
+        "NVIDIA (1)"
+      ],
+      "byYear": {
+        "2024": 1,
+        "2025": 5,
+        "2026": 4
+      }
+    },
+    {
+      "key": "lld-tic-tac-toe",
+      "label": "Tic-tac-toe",
+      "category": "lld",
+      "posts": 9,
+      "share": 0.2,
+      "companies": 7,
+      "topCompanies": [
+        "Flipkart (3)",
+        "Adobe (1)",
+        "Atlassian (1)",
+        "Apple (1)",
+        "Goldman Sachs (1)",
+        "Databricks (1)",
+        "Microsoft (1)"
+      ],
+      "byYear": {
+        "2024": 4,
+        "2025": 3,
+        "2026": 2
+      }
+    },
+    {
+      "key": "lld-library",
+      "label": "Library management",
+      "category": "lld",
+      "posts": 9,
+      "share": 0.2,
+      "companies": 6,
+      "topCompanies": [
+        "Zeta (3)",
+        "Flipkart (2)",
+        "Zoho (1)",
+        "Apple (1)",
+        "Swiggy (1)",
+        "Salesforce (1)"
+      ],
+      "byYear": {
+        "2024": 3,
+        "2025": 5,
+        "2026": 1
+      }
+    },
+    {
+      "key": "lld-circuit-breaker",
+      "label": "Circuit breaker",
+      "category": "lld",
+      "posts": 9,
+      "share": 0.2,
+      "companies": 8,
+      "topCompanies": [
+        "Apple (2)",
+        "Paytm (1)",
+        "Myntra (1)",
+        "ServiceNow (1)",
+        "JPMorgan Chase (1)",
+        "PhonePe (1)",
+        "Flipkart (1)",
+        "DoorDash (1)"
+      ],
+      "byYear": {
+        "2024": 1,
+        "2025": 3,
+        "2026": 5
+      }
+    },
+    {
+      "key": "hld-job-scheduler",
+      "label": "Distributed job scheduler",
+      "category": "hld",
+      "posts": 9,
+      "share": 0.2,
+      "companies": 5,
+      "topCompanies": [
+        "LinkedIn (4)",
+        "Flipkart (2)",
+        "Salesforce (1)",
+        "Arcesium (1)",
+        "Nutanix (1)"
+      ],
+      "byYear": {
+        "2024": 3,
+        "2025": 4,
+        "2026": 2
+      }
+    },
+    {
+      "key": "spring-security",
+      "label": "Spring Security",
+      "category": "backend",
+      "posts": 8,
+      "share": 0.18,
+      "companies": 6,
+      "topCompanies": [
+        "Uber (3)",
+        "JPMorgan Chase (1)",
+        "Walmart (1)",
+        "Oracle (1)",
+        "Salesforce (1)",
+        "Morgan Stanley (1)"
+      ],
+      "byYear": {
+        "2024": 3,
+        "2025": 4,
+        "2026": 1
+      }
+    },
+    {
+      "key": "lld-hotel-booking",
+      "label": "Hotel / Airbnb booking",
+      "category": "lld",
+      "posts": 7,
+      "share": 0.16,
+      "companies": 5,
+      "topCompanies": [
+        "Zepto (3)",
+        "Flipkart (1)",
+        "Rippling (1)",
+        "ServiceNow (1)",
+        "Meta (1)"
+      ],
+      "byYear": {
+        "2024": 5,
+        "2025": 2
+      }
+    },
+    {
+      "key": "hld-ad-system",
+      "label": "Ads / ad delivery",
+      "category": "hld",
+      "posts": 7,
+      "share": 0.16,
+      "companies": 6,
+      "topCompanies": [
+        "Microsoft (2)",
+        "Flipkart (1)",
+        "Intuit (1)",
+        "Atlassian (1)",
+        "Netflix (1)",
+        "Apple (1)"
+      ],
+      "byYear": {
+        "2024": 2,
+        "2025": 3,
+        "2026": 2
+      }
+    },
+    {
+      "key": "concept-event-driven",
+      "label": "Event-driven / CQRS / event sourcing",
+      "category": "architecture",
+      "posts": 7,
+      "share": 0.16,
+      "companies": 5,
+      "topCompanies": [
+        "Flipkart (2)",
+        "Microsoft (2)",
+        "Goldman Sachs (1)",
+        "Zomato (1)",
+        "Amazon (1)"
+      ],
+      "byYear": {
+        "2024": 1,
+        "2025": 2,
+        "2026": 4
+      }
+    },
+    {
+      "key": "lld-snake-game",
+      "label": "Snake game",
+      "category": "lld",
+      "posts": 6,
+      "share": 0.14,
+      "companies": 4,
+      "topCompanies": [
+        "Atlassian (3)",
+        "Apple (1)",
+        "Goldman Sachs (1)",
+        "Rippling (1)"
+      ],
+      "byYear": {
+        "2024": 1,
+        "2025": 4,
+        "2026": 1
+      }
+    },
+    {
+      "key": "lld-car-rental",
+      "label": "Car / vehicle rental",
+      "category": "lld",
+      "posts": 6,
+      "share": 0.14,
+      "companies": 4,
+      "topCompanies": [
+        "Flipkart (3)",
+        "Salesforce (1)",
+        "Swiggy (1)",
+        "Adobe (1)"
+      ],
+      "byYear": {
+        "2024": 5,
+        "2025": 1
+      }
+    },
+    {
+      "key": "lld-feature-flags",
+      "label": "Feature flags",
+      "category": "lld",
+      "posts": 6,
+      "share": 0.14,
+      "companies": 5,
+      "topCompanies": [
+        "Visa (2)",
+        "Swiggy (1)",
+        "Salesforce (1)",
+        "PayPal (1)",
+        "PhonePe (1)"
+      ],
+      "byYear": {
+        "2025": 2,
+        "2026": 4
+      }
+    },
+    {
+      "key": "hld-auth",
+      "label": "Authentication / SSO system",
+      "category": "hld",
+      "posts": 6,
+      "share": 0.14,
+      "companies": 6,
+      "topCompanies": [
+        "Zomato (1)",
+        "Meta (1)",
+        "Walmart (1)",
+        "Salesforce (1)",
+        "Goldman Sachs (1)",
+        "Paytm (1)"
+      ],
+      "byYear": {
+        "2024": 1,
+        "2025": 1,
+        "2026": 4
+      }
+    },
+    {
+      "key": "hld-distributed-lock",
+      "label": "Distributed lock",
+      "category": "hld",
+      "posts": 6,
+      "share": 0.14,
+      "companies": 5,
+      "topCompanies": [
+        "Amazon (2)",
+        "Apple (1)",
+        "Meesho (1)",
+        "Salesforce (1)",
+        "Google (1)"
+      ],
+      "byYear": {
+        "2025": 3,
+        "2026": 3
+      }
+    },
+    {
+      "key": "hld-webhook",
+      "label": "Webhook delivery",
+      "category": "hld",
+      "posts": 6,
+      "share": 0.14,
+      "companies": 5,
+      "topCompanies": [
+        "OpenAI (2)",
+        "Uber (1)",
+        "NVIDIA (1)",
+        "LinkedIn (1)",
+        "Zomato (1)"
+      ],
+      "byYear": {
+        "2024": 2,
+        "2025": 1,
+        "2026": 3
+      }
+    },
+    {
+      "key": "concurrency-completable",
+      "label": "CompletableFuture / async",
+      "category": "concurrency",
+      "posts": 6,
+      "share": 0.14,
+      "companies": 5,
+      "topCompanies": [
+        "Apple (2)",
+        "Oracle (1)",
+        "Walmart (1)",
+        "Intuit (1)",
+        "D. E. Shaw (1)"
+      ],
+      "byYear": {
+        "2025": 4,
+        "2026": 2
+      }
+    },
+    {
+      "key": "lld-vending-machine",
+      "label": "Vending machine",
+      "category": "lld",
+      "posts": 5,
+      "share": 0.11,
+      "companies": 5,
+      "topCompanies": [
+        "Flipkart (1)",
+        "Zeta (1)",
+        "Meesho (1)",
+        "Amazon (1)",
+        "Apple (1)"
+      ],
+      "byYear": {
+        "2024": 2,
+        "2025": 1,
+        "2026": 2
+      }
+    },
+    {
+      "key": "lld-atm",
+      "label": "ATM",
+      "category": "lld",
+      "posts": 5,
+      "share": 0.11,
+      "companies": 5,
+      "topCompanies": [
+        "Flipkart (1)",
+        "Walmart (1)",
+        "Oracle (1)",
+        "Meta (1)",
+        "Uber (1)"
+      ],
+      "byYear": {
+        "2024": 1,
+        "2025": 4
+      }
+    },
+    {
+      "key": "lld-text-editor",
+      "label": "Text editor / undo-redo",
+      "category": "lld",
+      "posts": 5,
+      "share": 0.11,
+      "companies": 4,
+      "topCompanies": [
+        "Google (2)",
+        "Microsoft (1)",
+        "Amazon (1)",
+        "DocuSign (1)"
+      ],
+      "byYear": {
+        "2026": 5
+      }
+    },
+    {
+      "key": "lld-cricinfo",
+      "label": "Cricket scoreboard (Cricbuzz)",
+      "category": "lld",
+      "posts": 4,
+      "share": 0.09,
+      "companies": 3,
+      "topCompanies": [
+        "Flipkart (2)",
+        "Oracle (1)",
+        "Zepto (1)"
+      ],
+      "byYear": {
+        "2024": 4
+      }
+    },
+    {
+      "key": "java-modern",
+      "label": "Modern Java (records, sealed, virtual threads)",
+      "category": "java",
+      "posts": 4,
+      "share": 0.09,
+      "companies": 4,
+      "topCompanies": [
+        "Goldman Sachs (1)",
+        "Walmart (1)",
+        "Morgan Stanley (1)",
+        "Apple (1)"
+      ],
+      "byYear": {
+        "2024": 1,
+        "2025": 2,
+        "2026": 1
+      }
+    },
+    {
+      "key": "python-gil",
+      "label": "Python GIL / asyncio",
+      "category": "concurrency",
+      "posts": 4,
+      "share": 0.09,
+      "companies": 3,
+      "topCompanies": [
+        "D. E. Shaw (2)",
+        "Flipkart (1)",
+        "PhonePe (1)"
+      ],
+      "byYear": {
+        "2024": 2,
+        "2026": 2
+      }
+    },
+    {
+      "key": "lld-traffic-signal",
+      "label": "Traffic signal",
+      "category": "lld",
+      "posts": 3,
+      "share": 0.07,
+      "companies": 3,
+      "topCompanies": [
+        "Flipkart (1)",
+        "Salesforce (1)",
+        "Goldman Sachs (1)"
+      ],
+      "byYear": {
+        "2024": 1,
+        "2025": 2
+      }
+    },
+    {
+      "key": "lld-workflow",
+      "label": "Workflow / rules engine",
+      "category": "lld",
+      "posts": 3,
+      "share": 0.07,
+      "companies": 3,
+      "topCompanies": [
+        "Rippling (1)",
+        "Meta (1)",
+        "DoorDash (1)"
+      ],
+      "byYear": {
+        "2025": 3
+      }
+    },
+    {
+      "key": "java-string",
+      "label": "String immutability / string pool",
+      "category": "java",
+      "posts": 3,
+      "share": 0.07,
+      "companies": 2,
+      "topCompanies": [
+        "Walmart (2)",
+        "Goldman Sachs (1)"
+      ],
+      "byYear": {
+        "2025": 3
+      }
+    },
+    {
+      "key": "lld-connection-pool",
+      "label": "Connection pool",
+      "category": "lld",
+      "posts": 2,
+      "share": 0.05,
+      "companies": 2,
+      "topCompanies": [
+        "Zepto (1)",
+        "Salesforce (1)"
+      ],
+      "byYear": {
+        "2024": 1,
+        "2025": 1
+      }
+    },
+    {
+      "key": "hld-pastebin",
+      "label": "Pastebin",
+      "category": "hld",
+      "posts": 2,
+      "share": 0.05,
+      "companies": 2,
+      "topCompanies": [
+        "Flipkart (1)",
+        "Goldman Sachs (1)"
+      ],
+      "byYear": {
+        "2024": 1,
+        "2026": 1
+      }
+    },
+    {
+      "key": "hld-kv-store",
+      "label": "Distributed key-value store",
+      "category": "hld",
+      "posts": 0,
+      "share": 0,
+      "companies": 0,
+      "topCompanies": [],
+      "byYear": {}
+    },
+    {
+      "key": "hld-message-queue",
+      "label": "Distributed message queue (Kafka)",
+      "category": "hld",
+      "posts": 0,
+      "share": 0,
+      "companies": 0,
+      "topCompanies": [],
+      "byYear": {}
+    },
+    {
+      "key": "hld-leaderboard",
+      "label": "Real-time leaderboard",
+      "category": "hld",
+      "posts": 0,
+      "share": 0,
+      "companies": 0,
+      "topCompanies": [],
+      "byYear": {}
+    }
+  ]
+}

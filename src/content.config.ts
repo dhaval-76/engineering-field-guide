@@ -159,4 +159,26 @@ const walkthroughs = defineCollection({
   }),
 });
 
-export const collections = { tracks, topics, qa, glossary, walkthroughs };
+/** Generated from research (scripts/research/apply-reports.ts): companies where a topic was reported. */
+const reports = defineCollection({
+  loader: glob({
+    pattern: '**/*.yaml',
+    base: './src/content/reports',
+    generateId: ({ entry }) => entry.replace(/\.ya?ml$/, ''),
+  }),
+  schema: z.object({
+    generatedAt: z.coerce.date(),
+    source: z.string(),
+    window: z.string(),
+    companies: z.array(
+      z.object({
+        company: z.string(),
+        reports: z.number().int().positive(),
+        latestYear: z.number().int(),
+        sources: z.array(z.object({ url: z.url(), title: z.string(), year: z.number().int() })).min(1),
+      }),
+    ),
+  }),
+});
+
+export const collections = { tracks, topics, qa, glossary, walkthroughs, reports };

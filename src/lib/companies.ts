@@ -3,7 +3,7 @@ import { getFlatTopics, slugifyCompany } from './nav';
 import { topicUrl } from './url';
 
 export interface CompanyItem {
-  kind: 'topic' | 'question' | 'follow-up';
+  kind: 'topic' | 'question' | 'follow-up' | 'reported';
   text: string;
   topicId: string;
   topicTitle: string;
@@ -11,6 +11,8 @@ export interface CompanyItem {
   year?: number | undefined;
   round?: string | undefined;
   source: string;
+  /** For research-derived items: number of public reports mentioning the topic. */
+  reports?: number | undefined;
 }
 
 export interface Company {
@@ -71,5 +73,22 @@ export async function getCompanyIndex(): Promise<Company[]> {
           source: a.source,
         });
   }
+  for (const r of await getCollection('reports')) {
+    const title = titles.get(r.id);
+    if (!title) continue;
+    for (const c of r.data.companies)
+      add(c.company, {
+        kind: 'reported',
+        text: title,
+        topicId: r.id,
+        topicTitle: title,
+        url: topicUrl(r.id),
+        year: c.latestYear,
+        source: c.sources[0]!.url,
+        reports: c.reports,
+      });
+  }
   return [...map.values()].sort((a, b) => a.name.localeCompare(b.name));
 }
+
+export const getTrackIdOf = (topicId: string) => topicId.split('/')[0]!;

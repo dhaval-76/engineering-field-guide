@@ -1,0 +1,105 @@
+---
+title: The Collections Framework — Choosing the Right Structure
+summary: List, Set, Map, Queue and Deque in Java — what each guarantees, the cost of every common operation, why ArrayList beats LinkedList in practice, iteration and modification rules, and immutable collections.
+track: java-runtime
+order: 18
+tags: [java, collections, arraylist, linkedlist, treemap, arraydeque, priorityqueue]
+aliases: [java collections, arraylist vs linkedlist, hashset vs treeset, treemap vs hashmap, arraydeque, fail fast iterator, concurrentmodificationexception]
+prerequisites: [java-runtime/equals-and-hashcode]
+related: [java-runtime/hashmap-internals, low-level-design/lru-cache]
+quickRef:
+  points:
+    - 'Pick the **interface** from what you need: duplicates + order → `List`; uniqueness → `Set`; key → value → `Map`; FIFO/LIFO → `Deque`; "smallest first" → `PriorityQueue`.'
+    - '`ArrayList` beats `LinkedList` almost always — contiguous memory, cache-friendly, ~6× less memory per element.'
+    - Use `ArrayDeque` for stacks and queues (not `Stack`, not `LinkedList`).
+    - '`TreeMap`/`TreeSet` when you need sorted order or range queries (`floorKey`, `subMap`) — O(log n).'
+    - 'Remove while iterating with `removeIf` or `Iterator.remove`; `List.of`/`List.copyOf` are immutable, `unmodifiableList` is only a view.'
+  useWhen: Choosing a data structure for in-memory data, or explaining a performance difference between two that look equivalent.
+lastReviewed: 2026-10-30
+---
+
+## Why it matters
+
+Most performance problems in application code aren't exotic: they're an O(n) lookup in a list that should have been a set, a `LinkedList` walked by index, a queue built on `ArrayList.remove(0)`. Knowing what each collection guarantees — and what each operation costs — turns those into one-line fixes, and it's a core part of coding interviews.
+
+<Callout type="analogy">
+A numbered car park (ArrayList) versus a treasure hunt (LinkedList). In the car park you walk straight to bay 500. In the treasure hunt, clue 500 is wherever clue 499 says — you have to follow every clue to get there, and each clue is in a different part of town.
+</Callout>
+
+## Choose by what you need
+
+<CodeTabs id="coll-choose" title="One structure per need, in Java, JavaScript and Python" />
+
+| Implementation | Order | Duplicates | Nulls | Lookup | Insert | Best for |
+|---|---|---|---|---|---|---|
+| `ArrayList` | Insertion | Yes | Yes | `get(i)` O(1), `contains` O(n) | End O(1)*, middle O(n) | Default list |
+| `LinkedList` | Insertion | Yes | Yes | O(n) | O(1) at a known node | Rarely the right choice |
+| `HashSet` | None | No | One | O(1) | O(1) | Membership, dedupe |
+| `LinkedHashSet` | Insertion | No | One | O(1) | O(1) | Dedupe preserving order |
+| `TreeSet` | Sorted | No | No | O(log n) | O(log n) | Sorted unique items, ranges |
+| `HashMap` | None | Unique keys | One key | O(1) | O(1) | Default map |
+| `LinkedHashMap` | Insertion / access | Unique keys | One key | O(1) | O(1) | Ordered maps, LRU caches |
+| `TreeMap` | Sorted keys | Unique keys | No keys | O(log n) | O(log n) | Range queries, floor/ceiling |
+| `ArrayDeque` | FIFO/LIFO | Yes | No | Ends O(1) | Ends O(1) | Stacks and queues |
+| `PriorityQueue` | Heap (min first) | Yes | No | Peek O(1) | O(log n) | Top-K, scheduling |
+
+\* amortised: occasional resizes copy the array.
+
+## ArrayList vs LinkedList: theory vs reality
+
+On paper, `LinkedList` wins inserts in the middle (O(1) relink vs O(n) shift). In practice `ArrayList` wins nearly every benchmark:
+
+- **Finding the position** in a linked list is O(n) anyway, and each step is a pointer chase to a node somewhere else in memory — a likely CPU cache miss.
+- **Shifting an array** is one `System.arraycopy` over contiguous memory — a highly optimised block copy the CPU prefetches.
+- **Memory**: an `ArrayList` slot is one reference (~4 bytes with compressed references); a `LinkedList` node is an object with a header and three references (~24 bytes), plus allocation and GC pressure for every element.
+
+<Chart
+  type="bar"
+  title="Approximate memory per element, excluding the element itself (64-bit JVM, compressed refs)"
+  bars={[
+    ['ArrayList slot', 4, 'ok'],
+    ['ArrayDeque slot', 4, 'ok'],
+    ['LinkedList node', 24, 'bad'],
+    ['HashMap entry (node)', 32, 'warn'],
+    ['TreeMap entry', 40, 'warn'],
+  ]}
+  unit=" B"
+  caption="Node-based structures pay an object header and several references per element; array-backed ones pay one reference."
+/>
+
+**ArrayList growth** is amortised O(1): when full it grows by about 1.5× and copies. Over n appends the copies add up to O(n), so each append averages O(1). Pre-size with `new ArrayList<>(n)` when you know n.
+
+## Stacks and queues: use ArrayDeque
+
+`ArrayDeque` is a circular array with O(1) operations at both ends and no per-element allocation. The JDK docs recommend it over `Stack` (synchronized, extends `Vector`) and over `LinkedList` for queues. Note it rejects `null`.
+
+## Iterating and modifying
+
+<CodeTabs id="coll-iteration" title="Safe removal, and immutable vs unmodifiable" />
+
+- Most iterators are **fail-fast**: they track a modification counter and throw `ConcurrentModificationException` if the collection is structurally changed except through the iterator itself. It's a bug detector, not a thread-safety guarantee.
+- **Concurrent collections** (`ConcurrentHashMap`, `CopyOnWriteArrayList`) have weakly consistent iterators that never throw, but may or may not see concurrent changes.
+- `Collections.unmodifiableList(x)` is a **read-only view**: changes to `x` still show through. `List.copyOf(x)` and `List.of(...)` are truly **immutable** snapshots.
+
+## Patterns worth knowing
+
+<CodeTabs id="coll-patterns" title="Counting, grouping, top-K and first-unique" />
+
+<Pitfalls>
+
+- **`list.contains` in a loop** — O(n²); put the lookup side in a `HashSet` first.
+- **`LinkedList.get(i)` in a loop** — O(n²) walking.
+- **`ArrayList.remove(0)` as a queue** — shifts every element; use `ArrayDeque`.
+- **Using `Stack` or `Vector`** — legacy synchronized classes.
+- **Assuming an unmodifiable view is a snapshot** — it reflects later changes to the source.
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- Choose the interface from the operations you need, then the implementation from cost and ordering.
+- `ArrayList` and `ArrayDeque` are the defaults for sequences, stacks and queues.
+- Tree-based maps/sets for sorted order and range queries; heaps for "smallest/largest first".
+- Remove during iteration with `removeIf`; prefer `List.of`/`copyOf` for immutability.
+
+</KeyTakeaways>

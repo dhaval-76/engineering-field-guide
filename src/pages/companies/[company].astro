@@ -1,6 +1,7 @@
 ---
 import BaseLayout from '~/layouts/BaseLayout.astro';
-import { getCompanyIndex } from '~/lib/companies';
+import { getCompanyIndex, getTrackIdOf } from '~/lib/companies';
+import { getNav } from '~/lib/nav';
 import { url } from '~/lib/url';
 
 export async function getStaticPaths() {
@@ -9,18 +10,19 @@ export async function getStaticPaths() {
 }
 
 const { company } = Astro.props;
-const groups = new Map<string, typeof company.items>();
-for (const item of company.items) {
-  const list = groups.get(item.topicTitle) ?? [];
-  list.push(item);
-  groups.set(item.topicTitle, list);
-}
-const kindLabel = { topic: 'Topic', question: 'Question', 'follow-up': 'Follow-up' } as const;
+const nav = await getNav();
+const trackTitle = new Map(nav.map((n) => [n.track.id, n.track.data.short]));
+
+const reported = company.items
+  .filter((i) => i.kind === 'reported')
+  .sort((a, b) => (b.reports ?? 0) - (a.reports ?? 0) || a.text.localeCompare(b.text));
+const tagged = company.items.filter((i) => i.kind !== 'reported');
+const totalReports = reported.reduce((n, i) => n + (i.reports ?? 0), 0);
 ---
 
 <BaseLayout
-  title={`${company.name} — reported topics`}
-  description={`Topics and questions reported in ${company.name} interviews, with sources.`}
+  title={`${company.name} — interview topics`}
+  description={`Topics and questions reported in ${company.name} interviews, with links to the original reports.`}
 >
   <div class="wrap">
     <p class="eyebrow">
@@ -28,21 +30,60 @@ const kindLabel = { topic: 'Topic', question: 'Question', 'follow-up': 'Follow-u
     </p>
     <h1>{company.name}</h1>
     <p class="lede">
-      What candidates have publicly reported from {company.name} interviews. Click a source to read
-      the original report.
+      Topics that candidates mentioned in public {company.name} interview write-ups, most frequent
+      first
+      {totalReports > 0 && (
+        <>
+          {' '}
+          ({totalReports} mentions across {reported.length} topics)
+        </>
+      )}
+      . Use it to prioritise — reports show what came up for some candidates, not a fixed question
+      list.
     </p>
-    {[...groups.entries()].map(([topic, items]) => (
+
+    {reported.length > 0 && (
+      <table>
+        <thead>
+          <tr>
+            <th>Topic</th>
+            <th>Track</th>
+            <th class="num">Reports</th>
+            <th class="num">Latest</th>
+            <th>Example</th>
+          </tr>
+        </thead>
+        <tbody>
+          {reported.map((r) => (
+            <tr>
+              <td>
+                <a href={r.url}>{r.text}</a>
+              </td>
+              <td class="muted">{trackTitle.get(getTrackIdOf(r.topicId))}</td>
+              <td class="num">{r.reports}</td>
+              <td class="num">{r.year}</td>
+              <td>
+                <a class="src" href={r.source} rel="nofollow noopener" target="_blank">
+                  report ↗
+                </a>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    )}
+
+    {tagged.length > 0 && (
       <section>
-        <h2>
-          <a href={items[0]!.url.split('#')[0]}>{topic}</a>
-        </h2>
-        <ul>
-          {items.map((it) => (
+        <h2>Specific questions</h2>
+        <ul class="tagged">
+          {tagged.map((it) => (
             <li>
-              <span class="kind">{kindLabel[it.kind]}</span>
               <a href={it.url}>{it.text}</a>
-              <span class="meta">
-                {[it.round, it.year].filter(Boolean).join(' · ')}{' '}
+              <span class="muted">
+                {it.topicTitle}
+                {it.year && ` · ${it.year}`}
+                {it.round && ` · ${it.round}`} ·{' '}
                 <a href={it.source} rel="nofollow noopener" target="_blank">
                   source
                 </a>
@@ -51,13 +92,16 @@ const kindLabel = { topic: 'Topic', question: 'Question', 'follow-up': 'Follow-u
           ))}
         </ul>
       </section>
-    ))}
+    )}
   </div>
 </BaseLayout>
 
 <style>
   .wrap {
-    max-width: 760px;
+    max-width: 920px;
+  }
+  .eyebrow a {
+    color: inherit;
   }
   h1 {
     font-family: var(--font-serif);
@@ -67,36 +111,56 @@ const kindLabel = { topic: 'Topic', question: 'Question', 'follow-up': 'Follow-u
   }
   .lede {
     color: var(--ink-2);
+    max-width: var(--measure);
+  }
+  table {
+    display: block;
+    overflow-x: auto;
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+    font-size: 0.9375rem;
+  }
+  th,
+  td {
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--rule);
+    text-align: left;
+    white-space: nowrap;
+  }
+  td:first-child {
+    white-space: normal;
+    min-width: 220px;
+  }
+  th {
+    font-size: 0.8125rem;
+    color: var(--ink-3);
+    font-weight: 600;
+  }
+  .num {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+  .muted {
+    color: var(--ink-3);
+    font-size: 0.875rem;
+  }
+  .src {
+    font-size: 0.875rem;
   }
   h2 {
     font-family: var(--font-serif);
     font-weight: 560;
     font-size: var(--step-2);
-    margin: 28px 0 8px;
+    margin: 36px 0 8px;
   }
-  h2 a {
-    color: var(--ink);
+  .tagged {
+    padding-left: 1.1em;
   }
-  ul {
-    list-style: none;
-    padding: 0;
-    margin: 0;
+  .tagged li {
+    margin: 8px 0;
   }
-  li {
-    display: grid;
-    grid-template-columns: 84px 1fr;
-    gap: 2px 12px;
-    padding: 8px 0;
-    border-bottom: 1px solid var(--rule);
-  }
-  .kind {
-    font-size: 0.75rem;
-    color: var(--ink-3);
-    padding-top: 3px;
-  }
-  .meta {
-    grid-column: 2;
-    font-size: 0.8125rem;
-    color: var(--ink-3);
+  .tagged .muted {
+    display: block;
   }
 </style>

@@ -171,13 +171,13 @@ export const TOPICS: TopicDef[] = [
     'hld-news-feed',
     'News feed / timeline',
     'hld',
-    /news\s*feed|timeline|design\s+(twitter|instagram|facebook)/i,
+    /news\s*feed|design\s+(a\s+)?(twitter|instagram|facebook)\b|(twitter|instagram)\s+(feed|timeline)/i,
   ),
   t(
     'hld-video-streaming',
     'Video streaming (YouTube/Netflix)',
     'hld',
-    /youtube|netflix|video\s*(streaming|platform)/i,
+    /design\s+(a\s+)?(youtube|netflix|video)|video\s*(streaming|platform|upload)/i,
   ),
   t(
     'hld-file-storage',
@@ -451,7 +451,7 @@ export const TOPICS: TopicDef[] = [
     'java-oops',
     'OOP / SOLID',
     'lld',
-    /\boops?\b|solid\s*principle|polymorphism|inheritance|abstraction|encapsulation/i,
+    /\bOOPS?\b|object[- ]oriented|solid\s*principle|polymorphism|inheritance|abstraction|encapsulation/,
   ),
   t(
     'java-design-patterns',
@@ -495,7 +495,7 @@ export const TOPICS: TopicDef[] = [
     'testing',
     'Unit testing / mocking',
     'backend',
-    /junit|mockito|unit\s*test|test\s*cases|\btdd\b/i,
+    /junit|mockito|unit\s*test(s|ing)?\b|integration\s*test|\btdd\b|test\s*driven/i,
   ),
   t('node-event-loop', 'Node.js event loop / async', 'concurrency', /event\s*loop|node\.?js/i),
   t('python-gil', 'Python GIL / asyncio', 'concurrency', /\bgil\b|asyncio/i),

@@ -1,0 +1,5 @@
+title: AI Engineering for Backend Developers
+short: AI Engineering
+blurb: LLMs, embeddings, RAG, vector search and agents — how to build, evaluate and run AI features in real backend systems.
+order: 11
+icon: ai

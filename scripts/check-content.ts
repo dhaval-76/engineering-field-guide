@@ -59,7 +59,8 @@ for (const f of mdxFiles) {
   }
   const seen = new Set<string>();
   for (const m of src.matchAll(/<(?:CodeTabs|Diagram|Walkthrough)\s+id="([^"]+)"/g)) {
-    if (seen.has(m[0])) errors.push(`${f}: ${m[0]}> is used twice on one page (duplicate HTML ids)`);
+    if (seen.has(m[0]))
+      errors.push(`${f}: ${m[0]}> is used twice on one page (duplicate HTML ids)`);
     seen.add(m[0]);
   }
   for (const m of src.matchAll(/<CodeTabs\s+id="([^"]+)"/g)) {

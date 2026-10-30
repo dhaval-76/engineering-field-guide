@@ -6,6 +6,7 @@ import Toc from '~/components/layout/Toc.astro';
 import PrevNext from '~/components/layout/PrevNext.astro';
 import QuickRef from '~/components/content/QuickRef.astro';
 import AskedAt from '~/components/qa/AskedAt.astro';
+import ReportedAt from '~/components/qa/ReportedAt.astro';
 import InterviewSection from '~/components/qa/InterviewSection.astro';
 import { mdxComponents } from '~/components/content/mdx';
 import { getNeighbours, resolveTopics, type Topic } from '~/lib/nav';
@@ -19,6 +20,7 @@ const { topic } = Astro.props;
 const { data } = topic;
 const track = await getEntry(data.track);
 const qa = await getEntry('qa', topic.id);
+const report = await getEntry('reports', topic.id);
 const { Content, headings } = await render(topic);
 const { prev, next } = await getNeighbours(topic.id);
 const prerequisites = await resolveTopics(data.prerequisites);
@@ -89,7 +91,8 @@ const reviewed = data.lastReviewed.toLocaleDateString('en-GB', { month: 'short',
         </p>
       )}
 
-      <AskedAt items={data.askedAt} label="Reported in interviews at" />
+      <AskedAt items={data.askedAt} label="Asked at" />
+      {report && <ReportedAt report={report.data} />}
 
       <QuickRef data={data.quickRef} />
 
