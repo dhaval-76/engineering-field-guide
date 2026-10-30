@@ -6,7 +6,7 @@ order: 130
 tags: [system-design, case-study, realtime, websockets, messaging]
 aliases: [design whatsapp, design slack, design messenger, chat system, websocket, connection gateway, presence, typing indicator, delivery receipt, read receipt, message ordering, sequence number, offline messages, push notifications, group chat fan out, end to end encryption, signal protocol, cassandra messages schema]
 prerequisites: [system-design/approach-and-estimation, system-design/kafka-deep-dive]
-related: [databases/sql-vs-nosql, system-design/news-feed]
+related: [system-design/realtime-collaboration, databases/sql-vs-nosql, system-design/news-feed]
 quickRef:
   points:
     - 'Clients hold a **persistent connection** (WebSocket/MQTT) to a stateful **gateway**; a registry maps user/device → gateway.'

@@ -1,0 +1,26 @@
+title: Two concurrent edits converge with operational transformation
+frames:
+  - caption: 'Both Ana and Ben see revision 7: `"cat sat"`.'
+    panels:
+      - kind: array
+        label: Document r7
+        items: [c, a, t, ' ', s, a, t]
+  - caption: 'At the same moment: Ana inserts **"black "** at position 4 (→ "cat black sat"); Ben deletes position 0 (the "c" → "at sat"). Each applies their own op locally right away.'
+    panels:
+      - kind: kv
+        label: Local views
+        pairs: [[Ana, '"cat black sat"'], [Ben, '"at sat"']]
+  - caption: 'The server receives Ben''s op first and makes it **r8**. Ana''s op arrives, based on r7. The server **transforms** it against r8: a delete before position 4 shifts the insert left → insert "black " at **3**. That becomes r9.'
+    panels:
+      - kind: rows
+        label: Server log
+        items: ['r8: delete(0, 1)  — Ben', { v: 'r9: insert(3, "black ")  — Ana, transformed from insert(4)', tone: accent }]
+  - caption: 'Ben receives r9 and applies it: "at sat" → **"at black sat"**. Ana receives r8; she already applied her own op locally, so her client transforms the incoming delete against her pending insert (the delete at 0 is before it — unchanged) → **"at black sat"**.'
+    panels:
+      - kind: kv
+        label: Both converge
+        pairs: [[Ana, { v: '"at black sat"', tone: ok }], [Ben, { v: '"at black sat"', tone: ok }]]
+  - caption: 'Without the transform, applying Ana''s original insert(4) after Ben''s delete would give "at bblack sat"-style corruption — positions refer to a document that no longer exists. CRDTs avoid this by addressing characters by unique ids instead of positions.'
+    panels:
+      - kind: note
+        text: 'Positions are relative to a revision; transform them when the base changes.'

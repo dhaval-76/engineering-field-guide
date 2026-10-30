@@ -1,0 +1,26 @@
+title: Moving a card without renumbering the column
+frames:
+  - caption: 'The "In progress" column has three cards ordered by their **rank** strings.'
+    panels:
+      - kind: kv
+        label: In progress
+        pairs: [['ENG-12', 'rank "c"'], ['ENG-7', 'rank "m"'], ['ENG-31', 'rank "t"']]
+  - caption: 'Asha drags ENG-40 (from To do) between ENG-12 and ENG-7. The service computes a rank strictly between "c" and "m" — say **"h"** — and updates one row: status, rank and version.'
+    panels:
+      - kind: kv
+        label: In progress
+        pairs: [['ENG-12', 'c'], [{ v: 'ENG-40', tone: accent }, { v: '"h" (new)', tone: accent }], ['ENG-7', 'm'], ['ENG-31', 't']]
+  - caption: 'The transition passes the workflow check (To do → In progress allowed for developers), bumps the issue version, writes history and an outbox event — all in one transaction.'
+    panels:
+      - kind: rows
+        label: One transaction
+        items: ['UPDATE issues SET status, rank, version WHERE id AND version = 17', 'INSERT history', 'INSERT outbox']
+  - caption: 'Raj, viewing the same board, receives the event over his WebSocket and moves the card in his UI. Had Raj moved ENG-40 at the same moment, his update would fail the version check and his client would refresh instead of overwriting.'
+    panels:
+      - kind: rows
+        label: Raj's board
+        items: [{ v: 'ENG-40 appears under ENG-12', tone: ok }]
+  - caption: 'Repeated inserts between the same neighbours make ranks longer ("hn", "hnn"…). A background job occasionally **rebalances** a column''s ranks to short, evenly spaced keys.'
+    panels:
+      - kind: note
+        text: 'Rebalance rarely; reorder constantly.'

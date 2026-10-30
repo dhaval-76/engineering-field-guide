@@ -1,0 +1,9 @@
+flowchart TD
+  U[Web · mobile] --> GW[Gateway]
+  GW --> IS[Issue service<br/>workflows · versions · history]
+  IS --> DB[(Issues · history · outbox<br/>sharded by tenant)]
+  DB -. change events .-> K{{Kafka}}
+  K --> IX[Search indexer] --> ES[(Search index)]
+  K --> NS[Notifications<br/>mentions · watchers · digests]
+  K --> LV[Live updates] --> WS[WebSocket / SSE<br/>board viewers]
+  GW --> SR[Search API<br/>query language → filters + permissions] --> ES

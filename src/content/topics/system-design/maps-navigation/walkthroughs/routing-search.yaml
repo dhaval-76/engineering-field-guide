@@ -1,0 +1,22 @@
+title: Why A* and hierarchies beat plain Dijkstra
+frames:
+  - caption: 'Route from Mumbai to Pune (~150 km). The road graph has millions of nodes nearby. **Dijkstra** expands nodes in order of travel time from the start — a growing circle in every direction, including away from Pune.'
+    panels:
+      - kind: kv
+        label: Dijkstra
+        pairs: [[explored, { v: '~2,000,000 nodes', tone: bad }], [direction, 'all directions']]
+  - caption: '**A\*** adds a heuristic — straight-line distance to Pune ÷ the fastest possible speed — which never overestimates. Nodes heading towards Pune look better, so the search becomes an ellipse pointing at the goal.'
+    panels:
+      - kind: kv
+        label: A*
+        pairs: [[explored, { v: '~300,000 nodes', tone: warn }], [optimal, 'yes (admissible heuristic)']]
+  - caption: '**Contraction hierarchies** precompute, offline, shortcut edges that bypass unimportant nodes (side streets). A query climbs from the start towards motorway-level nodes and from the destination likewise; the two searches meet high in the hierarchy.'
+    panels:
+      - kind: kv
+        label: Contraction hierarchies
+        pairs: [[explored, { v: '~1,000 nodes', tone: ok }], [query time, { v: 'milliseconds', tone: ok }]]
+  - caption: 'Live traffic changes edge weights constantly. Pure CH needs re-preprocessing; overlay approaches (multi-level partitions with fast re-customisation) update the precomputed data within seconds to minutes, so routes reflect current congestion.'
+    panels:
+      - kind: rows
+        label: Weight updates
+        items: ['probes → segment speeds', { v: 'customise overlay (seconds)', tone: info }, 'queries use new weights']

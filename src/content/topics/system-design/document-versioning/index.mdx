@@ -1,0 +1,81 @@
+---
+title: 'Design: Document Version History'
+summary: Version history for a wiki or docs product — immutable versions, content-addressed storage with deduplication, deltas and snapshots, diffs, restore, drafts and branches with three-way merge, and retention at scale.
+track: system-design
+order: 240
+tags: [system-design, case-study, versioning, storage, git]
+aliases: [version history, document versioning, version control, git internals, content addressable storage, sha-256, blob, commit graph, dag, delta compression, snapshots, diff, myers diff, three way merge, merge conflict, restore version, page history, confluence history, draft branches, retention]
+prerequisites: [devops/git-workflow, system-design/approach-and-estimation]
+related: [system-design/realtime-collaboration, system-design/pastebin, databases/indexing]
+quickRef:
+  points:
+    - 'Versions are **immutable**; "restore" creates a new version with old content.'
+    - '**Content addressing**: store content under its hash — identical content is stored once.'
+    - 'Store **deltas** between versions with periodic **full snapshots**, so any version rebuilds in a bounded number of steps.'
+    - 'Each version points to its **parent(s)** — a DAG; a draft or branch is just a pointer to a version.'
+    - 'Merging uses a **three-way merge** against the common ancestor; overlapping changes are conflicts.'
+    - 'Collaborative editors produce thousands of tiny ops — **group them into versions** (by time or session).'
+  useWhen: '"Design version history / Git for documents / page history in a wiki."'
+lastReviewed: 2026-10-30
+---
+
+## Requirements
+
+**Functional**: every save creates a version (author, time, message); list a page's history; view any version; diff two versions; restore an old version; optionally draft branches merged back with conflict detection; "blame" (who wrote this paragraph).
+**Non-functional**: 10 M pages, 100 M+ versions; history pages load in < 300 ms; any version reconstructed in < 500 ms; storage cost far below "full copy per version".
+
+## Estimates
+
+Average page 20 KB × 100 M versions = 2 TB as full copies — affordable, but large pages edited thousands of times (and collaborative autosave) make it 10–100× worse. Most edits change a few lines, so deltas are typically 1–5% of the page.
+
+## Data model
+
+<Diagram id="version-graph" caption="Versions form a graph of immutable snapshots; pages and drafts are pointers into it; content is stored once per unique hash." />
+
+<CodeTabs id="version-model" title="Versions, content-addressed blobs and a commit" />
+
+- **Blob**: content stored under `sha256(content)` (or chunks of it). Saving unchanged content, or restoring an old version, stores nothing new.
+- **Version**: id, page, parent(s), blob hash, author, time, message — immutable.
+- **Head pointer**: the page's current version; a **draft** is another pointer, created in O(1).
+- Writes use compare-and-set on the head (`UPDATE pages SET head = new WHERE id = ? AND head = expected`) so two saves can't silently fork history.
+
+## Storage: deltas and snapshots
+
+<Walkthrough id="delta-chain" />
+
+Store a **full snapshot** every k versions and **deltas** in between; reconstructing any version costs at most k−1 delta applications. Git does a similar thing (packfiles with delta chains). Large binary attachments use content-defined chunking so small changes don't duplicate whole files.
+
+## Diff, restore, blame
+
+- **Diff**: Myers diff over lines, or over blocks/paragraphs for rich documents, then within changed blocks; cache diffs by `(hashA, hashB)` since content hashes never change meaning.
+- **Restore**: create a new version whose content is the old blob — history is never rewritten.
+- **Blame**: walk back through versions diffing each against its parent and attributing surviving lines; cache results per version.
+
+## Drafts and merging
+
+<CodeTabs id="three-way-merge" title="Three-way merge of block-structured documents" />
+
+Find the **common ancestor** of the draft and the current head; for each block, compare both sides to the ancestor: changed on one side → take it; changed identically → take it; changed differently → **conflict** shown to the user, whose resolution becomes a merge version with two parents.
+
+## Collaboration and retention
+
+Real-time editors ([Collaborative editing](../realtime-collaboration/)) produce a stream of tiny operations; version history groups them into meaningful versions (per editing session or every few minutes of activity) and lets users name versions. Retention policies thin old autosaves (keep hourly, then daily) while keeping named versions; deleted pages' blobs are garbage-collected when no version references them.
+
+<Pitfalls>
+
+- **Mutable versions** or "restore" that overwrites history.
+- **Full copies of large documents** for every autosave.
+- **Unbounded delta chains** — slow reconstruction of old versions.
+- **Line-based merges for rich documents** — merge by blocks/structure.
+- **Racing saves** without compare-and-set on the head.
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- Immutable versions in a DAG; heads and drafts are pointers.
+- Content addressing deduplicates; deltas + periodic snapshots keep storage small and reads bounded.
+- Diffs by blocks then lines, cached by content hash.
+- Three-way merges against the common ancestor; conflicts explicit.
+
+</KeyTakeaways>

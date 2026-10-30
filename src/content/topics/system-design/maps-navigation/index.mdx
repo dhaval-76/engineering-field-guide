@@ -1,0 +1,89 @@
+---
+title: 'Design: Maps and Navigation'
+summary: Designing Google Maps-style navigation — map tiles served from CDNs, the road network as a graph, fast routing with A* and precomputed hierarchies, live traffic from GPS probes, ETA prediction, nearby search with geo indexes and rerouting.
+track: system-design
+order: 250
+tags: [system-design, case-study, geospatial, graphs, routing]
+aliases: [design google maps, navigation, routing, shortest path, dijkstra, a star, bidirectional search, contraction hierarchies, customizable route planning, road graph, map tiles, vector tiles, tile pyramid, geohash, quadtree, s2 cells, h3, geosearch, nearby search, proximity, live traffic, gps probes, eta prediction, map matching, rerouting]
+prerequisites: [system-design/approach-and-estimation, databases/indexing]
+related: [system-design/order-tracking, system-design/realtime-analytics, databases/sharding]
+quickRef:
+  points:
+    - 'Three separate problems: **rendering the map** (tiles), **routing** (shortest paths on a road graph) and **places** (geo search).'
+    - 'Tiles: a pyramid of z/x/y tiles (vector or raster), pre-generated and served from **CDNs** — almost all traffic never reaches origin.'
+    - 'Routing: edge weights are **travel times**; plain Dijkstra is too slow for long routes — use **A\*** plus **precomputed hierarchies** (contraction hierarchies / route planning with overlays).'
+    - 'Traffic: anonymised **GPS probes** are map-matched to road segments to estimate live speeds; ETA blends live, historical and predicted speeds.'
+    - 'Nearby search: **geohash / S2 / H3 cells**, quadtrees or R-trees — never two independent lat/lon range scans.'
+  useWhen: '"Design Google Maps / navigation / ride-hailing ETA / nearby places."'
+lastReviewed: 2026-10-30
+---
+
+## Requirements
+
+**Functional**: pan and zoom a world map; search places and addresses; route from A to B by car, walking or transit with ETA; turn-by-turn navigation with rerouting; live traffic; "restaurants near me".
+**Non-functional**: hundreds of millions of daily users; map interactions in tens of milliseconds; routes in ~100–300 ms even across a country; ETA accuracy within a few percent; works on mobile networks.
+
+## Estimates
+
+- **Tiles**: zoom level z has 4ᶻ tiles; zoom 18 alone is ~69 billion, so tiles exist mainly where there's data and are generated on demand or in bulk for populated areas. Vector tiles (geometry the client renders) are small and styleable; raster tiles are simpler for clients. CDN hit rates are very high because everyone views the same popular areas.
+- **Road graph**: a country has ~10⁸ nodes (intersections) and ~10⁸–10⁹ edges; compact adjacency arrays fit in memory on routing servers (tens of GB), partitioned by region.
+- **Probes**: 10 M navigating devices sending a GPS point every few seconds ≈ millions of points/s → a streaming pipeline.
+
+## High-level design
+
+<Diagram id="maps-architecture" caption="Tiles come from CDNs; routing servers hold the road graph in memory with live traffic weights; places use a geo index." />
+
+## Routing
+
+<Walkthrough id="routing-search" />
+
+<CodeTabs id="routing" title="Dijkstra and A* on a road graph" />
+
+| Technique | Idea | Effect |
+|---|---|---|
+| Dijkstra | expand nodes in order of distance from the source | correct, but explores a huge circle on long routes |
+| **A\*** | prioritise by distance so far + an admissible estimate to the goal (straight-line distance ÷ max speed) | explores a narrow region towards the goal |
+| Bidirectional search | search from both ends until they meet | roughly halves the explored area |
+| **Contraction hierarchies** | precompute "shortcut" edges that skip unimportant nodes; queries only climb towards more important roads | continental routes in milliseconds (OSRM, GraphHopper) |
+| Overlay / multi-level partitions (CRP) | precompute distances across partition boundaries; re-customise quickly when traffic changes weights | fast queries with frequently changing weights |
+
+Edge weights are **travel times**, not distances, and depend on time of day; turn restrictions and costs are part of the graph. Routing servers are partitioned by region; long routes combine regions through the precomputed overlay.
+
+## Traffic and ETA
+
+<CodeTabs id="traffic-pipeline" title="From GPS probes to segment speeds" />
+
+- **Map matching** snaps noisy GPS points to the road segments actually travelled.
+- Per segment, compute current speed from recent probes (with privacy: anonymised, aggregated, minimum counts).
+- **ETA** = sum over the route of segment travel times at the time you'll *reach* each segment: live speeds near you, historical/predicted speeds for later segments, plus learned corrections (models trained on actual trip durations).
+- Updated weights are pushed to routing servers every minute or so; techniques like CRP re-customise precomputed data quickly.
+
+## Places and nearby search
+
+<CodeTabs id="geo-search" title="Nearby search with Redis GEOSEARCH and PostGIS" />
+
+Spatial indexes map 2-D locations to cells or trees so that "within 2 km" reads only nearby candidates: geohash/S2/H3 cells (search the cell and its neighbours), quadtrees for uneven density, R-trees/GiST in PostGIS for shapes. Text + location ("pizza near me") is a search-engine query with a geo filter and distance-aware ranking.
+
+## Navigation sessions
+
+The client downloads the route geometry and upcoming tiles (and can cache regions offline), follows GPS locally, and contacts the server for rerouting when it detects a deviation or when traffic changes make a better route available. This keeps per-user server load low.
+
+<Pitfalls>
+
+- **Distance instead of travel time** as edge weights.
+- **Plain Dijkstra over a country** on every request.
+- **Two B-tree indexes on latitude and longitude** for radius queries.
+- **Serving tiles from origin** instead of CDNs with long cache lifetimes.
+- **Live traffic only** for ETA — the route's later segments will be traversed in the future.
+- **Ignoring privacy** of location traces.
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- Separate tiles (CDN), routing (in-memory graph + A*/hierarchies) and places (geo indexes).
+- Travel-time weights with live, historical and predicted components.
+- Probe pipeline: map matching → segment speeds → weight updates.
+- Spatial cells or trees for nearby queries; navigation mostly on the client.
+
+</KeyTakeaways>

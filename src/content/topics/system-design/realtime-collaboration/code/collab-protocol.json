@@ -1,0 +1,38 @@
+{
+  "clientToServer_op": {
+    "type": "op",
+    "docId": "doc_42",
+    "clientId": "c_9f2",
+    "clientOpId": 118,
+    "baseRevision": 7,
+    "op": { "type": "ins", "pos": 4, "text": "black " }
+  },
+
+  "serverToSender_ack": {
+    "type": "ack",
+    "clientOpId": 118,
+    "revision": 9
+  },
+
+  "serverToOthers_broadcast": {
+    "type": "op",
+    "revision": 9,
+    "clientId": "c_9f2",
+    "op": { "type": "ins", "pos": 3, "text": "black " }
+  },
+
+  "awareness_ephemeral": {
+    "type": "presence",
+    "clientId": "c_9f2",
+    "user": { "name": "Ana", "color": "#7c5cff" },
+    "cursor": { "anchor": 9, "head": 9 },
+    "revision": 9
+  },
+
+  "reconnect": {
+    "type": "hello",
+    "docId": "doc_42",
+    "lastRevision": 9,
+    "pending": [ { "clientOpId": 119, "baseRevision": 9, "op": { "type": "del", "pos": 0, "len": 1 } } ]
+  }
+}

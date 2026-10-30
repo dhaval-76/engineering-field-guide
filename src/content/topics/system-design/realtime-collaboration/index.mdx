@@ -1,0 +1,87 @@
+---
+title: 'Design: Real-Time Collaborative Editor'
+summary: Google Docs-style co-editing — operations not whole documents, OT vs CRDTs, a session server per document, operation logs with snapshots, cursors and presence, offline edits, and scaling to millions of documents.
+track: system-design
+order: 230
+tags: [system-design, case-study, realtime, crdt, websockets]
+aliases: [collaborative editing, google docs, real time collaboration, operational transformation, ot, crdt, yjs, automerge, rga, conflict resolution, concurrent edits, cursor presence, awareness, operation log, snapshot, offline editing, document session server, figma multiplayer, notion]
+prerequisites: [system-design/chat, databases/replication]
+related: [system-design/document-versioning, system-design/project-management-tool, databases/cap-and-consistency]
+quickRef:
+  points:
+    - 'Send **operations** (insert "x" at 5, delete 3..7), never whole documents; apply locally first for instant feedback.'
+    - '**OT**: a central server orders operations and **transforms** concurrent ones so every replica converges.'
+    - '**CRDT**: every character/element has a unique, ordered id so concurrent operations commute — no central transform; great for offline and peer-to-peer.'
+    - 'One **session owner per document** (routed by document id) sequences ops; ops are appended to a log, with periodic **snapshots**.'
+    - 'Cursors and presence are ephemeral, throttled, never stored.'
+  useWhen: '"Design Google Docs / Notion / a whiteboard with multiplayer editing."'
+lastReviewed: 2026-10-30
+---
+
+## Requirements
+
+**Functional**: several people edit the same document simultaneously and see each other's changes within ~100–200 ms; see collaborators' cursors and selections; edit offline and sync later; version history; comments; permissions (view, comment, edit).
+**Non-functional**: no lost edits; every participant converges to the same document; tens of millions of documents, most idle; popular documents with hundreds of concurrent editors and thousands of viewers.
+
+## The core problem
+
+Two people edit the same text at the same time. Locking (one editor at a time) destroys the experience; last-write-wins loses work. Both edits must apply, and all copies must end up identical.
+
+<Walkthrough id="ot-transform" />
+
+## OT or CRDT
+
+| | Operational transformation | CRDTs (e.g. Yjs, Automerge) |
+|---|---|---|
+| Idea | server orders ops; concurrent ops are rewritten against each other | each element has a unique position id; ops commute by construction |
+| Needs a central server? | yes — it defines the order | no — any order of delivery converges |
+| Offline / peer-to-peer | harder (long-diverged histories) | natural |
+| Metadata | small | per-element ids and tombstones (compacted over time) |
+| Used by | Google Docs and many classic editors | many newer editors, local-first apps; Figma uses CRDT-inspired, server-authoritative structures |
+
+Either way, the architecture around the algorithm is similar.
+
+<CodeTabs id="ot-text" title="Transforming concurrent insert and delete operations (OT)" />
+
+## Architecture
+
+<Diagram id="collab-architecture" caption="All editors of a document connect to the session server that owns it; it sequences ops, appends them to a log and broadcasts them." />
+
+- **Routing**: a document id maps to one **session server** (consistent hashing or a lease in a coordination store); every client editing that document connects there (or through a gateway that forwards). Having one owner makes ordering simple.
+- **Ops flow**: client applies its op locally → sends `{docId, baseRevision, op, clientOpId}` → the session server transforms it against ops since `baseRevision`, assigns the next revision, appends it to the **op log** (durable before acking), broadcasts it → clients transform any of their pending ops and apply.
+- **Snapshots**: every N ops (or minutes) the server stores a full snapshot; loading a document = latest snapshot + ops after it. Old ops can be compacted after the version-history policy allows.
+- **Failover**: if the session server dies, the lease moves; the new owner loads snapshot + log and clients reconnect, resending unacknowledged ops (de-duplicated by `clientOpId`).
+
+<CodeTabs id="collab-protocol" title="The wire protocol: ops, acknowledgements and presence" />
+
+## Presence, cursors and comments
+
+Cursor positions and selections are **awareness** messages: throttled (e.g. 10/s), sent only to the document's session, never persisted; they must be transformed (or anchored to element ids) so they stay in the right place as text changes. Comments anchor to ranges by stable ids (CRDT ids or OT-transformed positions).
+
+## Offline and permissions
+
+Offline clients queue ops locally; on reconnect they send them with their last known revision. With OT the server transforms the whole batch; with CRDTs merging is automatic. Permissions are checked when joining a session and on every op (viewers' ops are rejected); revoking access disconnects the user's sessions.
+
+## Scale
+
+Most documents are idle: session servers hold only active documents in memory and unload them after inactivity. A document with thousands of viewers fans out broadcasts through a pub/sub tier; editors stay on the owner. Op logs go to a write-optimised store; snapshots to object storage or a database.
+
+<Pitfalls>
+
+- **Sending whole documents** on every keystroke.
+- **Last-write-wins** — silently discards collaborators' edits.
+- **Several servers accepting ops for one document** without a single sequencer (OT) or a CRDT.
+- **Acknowledging before the op is durable.**
+- **Persisting cursors**, or broadcasting them unthrottled.
+- **Unbounded op logs** with no snapshots.
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- Ops, applied optimistically and sequenced by one owner per document (OT), or merged by CRDTs.
+- Op log + snapshots for durability, history and fast loads.
+- Ephemeral, throttled presence; ops de-duplicated by client id on reconnect.
+- Route by document id; unload idle documents; fan out to viewers via pub/sub.
+
+</KeyTakeaways>

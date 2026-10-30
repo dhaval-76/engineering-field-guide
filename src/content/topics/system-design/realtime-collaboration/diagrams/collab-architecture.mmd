@@ -1,0 +1,8 @@
+flowchart TD
+  A[Editor A] <-- WebSocket --> GW[Gateway<br/>route by doc id]
+  B[Editor B] <-- WebSocket --> GW
+  GW <--> SS[Session server owning doc 42<br/>transform · sequence · broadcast]
+  SS -- append before ack --> OL[(Op log<br/>doc, revision)]
+  SS -- every N ops --> SN[(Snapshots)]
+  SS -. owner lease .-> CO[(Coordination store)]
+  SS -- broadcast --> PS[Pub/sub] --> V[Viewers]

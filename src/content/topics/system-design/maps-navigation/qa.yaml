@@ -1,0 +1,33 @@
+questions:
+  - q: 'A user asks for a route from Mumbai to Pune. Plain Dijkstra on the national road graph takes seconds. How do you answer in ~100 ms, with live traffic?'
+    think: Which work can be done before the query, and which must reflect current conditions?
+    answer: |
+      Keep the regional road graph in memory as compact arrays with travel-time edge weights (including turn costs). Use **A\*** with an admissible straight-line heuristic, ideally **bidirectional**, and above all **precomputation**: contraction hierarchies add shortcut edges so queries only climb towards important roads, exploring thousands instead of millions of nodes. Because traffic changes weights continuously, use an overlay technique (multi-level partitions with fast re-customisation, as in CRP) so new weights from the traffic pipeline apply within a minute or so. ETA sums segment times at the time each segment will be reached, blending live, historical and predicted speeds and an ML correction. Popular route queries can be cached briefly by (origin cell, destination cell, time bucket).
+  - q: 'Design "restaurants within 2 km of me".'
+    think: Why doesn't an index on latitude plus an index on longitude work well?
+    answer: |
+      Two independent range conditions on lat and lon can use at most one index efficiently and return a large strip of candidates. Use a spatial index: geohash/S2/H3 cells (look up the user's cell and neighbours, then filter by exact distance), Redis `GEOSEARCH` for simple radius queries, PostGIS GiST indexes with `ST_DWithin` and KNN ordering for richer queries, or a search engine's geo filter when combining text ("vegan pizza") with location. Rank by distance plus rating/popularity, and cache results per cell for hot areas.
+followUps:
+  - q: Why are map tiles served from CDNs, and vector vs raster?
+    intuition: Everyone looks at the same places.
+    approach: |
+      Tiles are static per (zoom, x, y, style version), so CDNs cache them close to users with long lifetimes — popular areas hit near 100%. Vector tiles carry geometry the client renders: smaller, sharp at any resolution, restylable (dark mode, languages) without regenerating. Raster tiles are pre-rendered images — simpler clients, more storage and bandwidth.
+  - q: How is live traffic computed?
+    intuition: Where does speed data come from?
+    approach: |
+      From anonymised GPS probes of navigating devices: a stream processor map-matches points to road segments, computes robust speeds (medians) per segment per minute with minimum sample counts for privacy, blends with historical speeds when data is sparse, and publishes weight updates to routing servers.
+practice:
+  - task: Implement A* (falling back to Dijkstra) on a road graph with travel-time weights and an admissible heuristic, returning the time and path.
+    hint: Priority = time so far + straight-line distance ÷ max speed; skip stale queue entries; reconstruct the path from predecessors.
+    solution: |
+      Keep best-known times and predecessors; push the source with its heuristic; repeatedly pop the lowest priority, skip stale entries (where the stored time no longer matches), stop at the destination and reconstruct the path; relax edges, pushing improved neighbours with `time + h(v)`. With `h = 0` it is Dijkstra; with an admissible `h` (never overestimating, e.g. straight-line distance at the maximum speed) it remains optimal while exploring far fewer nodes.
+    solutionCode: routing
+quiz:
+  - q: What must an A* heuristic satisfy to guarantee the shortest route?
+    options: [Overestimate the remaining cost, Never overestimate the remaining cost, Be zero, Use road distance]
+    correct: 1
+    why: An admissible heuristic keeps A* optimal; overestimates can skip the best path.
+  - q: Which Redis command should you use for radius queries today?
+    options: [GEORADIUS, GEOSEARCH, ZRANGEBYSCORE on lat, KEYS]
+    correct: 1
+    why: GEOSEARCH (Redis 6.2+) replaces the deprecated GEORADIUS family.

@@ -1,0 +1,33 @@
+questions:
+  - q: 'Design a Google Docs-style editor: many people edit the same document at once without losing anyone''s changes.'
+    think: What unit is sent over the wire, who decides the order, and how do concurrent edits reconcile?
+    answer: |
+      Clients send **operations**, applied locally first for instant feedback. Each document has one **session server** (chosen by consistent hashing or a lease) that all its editors connect to via WebSocket. With **OT**, the server takes each op with its base revision, transforms it against ops committed since, assigns the next revision, appends it durably to the op log, acks the sender and broadcasts to others; clients transform incoming ops against their own unacknowledged ones, so everyone converges. With **CRDTs** (Yjs/Automerge), elements carry unique ordered ids, ops commute, and the server just relays and persists — ideal for offline. Persist snapshots every N ops; load = snapshot + later ops; history from the log. Presence/cursors are throttled ephemeral messages. On reconnect, clients send their last revision and pending ops (de-duplicated by client op id). Idle documents unload; popular documents fan out to viewers through pub/sub.
+followUps:
+  - q: OT or CRDT — which would you choose?
+    intuition: Is there always a server, and how long can clients be offline?
+    approach: |
+      With an always-available central server and mostly online users, OT is proven and lightweight in metadata. For offline-first, peer-to-peer or multi-region editing without a single sequencer, CRDTs converge without coordination at the cost of per-element metadata and tombstones (mitigated by compaction). Many modern products pick a CRDT library to avoid writing transform functions, which are notoriously hard to get right.
+  - q: How do you keep collaborators' cursors in the right place as text changes?
+    intuition: A cursor is a position too.
+    approach: |
+      Treat cursor positions like operations: transform them against incoming ops (OT) or anchor them to element ids (CRDT relative positions). Send presence updates throttled, only to the document's session, and never persist them.
+  - q: How does a user who edited offline for an hour sync?
+    intuition: Their ops are based on an old revision.
+    approach: |
+      The client sends its queued ops with their base revision. With OT the server transforms the batch against everything committed since (possibly many ops); with CRDTs the merge is automatic. Large divergences may also be presented in version history. De-duplicate by client op ids in case some were sent before disconnecting.
+practice:
+  - task: Implement OT transforms for text insert and delete, and verify that two concurrent operations converge regardless of order.
+    hint: Insert vs insert shifts by the other's length (tie-break by client); insert vs delete shifts left; delete vs delete removes the overlap.
+    solution: |
+      For two ops a and b made on the same document, apply a then transform(b, a), and b then transform(a, b) with the opposite tie-break, and assert both results are equal. Handle inserts at the same position with a deterministic tie-break (e.g. client id), deletes that overlap by shrinking to the part not already deleted, and inserts inside a deleted range by a documented rule. Property-test with random documents and ops.
+    solutionCode: ot-text
+quiz:
+  - q: Why can't a server simply apply each client's "insert at position 4" as received?
+    options: [Positions are too small, Another concurrent edit may have shifted the text, Inserts are slow, WebSockets reorder messages]
+    correct: 1
+    why: The position refers to the document the client saw; concurrent ops change what position 4 means.
+  - q: What makes CRDTs converge without a central sequencer?
+    options: [Locks, Unique ordered ids for elements so operations commute, Last-write-wins, Timeouts]
+    correct: 1
+    why: Operations reference stable element ids rather than shifting positions.

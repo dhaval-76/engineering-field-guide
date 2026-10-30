@@ -1,0 +1,33 @@
+questions:
+  - q: 'Design version history for a wiki: 10 M pages, 100 M versions, view/diff/restore any version, and draft branches merged back.'
+    think: What's immutable, what's shared, and how do you keep storage and read time bounded?
+    answer: |
+      Model it like Git. **Blobs** are content stored under their SHA-256 (deduplicated). **Versions** are immutable rows: page, parent(s), blob hash, author, message, time — forming a DAG. A page's **head** and each **draft** are pointers; saving inserts a version and moves the head with compare-and-set so concurrent saves can't silently fork. **Storage**: deltas from the previous version with a full snapshot every ~10 versions (bounded reconstruction), compressed, large content in object storage. **Diffs** by blocks then lines, cached by hash pair. **Restore** = new version pointing at the old blob. **Merge** drafts with a three-way merge against the common ancestor; conflicting blocks are presented for resolution, producing a merge version with two parents. Collaborative-editing ops are grouped into versions per session; retention thins old autosaves; unreferenced blobs are garbage-collected.
+followUps:
+  - q: How does content addressing save storage?
+    intuition: Two identical contents, one hash.
+    approach: |
+      The storage key is the hash of the content, so saving content that already exists (unchanged saves, restores, the same template on many pages) references the existing blob instead of copying it. With chunking, even large files that change slightly share most chunks.
+  - q: Why mix deltas and full snapshots?
+    intuition: Storage vs read time.
+    approach: |
+      Deltas alone are tiny but reading version 1,000 means applying 999 deltas. Full copies are fast to read but huge. A snapshot every k versions bounds reconstruction to k−1 deltas while keeping most versions small.
+  - q: How do you detect merge conflicts?
+    intuition: Compare both sides to what they started from.
+    approach: |
+      Find the common ancestor version. For each block (or line), if only one side changed it relative to the ancestor, take that change; if both changed it identically, take it; if both changed it differently (or one edited and the other deleted), it's a conflict for the user to resolve.
+practice:
+  - task: Implement saving with content-addressed blobs, deltas and periodic snapshots, reading any version, and a block-level three-way merge.
+    hint: Hash content; skip storage if the blob exists; delta unless the chain is long; read by walking to a snapshot then applying deltas forward; merge per block id against the base.
+    solution: |
+      `save` hashes the content, stores a full blob every k versions or a delta from the parent's blob otherwise (skipping storage if the hash exists), inserts the version and moves the head with compare-and-set. `read` follows base pointers back to a full snapshot and applies the deltas forward. `merge` compares each block's base/ours/theirs, takes one-sided changes, and reports blocks changed differently on both sides as conflicts.
+    solutionCode: version-model
+quiz:
+  - q: How should "restore version 12" work?
+    options: [Delete versions 13 onwards, Create a new version whose content is version 12's blob, Edit version 12 in place, Copy the database]
+    correct: 1
+    why: History stays immutable; the restore is just another version (reusing the existing blob).
+  - q: In a three-way merge, a block changed on one side only. Result?
+    options: [Conflict, Take the changed side, Keep the base, Delete it]
+    correct: 1
+    why: Only conflicting changes on both sides need a human.

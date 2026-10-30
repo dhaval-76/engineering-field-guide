@@ -1,0 +1,84 @@
+---
+title: 'Design: Project Management Tool (Issue Tracker)'
+summary: An issue tracker like Jira or Linear — configurable workflows, boards and sprints, comments and mentions, permissions per project, search and JQL-style filters, live board updates, and multi-tenant scale.
+track: system-design
+order: 220
+tags: [system-design, case-study, saas, multi-tenancy, workflows]
+aliases: [design jira, design linear, issue tracker, project management tool, kanban board, scrum board, sprint, custom workflow, issue transitions, permission scheme, jql, issue search, mentions, notifications, activity feed, board real time updates, rank ordering, lexorank]
+prerequisites: [system-design/approach-and-estimation, databases/multi-tenant-schema]
+related: [system-design/search-engine, system-design/realtime-collaboration, system-design/auth-at-scale]
+quickRef:
+  points:
+    - '**Scope first**: issues, workflows, boards, search, notifications — the prompt is deliberately broad.'
+    - 'Workflows are **data** per project (states + allowed transitions + rules), not hard-coded enums.'
+    - 'Every change writes an **activity/history** event; notifications, search indexing and live updates consume it.'
+    - 'Boards: load column counts + the first page per column; order cards with **rank keys** (LexoRank-style strings), not integer positions.'
+    - 'Search and filters go to a **search index**; permissions are filters in every query.'
+    - 'Tenancy: `tenant_id` in every key; shard by tenant as it grows.'
+  useWhen: '"Design Jira / an issue tracker / a Trello-like board."'
+lastReviewed: 2026-10-30
+---
+
+## Requirements
+
+**Functional**: projects with issues (type, title, description, status, assignee, priority, labels, custom fields); configurable workflows per project; boards (kanban columns by status) and sprints; drag-and-drop ordering; comments with @mentions; watchers and notifications; search with structured filters ("assignee = me AND status != Done"); per-project permissions; audit history.
+**Non-functional**: 10,000+ organisations, 10 M users, billions of issues; board load < 1 s even with thousands of issues; changes visible to other viewers within seconds; strong tenant isolation.
+
+## Estimates
+
+Reads dominate (boards, issue views, search) — perhaps 50:1. Writes ≈ a few thousand issue changes per second globally; each change fans out to watchers, search and live boards. Issue rows are small (~2 KB) but descriptions and attachments are not — attachments go to object storage.
+
+## High-level design
+
+<Diagram id="tracker-architecture" caption="An issue service owns writes and emits change events; search, notifications and live board updates are fed asynchronously." />
+
+## Data model and workflows
+
+<CodeTabs id="tracker-model" title="Issues, data-driven workflows and transitions" />
+
+- A **workflow** is per project (or shared scheme): states, allowed transitions, and transition rules (required fields, who may transition, post-actions such as "assign to reviewer").
+- Transitions use **optimistic concurrency** (issue version) so two people dragging the same card don't silently overwrite each other.
+- Custom fields: typed definitions per project, values in a JSONB column or an entity-attribute table; indexed into search for filtering.
+- Every change appends to an **issue history** (field, old, new, actor, time) — the activity log, audit trail and source for notifications.
+
+## Boards
+
+<Walkthrough id="board-reorder" />
+
+- Board load: column counts (one grouped, indexed query or cached counts) + the first page of cards per column, cursor-paginated; more cards load on scroll.
+- **Ordering**: a rank string per card; moving a card computes a key between its new neighbours — one row updated, not thousands renumbered. Occasional rebalancing keeps keys short.
+- **Live updates**: board viewers subscribe to the project's channel over WebSocket/SSE; change events are pushed to them; on reconnect they refetch.
+
+<CodeTabs id="board-queries" title="Board columns, cursor pagination and a rank between two cards" />
+
+## Search and filters
+
+Users' structured queries (a JQL-like language) are parsed into a search-engine query with the user's permission filter added; issues are indexed from change events ([Search](../search-engine/)). Saved filters drive dashboards and boards; heavy aggregations ("issues created per week") use the analytics path rather than the transactional database.
+
+## Notifications and mentions
+
+Comment saves parse `@mentions` and emit events; a notification service resolves recipients (watchers, assignee, mentioned users), applies preferences, de-duplicates and batches (one digest instead of ten emails), and delivers in-app, email or chat-integration messages.
+
+## Permissions and tenancy
+
+Permission schemes map project roles to actions (browse, create, transition, administer); issue-level security can restrict sensitive issues to groups. Effective permissions are cached per (user, project) and invalidated on role changes; search queries include them as filters. Data is keyed by tenant, with enterprise tenants placed on dedicated shards ([Multi-tenant data](../../databases/multi-tenant-schema/), [Auth at scale](../auth-at-scale/)).
+
+<Pitfalls>
+
+- **Hard-coded statuses** — every customer wants their own workflow.
+- **Integer positions for card order** — moving one card renumbers the column.
+- **Loading every issue of a sprint** for the board.
+- **`LIKE` queries for search** and filters in the transactional database.
+- **Notifying on every field edit** — batch and respect preferences.
+- **Last-write-wins on concurrent edits** without version checks.
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- Clarify scope; model workflows, fields and permissions as data.
+- Change events feed history, notifications, search and live boards.
+- Boards: counts + paginated columns + rank keys.
+- Search index with permission filters; tenant-keyed data and sharding.
+
+</KeyTakeaways>

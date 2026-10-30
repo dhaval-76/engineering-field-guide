@@ -1,0 +1,33 @@
+questions:
+  - q: 'Design an issue tracker like Jira for 10,000 organisations: custom workflows, boards, search and notifications.'
+    think: The prompt is huge — what do you scope in, and where does each read come from?
+    answer: |
+      Scope: issues with custom fields, per-project workflows, boards/sprints, search, comments/mentions, notifications, permissions. **Core**: an issue service on a relational store keyed by tenant (sharded by tenant as it grows); workflows as data (states, transitions, rules); transitions validated, permission-checked and applied with optimistic version checks; every change writes history and an outbox event in the same transaction. **Boards**: grouped counts and keyset-paginated columns by rank; rank strings make reordering a one-row update; live updates via WebSocket/SSE on the project's channel. **Search**: a JQL-like query language compiled to the search engine with permission filters; indexing from change events. **Notifications**: mention parsing, watchers, preferences, batching and digests. **Permissions**: role-based schemes per project plus issue-level security, cached per user-project. **Attachments** in object storage. Isolation, quotas and enterprise shards for big tenants.
+followUps:
+  - q: Why do boards load slowly with thousands of issues, and how do you fix it?
+    intuition: What does the page actually need first?
+    approach: |
+      Usually the board fetches every issue (and their fields) at once and renders them all. Fix: return column counts and only the first page per column (keyset pagination by rank) with the fields shown on cards, index `(tenant, sprint, status, rank)`, cache counts, and load more on scroll. Push updates instead of refetching the whole board.
+  - q: How do you keep card order without renumbering?
+    intuition: Inserting between neighbours.
+    approach: |
+      Give each card a sortable rank string and, on a move, compute a key lexicographically between its new neighbours — a single update. Keys grow when many inserts land in the same gap, so a background job rebalances occasionally. Fractional indexing/LexoRank are standard implementations.
+  - q: Two users change the same issue at once. What happens?
+    intuition: Who wins, and does anyone notice?
+    approach: |
+      Updates carry the version the client last saw; the update applies only if the version still matches, otherwise it returns 409 and the client refreshes or merges field-by-field. Field-level changes to different fields can be merged automatically; rich-text descriptions need collaborative editing techniques.
+practice:
+  - task: Model data-driven workflows and implement a transition that checks the workflow, role and required fields, uses optimistic concurrency, and records history and an outbox event.
+    hint: workflow_transitions table; UPDATE … WHERE version = expected; history and outbox in the same transaction.
+    solution: |
+      Load the issue and look up the (workflow, from, to) transition; reject if missing, if the actor lacks the required project role, or if required fields are absent. Update status (and rank if moved) with `version = version + 1 WHERE version = expected` — 0 rows means a concurrent change (409). Insert a history row and an outbox event in the same transaction for notifications, search and live boards.
+    solutionCode: tracker-model
+quiz:
+  - q: Why store workflows as data rather than as an enum in code?
+    options: [Enums are slow, Each project needs its own states and transitions without deployments, Databases require it, To save memory]
+    correct: 1
+    why: Customer-configurable workflows must change at runtime per project.
+  - q: Best way to paginate a board column with thousands of cards?
+    options: [OFFSET/LIMIT, Keyset pagination on rank, Load everything, Random sampling]
+    correct: 1
+    why: Keyset pagination stays fast and stable as cards move.

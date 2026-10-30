@@ -1,0 +1,22 @@
+title: Deltas with periodic snapshots
+frames:
+  - caption: 'Version 1 is stored as a **full snapshot** (20 KB).'
+    panels:
+      - kind: array
+        label: Stored
+        items: [{ v: 'v1 full 20 KB', tone: info }]
+  - caption: 'Versions 2–9 each store only a **delta** from the previous version (~300 bytes each).'
+    panels:
+      - kind: array
+        label: Stored
+        items: ['v1 full', 'v2 Δ', 'v3 Δ', 'v4 Δ', '…', 'v9 Δ']
+  - caption: 'Every 10th version is a new full snapshot, so no chain gets long.'
+    panels:
+      - kind: array
+        label: Stored
+        items: ['v1 full', 'v2–v9 Δ', { v: 'v10 full', tone: info }, 'v11 Δ', 'v12 Δ', 'v13 Δ']
+  - caption: 'To read **v13**: start from the nearest snapshot (v10) and apply 3 deltas. At most 9 deltas are ever applied. Total storage ≈ 2 snapshots + 11 small deltas instead of 13 full copies.'
+    panels:
+      - kind: rows
+        label: Reconstruct v13
+        items: [{ v: 'load v10 (full)', tone: info }, '+ Δv11', '+ Δv12', { v: '+ Δv13 → v13', tone: ok }]
