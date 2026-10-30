@@ -1,0 +1,56 @@
+questions:
+  - q: 'A product page takes 800 ms, mostly an 8-table query. You''re asked to add caching. What do you cache, how, and what can go wrong?'
+    think: Can the query be fixed first? What staleness is acceptable for each part of the page?
+    answer: |
+      First check the query plan — an index or a narrower query may remove most of the 800 ms. Then cache what's still expensive, split by how fresh each part must be: the product description and specs (changes rarely) for an hour; price and stock (change often, matter more) for seconds or not at all, fetched separately.
+
+      Use **cache-aside** in Redis with keys like `product:v1:{id}`, a DTO value (not an entity), and a jittered TTL. On product updates, **delete the key after the transaction commits**. Plan for failure modes: a hot product's key expiring under load (single-flight / `@Cacheable(sync = true)` / lock), requests for non-existent ids (cache the miss briefly), a cache restart (warm the top products, protect the database with a circuit breaker), and Redis being down (fall back to the database with timeouts, not fail). Measure hit rate and p99 latency before and after.
+  - q: How do you prevent a cache stampede?
+    think: What happens in the second after a very popular key expires?
+    answer: |
+      Thousands of requests miss at once and all run the expensive query — the database falls over, so the cache never refills. Options, often combined: **single-flight** per key so concurrent misses share one load (in-process: Caffeine `AsyncLoadingCache`, Spring `@Cacheable(sync = true)`; across instances: a short Redis lock `SET lock:k token NX EX 5`, released only by its owner); **stale-while-revalidate** — keep serving the old value while one request refreshes; **refresh-ahead / probabilistic early expiration** so hot keys are refreshed before they expire; and **TTL jitter** so many keys don't expire at the same moment.
+followUps:
+  - q: Cache-aside, write-through or write-behind?
+    intuition: Who writes the cache, and when does the database learn about a write?
+    approach: |
+      **Cache-aside**: the app reads through the cache and invalidates on writes — the default, resilient to cache failure. **Write-through**: writes go to cache and DB synchronously; reads are always warm, writes slower, and cold data is cached too. **Write-behind**: writes go to the cache and are flushed to the DB asynchronously — fast and good for absorbing bursts of non-critical writes (view counters), but data is lost if the cache fails before flushing. For business data, cache-aside or write-through.
+  - q: Why delete the cache entry on update instead of writing the new value?
+    intuition: Two writers, two cache writes, which lands last?
+    approach: |
+      With concurrent writers, the cache writes can arrive in the opposite order to the database writes, leaving the older value cached indefinitely. Deleting is idempotent and order-independent: the worst case is an extra miss. Delete after commit, and keep a TTL to heal the remaining read-after-delete race.
+  - q: What is cache penetration and how do you stop it?
+    intuition: What if the key will never exist?
+    approach: |
+      Requests for ids that don't exist miss the cache every time and always reach the database — accidental (bugs, deleted items) or deliberate (attacks with random ids). Fixes: cache a "not found" marker with a short TTL; keep a Bloom filter of existing ids and reject others; validate id format; rate-limit per client.
+  - q: Local cache or Redis?
+    intuition: Speed versus one shared copy.
+    approach: |
+      A local cache (Caffeine) is ~1000× faster than a network hop and needs no infrastructure, but each instance has its own copy — invalidation must reach every instance, and memory is per instance. Redis is shared and survives deploys, at ~0.5 ms per lookup. Use local caches for small, hot, rarely changing data with short TTLs; Redis for larger or shared data; both (two-level) for very hot keys.
+practice:
+  - task: Implement cache-aside for a product lookup with Redis, including TTL jitter, graceful degradation when Redis is down, negative caching, and invalidation after commit.
+    hint: Read cache → miss → DB → set with TTL; catch Redis errors; cache "not found" briefly; publish an event and delete in an AFTER_COMMIT listener.
+    solution: |
+      Key `product:v1:{id}`; on hit, deserialize; on miss, query the database and `SET … EX ttl±10%`. Wrap Redis calls so a connection failure falls back to the database (with a short Redis timeout so a slow cache doesn't add latency). Cache "not found" for ~30 s. For writes, update in a transaction, publish `ProductChanged`, and delete the key in a `@TransactionalEventListener(AFTER_COMMIT)` so no reader can refill the cache from the pre-commit row.
+    solutionCode: cache-aside-impl
+  - task: '100 concurrent requests hit a cold cache for the same hot product. Make sure the database sees one query, on one instance and across instances.'
+    hint: In-process single-flight, plus a Redis lock with an ownership token and a short expiry.
+    solution: |
+      Within an instance, share one in-flight load per key (`ConcurrentHashMap<K, CompletableFuture<V>>` or Caffeine's async loading cache / `@Cacheable(sync = true)`). Across instances, take `SET lock:product:v1:42 <token> NX EX 5`; the winner loads and fills the cache, the others poll the cache briefly. Release the lock with a Lua script that deletes only if the token still matches — otherwise a slow winner could delete a lock that expired and was taken by someone else. Give up waiting after a bound and load directly to protect latency.
+    solutionCode: cache-stampede
+quiz:
+  - q: In cache-aside, what should a write do to the cache?
+    options: [Write the new value, Delete the key, Nothing — wait for the TTL, Flush the whole cache]
+    correct: 1
+    why: Deleting avoids racing writers leaving an old value; the next read refills it.
+  - q: Which Redis eviction policy suits a cache where 1% of products get most traffic?
+    options: [noeviction, allkeys-lfu, volatile-ttl, allkeys-random]
+    correct: 1
+    why: LFU keeps frequently used keys even if they weren't touched in the last few seconds.
+  - q: Why add random jitter to TTLs?
+    options: [To save memory, To stop many keys expiring at the same moment, To make keys unguessable, Redis requires it]
+    correct: 1
+    why: Keys written together (e.g. after a deploy warm-up) would otherwise expire together and hit the DB at once.
+  - q: Why evict from an AFTER_COMMIT listener instead of putting `@CacheEvict` on the transactional service method?
+    options: [It's faster, '@CacheEvict can run before the commit, so a reader may reload the old row into the cache', '@CacheEvict doesn''t work with Redis', It avoids a TTL]
+    correct: 1
+    why: The eviction happens when the method returns, which can be before commit — always when a caller owns the transaction.

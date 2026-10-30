@@ -1,0 +1,130 @@
+---
+title: Caching Strategies
+summary: Where to cache and how data flows through it — cache-aside, read-through, write-through and write-behind; TTLs, eviction and invalidation races; stampedes, penetration and hot keys; and local plus Redis caches in Spring.
+track: databases
+order: 60
+tags: [databases, caching, redis, performance, spring, system-design]
+aliases: [cache, cache aside, lazy loading, read through, write through, write behind, write back, write around, ttl, eviction, lru, lfu, maxmemory-policy, cache invalidation, cache stampede, thundering herd, dogpile, cache penetration, bloom filter, cache avalanche, hot key, caffeine, spring cache, cacheable, cacheevict, two-level cache, stale-while-revalidate]
+prerequisites: [databases/sql-vs-nosql]
+related: [databases/indexing, backend/debugging-slow-api, backend/idempotency]
+quickRef:
+  points:
+    - '**Cache-aside** is the default: read cache → on miss read DB and fill with a TTL; on write, update DB **then delete** the key.'
+    - 'Every cached value needs a **TTL** as a safety net; add **jitter** so keys don''t expire together.'
+    - '**Stampede** (popular key expires, thousands hit the DB): single-flight/lock per key, or serve stale while one request refreshes.'
+    - '**Penetration** (lookups for ids that don''t exist): cache the miss briefly, or a Bloom filter.'
+    - 'Invalidation races leave stale data: delete **after commit**, keep TTLs short for mutable data, or version keys.'
+    - 'Local (Caffeine) is ~100× faster than Redis but per-instance; Redis is shared. Use both for hot, rarely changing data.'
+  useWhen: Reads are slow or repetitive, a downstream can't take the load, or you're asked to add a cache in a design.
+lastReviewed: 2026-10-30
+---
+
+## Why it matters
+
+A cache turns an expensive answer — an 8-table join, a call to a slow partner API, a rendered page — into a memory lookup. Done well, it cuts latency by orders of magnitude and shields the database from load. Done carelessly, it serves stale prices, hides bugs, and fails in a way that takes the database down with it (a stampede after a cache flush). The design questions are always the same: **what** to cache, **where**, **for how long**, and **how it learns about changes**.
+
+<Callout type="analogy">
+A shop keeps the best-selling items on the shelf by the till instead of fetching each one from the stockroom. The shelf is small, so slow sellers go back (eviction). When the supplier changes a product, someone must pull the old version off the shelf (invalidation) — and if the shelf is cleared all at once at opening time, everyone queues at the stockroom door (stampede).
+</Callout>
+
+<Chart
+  type="bar"
+  title="Typical time to get one product (same region), in microseconds"
+  log
+  unit=" µs"
+  bars={[
+    ['In-process cache (Caffeine)', 1, 'ok'],
+    ['Redis, same zone', 500, 'info'],
+    ['Indexed primary-key query', 2000, 'warn'],
+    ['8-table join', 120000, 'warn'],
+    ['Partner API call', 400000, 'bad'],
+  ]}
+  caption="Log scale. An in-process hit is well under a microsecond; Redis time is mostly the network round trip."
+/>
+
+## Where caches live
+
+| Layer | Example | Shared? | Notes |
+|---|---|---|---|
+| Client / browser | HTTP `Cache-Control`, ETags | per user | free for the server; see [REST API design](../../backend/rest-api-design/) |
+| CDN / edge | CloudFront, Cloudflare, Fastly | per region | static assets, public pages and API responses |
+| In-process | Caffeine, Guava, an LRU map | per instance | fastest; each instance has its own copy |
+| Distributed | Redis / Valkey, Memcached | all instances | one copy, survives deploys, ~0.5 ms away |
+| Database | buffer pool, materialized views | — | the database caches pages itself |
+
+## Read and write strategies
+
+<Diagram id="cache-aside" caption="Cache-aside: the application owns the cache. Reads fill it on a miss; writes update the database and delete the key." />
+
+| Strategy | Reads | Writes | Strengths | Risks |
+|---|---|---|---|---|
+| **Cache-aside** (lazy loading) | app checks cache, loads DB on miss, fills cache | app writes DB, deletes key | simple; cache failure only slows things down; caches only what's read | first read slow; invalidation races |
+| **Read-through** | cache library loads from DB on miss | — | loading logic in one place (Caffeine `LoadingCache`, `@Cacheable`) | same as cache-aside |
+| **Write-through** | — | write goes to cache and DB synchronously | cache always warm for written keys | slower writes; caches data nobody reads |
+| **Write-behind** (write-back) | — | write to cache; DB updated later in batches | very fast writes, absorbs bursts | data loss if the cache dies before flushing; ordering |
+| **Write-around** | — | write DB only; cache filled on later reads | avoids caching write-once data | first read after a write misses |
+
+<CodeTabs id="cache-aside-impl" title="Cache-aside with Redis — Java, Node, Python" />
+
+**Delete, don't update**, on writes: two concurrent writers updating the cache can leave the older value in it, while deleting just causes one extra miss.
+
+## Expiry and eviction
+
+- **TTL** bounds staleness and cleans up keys nobody reads. Base it on how stale the data may be: prices maybe 60 s, a product description an hour, country lists a day. Add ±10–20% random **jitter** so keys written together don't expire together.
+- **Eviction** happens when memory is full. Redis `maxmemory-policy`: `allkeys-lru` (general cache), `allkeys-lfu` (skewed popularity — keeps the hot 1%), `volatile-*` (only keys with a TTL), `noeviction` (writes fail — right for Redis used as a store, wrong for a cache).
+- Monitor **hit rate**, evictions, memory and latency. A cache with a 20% hit rate costs more than it saves.
+
+## Invalidation and its races
+
+<Walkthrough id="stale-set-race" />
+
+Ways to keep the window small:
+
+- **Delete after the transaction commits** (`@TransactionalEventListener(phase = AFTER_COMMIT)`), not inside it — otherwise a reader can refill the cache with the old row before your commit.
+- **Short TTLs** for mutable data, so any race heals quickly.
+- **Delayed double delete**: delete, then delete again a few hundred ms later.
+- **Versioned keys**: `product:42:v17` — readers fetch the current version number first (or embed it in a parent object), so stale entries are simply never read.
+- **Change data capture**: a consumer of the database's change stream (Debezium) deletes keys, so invalidation can't be forgotten by a code path — or by another service writing the same table.
+
+## Failure modes under load
+
+<CodeTabs id="cache-stampede" title="Single-flight loading, a Redis lock with a token, and stale-while-revalidate" />
+
+| Problem | What happens | Fixes |
+|---|---|---|
+| **Stampede** (thundering herd, dogpile) | a hot key expires; thousands of requests miss at once and all query the DB | single-flight per key (one loader, others wait), a short Redis lock, refresh-ahead / probabilistic early expiry, serve stale while revalidating |
+| **Penetration** | requests for ids that don't exist always miss and hit the DB (often an attack) | cache "not found" for a short TTL; Bloom filter of valid ids; validate input |
+| **Avalanche** | many keys expire together, or the cache restarts empty | TTL jitter; warm critical keys on deploy; rate-limit or circuit-break DB access |
+| **Hot key** | one key gets so much traffic that one Redis shard saturates | local cache in front; replicate the key (`key#1…key#N`) and read a random copy |
+| **Big values** | multi-MB values block Redis and the network | cache smaller projections; compress; split |
+
+## Caching in Spring
+
+<CodeTabs id="spring-cache" title="@Cacheable with Caffeine and Redis, evicting after commit" />
+
+- `@Cacheable` is cache-aside implemented by an AOP proxy — so it doesn't apply to calls **within the same class** ([Spring AOP](../../backend/spring-aop/)).
+- `@Cacheable(sync = true)` gives single-flight loading per key on one instance.
+- `@CacheEvict`/`@CachePut` run when the method returns — which can be **before** the transaction commits (always, when a caller started the transaction). Evict from an after-commit listener instead.
+- Cache **DTOs or immutable values**, not JPA entities (lazy proxies, mutable state, serialization surprises).
+- A **two-level cache** (Caffeine 5–30 s in front of Redis) removes most network trips for very hot keys; invalidation then needs a broadcast (Redis pub/sub) or very short local TTLs.
+
+<Pitfalls>
+
+- **No TTL** — one missed invalidation means stale data forever.
+- **Updating the cache on write** instead of deleting — racing writers leave the old value.
+- **Evicting inside the transaction** — readers refill from the uncommitted (old) row.
+- **Caching mutable objects in-process** — a caller modifies the cached instance for everyone.
+- **Treating the cache as a database** — Redis evicts and can lose writes; the source of truth must be elsewhere.
+- **Caching per-user data under a shared key**, or forgetting tenant/locale in the key — users see each other's data.
+- **Caching before measuring** — fix the slow query first ([Indexing](../indexing/)); cache what is still expensive.
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- Cache-aside + TTL + delete-on-write is the safe default.
+- Invalidate after commit; keep TTLs short where staleness hurts; version keys or use CDC for strictness.
+- Plan for stampedes, penetration, avalanches and hot keys before they happen.
+- Local caches are fastest, Redis is shared; combine them for hot, stable data.
+
+</KeyTakeaways>

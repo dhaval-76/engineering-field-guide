@@ -1,0 +1,56 @@
+questions:
+  - q: 'You''re designing a user activity feed. The team debates PostgreSQL vs Cassandra. Walk through the decision.'
+    think: What are the reads, the writes, their volumes, and how fresh must they be?
+    answer: |
+      Start with the access patterns: write an event on every like/comment/follow; read "latest N for user X", paginated, newest first; maybe "activity on object Y". Then volumes. Up to thousands of writes per second, **PostgreSQL** handles this well: a table with an index on `(user_id, created_at DESC)` serves each page with an index range scan, keyset pagination keeps deep pages cheap, and you keep joins, constraints and a single store. Partition by time to manage retention.
+
+      Move to **Cassandra/ScyllaDB** (or DynamoDB) when write volume or data size outgrows one primary: partition key `(user_id, month)`, clustering key `created_at DESC`, every read hits one partition already sorted, writes scale linearly with nodes. The costs: one table per query with duplicated data, no joins or ad-hoc queries, tunable consistency to reason about, and another system to run. Feeds tolerate a little staleness, so that's acceptable here — a ledger, for contrast, wouldn't be.
+  - q: 'An e-commerce app has orders and payments, a product catalogue whose attributes differ by category, full-text product search, and user sessions. Which stores, and why?'
+    think: Which data needs transactions and constraints, which needs flexible shape, and which needs a special query type?
+    answer: |
+      **Orders and payments → PostgreSQL**: multi-row transactions (order + items + stock reservation), foreign keys, auditing, reporting. **Catalogue → PostgreSQL with JSONB** for category-specific attributes (GIN index for containment), or MongoDB if the catalogue is large, document-shaped and owned by a separate team; don't add a second database just for flexible columns. **Search → OpenSearch/Elasticsearch**, fed from the catalogue via CDC/outbox, never written directly by the app as the source of truth. **Sessions → Redis/Valkey** with TTLs (`GETEX` for sliding expiry) — fast, ephemeral, and losing them only logs people out.
+followUps:
+  - q: When do you embed and when do you reference in MongoDB?
+    intuition: What do you read together, and what grows without limit?
+    approach: |
+      Embed data that is read with its parent, bounded in size, and has no independent life (order items, addresses). Reference data that grows without bound, is shared, or is queried/updated on its own (comments on a post, products in orders). Watch the 16 MB document limit and write amplification from rewriting large documents.
+  - q: What is a partition key and why does it matter so much in Cassandra or DynamoDB?
+    intuition: How does the database find the node holding your data?
+    approach: |
+      The partition key is hashed to choose which nodes store the row; all rows with the same key live together, sorted by the clustering/sort key. Queries must supply the partition key to be efficient — otherwise every node is scanned. A good key spreads load evenly (no hot partitions) and keeps each partition bounded (time buckets).
+  - q: What does BASE mean, compared with ACID?
+    intuition: What do many distributed stores relax to stay available and fast?
+    approach: |
+      **B**asically **A**vailable, **S**oft state, **E**ventually consistent: the system keeps answering during failures, replicas may temporarily disagree, and they converge when updates stop. It's a description of trade-offs rather than a standard. Many "NoSQL" stores now offer stronger options (MongoDB multi-document transactions, DynamoDB transactions and strongly consistent reads, Cassandra lightweight transactions), and distributed SQL databases offer ACID at scale.
+  - q: Which Redis data structure would you use for a leaderboard, a rate limiter and a recent-activity list?
+    intuition: Ordering by score, counting in a window, keeping the latest N.
+    approach: |
+      Leaderboard: sorted set (`ZINCRBY`, `ZRANGE … REV`, `ZREVRANK`, O(log n)). Rate limiter: `INCR` + `EXPIRE` for fixed windows, or a sorted set of timestamps (`ZADD`, `ZREMRANGEBYSCORE`, `ZCARD`) for a sliding window, ideally inside a Lua script for atomicity. Recent activity: a list with `LPUSH` + `LTRIM 0 99` to keep the latest 100.
+practice:
+  - task: 'Build a leaderboard: add points to a player, show the top 10, show any player''s rank, and list players within a score range.'
+    hint: A sorted set does all four in O(log n) (plus the size of the result).
+    solution: |
+      One sorted set per leaderboard (`leaderboard:season-12`). `ZINCRBY` adds points atomically; `ZRANGE key 0 9 REV WITHSCORES` gives the top 10; `ZREVRANK` gives a 0-based rank (add 1); `ZRANGE key min max BYSCORE` lists a score range. Ties are ordered by member name — encode a time component into the score if earlier achievers should rank higher. For millions of players across shards, keep one sorted set per shard and merge top-N.
+    solutionCode: redis-leaderboard
+  - task: Store sessions in Redis with a 30-minute sliding expiry, logout, and "log out of all devices".
+    hint: SET with EX, GETEX to read and refresh in one step, and a per-user set of session ids.
+    solution: |
+      Create: generate a 256-bit random id, `SET session:<id> <json> EX 1800`. On each request: `GETEX session:<id> EX 1800` — returns nil if expired and refreshes the TTL atomically (no race between GET and EXPIRE). Logout: `DEL`. Logout everywhere: maintain `user:<id>:sessions` as a set and delete each member. Never use predictable ids, and set the cookie `HttpOnly`, `Secure`, `SameSite`.
+    solutionCode: redis-session
+quiz:
+  - q: Product reviews can number in the hundreds of thousands per product. In MongoDB you should…
+    options: [Embed them in the product document, Store them in their own collection referencing the product, Store them in Redis, Put them in the product's name field]
+    correct: 1
+    why: Unbounded arrays hit the 16 MB limit and make every product read and write heavier.
+  - q: 'A Cassandra query omits the partition key. What happens?'
+    options: [It uses a secondary index automatically, It is rejected unless ALLOW FILTERING — then it scans the cluster, It reads one random node, It returns cached results]
+    correct: 1
+    why: Without the partition key the database can't locate the data; tables are designed per query instead.
+  - q: Which Redis structure fits "rank of a player among 5 million"?
+    options: [List, Set, Sorted set, Hash]
+    correct: 2
+    why: ZREVRANK returns a member's rank in O(log n).
+  - q: The best default for a new transactional business service is usually…
+    options: [A document database, A relational database, A wide-column store, Redis]
+    correct: 1
+    why: Relational databases give constraints, transactions and flexible querying, and scale further than most services need.

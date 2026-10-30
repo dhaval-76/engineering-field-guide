@@ -1,0 +1,118 @@
+---
+title: SQL vs NoSQL and Data Models
+summary: Choosing a database by access pattern, not fashion — relational, document, key-value, wide-column, search, graph, time-series and vector stores; modelling for MongoDB, Cassandra, DynamoDB and Redis; and when PostgreSQL alone is enough.
+track: databases
+order: 50
+tags: [databases, nosql, mongodb, redis, cassandra, dynamodb, data-modeling]
+aliases: [nosql, sql vs nosql, document database, mongodb, embedding vs referencing, key-value store, redis data structures, sorted set, leaderboard, wide column, cassandra, partition key, clustering key, dynamodb, single table design, graph database, neo4j, time series, vector database, newsql, cockroachdb, spanner, polyglot persistence, jsonb, base, valkey]
+prerequisites: [databases/sql-fundamentals]
+related: [databases/caching-strategies, databases/indexing, databases/transactions-isolation]
+quickRef:
+  points:
+    - 'Start from **access patterns and consistency needs**, not data size. Most systems start well on PostgreSQL/MySQL.'
+    - '**Relational**: joins, constraints, multi-row transactions, ad-hoc queries. Scales far with indexes, replicas and partitioning.'
+    - '**Document** (MongoDB): aggregates read and written whole; embed what you read together, reference what grows without bound.'
+    - '**Wide-column** (Cassandra) and **DynamoDB**: design tables per query around the partition key; massive write scale, few query shapes.'
+    - '**Key-value / Redis**: microsecond reads by key, rich structures (sorted sets, hashes, streams), TTLs — usually beside a primary database.'
+    - 'Search (Elasticsearch/OpenSearch), graph, time-series and vector stores serve specific queries; feed them from the primary store.'
+  useWhen: Choosing a database for a new service, or justifying a data store in a system design interview.
+lastReviewed: 2026-10-30
+---
+
+## Why it matters
+
+"SQL or NoSQL?" is one of the first decisions in any system design discussion, and the wrong answer is expensive to undo: data migrations take months. The useful question isn't which is better but **which queries must be fast, what must be consistent, and how will it grow**. Databases are optimised for different shapes of work; once you know the shapes, the choice usually makes itself.
+
+<Callout type="analogy">
+A library, a filing cabinet and a coat check. The library (relational) is organised so you can ask almost any question — by author, subject, year — and cross-reference. The filing cabinet (document) keeps each customer's whole folder together: perfect when you always want the whole folder. The coat check (key-value) gives you exactly one thing for your ticket, instantly, and nothing else.
+</Callout>
+
+## The data models
+
+| Model | Examples | Shape | Strong at | Weak at |
+|---|---|---|---|---|
+| Relational | PostgreSQL, MySQL, SQL Server, Oracle | tables, rows, foreign keys | joins, constraints, transactions, ad-hoc queries, reporting | horizontal write scaling (needs sharding) |
+| Distributed SQL ("NewSQL") | CockroachDB, Spanner, YugabyteDB, TiDB | relational, auto-sharded, consensus-replicated | SQL + transactions across regions | latency per write, cost, operational novelty |
+| Document | MongoDB, Couchbase, Firestore | JSON-like documents | aggregates read/written whole; flexible fields | cross-document joins and transactions (possible, but costly) |
+| Key-value | Redis / Valkey, DynamoDB (also), Memcached | key → value or structure | sub-ms lookups by key, counters, TTLs | anything not by key |
+| Wide-column | Cassandra, ScyllaDB, HBase, Bigtable | partitions of sorted rows | huge write throughput, time-ordered data per key | ad-hoc queries, joins, secondary access paths |
+| Search | Elasticsearch, OpenSearch | inverted index | full text, relevance, faceting, fuzzy matching | being the source of truth |
+| Graph | Neo4j, Neptune | nodes and edges | multi-hop relationships (friends-of-friends, fraud rings) | bulk scans, simple CRUD |
+| Time-series | TimescaleDB, InfluxDB, Prometheus | timestamped points | ingest + range aggregation, retention | updates, relationships |
+| Vector | pgvector, Pinecone, Milvus, Qdrant | embeddings | nearest-neighbour similarity search (RAG, recommendations) | exact filters at scale (improving) |
+
+<Diagram id="choose-a-store" caption="A starting decision path. Relational is the default; when one primary or one region isn't enough, consider distributed SQL. Real choices also weigh team skills, operations and cost." />
+
+## Relational first, usually
+
+A single PostgreSQL or MySQL instance on modern hardware handles tens of thousands of transactions per second and terabytes of data. Read replicas scale reads; partitioning keeps big tables manageable; `JSONB` columns with GIN indexes cover flexible attributes without a second database. Choose something else when a specific need outgrows it — not pre-emptively.
+
+<CodeTabs id="jsonb-catalog" title="Flexible product attributes in PostgreSQL with JSONB" />
+
+## Document databases
+
+<CodeTabs id="mongo-modeling" title="Embedding vs referencing, and querying in Spring Data MongoDB" />
+
+| Embed when | Reference when |
+|---|---|
+| the child is read with the parent (order → items, address) | the child is large or grows without bound (post → comments) |
+| one-to-few, bounded | many-to-many, or shared across parents (products in orders) |
+| the child has no life of its own | the child is queried or updated independently |
+
+MongoDB documents are limited to 16 MB, and single-document writes are atomic; multi-document ACID transactions exist (since 4.0) but cost more and suggest the documents are modelled across the wrong boundary. Design documents around **aggregates** — the units your code reads and writes together.
+
+## Wide-column stores and DynamoDB: query-first modelling
+
+In Cassandra and DynamoDB, data is spread across nodes by a **partition key**, and rows within a partition are sorted by a **clustering / sort key**. Reads are fast only when they hit one partition, in key order. So you design one table per query, duplicating data on purpose.
+
+<CodeTabs id="cassandra-feed" title="A per-user activity feed in Cassandra (CQL)" />
+
+- **Partition key** = what you always know when you read (`user_id`). **Clustering key** = the order you read in (`created_at DESC`).
+- Keep partitions bounded (e.g. add a month bucket to the key), or a heavy user creates a huge "hot" partition.
+- Consistency is tunable per request (`ONE`, `QUORUM`, `ALL`); with `QUORUM` writes and reads on 3 replicas, reads see the latest write.
+- DynamoDB follows the same idea with partition and sort keys; "single-table design" stores several entity types in one table with composite keys so that each access pattern is one `Query`.
+
+## Redis: data structures, not just a cache
+
+Redis keeps everything in memory and offers data structures with atomic operations — which is why it's used for far more than caching. (Redis switched licences in 2024 and added AGPL in Redis 8; **Valkey** is the Linux Foundation fork, wire-compatible.)
+
+| Structure | Commands | Use for |
+|---|---|---|
+| String | `SET … EX`, `GET`, `INCR`, `SET … NX` | sessions, counters, simple locks, cached JSON |
+| Hash | `HSET`, `HGET`, `HINCRBY` | objects with independently updated fields, carts |
+| List | `LPUSH`, `LRANGE`, `LTRIM`, `LMOVE` | recent-items lists, simple queues |
+| Set | `SADD`, `SISMEMBER`, `SINTER` | unique members, tags, "who's online" |
+| Sorted set | `ZADD`, `ZINCRBY`, `ZRANGE … REV`, `ZREVRANK` | leaderboards, priority queues, sliding-window rate limits |
+| Stream | `XADD`, `XREADGROUP`, `XACK` | event logs with consumer groups |
+| HyperLogLog / Bitmap | `PFADD`/`PFCOUNT`, `SETBIT`/`BITCOUNT` | approximate unique counts, daily-active flags |
+
+<CodeTabs id="redis-leaderboard" title="A leaderboard on a sorted set — Spring Data Redis, ioredis, redis-py" />
+
+<CodeTabs id="redis-session" title="Sessions with sliding expiry" />
+
+Redis is durable only as far as its persistence settings (RDB snapshots, AOF with `fsync` every second) and replication allow; asynchronous replication can lose acknowledged writes on failover. Treat it as the system of record only for data you can afford to lose or rebuild.
+
+## Polyglot persistence
+
+Real systems combine stores, each fed from one source of truth: orders and payments in PostgreSQL; the product catalogue's search index in OpenSearch; sessions, rate limits and hot data in Redis; events in Kafka; analytics in a columnar warehouse. Every extra store adds operations work and a synchronisation problem — keep them in sync with change-data-capture or an outbox, not dual writes from the application.
+
+<Pitfalls>
+
+- **Choosing NoSQL for "scale"** that one relational database would have handled — and losing joins, constraints and transactions.
+- **Modelling MongoDB like SQL tables** with references everywhere → many round trips; or embedding unbounded arrays → 16 MB documents.
+- **Unbounded or hot partitions** in Cassandra/DynamoDB (one celebrity user, one date).
+- **Adding a query nobody designed for** in a query-first store — it becomes a full scan or a new table.
+- **Treating search, cache or analytics stores as the source of truth.**
+- **Dual writes** (DB then search index from the app) — they drift apart on partial failure.
+- **Classifying databases as "CP" or "AP"** as if fixed — most are tunable; see [CAP and consistency](../cap-and-consistency/).
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- Decide by access patterns, consistency and growth; default to relational.
+- Documents: model aggregates. Wide-column/DynamoDB: one table per query, partition key first.
+- Redis: data structures with atomic operations and TTLs, beside a durable store.
+- Specialised stores (search, graph, time-series, vector) are fed from the source of truth via CDC or an outbox.
+
+</KeyTakeaways>

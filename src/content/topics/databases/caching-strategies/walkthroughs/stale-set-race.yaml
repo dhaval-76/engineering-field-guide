@@ -1,0 +1,35 @@
+title: How cache-aside serves stale data after an update
+frames:
+  - caption: 'Product 42 costs **100** in the database. The cache entry has just expired.'
+    panels:
+      - kind: kv
+        label: State
+        pairs: [[DB price, '100'], [cache, { v: '(empty)', tone: muted }]]
+  - caption: '**Reader R** misses the cache and reads the row from the database: **100**. Before it writes to the cache, it is delayed (GC pause, slow network).'
+    panels:
+      - kind: rows
+        label: Reader R
+        items: [{ v: 'GET → miss', tone: muted }, { v: 'SELECT → 100 (holding it)', tone: warn }]
+      - kind: kv
+        label: State
+        pairs: [[DB price, '100'], [cache, { v: '(empty)', tone: muted }]]
+  - caption: '**Writer W** updates the price to **120**, commits, and deletes the cache key (which was already empty).'
+    panels:
+      - kind: rows
+        label: Writer W
+        items: [{ v: 'UPDATE → 120, COMMIT', tone: info }, { v: 'DEL product:42', tone: info }]
+      - kind: kv
+        label: State
+        pairs: [[DB price, { v: '120', tone: ok }], [cache, { v: '(empty)', tone: muted }]]
+  - caption: 'R wakes up and writes what it read: **100**. The cache now contradicts the database — and will until the TTL expires.'
+    panels:
+      - kind: rows
+        label: Reader R
+        items: ['GET → miss', 'SELECT → 100', { v: 'SET product:42 = 100', tone: bad }]
+      - kind: kv
+        label: State
+        pairs: [[DB price, '120'], [cache, { v: '100 (stale)', tone: bad }]]
+  - caption: 'The window is small but real under load. Mitigations: a **short TTL** for mutable data, a **second delete** shortly after the write, **versioned values** (only write if newer — e.g. compare a version or `updated_at`), or invalidation from the database''s change stream.'
+    panels:
+      - kind: note
+        text: 'And the worse variant — deleting inside the transaction — widens the window to the whole transaction.'

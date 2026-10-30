@@ -1,0 +1,17 @@
+sequenceDiagram
+  participant App
+  participant Cache as Redis
+  participant DB as Database
+  Note over App,DB: Read
+  App->>Cache: GET product:42
+  alt hit
+    Cache-->>App: value
+  else miss
+    Cache-->>App: nil
+    App->>DB: SELECT … WHERE id = 42
+    DB-->>App: row
+    App->>Cache: SET product:42 value EX 600
+  end
+  Note over App,DB: Write
+  App->>DB: UPDATE … (commit)
+  App->>Cache: DEL product:42

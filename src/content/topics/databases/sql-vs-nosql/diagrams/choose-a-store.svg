@@ -1,0 +1,36 @@
+<svg viewBox="0 0 640 330" xmlns="http://www.w3.org/2000/svg" font-family="var(--font-sans)" font-size="12.5">
+  <rect x="10" y="14" width="300" height="44" rx="6" fill="var(--d-fill)" stroke="var(--d-stroke)"/>
+  <text x="24" y="41" fill="var(--d-text)">Joins, constraints, multi-row transactions?</text>
+  <path d="M310 36 L372 36" stroke="var(--d-accent)" stroke-width="1.5"/><path d="M366 31 L373 36 L366 41" fill="none" stroke="var(--d-accent)" stroke-width="1.5"/>
+  <text x="330" y="30" fill="var(--d-accent)" font-size="11">yes</text>
+  <rect x="376" y="18" width="254" height="36" rx="18" fill="var(--d-accent-soft)" stroke="var(--d-accent)"/>
+  <text x="503" y="41" text-anchor="middle" fill="var(--d-text)">Relational — PostgreSQL, MySQL</text>
+  <path d="M80 58 L80 84" stroke="var(--d-line)" stroke-width="1.5"/><path d="M75 78 L80 85 L85 78" fill="none" stroke="var(--d-line)" stroke-width="1.5"/>
+  <text x="90" y="76" fill="var(--d-muted)" font-size="11">no</text>
+  <rect x="10" y="86" width="300" height="44" rx="6" fill="var(--d-fill)" stroke="var(--d-stroke)"/>
+  <text x="24" y="113" fill="var(--d-text)">Always read/write a whole aggregate by id?</text>
+  <path d="M310 108 L372 108" stroke="var(--d-info)" stroke-width="1.5"/><path d="M366 103 L373 108 L366 113" fill="none" stroke="var(--d-info)" stroke-width="1.5"/>
+  <text x="330" y="102" fill="var(--d-info)" font-size="11">yes</text>
+  <rect x="376" y="90" width="254" height="36" rx="18" fill="var(--d-info-soft)" stroke="var(--d-info)"/>
+  <text x="503" y="113" text-anchor="middle" fill="var(--d-text)">Document — MongoDB</text>
+  <path d="M80 130 L80 156" stroke="var(--d-line)" stroke-width="1.5"/><path d="M75 150 L80 157 L85 150" fill="none" stroke="var(--d-line)" stroke-width="1.5"/>
+  <text x="90" y="148" fill="var(--d-muted)" font-size="11">no</text>
+  <rect x="10" y="158" width="300" height="44" rx="6" fill="var(--d-fill)" stroke="var(--d-stroke)"/>
+  <text x="24" y="185" fill="var(--d-text)">Huge write volume, queries by key + time?</text>
+  <path d="M310 180 L372 180" stroke="var(--d-plum)" stroke-width="1.5"/><path d="M366 175 L373 180 L366 185" fill="none" stroke="var(--d-plum)" stroke-width="1.5"/>
+  <text x="330" y="174" fill="var(--d-plum)" font-size="11">yes</text>
+  <rect x="376" y="162" width="254" height="36" rx="18" fill="var(--d-plum-soft)" stroke="var(--d-plum)"/>
+  <text x="503" y="185" text-anchor="middle" fill="var(--d-text)">Wide-column — Cassandra, DynamoDB</text>
+  <path d="M80 202 L80 228" stroke="var(--d-line)" stroke-width="1.5"/><path d="M75 222 L80 229 L85 222" fill="none" stroke="var(--d-line)" stroke-width="1.5"/>
+  <text x="90" y="220" fill="var(--d-muted)" font-size="11">no</text>
+  <rect x="10" y="230" width="300" height="44" rx="6" fill="var(--d-fill)" stroke="var(--d-stroke)"/>
+  <text x="24" y="257" fill="var(--d-text)">Sub-millisecond by key, counters, TTL, rankings?</text>
+  <path d="M310 252 L372 252" stroke="var(--d-ok)" stroke-width="1.5"/><path d="M366 247 L373 252 L366 257" fill="none" stroke="var(--d-ok)" stroke-width="1.5"/>
+  <text x="330" y="246" fill="var(--d-ok)" font-size="11">yes</text>
+  <rect x="376" y="234" width="254" height="36" rx="18" fill="var(--d-ok-soft)" stroke="var(--d-ok)"/>
+  <text x="503" y="257" text-anchor="middle" fill="var(--d-text)">Redis / Valkey (beside a durable store)</text>
+  <path d="M80 274 L80 300" stroke="var(--d-line)" stroke-width="1.5"/><path d="M75 294 L80 301 L85 294" fill="none" stroke="var(--d-line)" stroke-width="1.5"/>
+  <text x="90" y="292" fill="var(--d-muted)" font-size="11">no</text>
+  <rect x="10" y="302" width="620" height="40" rx="6" fill="none" stroke="var(--d-line)" stroke-dasharray="4 4"/>
+  <text x="320" y="327" text-anchor="middle" fill="var(--d-muted)">Search, graph, time-series or vector store — fed from the source of truth</text>
+</svg>

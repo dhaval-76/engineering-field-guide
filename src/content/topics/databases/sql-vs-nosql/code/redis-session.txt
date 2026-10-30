@@ -1,0 +1,12 @@
+# Create: value + 30-minute expiry in one command
+SET session:Zr8x…Q2 '{"userId":"U1","roles":["CUSTOMER"]}' EX 1800
+
+# Each request: read and reset the TTL atomically (Redis 6.2+)
+GETEX session:Zr8x…Q2 EX 1800        # nil → expired or logged out
+
+# Logout
+DEL session:Zr8x…Q2
+
+# Logout everywhere: keep a set of a user's sessions
+SADD user:U1:sessions Zr8x…Q2
+SMEMBERS user:U1:sessions            # then DEL each session key
