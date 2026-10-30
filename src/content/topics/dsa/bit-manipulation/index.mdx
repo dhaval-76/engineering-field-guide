@@ -1,0 +1,71 @@
+---
+title: Bit Manipulation
+summary: Working with the binary representation directly — the core operators, set/clear/test tricks, XOR to cancel pairs, counting bits, bitmasks as compact sets for subset enumeration and DP, and pitfalls with signed shifts.
+track: dsa
+order: 170
+tags: [dsa, bits, bitmask, xor, patterns]
+aliases: [bit manipulation, bitwise, xor, and, or, not, shift, single number, missing number, counting bits, number of 1 bits, popcount, hamming weight, power of two, bitmask, subset enumeration, gray code, sign bit, unsigned shift, two's complement]
+prerequisites: [cs-foundations/complexity]
+related: [dsa/backtracking, dsa/dynamic-programming]
+quickRef:
+  points:
+    - '`x & (1 << i)` tests bit i; `x | (1 << i)` sets it; `x & ~(1 << i)` clears it; `x ^ (1 << i)` toggles it.'
+    - '`x & (x − 1)` clears the lowest set bit → power-of-two check, popcount loop. `x & −x` isolates it.'
+    - '**XOR**: `a ^ a = 0`, `a ^ 0 = a`, order doesn''t matter → find the unpaired element.'
+    - 'A bitmask of n bits is a **set** of up to n items: 2ⁿ masks enumerate all subsets.'
+    - 'Java/JS: `>>` keeps the sign, `>>>` shifts in zeros; JS bitwise ops work on 32-bit integers.'
+  complexity: 'O(1) per operation on machine words; O(2ⁿ) to enumerate masks.'
+  useWhen: '"Every element appears twice except…", flags and permissions, subsets of ≤ 20 items, or low-level performance.'
+lastReviewed: 2026-10-30
+---
+
+## Recognise it
+
+- Pairs that cancel, missing/duplicate numbers in a range → XOR.
+- Small sets (n ≤ 20) of chosen items → bitmask state (subset enumeration, bitmask DP).
+- Flags packed into one integer (permissions, feature sets).
+- Powers of two, counting set bits, reversing bits.
+
+<Callout type="analogy">
+A row of light switches: each switch is one bit. AND with a mask reads the switches you care about, OR turns some on, AND-NOT turns them off, and XOR flips them — flipping twice returns to where you started, which is why XOR cancels pairs.
+</Callout>
+
+## Operators and tricks
+
+| Operation | Expression | Example (x = 12 = 1100₂) |
+|---|---|---|
+| test bit i | `(x >> i) & 1` | bit 2 → 1 |
+| set bit i | `x \| (1 << i)` | set bit 0 → 1101₂ = 13 |
+| clear bit i | `x & ~(1 << i)` | clear bit 3 → 0100₂ = 4 |
+| toggle bit i | `x ^ (1 << i)` | toggle bit 1 → 1110₂ = 14 |
+| clear lowest set bit | `x & (x − 1)` | 1000₂ = 8 |
+| isolate lowest set bit | `x & −x` | 0100₂ = 4 |
+| power of two? | `x > 0 && (x & (x − 1)) == 0` | 12 → no |
+
+Negative numbers use **two's complement**: `−x = ~x + 1`, so the sign bit is the highest bit.
+
+<CodeTabs id="dsa-bit-basics" title="Single number, missing number, counting bits, power of two" />
+
+## Bitmasks as sets
+
+<CodeTabs id="dsa-bitmask-subsets" title="Enumerate all subsets with masks, and iterate submasks" />
+
+With n ≤ ~20, a mask can represent "which items are used so far" in DP — for example the travelling-salesman DP `dp[mask][last]` in O(2ⁿ · n²).
+
+<Pitfalls>
+
+- **Operator precedence**: `x & 1 == 0` parses as `x & (1 == 0)` in Java/JS — parenthesise.
+- **Signed right shift** on negative numbers fills with ones; use `>>>` for logical shifts.
+- **Overflow**: `1 << 31` is negative in 32-bit ints; use `1L << i` for 64 bits.
+- **JavaScript numbers** are converted to 32-bit for bitwise ops; use `BigInt` beyond that.
+- **Over-cleverness** — prefer readable code unless the bit trick is the point.
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- Test/set/clear/toggle with shifted masks; `x & (x − 1)` drops the lowest set bit.
+- XOR cancels pairs — finds unique or missing values in O(n), O(1) space.
+- Bitmasks represent small sets and enumerate subsets in 2ⁿ.
+
+</KeyTakeaways>

@@ -1,0 +1,93 @@
+---
+title: Dynamic Programming
+summary: "Solving problems whose subproblems overlap — state, transition and base cases, memoisation vs tabulation, and the classic families: sequences, knapsack, LIS, string DP and grids."
+track: dsa
+order: 160
+tags: [dsa, dynamic-programming, recursion, memoization, patterns]
+aliases: [dynamic programming, dp, memoization, memoisation, tabulation, top down, bottom up, state transition, overlapping subproblems, optimal substructure, climbing stairs, house robber, coin change, knapsack, 0 1 knapsack, unbounded knapsack, longest increasing subsequence, lis, longest common subsequence, lcs, edit distance, levenshtein, unique paths, word break, partition equal subset sum, space optimisation]
+prerequisites: [dsa/backtracking, cs-foundations/complexity]
+related: [dsa/greedy, dsa/binary-search]
+quickRef:
+  points:
+    - 'DP applies when a problem has **optimal substructure** and **overlapping subproblems** — the same smaller question is asked many times.'
+    - 'Recipe: **state** (what the subproblem is), **transition** (how it''s built from smaller states), **base cases**, **answer** location, **order** of evaluation.'
+    - '**Top-down** = recursion + memo (natural to write); **bottom-up** = fill a table in dependency order (no recursion limit, easy space optimisation).'
+    - 'Cost = number of states × work per transition.'
+    - 'Keep only the rows/values the next step needs to cut space (e.g. O(n) → O(1)).'
+  complexity: 'Typically O(n), O(n·W), O(n²) or O(n·m) — states × transition cost.'
+  useWhen: '"Count the ways", "minimum/maximum cost", "is it possible", over sequences, strings, grids or capacities — when brute force would revisit the same subproblems.'
+lastReviewed: 2026-10-30
+---
+
+## Recognise it
+
+- "**How many ways**…", "**minimum/maximum**…", "**can we**…" over a sequence, string, grid or budget.
+- A backtracking solution would reach the **same state by different paths** (same index and remaining amount).
+- Choices at each step: take/skip, which coin, match/insert/delete.
+
+<Callout type="analogy">
+Counting the ways to climb a 10-step staircase taking 1 or 2 steps at a time. The ways to reach step 10 are the ways to reach step 9 plus the ways to reach step 8. Rather than re-counting step 8 from scratch every time it's needed, write each answer on the wall as you go and read it back.
+</Callout>
+
+## The recipe
+
+<Steps>
+
+1. **State**: what does `dp[i]` (or `dp[i][j]`) mean, in words? This is the hardest and most important step.
+2. **Transition**: how is a state computed from smaller ones? (Often: try each choice, combine with min/max/sum.)
+3. **Base cases**: the smallest states whose answers are known directly.
+4. **Answer**: which state holds the final answer?
+5. **Order**: evaluate states after the ones they depend on (bottom-up), or recurse with a memo (top-down).
+
+</Steps>
+
+<CodeTabs id="dsa-dp-top-down-bottom-up" title="House robber three ways — memoised recursion, table, O(1) space" />
+
+## Coin change: unbounded choices
+
+<Walkthrough id="coin-change-table" />
+
+<CodeTabs id="dsa-coin-change" title="Coin change — fewest coins, and number of ways" />
+
+## Longest increasing subsequence
+
+`dp[i]` = length of the longest increasing subsequence ending at i → O(n²). The patience-sorting trick keeps, for each length, the smallest possible tail and binary-searches where each number goes → O(n log n).
+
+<CodeTabs id="dsa-lis" title="Longest increasing subsequence — O(n²) DP and O(n log n) with binary search" />
+
+## Two strings: LCS and edit distance
+
+`dp[i][j]` describes prefixes `a[0..i)` and `b[0..j)`. If the last characters match, extend the diagonal; otherwise take the best of dropping a character from one side (and, for edit distance, replacing).
+
+<CodeTabs id="dsa-edit-distance" title="Longest common subsequence and edit distance — 2-D tables" />
+
+## Families at a glance
+
+| Family | State | Transition | Example |
+|---|---|---|---|
+| 1-D sequence | best up to/ending at i | from i−1, i−2… | climbing stairs, house robber, decode ways |
+| Unbounded knapsack | best for amount a | try each item, `dp[a − w]` | coin change |
+| 0/1 knapsack | best for items [0..i) and capacity c | skip, or take once `dp[i−1][c − w]` | subset sum, partition equal subset |
+| Subsequence | best ending at i | all j < i with a valid link | LIS, longest chain |
+| Two sequences | prefixes i, j | match / skip one / replace | LCS, edit distance, interleaving |
+| Grid | best reaching (r, c) | from top and left | unique paths, minimum path sum |
+| Interval | best for range [i, j] | split point k | burst balloons, matrix chain |
+
+<Pitfalls>
+
+- **Vague state definitions** — write the meaning in a comment before coding.
+- **Wrong iteration order** — counting combinations vs permutations in coin change depends on whether coins or amounts are the outer loop.
+- **0/1 knapsack in 1-D** iterating capacity upward — items get reused; iterate downward.
+- **Recursion limits** in top-down Python/Java for large n — convert to bottom-up.
+- **Using DP when greedy or a formula suffices** — and vice versa.
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- Define the state in words; derive transition, base cases and order from it.
+- Memoisation and tabulation compute the same states; choose by convenience and limits.
+- Recognise the families: sequence, knapsack, subsequence, two-string, grid, interval.
+- Optimise space by keeping only what the next step reads.
+
+</KeyTakeaways>

@@ -1,0 +1,33 @@
+questions:
+  - q: 'Every element of an array appears twice except one. Find it in O(n) time and O(1) space.'
+    think: Which operation makes a value cancel itself?
+    answer: |
+      XOR all elements. XOR is associative and commutative, `a ^ a = 0` and `a ^ 0 = a`, so every pair cancels and the single element remains. O(n) time, O(1) space — unlike a hash set (O(n) space) or sorting (O(n log n)). Variants: the missing number in 0..n (XOR indices and values), or two unique numbers (XOR everything, split by any set bit of the result).
+  - q: 'Count the set bits for every number from 0 to n in O(n).'
+    think: How does i relate to i >> 1?
+    answer: |
+      `i >> 1` drops the lowest bit, so `bits[i] = bits[i >> 1] + (i & 1)` — each value reuses an earlier answer (a tiny DP). Alternatively `bits[i] = bits[i & (i − 1)] + 1`. O(n) total versus O(n log n) for counting each number separately.
+followUps:
+  - q: Why does x & (x − 1) clear the lowest set bit?
+    intuition: What does subtracting 1 do in binary?
+    approach: |
+      Subtracting 1 flips the lowest set bit to 0 and all the zeros below it to 1, leaving higher bits unchanged. ANDing with the original keeps the higher bits and zeroes the changed ones, so exactly the lowest set bit disappears. A power of two has a single set bit, so the result is 0.
+  - q: When are bitmasks a good way to represent state?
+    intuition: How many items, and how often do you copy the set?
+    approach: |
+      When the universe is small (up to ~20–30 items): a mask fits in an int/long, comparisons and copies are O(1), and it can index a DP table (`dp[mask]`). Typical uses: assignment problems, travelling salesman on small n, visited sets in BFS over small state spaces, permission flags.
+practice:
+  - task: Find the missing number in an array containing n distinct numbers from 0..n.
+    hint: XOR every index 0..n with every value.
+    solution: |
+      Start with `x = n`, then for each index i XOR in both i and nums[i]. Every present number appears once as an index and once as a value and cancels; the missing number appears only as an index (or as n). O(n) time, O(1) space. The sum formula `n(n+1)/2 − sum` also works but can overflow.
+    solutionCode: dsa-bit-basics
+quiz:
+  - q: 'What is 13 & (13 − 1)? (13 = 1101₂)'
+    options: ['12', '13', '8', '1']
+    correct: 0
+    why: 1101 & 1100 = 1100 = 12 — the lowest set bit is cleared.
+  - q: In Java, what's the difference between >> and >>>?
+    options: [None, '>> keeps the sign bit; >>> fills with zeros', '>>> is faster', '>> is for longs only']
+    correct: 1
+    why: Arithmetic vs logical shift — they differ for negative numbers.

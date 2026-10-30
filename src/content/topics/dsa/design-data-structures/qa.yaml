@@ -1,0 +1,33 @@
+questions:
+  - q: 'Design a set supporting insert, remove and getRandom, each in average O(1), with getRandom uniform.'
+    think: Which structure gives O(1) random access, and how do you delete from it in O(1)?
+    answer: |
+      An array gives O(1) uniform random access; a hash map from value to array index gives O(1) membership. Insert: append and record the index. Remove: look up the index, move the last element into that slot, update its index in the map, pop the end, and remove the value from the map. getRandom: pick a random index. All average O(1); space O(n). The swap-with-last trick avoids O(n) shifting.
+  - q: 'Design a key-value store where each set has a timestamp and get(key, t) returns the value as of time t.'
+    think: What does each key's history look like if timestamps arrive in increasing order?
+    answer: |
+      Store per key an append-only list of (timestamp, value). Because timestamps increase, the list is sorted, so `get` binary-searches for the last timestamp ≤ t: O(log n) per get, O(1) per set. If timestamps can arrive out of order, use a balanced tree per key (TreeMap with `floorEntry`). This is how versioned stores and MVCC "read as of" work at heart.
+followUps:
+  - q: How would you build an LRU cache with O(1) get and put?
+    intuition: Lookup by key and reordering by recency.
+    approach: |
+      A hash map from key to node in a doubly linked list ordered by recency. `get` moves the node to the front; `put` inserts at the front and, if over capacity, removes the tail node and its map entry. Both O(1). Java's `LinkedHashMap` with access order and `removeEldestEntry` does this (see LRU cache).
+  - q: Trie or hash set for a dictionary?
+    intuition: Do you need prefix queries?
+    approach: |
+      A hash set answers exact membership in O(L) (hashing the word) with less memory. A trie answers exact and **prefix** queries in O(L), supports autocomplete and wildcard search, and shares common prefixes, but each node has overhead. Choose a trie when prefixes matter; compressed tries (radix trees) reduce memory.
+practice:
+  - task: Count the hits received in the past 5 minutes, with bounded memory.
+    hint: A circular array of 300 one-second buckets, each remembering which second it holds.
+    solution: |
+      Keep `times[300]` and `counts[300]`. On a hit at second t, use bucket `t % 300`; if it holds a different second, reset it to t with count 0, then increment. To count, sum buckets whose second is within the last 300 seconds. O(1) per hit, O(300) per query, fixed memory regardless of traffic. A queue of (second, count) pairs with eviction is an alternative with amortised O(1) operations.
+    solutionCode: dsa-hit-counter
+quiz:
+  - q: How do you delete from the middle of the array in O(1) for a randomized set?
+    options: [Shift elements left, Swap with the last element and pop, Mark as deleted forever, Rebuild the array]
+    correct: 1
+    why: Order doesn't matter, so moving the last element into the gap keeps the array dense.
+  - q: What is the time to insert a word of length L into a trie with a million words?
+    options: ['O(log 10⁶)', 'O(L)', 'O(10⁶)', 'O(L log 10⁶)']
+    correct: 1
+    why: Trie operations depend only on the word length.

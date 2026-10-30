@@ -1,0 +1,33 @@
+questions:
+  - q: 'Given coin denominations and an amount, find the fewest coins needed (unlimited coins of each type).'
+    think: Does greedy work? What subproblem repeats?
+    answer: |
+      Greedy fails for denominations like {1, 3, 4} and amount 6. Define `dp[a]` = fewest coins to make amount a; `dp[0] = 0`; `dp[a] = min over coins c ≤ a of dp[a − c] + 1`; unreachable amounts stay infinite (answer −1). Fill a = 1..amount: O(amount × coins) time, O(amount) space. To count combinations instead, iterate coins in the outer loop so each multiset is counted once.
+  - q: 'Find the minimum number of insertions, deletions and replacements to turn one word into another.'
+    think: What's the subproblem for prefixes of both strings?
+    answer: |
+      `dp[i][j]` = edit distance between the first i characters of a and the first j of b. Base: `dp[i][0] = i`, `dp[0][j] = j`. If `a[i−1] == b[j−1]`, `dp[i][j] = dp[i−1][j−1]`; otherwise `1 + min(dp[i−1][j−1] (replace), dp[i−1][j] (delete), dp[i][j−1] (insert))`. O(n·m) time; only the previous row is needed, so O(min(n, m)) space. Used in spell checkers and fuzzy search.
+followUps:
+  - q: Top-down or bottom-up?
+    intuition: Same states, different evaluation order.
+    approach: |
+      Top-down (recursion + memo) mirrors the recurrence and only computes reachable states — quick to write and good when many states are irrelevant. Bottom-up fills a table in dependency order: no recursion depth limits, usually faster, and easy to shrink to a few rows. In interviews, writing top-down first and converting is a fine approach.
+  - q: How do you get LIS in O(n log n)?
+    intuition: For each length, what's the best ending value to keep?
+    approach: |
+      Maintain `tails`, where `tails[k]` is the smallest possible last element of an increasing subsequence of length k + 1; it stays sorted. For each number, binary-search the first tail ≥ it and replace it (or append if none). The length of `tails` is the LIS length. (Reconstructing the sequence needs extra parent pointers.)
+practice:
+  - task: Solve house robber (maximum sum of non-adjacent elements) top-down, bottom-up and in O(1) space.
+    hint: best(i) = max(best(i − 1), nums[i] + best(i − 2)).
+    solution: |
+      State: best money from houses 0..i. Transition: skip house i (`best(i−1)`) or rob it (`nums[i] + best(i−2)`). Base: best of an empty prefix is 0. Top-down memoises best(i); bottom-up fills `dp[i + 1]`; since each step reads only the previous two values, keep two variables for O(1) space. O(n) time in all versions.
+    solutionCode: dsa-dp-top-down-bottom-up
+quiz:
+  - q: Which two properties make a problem suitable for DP?
+    options: [Sorted input and small values, Optimal substructure and overlapping subproblems, Greedy choice and monotonicity, Recursion and randomness]
+    correct: 1
+    why: Subproblem answers combine into the full answer, and the same subproblems recur.
+  - q: In 0/1 knapsack with a 1-D array, why iterate capacity from high to low?
+    options: [Speed, So each item is used at most once, To handle negatives, It doesn't matter]
+    correct: 1
+    why: Going upward would read values already updated with the same item, reusing it.

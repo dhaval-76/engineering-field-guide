@@ -1,0 +1,85 @@
+---
+title: Designing Data Structures
+summary: Interview problems that ask you to build a class with guaranteed operation costs — combining hash maps with arrays, lists, heaps or binary search to get O(1) random sets, time-versioned key-value stores, tries and hit counters.
+track: dsa
+order: 180
+tags: [dsa, design, data-structures, hash-map, patterns]
+aliases: [design data structure, insert delete getrandom o(1), randomized set, time based key value store, time map, implement trie, prefix tree, hit counter, design twitter, snapshot array, lru cache, lfu cache, min stack, composite data structures]
+prerequisites: [dsa/arrays-and-hashing, dsa/binary-search]
+related: [low-level-design/lru-cache, low-level-design/autocomplete, dsa/stacks-and-monotonic-stacks]
+quickRef:
+  points:
+    - 'Start from the **required complexities** per operation; choose structures that give each one, then keep them in sync.'
+    - 'Hash map + **array**: O(1) lookup and O(1) random access; delete by swapping with the last element.'
+    - 'Hash map + **doubly linked list**: O(1) lookup and O(1) reordering (LRU).'
+    - 'Hash map + **sorted list per key** + binary search: versioned/time-based lookups.'
+    - '**Trie**: prefix operations in O(length of word), independent of how many words are stored.'
+  complexity: 'Each operation meets its stated bound — usually O(1) or O(log n).'
+  useWhen: '"Design a class that supports X, Y, Z in O(1)/O(log n)" — and caches, indexes and registries in real code.'
+lastReviewed: 2026-10-30
+---
+
+## How to approach them
+
+<Steps>
+
+1. List every operation with its required time bound.
+2. For each operation, name the structure that gives that bound alone (hash map for lookup by key, array for random index, heap for min, linked list for O(1) reordering, sorted list for range/floor queries).
+3. Combine them and decide what each stores (often the map stores **positions or nodes** in the other structure).
+4. Walk through each operation, updating **all** structures consistently — especially deletes.
+5. State the complexity of each operation and the space.
+
+</Steps>
+
+<Callout type="analogy">
+A library: the catalogue (hash map) tells you exactly where a book is; the shelves (array) let you grab any book at random; when a book is removed, the last book on the shelf moves into its gap and the catalogue is updated — so neither the catalogue nor the shelf ever has holes.
+</Callout>
+
+## Insert, delete and get-random in O(1)
+
+<CodeTabs id="dsa-randomized-set" title="Randomized set — hash map of value → index plus an array, swap-delete" />
+
+## Time-based key-value store
+
+`set(key, value, timestamp)` with increasing timestamps; `get(key, t)` returns the value with the largest timestamp ≤ t. Per key, keep an append-only list of (timestamp, value) — already sorted — and binary-search it.
+
+<CodeTabs id="dsa-time-map" title="Time map — per-key sorted history and binary search" />
+
+## Trie (prefix tree)
+
+Each node has children by character and an end-of-word flag. Insert, search and prefix checks take O(L) for a word of length L. Autocomplete builds on this with top suggestions cached per node ([Autocomplete](../../low-level-design/autocomplete/)).
+
+<CodeTabs id="dsa-trie" title="Trie — insert, search, startsWith" />
+
+## Hit counter (sliding time window)
+
+Count hits in the last 300 seconds. A queue of timestamps (or of `(second, count)` buckets) — evict old entries on each call. With a fixed window, a circular array of 300 buckets gives O(1) per operation and bounded memory.
+
+<CodeTabs id="dsa-hit-counter" title="Hit counter — circular buckets, O(1) and fixed memory" />
+
+| Requirement | Structures | Example |
+|---|---|---|
+| O(1) lookup + O(1) random element | map + array (swap-delete) | randomized set |
+| O(1) lookup + O(1) recency order | map + doubly linked list | [LRU cache](../../low-level-design/lru-cache/) |
+| O(1) lookup + frequency order | map + map of frequency → linked list | LFU cache |
+| floor/ceiling by time or key | map + sorted list / TreeMap | time map, snapshot array |
+| prefix queries | trie | autocomplete, word dictionary |
+| min/max with O(1) push/pop | stack of (value, min) | [min stack](../stacks-and-monotonic-stacks/) |
+
+<Pitfalls>
+
+- **Forgetting to update the index map** when swapping elements on delete.
+- **Deleting from the middle of an array** (O(n)) instead of swap-with-last.
+- **Linear scans** in `get` hidden behind a map (e.g. scanning a key's whole history).
+- **Unbounded growth** — old timestamps, expired hits and empty trie branches.
+- **Concurrency** — real caches/registries need locks or concurrent structures.
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- Derive the structure from per-operation bounds; combine and keep in sync.
+- Maps store positions/nodes in the other structure; swap-delete keeps arrays dense.
+- Sorted histories + binary search answer "as of time t"; tries answer prefixes in O(L).
+
+</KeyTakeaways>
