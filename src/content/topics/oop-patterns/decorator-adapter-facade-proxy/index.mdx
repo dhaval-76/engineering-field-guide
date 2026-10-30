@@ -1,0 +1,116 @@
+---
+title: Decorator, Adapter, Facade and Proxy
+summary: Four "wrapper" patterns that look alike but solve different problems — add behaviour, translate an interface, simplify a subsystem, or control access to an object.
+track: oop-patterns
+order: 36
+tags: [structural, decorator, adapter, facade, proxy, wrapper]
+aliases: [decorator pattern, adapter pattern, facade pattern, proxy pattern, wrapper, higher-order function, python decorator]
+prerequisites: [oop-patterns/oop-pillars]
+related: [oop-patterns/strategy-and-state, oop-patterns/factory]
+quickRef:
+  points:
+    - '**Decorator** — same interface as what it wraps; **adds behaviour** (logging, retry, metrics). Stackable at runtime.'
+    - '**Adapter** — **different** interface; **translates** an existing API into the one your code expects.'
+    - '**Facade** — a **new, simpler** interface in front of **several** subsystems.'
+    - '**Proxy** — same interface; **controls access** to the real object (cache, permission check, lazy load, remote call).'
+    - 'Quick test: changes the interface? → Adapter/Facade. Same interface? → adds features = Decorator, gates access = Proxy.'
+  useWhen: Adding cross-cutting behaviour without editing a class, integrating a third-party/legacy API, or hiding a messy subsystem.
+lastReviewed: 2026-10-30
+---
+
+## Why it matters
+
+All four patterns put an object **in front of** another object. They are easy to confuse — and interviewers like asking for the difference — but each answers a different question:
+
+- *How do I add logging, retries and metrics to a payment processor without touching its code?* → **Decorator**
+- *How do I use this vendor SDK whose API looks nothing like our interface?* → **Adapter**
+- *How do I give controllers one call for checkout instead of six services?* → **Facade**
+- *How do I add caching or permission checks transparently?* → **Proxy**
+
+<Diagram id="wrapper-patterns" caption="Decorator stacks layers that share one interface; Adapter translates between two interfaces; Facade fans one call out to many subsystems; Proxy stands in for the real object and decides when and whether to call it." />
+
+## Decorator: add behaviour by wrapping
+
+A decorator implements the same interface as the object it wraps, does something extra, and delegates. Because the result is still the same type, decorators **stack** in any order and combination, decided at runtime.
+
+<CodeTabs id="decorator-processor" title="Logging, retry and metrics around a payment processor" />
+
+The alternative — subclasses like `LoggingRetryingMeteredCardProcessor` — explodes into one class per combination. Decorators turn that into composition: three small classes, combined as needed.
+
+<CodeTabs id="decorator-coffee" title="The classic example: add-ons wrapping a beverage" />
+
+You use decorators daily even if you don't call them that:
+
+- **Java I/O** — `new BufferedReader(new InputStreamReader(new GZIPInputStream(fileStream)))`: each layer adds buffering, decoding or decompression.
+- **JavaScript** — higher-order functions and Express/Koa middleware.
+- **Python** — the `@decorator` syntax is literally this pattern applied to functions.
+
+<Callout type="warning" title="Order matters">
+`Retry(Logging(x))` logs every attempt; `Logging(Retry(x))` logs once around all attempts. Metrics outside retries measure total latency; inside, they measure each attempt. Decide deliberately and compose in one place.
+</Callout>
+
+## Adapter: make incompatible interfaces fit
+
+An adapter implements the interface **your** code expects and translates each call into the API of something you can't (or shouldn't) change — a vendor SDK, a legacy class, a different protocol.
+
+<CodeTabs id="adapter-legacy" title="Wrapping a legacy gateway in our PaymentProcessor interface" />
+
+Adapters are where you translate units, error codes, data shapes and calling styles (callbacks → promises, checked → unchecked exceptions). Keeping that translation in one class is what lets you replace the vendor later — this is the "anti-corruption layer" idea from domain-driven design at small scale.
+
+## Facade: one door to a subsystem
+
+A facade gives callers a **simpler, higher-level** API over several collaborating components. It doesn't hide those components from everyone — they're still available — it just means most callers don't need to know the choreography.
+
+<CodeTabs id="facade-checkout" title="Checkout coordinates pricing, inventory, payments and orders" />
+
+A facade is a good place for **orchestration rules** — what to release if payment fails — that would otherwise be duplicated in every caller. Keep it thin: if business rules pile up inside it, it's becoming a god class and those rules belong in the domain objects.
+
+## Proxy: control access to the real thing
+
+A proxy has the **same interface** as the real object and decides *whether, when and how* the real object is called.
+
+<CodeTabs id="proxy-cache" title="A caching proxy in front of the catalogue" />
+
+Common kinds:
+
+| Proxy | What it controls | Example |
+|---|---|---|
+| Caching | Avoids repeat calls | Caffeine-backed catalogue lookup |
+| Protection | Permissions before delegating | Only admins may call `deleteUser` |
+| Virtual / lazy | Creates the expensive object on first use | Hibernate lazy-loaded associations |
+| Remote | Hides a network call behind a local interface | gRPC/REST client stubs |
+| Framework AOP | Adds transactions, security, caching around your methods | Spring `@Transactional`, `@Cacheable` |
+
+<Callout type="warning" title="The Spring self-invocation trap">
+Spring adds `@Transactional`/`@Cacheable`/`@Async` by wrapping your bean in a proxy. A method calling **another method on the same object** (`this.save()`) bypasses the proxy, so the annotation on the inner method silently does nothing. Move the inner method to another bean, or restructure the call.
+</Callout>
+
+## Telling them apart
+
+| | Interface towards caller | Wraps | Purpose |
+|---|---|---|---|
+| Decorator | **Same** as wrapped | One object | Add behaviour; stackable |
+| Proxy | **Same** as wrapped | One object | Control access (cache, auth, lazy, remote) |
+| Adapter | **Different** (the one you need) | One object | Translate an incompatible API |
+| Facade | **New, simpler** | Many objects | Simplify a subsystem |
+
+Decorator and Proxy are structurally identical; the difference is intent. A decorator **enriches** what happens; a proxy **governs** whether and how it happens.
+
+<Pitfalls>
+
+- **Decorators that change the contract.** A "decorator" that alters return values or swallows exceptions surprises callers — that's a different component, not a transparent wrapper.
+- **Retrying non-idempotent operations.** A retry decorator around a payment call can double-charge unless the downstream operation is idempotent (idempotency key per payment).
+- **Leaky adapters.** If vendor types (`StripeException`, vendor DTOs) escape the adapter, the rest of the code is coupled to the vendor again.
+- **Fat facades.** A facade that accumulates business rules becomes the new god class.
+- **Proxy surprises.** Self-invocation and `final` methods bypass Spring proxies; `equals`/`getClass()` on Hibernate proxies may not be what you expect.
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- Decorator: same interface, added behaviour, stackable. Proxy: same interface, controlled access.
+- Adapter: translate a foreign interface into yours. Facade: simplify many components behind one entry point.
+- Java I/O streams, JS middleware/higher-order functions and Python `@decorators` are all decorators.
+- Know the Spring proxy self-invocation trap — it comes up in interviews and in production.
+
+</KeyTakeaways>

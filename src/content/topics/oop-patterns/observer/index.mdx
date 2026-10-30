@@ -1,0 +1,108 @@
+---
+title: Observer (Events and Listeners)
+summary: Let one object announce that something happened and any number of others react — without the announcer knowing who they are. In-process listeners, Spring events, and how this differs from Kafka-style pub/sub.
+track: oop-patterns
+order: 34
+tags: [behavioral, observer, events, pub-sub, listeners]
+aliases: [observer pattern, publish subscribe, event listener, event emitter, spring application events, transactional event listener]
+prerequisites: [oop-patterns/oop-pillars]
+related: [oop-patterns/factory, oop-patterns/singleton]
+quickRef:
+  points:
+    - A **subject** keeps a list of **observers** and notifies them when its state changes; it depends only on the observer interface.
+    - Adding a reaction = adding an observer. The subject's code doesn't change.
+    - 'Built in everywhere: Java listeners, Spring `ApplicationEventPublisher`, Node `EventEmitter`, DOM `addEventListener`.'
+    - 'Spring: `@TransactionalEventListener(AFTER_COMMIT)` so side effects run only if the transaction commits.'
+    - In-process observers are **not durable** — use a message broker (Kafka, RabbitMQ) when reactions live in other services or must survive crashes.
+  useWhen: One event triggers several independent reactions (email, invoice, analytics) that shouldn't be hard-wired into the code that raised it.
+lastReviewed: 2026-10-30
+---
+
+## Why it matters
+
+After an order is placed you need to send a confirmation, reserve stock, generate an invoice and record analytics. Putting all of that inside `placeOrder()` makes it long, slow, fragile (a failing analytics call breaks checkout) and a merge-conflict magnet — every new reaction edits the same method.
+
+The Observer pattern flips the dependency: the order service just announces "order placed", and each reaction subscribes to that announcement. The service never imports email, invoice or analytics code.
+
+<Callout type="analogy">
+Subscribing to a YouTube channel. The channel uploads a video and every subscriber is notified. The channel doesn't know or care whether you watch on a phone, a TV or not at all — and new subscribers don't require the channel to do anything differently.
+</Callout>
+
+<Diagram id="observer-structure" caption="The subject holds a list of observers typed by an interface and calls each one on a change. Concrete observers decide what to do." />
+
+## How it works
+
+<Steps>
+
+1. Define an **observer interface** — usually one method, like `onPriceChange(symbol, old, new)` (a lambda in Java, a callback in JS/Python).
+2. The **subject** keeps a collection of observers and offers `subscribe` and `unsubscribe`.
+3. When its state changes, the subject **notifies** every observer, passing the relevant data.
+4. Each observer reacts independently.
+
+</Steps>
+
+<CodeTabs id="observer-basic" title="A stock ticker that knows nothing about who's listening" />
+
+Details that matter in real code:
+
+- **Isolate failures.** One listener throwing shouldn't prevent the others from running.
+- **Return an unsubscribe handle** (or require explicit removal). Forgotten listeners are a classic memory leak — they keep the subscriber alive as long as the subject lives.
+- **Use a copy-on-write or snapshot list** when listeners may be added or removed while notifications are running.
+
+## Push vs pull
+
+| Style | What the subject sends | Trade-off |
+|---|---|---|
+| **Push** | All the data observers need (`symbol, old, new`) | Simple for observers; the event shape is a contract that can grow |
+| **Pull** | Just "I changed" (or a reference to itself) | Observers fetch what they need; more calls, and they may read a newer state than the one that triggered them |
+
+Most modern code pushes an **immutable event object** (`record OrderPlaced(...)`) — it's both the message and the contract.
+
+## Observer in Spring: application events
+
+Spring ships the pattern: publish any object with `ApplicationEventPublisher`, listen with `@EventListener`. The important refinement is **transaction awareness**.
+
+<CodeTabs id="observer-spring-events" title="OrderService publishes; listeners react after commit" />
+
+- `@EventListener` runs **synchronously, inside** the publisher's transaction. If it throws, the order rolls back.
+- `@TransactionalEventListener(phase = AFTER_COMMIT)` runs only after a successful commit — no confirmation email for an order that was rolled back.
+- Adding `@Async` moves the listener to another thread, so slow work doesn't delay the response — but its exceptions no longer reach the caller (see pitfalls).
+
+## Observer vs message-broker pub/sub
+
+Both decouple publishers from subscribers. The difference is **where the subscribers live** and **what happens on failure**.
+
+| | In-process Observer (Spring events, EventEmitter) | Broker pub/sub (Kafka, RabbitMQ, SNS/SQS) |
+|---|---|---|
+| Subscribers | Same process | Any service, any language |
+| Durability | Lost if the process dies mid-delivery | Persisted; consumers can retry or replay |
+| Delivery | Direct method calls | Network, at-least-once (usually) |
+| Ordering & back-pressure | Whatever your threads do | Partitions/queues, consumer lag |
+| Use for | Decoupling modules inside one service | Communication between services; work that must not be lost |
+
+A common production pattern combines them: persist the event to an **outbox** table in the same transaction as the order, and a relay publishes it to Kafka — so "order saved" and "event published" can't disagree.
+
+## A tiny event bus
+
+Implementing one is a good exercise: typed subscriptions, asynchronous delivery, unsubscribe handles and failure isolation.
+
+<CodeTabs id="observer-event-bus" title="Typed, asynchronous in-memory event bus" />
+
+<Pitfalls>
+
+- **Lost failures with async listeners.** An exception in an `@Async` listener is logged (at best) and the order is already committed. For must-happen side effects use a durable mechanism (outbox + broker, or a job table) with retries, and make handlers **idempotent**.
+- **Memory leaks from forgotten subscriptions.** Long-lived subjects keep short-lived observers alive. Unsubscribe, or use weak references in UI code.
+- **Hidden control flow.** Ten listeners on one event make "what happens when an order is placed?" hard to answer. Name events clearly, keep listeners small, and document who listens.
+- **Cascading events.** Listener A publishes an event that triggers listener B that publishes… Keep chains short and avoid cycles.
+- **Ordering assumptions.** Don't rely on listeners running in a particular order unless the framework guarantees it (Spring's `@Order`), and even then prefer independence.
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- Observer: the subject depends on an observer interface and notifies all subscribers; new reactions don't change the subject.
+- Push immutable events; isolate listener failures; always provide a way to unsubscribe.
+- In Spring, use `@TransactionalEventListener(AFTER_COMMIT)` for side effects of a transaction.
+- Use a durable broker (and the outbox pattern) when subscribers are other services or events must not be lost.
+
+</KeyTakeaways>

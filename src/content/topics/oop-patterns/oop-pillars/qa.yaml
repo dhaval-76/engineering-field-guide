@@ -1,0 +1,71 @@
+questions:
+  - q: An OrderService has grown to 2,000 lines. How would you refactor it using OOP principles without breaking existing behaviour?
+    think: |
+      Each pillar fixes a different symptom. Where is state being changed from everywhere? Where are `if (type == …)` chains?
+      Which parts change for different reasons? Work behind the existing tests so behaviour stays fixed.
+    answer: |
+      1. **Pin behaviour first** — make sure tests cover the public methods (add characterisation tests if not).
+      2. **Encapsulate** — move state and the rules about it into cohesive classes: `Order`, `OrderLine`, `PricingEngine`, `ShippingCalculator`. Fields private; methods enforce invariants (e.g. totals).
+      3. **Abstract** the volatile dependencies behind interfaces — `PaymentProcessor`, `DiscountPolicy`, `ShippingPolicy` — and inject them, so the service depends on contracts.
+      4. **Replace type switches with polymorphism** — `DigitalOrder` vs `PhysicalOrder` (or a `ShippingPolicy` per type) instead of `if (order.isDigital())` scattered around.
+      5. **Prefer composition** — the service *has* collaborators rather than inheriting from a base "manager".
+
+      Do it in small steps, running tests after each extraction. The end state is several small classes, each with one reason to change, that can be unit-tested in isolation.
+  - q: Explain polymorphism with an example where it removes real complexity.
+    answer: |
+      A notification sender with `if (channel == EMAIL) … else if (channel == SMS) … else if (PUSH) …` must be edited every time a channel is added, and every branch is tested together.
+      With polymorphism, `interface Channel { void send(Message m); }` has `EmailChannel`, `SmsChannel`, `PushChannel`. The sender loops over channels and calls `send`. Adding WhatsApp is one new class; the sender never changes. That is runtime polymorphism (dynamic dispatch). Overloading — same method name, different parameter types — is compile-time polymorphism and is far less important for design.
+followUps:
+  - q: What is the difference between abstraction and encapsulation? Use an example from a real system.
+    intuition: Abstraction is the outside view (the caller sees only a contract). Encapsulation is the inside guard (state is private and changed only through checked methods).
+    approach: |
+      `interface PaymentProcessor { charge(amount, customer) }` is **abstraction** — checkout code doesn't know whether it talks to a card gateway or UPI, so you can swap providers without touching it.
+      Inside `CardProcessor`, the API key, HTTP client and retry counter are `private` — that is **encapsulation**: no other class can read or corrupt them.
+      One sentence: abstraction hides *how it works*; encapsulation hides *what's inside* and protects its rules.
+  - q: When does inheritance become a design mistake, and what do you use instead?
+    intuition: Inheritance couples the child to the parent's internals and promises substitutability. It goes wrong when the child isn't really a subtype or the hierarchy keeps changing.
+    approach: |
+      Warning signs: inheriting just to reuse code (`java.util.Stack extends Vector` exposes `add(index, …)` and breaks LIFO); overriding a method to throw or do nothing; hierarchies more than two or three levels deep; needing behaviour from two parents.
+      Use **composition**: the class *has* collaborators (`OrderProcessor` has a `PaymentService` and an `InventoryService`) and delegates to them. Behaviour can be swapped at runtime and tested in isolation. Keep inheritance for stable IS-A taxonomies and framework extension points.
+  - q: Are getters and setters encapsulation?
+    intuition: Ask whether the setter lets a caller put the object into an invalid state.
+    approach: |
+      Not by themselves. A public setter for every field is a public field with ceremony: any caller can set `balance = -500`.
+      Real encapsulation exposes **behaviour that enforces invariants** — `withdraw(amount)` checks funds; there is no `setBalance`. Getters for read-only views are fine; prefer immutable objects (final fields, no setters) where you can.
+practice:
+  - task: A `Stack` is often implemented by extending `ArrayList`. Explain what goes wrong, then redesign it.
+    hint: List what methods a caller can now call on the "stack". Do all of them respect last-in-first-out?
+    solution: |
+      Extending `ArrayList` makes `Stack` a `List`, so callers can `add(0, x)`, `remove(3)` or `set(i, x)` and bypass LIFO. The subclass can't enforce its own rules and isn't a sensible `List` either — it violates the Liskov Substitution Principle.
+      Compose instead: keep a private `Deque` and expose only `push`, `pop`, `peek`, `isEmpty`.
+    solutionCode: oop-composition
+  - task: Model a library on paper — `Book`, `BookCopy`, `Member`, `Loan`. For each relationship, write whether it is IS-A or HAS-A and which fields are private.
+    hint: A book can have many physical copies. Is a `BookCopy` a `Book`?
+    solution: |
+      `Book` (title, ISBN, authors) **has many** `BookCopy` objects (barcode, condition, available). A copy is *not* a kind of book — it refers to one — so composition, not inheritance.
+      `Member` has many `Loan`s; a `Loan` references one `BookCopy` and one `Member` with due date and status. `Loan` encapsulates its status transitions (`returnCopy()`, `markOverdue()`), so no other class sets status directly. Inheritance fits only a stable taxonomy such as `Member` → `StudentMember` / `StaffMember` if their rules really differ (loan limits) — and even that is often better as a `LoanPolicy` strategy.
+quiz:
+  - q: Which change is made cheap mainly by abstraction?
+    options:
+      - Renaming a private field
+      - Swapping the payment provider without changing checkout code
+      - Adding a new subclass method
+      - Making a field final
+    correct: 1
+    why: Checkout depends on the `PaymentProcessor` contract, so a new implementation can be plugged in without changing callers.
+  - q: A subclass overrides a parent method to throw UnsupportedOperationException. What does this usually indicate?
+    options:
+      - Good defensive programming
+      - The hierarchy is wrong; composition or a narrower interface fits better
+      - The parent should be final
+      - Polymorphism is working correctly
+    correct: 1
+    why: The subclass can't honour the parent's contract, so it isn't a true subtype (a Liskov violation).
+  - q: Which is runtime polymorphism?
+    options:
+      - Two methods named print(int) and print(String)
+      - Calling shape.area() and getting the Circle or Rectangle implementation depending on the object
+      - A generic List<T>
+      - A static method call
+    correct: 1
+    why: Dynamic dispatch picks the overriding method from the object's actual class at runtime. Overloading is resolved at compile time.

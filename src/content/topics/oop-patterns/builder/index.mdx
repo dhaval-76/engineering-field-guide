@@ -1,0 +1,107 @@
+---
+title: Builder
+summary: Construct complex, immutable objects step by step with named, validated parameters — instead of unreadable constructors or half-built objects with setters.
+track: oop-patterns
+order: 33
+tags: [creational, builder, immutability, fluent-api]
+aliases: [builder pattern, telescoping constructor, step builder, fluent builder, lombok builder]
+prerequisites: [oop-patterns/oop-pillars]
+related: [oop-patterns/factory]
+quickRef:
+  points:
+    - Solves **telescoping constructors** (`new User("a", null, null, true, …)`) and half-initialised objects built with setters.
+    - Required fields go in the builder's constructor; optional ones get **named methods with defaults**.
+    - '`build()` **validates** (including cross-field rules) and returns an **immutable** object.'
+    - A **step builder** uses interfaces to make the compiler enforce the order of required steps.
+    - In JS/Python, options objects / keyword arguments usually replace a builder for plain data.
+  useWhen: An object has 4+ parameters, several of them optional, or rules that relate fields to each other.
+lastReviewed: 2026-10-30
+---
+
+## Why it matters
+
+Objects with many parameters are everywhere: HTTP requests, queries, configuration, domain objects. The two obvious ways to build them both hurt:
+
+<CodeTabs id="builder-problem" title="Positional arguments and telescoping constructors" />
+
+- **Long constructors** are unreadable at the call site and easy to get wrong silently — swap two `String` arguments and it still compiles.
+- **Setters** let the object exist in a half-built state, make immutability impossible, and spread validation across many calls.
+
+A builder gives you named parameters, defaults, one place to validate, and an immutable result.
+
+<Callout type="analogy">
+Configuring a laptop online: you pick the CPU, then memory, then storage, then the keyboard layout — each choice clearly labelled, some with defaults. Only when you press "Order" is the configuration checked ("this CPU doesn't support that much memory") and the laptop actually built.
+</Callout>
+
+## The classic builder
+
+<CodeTabs id="builder-basic" title="Required fields up front, optional fields by name, validation in build()" />
+
+What each part does:
+
+<Steps>
+
+1. **Private constructor on the product** — the only way to get a `User` is through the builder, so you can't skip validation.
+2. **Required fields in the builder's constructor (or factory method)** — you can't forget them.
+3. **One method per optional field**, returning `this` — that's what makes the calls chain fluently.
+4. **`build()` validates and creates** — including rules that involve several fields, which setters can't check.
+5. **Final fields** — the result is immutable and safe to share between threads.
+
+</Steps>
+
+In JavaScript and Python the language already has named arguments with defaults — an options object or keyword arguments — so a separate builder class is only worth it when construction genuinely happens in steps.
+
+## Records and builders together
+
+Modern Java **records** are concise immutable carriers with a compact constructor for validation. For many optional fields, keep a small builder that feeds the record.
+
+<CodeTabs id="builder-record" title="Record + builder with a cross-field rule" />
+
+## Step builder: let the compiler enforce order
+
+A regular builder can't stop someone calling `build()` before a required step, or setting a body on a GET request. A **step builder** returns a different interface after each step, exposing only the calls that are legal next.
+
+<CodeTabs id="builder-step" title="Only POST/PUT expose body(); build() is reachable only after required steps" />
+
+It costs more code, so save it for public APIs where misuse is likely and expensive.
+
+## Builder vs the alternatives
+
+| Approach | Readable call site | Immutable | Validates once | Enforces required fields |
+|---|---|---|---|---|
+| Positional constructor | No | Yes | Yes | Yes |
+| Telescoping constructors | Somewhat | Yes | Yes | Yes, but explodes in number |
+| JavaBean setters | Yes | No | No | No |
+| Builder | Yes | Yes | Yes | Yes (in builder constructor) |
+| Step builder | Yes | Yes | Yes | Yes, **at compile time** |
+| Lombok `@Builder` | Yes | With `@Value` | Only if you add it | Only with `@NonNull` / custom `build()` |
+
+<Callout type="tip" title="About Lombok @Builder">
+`@Builder` removes boilerplate but makes every field optional by default and doesn't validate cross-field rules. Fine for DTOs; for domain objects with real invariants, write `build()` yourself (Lombok lets you customise it) or use a record's compact constructor.
+</Callout>
+
+## A builder that produces something other than an object
+
+Builders also assemble **text or commands** — SQL, URLs, CLI arguments — where the order of pieces matters and the output must be valid.
+
+<CodeTabs id="builder-query" title="A query builder that keeps values out of the SQL string" />
+
+## In production
+
+<Pitfalls>
+
+- **Builders without validation.** If `build()` just copies fields, you've added code without adding safety.
+- **Mutable products.** Returning an object with setters undoes the point — make fields final and copy collections (`List.copyOf`).
+- **Sharing a builder across threads.** Builders are mutable scratch pads; create one per construction.
+- **Using a builder for two-field objects.** A constructor or a record is clearer.
+- **String-concatenating user values into SQL in a "query builder".** Always collect parameters and bind them.
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- Builder = named, optional, defaulted parameters + validation in `build()` + an immutable result.
+- Put required values in the builder's constructor; use a step builder when order must be enforced at compile time.
+- In JS/Python, options objects and keyword arguments cover most of the same ground.
+
+</KeyTakeaways>

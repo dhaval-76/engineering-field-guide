@@ -1,0 +1,121 @@
+---
+title: Singleton
+summary: Guarantee exactly one instance of a class — the thread-safe ways to do it in Java, why the naive version breaks, and why most applications should let a DI container own the "one instance" instead.
+track: oop-patterns
+order: 31
+tags: [creational, singleton, double-checked-locking, volatile]
+aliases: [singleton pattern, double checked locking, holder idiom, enum singleton, bill pugh singleton]
+prerequisites: [oop-patterns/oop-pillars]
+related: [oop-patterns/factory, oop-patterns/builder]
+quickRef:
+  points:
+    - Ensures one instance per **JVM/process** (not per cluster) and gives global access to it.
+    - 'Naive lazy `if (instance == null) instance = new X()` is **not thread-safe** — two threads can both create one.'
+    - 'Correct Java options: **enum singleton**, **static holder idiom** (lazy, no locks), or double-checked locking with a **`volatile`** field.'
+    - In JS/Python a module-level object is already a singleton (modules are evaluated once).
+    - In applications prefer a **DI container singleton** (Spring `@Bean`) injected via constructor — same "one instance", but visible and testable.
+  useWhen: One shared, mostly-stateless resource must exist once — a clock, a connection pool, a config snapshot, a metrics registry.
+lastReviewed: 2026-10-30
+---
+
+## Why it matters
+
+Some objects are expensive or must be shared: a database connection pool (one per process, or you exhaust the database's connection limit), a metrics registry, a configuration snapshot. Singleton guarantees there is exactly one instance and gives a well-known way to reach it.
+
+It is also the pattern most likely to come up as a **concurrency** question — "make this thread-safe" and "why is `volatile` needed" — and as a design-judgement question: "why is Singleton considered an anti-pattern?"
+
+<Callout type="analogy">
+A building has one fire alarm panel. Every floor reports to the same panel; a second panel would split the picture of what's going on. But you don't want every room hard-wired to the panel's exact model either — you want them wired to "the alarm system", whatever is installed.
+</Callout>
+
+## The structure
+
+A classic Java singleton has three parts:
+
+1. A **private constructor**, so nobody else can call `new`.
+2. A **static field** holding the one instance.
+3. A **static accessor** (`getInstance()`) that returns it, creating it if needed.
+
+The difficulty is entirely in step 3 when several threads call it at once.
+
+## Why the naive version breaks
+
+<CodeTabs id="singleton-broken" title="Lazy initialisation without synchronisation" />
+
+"Check then create" is two steps. If two threads interleave between them, both create an instance:
+
+<Walkthrough id="singleton-race" />
+
+The result is subtle: no exception, just two objects with separate state — two connection pools each with half the expected connections, or two caches that disagree.
+
+## Thread-safe implementations
+
+### 1. Static holder idiom (recommended for lazy init)
+
+<CodeTabs id="singleton-holder" title="Lazy, thread-safe, no explicit locking" />
+
+The nested `Holder` class isn't loaded until `getInstance()` first touches it, and the JVM guarantees a class is initialised exactly once, with the necessary synchronisation built in. You get laziness and thread safety for free.
+
+### 2. Enum singleton (simplest)
+
+<CodeTabs id="singleton-enum" title="An enum with a single constant" />
+
+Enum constants are created once by the JVM, and enums can't be instantiated by reflection or duplicated by deserialisation — two ways other implementations can be broken. It is eager (created when the enum class loads) and can't extend another class.
+
+### 3. Double-checked locking
+
+<CodeTabs id="singleton-dcl" title="Only lock on the first call; volatile is mandatory" />
+
+Why **`volatile`**? `instance = new Registry()` is really *allocate memory → run constructor → publish reference*. Without `volatile`, the compiler/CPU may publish the reference **before** the constructor finishes, so another thread on the unlocked fast path sees a non-null but half-initialised object. `volatile` forbids that reordering and makes the write visible to all threads.
+
+| Approach | Lazy | Thread-safe | Reflection/serialisation safe | Notes |
+|---|---|---|---|---|
+| Eager `static final` field | No | Yes | No | Fine if construction is cheap |
+| `synchronized getInstance()` | Yes | Yes | No | Every call pays for the lock |
+| Double-checked + `volatile` | Yes | Yes | No | Easy to get wrong; know it for interviews |
+| Holder idiom | Yes | Yes | No | Best general-purpose lazy option |
+| Enum | No | Yes | **Yes** | Simplest; can't extend a class |
+
+## The same idea in JavaScript and Python
+
+Both languages cache modules after the first import, so a module-level value is a singleton per process. Node runs JavaScript on a single thread per event loop, so lazy creation has no race (worker threads have their own module instances).
+
+<CodeTabs id="singleton-module" title="Module-level singletons" />
+
+## The problems with Singleton
+
+The pattern guarantees one instance — but `Registry.getInstance()` called from deep inside business code creates problems:
+
+- **Hidden dependencies.** A class's constructor says it needs nothing, yet it secretly depends on a global. Reading the code no longer tells you what it uses.
+- **Hard to test.** You can't hand the class a fake; tests share global state and can affect each other's results.
+- **Global mutable state.** If the singleton holds mutable state, any code anywhere can change it.
+- **"One" is per process.** With 3 pods in Kubernetes you have 3 instances. In-memory counters, rate limits or caches in a singleton are **not** shared across the cluster — that needs Redis or a database.
+- **Multiple class loaders** (app servers, plugins) can each load the class and create their own instance.
+
+### What to do instead
+
+Keep the *one instance* but drop the *global access*: let a container create it once and **inject** it.
+
+<CodeTabs id="singleton-di" title="Container-managed singleton, injected through the constructor" />
+
+<Callout type="insight">
+When asked about Singleton, show the holder or enum version, explain `volatile` in double-checked locking, then say that in application code you'd let Spring manage a singleton-scoped bean and inject it — and that "one instance" is per JVM, so shared state across pods goes to Redis or a database.
+</Callout>
+
+<Pitfalls>
+
+- **Forgetting `volatile` in double-checked locking.** It works in tests and fails rarely in production — the worst kind of bug.
+- **Storing request or user state in a singleton.** It's shared by every thread; you'll leak data between requests.
+- **Assuming one instance per cluster.** It's one per JVM/process.
+- **Making a singleton for convenience.** "I need to reach it from everywhere" is a reason to inject it, not to make it global.
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- Singleton = private constructor + one static instance + accessor.
+- Naive lazy creation races; use enum, holder idiom, or double-checked locking with `volatile`.
+- In JS/Python, modules already give you one instance per process.
+- Prefer DI-container singletons for testability; remember the scope is one process.
+
+</KeyTakeaways>

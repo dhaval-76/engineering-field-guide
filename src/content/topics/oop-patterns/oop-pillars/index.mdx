@@ -1,0 +1,118 @@
+---
+title: The Four Pillars of OOP
+summary: Encapsulation, abstraction, inheritance and polymorphism — what each one protects you from, how they differ, and when composition beats inheritance.
+track: oop-patterns
+order: 10
+tags: [oop, encapsulation, abstraction, inheritance, polymorphism, composition]
+aliases: [object oriented programming, oops concepts, 4 pillars, is-a has-a, composition over inheritance]
+quickRef:
+  points:
+    - '**Encapsulation** — keep state private and change it only through methods that enforce the rules (invariants).'
+    - '**Abstraction** — callers depend on *what* something does (an interface), not *how* it does it.'
+    - '**Inheritance** — a subtype reuses and specialises a parent. Use only for genuine, stable IS-A relationships.'
+    - '**Polymorphism** — one call (`shape.area()`) runs different code depending on the object at runtime.'
+    - Prefer **composition** (HAS-A) when you want reuse without promising to be a subtype.
+  useWhen: Modelling a domain into classes, reviewing a design, or explaining why a change touches too many files.
+lastReviewed: 2026-10-30
+---
+
+## Why it matters
+
+Object-oriented design is about managing change. Every one of the four pillars exists to make some kind of change cheap:
+
+- **Encapsulation** — the internal representation changes and callers don't notice.
+- **Abstraction** — the implementation is swapped (a new payment provider) and callers don't notice.
+- **Inheritance** — a new variant reuses the parts that stay the same.
+- **Polymorphism** — new types are added without editing the code that uses them.
+
+Low-level design rounds, code reviews and most of the design patterns build on this vocabulary, so it pays to know exactly what each word means and where they overlap.
+
+<Callout type="analogy">
+A bank. Your balance is private: you can't type a new number into it, you can only deposit or withdraw, and the bank checks every request (**encapsulation**). The ATM shows you "Withdraw ₹500" and hides the inter-bank protocol behind it (**abstraction**). A savings account *is a* bank account with interest on top (**inheritance**). "Calculate interest" gives different answers for a savings account and a fixed deposit, but you ask both the same way (**polymorphism**).
+</Callout>
+
+<Diagram id="oop-pillars-overview" caption="The four pillars side by side: private state behind methods, a contract with hidden implementations, a parent with specialised children, and one call dispatched to many types." />
+
+## Encapsulation: protect the invariants
+
+An **invariant** is a rule that must always hold — "balance is never negative", "an order's total equals the sum of its lines". Encapsulation makes the object the only thing that can change its own state, so it can enforce those rules in one place.
+
+<CodeTabs id="oop-encapsulation" title="State is private; every change goes through a checked method" />
+
+Getters and setters for every field are **not** encapsulation. A `setBalance()` that anyone can call is just a public field with extra steps. Expose behaviour (`deposit`, `withdraw`), not data.
+
+## Abstraction: depend on what, not how
+
+Abstraction hides complexity behind a simpler contract. In Java that contract is usually an `interface` or abstract class; in Python an `ABC`; in JavaScript it is simply the set of methods callers rely on.
+
+<CodeTabs id="oop-abstraction" title="Checkout depends on the PaymentProcessor contract, not on a provider" />
+
+Adding UPI support means writing `UpiProcessor`. `CheckoutService` doesn't change, its tests don't change, and you can hand it a fake processor in unit tests.
+
+### Abstraction vs encapsulation
+
+People mix these up constantly. They work together but answer different questions:
+
+| | Abstraction | Encapsulation |
+|---|---|---|
+| Hides | **How** something works | **What** is stored inside |
+| Mechanism | Interfaces, abstract classes, function signatures | Access modifiers (`private`), methods that guard state |
+| Viewpoint | The caller's outside view | The object's inside guard |
+| Example | `PaymentProcessor.charge()` — caller doesn't know it's card or UPI | `CardProcessor`'s API key and retry counter are private |
+
+## Inheritance: reuse for genuine subtypes
+
+A subclass inherits the parent's fields and methods and can **override** behaviour. It is the right tool when the child truly *is a* kind of the parent and will stay that way.
+
+<CodeTabs id="oop-inheritance" title="SavingsAccount reuses BankAccount and specialises withdraw()" />
+
+The cost is **coupling**: the child depends on the parent's internals. A change in the parent can break every child (the "fragile base class" problem), and deep hierarchies make it hard to know which method actually runs.
+
+## Polymorphism: one call, many behaviours
+
+Polymorphism means code written against a general type works with any specific type. There are two kinds:
+
+- **Runtime (dynamic dispatch / overriding)** — the method that runs is chosen from the object's actual class while the program runs. This is the one that matters for design.
+- **Compile-time (overloading)** — several methods share a name but take different parameters, and the compiler picks one. Java supports it; JavaScript and Python don't (one function inspects its arguments instead).
+
+<CodeTabs id="oop-polymorphism" title="total() never changes when new shapes are added" />
+
+Polymorphism is what lets you delete a growing `if (type == ...) else if ...` chain: each type carries its own behaviour, and adding a type means adding a class.
+
+## Composition over inheritance
+
+**Composition** means building an object out of other objects it *has*, instead of inheriting from them. It gives you reuse without the promise that you are a substitute for the parent.
+
+<CodeTabs id="oop-composition" title="A Stack that HAS-A deque instead of IS-A list" />
+
+<Callout type="tip" title="A quick test">
+Say the relationship out loud. "A savings account **is a** bank account" — inheritance can work. "A logger **is a** file" — no, a logger **uses** a file, so compose. If the child would have to disable or throw from a parent method, the hierarchy is wrong.
+</Callout>
+
+| | Inheritance (IS-A) | Composition (HAS-A) |
+|---|---|---|
+| Coupling | Tight — child sees parent internals | Loose — only the collaborator's public API |
+| Change at runtime | Fixed at compile time | Swap the collaborator (e.g. inject a different strategy) |
+| Multiple sources of behaviour | One parent (Java/JS) | As many collaborators as you need |
+| Good for | Stable taxonomies, framework base classes | Most business logic, plug-in behaviour |
+
+## In production
+
+<Pitfalls>
+
+- **Public fields and blanket setters.** They let any code put the object into an invalid state. Start everything private and expose behaviour.
+- **Inheriting for code reuse.** If the child isn't a true subtype, you'll end up overriding methods to throw `UnsupportedOperationException` — a sign to compose instead.
+- **God classes.** A class that does auth, email, payments and reporting has four reasons to change. Split by responsibility (see SOLID).
+- **Type checks instead of polymorphism.** `instanceof` chains that grow with every new type should usually become a method on the type.
+- **Deep hierarchies.** More than two or three levels is hard to reason about; flatten with interfaces and composition.
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- Encapsulation protects invariants; abstraction hides implementations; inheritance reuses for true subtypes; polymorphism removes type switches.
+- Abstraction is the outside view (what), encapsulation is the inside guard (how state is protected).
+- Prefer composition when you want reuse but not substitutability.
+- In an interview, tie each pillar to a change it makes cheap — that shows you understand why, not just what.
+
+</KeyTakeaways>

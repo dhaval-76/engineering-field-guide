@@ -1,0 +1,51 @@
+questions:
+  - q: PaymentService has a 300-line if/else for CARD, UPI, WALLET and NETBANKING. Adding BNPL means editing it. Refactor it.
+    think: The branches are different algorithms for the same operation. Who should choose the algorithm?
+    answer: |
+      Apply **Strategy** with a **registry**: `interface PaymentProcessor { PaymentMethod supports(); PaymentResult pay(Payment p); }`, one class per method, Spring injects them all and a map picks by `payment.method()`. `PaymentService` delegates and never changes; BNPL is a new class with its own tests.
+      If payments also have a lifecycle (INITIATED → AUTHORISED → CAPTURED / FAILED / REFUNDED), that part is a **State** machine — separate from which processor is used.
+  - q: Design the state machine for a food-delivery order. How do you prevent illegal or concurrent transitions?
+    think: List states and events first. Then ask what happens when the restaurant rejects while the customer cancels at the same moment.
+    answer: |
+      States: `PLACED → ACCEPTED → PREPARING → READY → PICKED_UP → DELIVERED`, with `CANCELLED` reachable from PLACED/ACCEPTED (and `REJECTED` by the restaurant from PLACED).
+      Keep a transition table (or state objects) as the single source of allowed moves; every action goes through `order.apply(event)` which throws on illegal transitions.
+      For concurrency, make each transition a conditional update: `UPDATE orders SET status='ACCEPTED', version=version+1 WHERE id=? AND status='PLACED'` (or check a version column). If zero rows change, someone else won — reload and report. Record each transition in an `order_events` table for audit and notifications.
+followUps:
+  - q: How is Strategy different from State? Give an example of each from a payment system.
+    intuition: Same class diagram. Ask who picks the implementation and whether it changes during the object's life.
+    approach: |
+      **Strategy**: the client picks *how* to pay — `CardProcessor` vs `UpiProcessor` — and it stays fixed for that payment. Strategies don't know each other.
+      **State**: a `Payment` moves through `INITIATED → AUTHORISED → CAPTURED` (or `FAILED`/`REFUNDED`); `capture()` means something different in each state and the states decide the next one.
+      Strategy = policy choice; State = lifecycle progression.
+  - q: When is a transition table better than one class per state?
+    intuition: How different is the behaviour of each state, beyond which moves are allowed?
+    approach: |
+      If states mainly differ in *allowed transitions*, a table (`Map<State, Map<Event, State>>`) is shorter, easier to review, easy to visualise and easy to test exhaustively. If each state has substantial behaviour (different validation, UI, side effects), state classes keep that behaviour together. Many teams use a table plus small handler functions per transition.
+  - q: Can Strategy and State be combined?
+    intuition: They vary along different axes.
+    approach: |
+      Yes. A subscription's `Active` state can delegate billing to a `BillingStrategy` (monthly, annual, usage-based) chosen at signup, while `PastDue` and `Cancelled` states reject or change billing. State governs *when*/*whether*; Strategy governs *how*.
+practice:
+  - task: Build an elevator controller with states IDLE, MOVING_UP, MOVING_DOWN and DOORS_OPEN. Each state handles `request(floor)`, `arrived(floor)` and `doorTimeout()` differently — with no switch on a status field.
+    hint: Define an `ElevatorState` interface with those three methods; each implementation returns the next state.
+    solution: |
+      `Idle.request(f)` → MovingUp/MovingDown/DoorsOpen depending on `f` vs current floor. `MovingUp.arrived(f)` → DoorsOpen if `f` is a requested stop, else stays MovingUp. `DoorsOpen.doorTimeout()` → next direction if requests remain, else Idle. Requests received while moving are added to the up/down stop sets. The elevator holds `state` and delegates each event — exactly the vending-machine structure.
+    solutionCode: state-vending
+  - task: Let a sorter switch algorithms at runtime (insertion sort for small inputs, merge sort otherwise) without changing the sorter class.
+    hint: A `SortStrategy` functional interface plus a selection rule.
+    solution: |
+      `interface SortStrategy { void sort(int[] a); }`. The context holds a strategy and delegates. A small selection rule (`a.length < 32 ? insertion : merge`) lives in the caller or a factory. This is exactly what `Arrays.sort` does internally for primitives (dual-pivot quicksort with insertion sort for small ranges).
+    solutionCode: strategy-lambda
+quiz:
+  - q: In which pattern do the implementations decide what the next implementation will be?
+    options: [Strategy, State, Factory, Observer]
+    correct: 1
+    why: State objects own the transitions; strategies are independent and chosen from outside.
+  - q: Two requests read an order as PAID; one ships it, one cancels it. What prevents both succeeding?
+    options:
+      - A State pattern class per status
+      - A conditional UPDATE … WHERE status = 'PAID' (or a version check) so only one transition wins
+      - Making the Order class immutable
+      - Logging both transitions
+    correct: 1
+    why: The state pattern defines legal moves, but concurrency needs an atomic check-and-set in the database.

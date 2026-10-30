@@ -1,0 +1,102 @@
+---
+title: Strategy and State
+summary: Two patterns that replace long if/else chains with polymorphism — Strategy swaps an algorithm chosen from outside, State lets an object change its own behaviour as it moves through a lifecycle.
+track: oop-patterns
+order: 35
+tags: [behavioral, strategy, state, state-machine, polymorphism]
+aliases: [strategy pattern, state pattern, state machine, finite state machine, policy pattern, transition table]
+prerequisites: [oop-patterns/oop-pillars, oop-patterns/solid]
+related: [oop-patterns/factory, oop-patterns/observer]
+quickRef:
+  points:
+    - '**Strategy** — a family of interchangeable algorithms behind one interface; the *client* picks one (pricing, shipping, retry backoff, sorting).'
+    - '**State** — an object delegates behaviour to its current state object; *the states* decide transitions (order lifecycle, vending machine, elevator).'
+    - Both remove `switch`/`if` chains; adding a variant = adding a class (Open/Closed).
+    - In Java/JS/Python a one-method strategy is just a **lambda/function**.
+    - For simple lifecycles a **transition table** (enum/map) is often clearer than one class per state.
+  useWhen: '"Different ways to do X" → Strategy. "What X does depends on what stage it is in, and stages change" → State.'
+lastReviewed: 2026-10-30
+---
+
+## Why it matters
+
+Two smells show up in almost every codebase:
+
+- `if (option == STANDARD) … else if (option == EXPRESS) …` — **different ways to do the same job**.
+- `if (status == PLACED) … else if (status == PAID) …` repeated in every method of `Order` — **behaviour that depends on a stage in a lifecycle**.
+
+Both grow with every requirement and both are where bugs hide ("you could cancel a delivered order"). Strategy and State turn each branch into its own small class, so the variation is explicit and new cases are additions, not edits.
+
+<Callout type="analogy">
+**Strategy** is a navigation app's route choice: fastest, shortest, avoid tolls. Same trip, swappable algorithm — and *you* choose it. **State** is a traffic light: what it does next depends on which colour it is now, and *it* moves itself from green to amber to red.
+</Callout>
+
+## Strategy
+
+A **context** (checkout, scheduler, HTTP client) holds a reference to a **strategy interface** and delegates one decision to it. The client — or a factory — chooses which strategy to use, often at runtime.
+
+<CodeTabs id="strategy-before-after" title="Shipping cost: from an if-chain to strategies" />
+
+Because a strategy is usually a single method, in modern languages it is often just a function:
+
+<CodeTabs id="strategy-lambda" title="Lambdas as strategies" />
+
+Where you'll meet it: pricing and discount rules, payment processors, retry/backoff policies, compression algorithms, `Comparator`, authentication methods, rate-limiting algorithms.
+
+## State
+
+An object's behaviour depends on its current state, and calling an action can move it to a new state. Instead of a `switch (status)` in every method, each state is an object that implements the actions legal in that state and returns (or sets) the next state.
+
+<Diagram id="order-states" caption="An order's lifecycle. Every arrow is an allowed transition; anything else (ship a cancelled order) is rejected." />
+
+<CodeTabs id="state-order" title="Order lifecycle: state objects and a transition table" />
+
+Two implementations, both valid:
+
+- **State objects** (Java tab): each state class owns its behaviour. Best when states have rich, different behaviour — what's displayed, what's validated, what side effects happen.
+- **Transition table** (JavaScript/Python tabs): a map of `state → action → next state`. Best when states mostly differ in *which transitions are allowed*. Easy to read, test and even render as a diagram.
+
+A vending machine is the classic interview example, because each button means something different depending on whether money has been inserted:
+
+<Diagram id="vending-states" caption="Vending machine states: idle, has credit, dispensing — and the inputs that move between them." />
+
+<CodeTabs id="state-vending" title="Vending machine with state objects" />
+
+## Strategy vs State
+
+They look identical in a class diagram — an interface with several implementations, held by a context. The difference is **who chooses** and **whether it changes over time**.
+
+| | Strategy | State |
+|---|---|---|
+| Chosen by | The client/configuration | The state objects themselves (transitions) |
+| Changes during the object's life | Rarely (set once per operation) | Constantly, as events happen |
+| Implementations know about each other | No — they're independent | Yes — a state knows its successors |
+| Answers | *How* to do X | *What* X does right now |
+| Example | Pricing algorithm for this customer | Order is Placed → Paid → Shipped |
+
+They combine well: an order's `Paid` state might use a `RefundPolicy` strategy when cancelled.
+
+<Callout type="insight">
+In LLD rounds, call out the state machine explicitly: list the states, the events, and the allowed transitions (draw it), then say where illegal transitions are rejected and how concurrent updates are prevented (e.g. optimistic locking on a version column, or `UPDATE … WHERE status = 'PAID'`).
+</Callout>
+
+## In production
+
+<Pitfalls>
+
+- **State stored as a free-form string.** Use an enum and a single place that validates transitions; never let code set `status` directly.
+- **Races on transitions.** Two requests can both read `PAID` and both apply `cancel` and `ship`. Make the transition atomic in the database: `UPDATE orders SET status='SHIPPED' WHERE id=? AND status='PAID'` and check the row count, or use a version column.
+- **A class per strategy for a one-line rule.** A lambda or map entry is enough; promote to a class when it gains dependencies or tests.
+- **Strategy selection logic spread around.** Keep "which strategy?" in one factory/registry.
+- **Forgetting the audit trail.** Real lifecycles need history — store transitions (from, to, who, when) as well as the current state.
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- Strategy: interchangeable algorithms, chosen from outside. State: behaviour that changes with internal state, transitions decided inside.
+- Both replace type/status switches with polymorphism and make new cases additive.
+- Use lambdas for one-method strategies and transition tables for simple state machines.
+- Make state transitions explicit, validated and atomic.
+
+</KeyTakeaways>

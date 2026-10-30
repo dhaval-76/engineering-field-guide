@@ -1,0 +1,48 @@
+questions:
+  - q: OrderService sends emails, updates inventory, generates invoices and records analytics all in one method. How do you decouple these without breaking order placement?
+    think: Which of these must succeed for the order to be valid, and which are reactions that can happen afterwards?
+    answer: |
+      Separate the **core transaction** from its **reactions**. `place()` saves the order and publishes an immutable `OrderPlaced` event; each reaction is a listener.
+      - Inventory reservation, if it must succeed for the order to be valid, stays inside the transaction (a synchronous `@EventListener` or a direct call).
+      - Email, invoice and analytics use `@TransactionalEventListener(AFTER_COMMIT)`, optionally `@Async`, so they never fire for rolled-back orders and don't slow the response.
+      - For side effects that must not be lost, write the event to an outbox table in the same transaction and publish it to a broker; make consumers idempotent.
+      `OrderService` no longer knows its observers, and adding loyalty points is a new listener class.
+followUps:
+  - q: What is the difference between the Observer pattern and pub/sub with Kafka?
+    intuition: Both decouple sender and receiver. Ask where the receivers run and what happens if the process crashes.
+    approach: |
+      Observer is in-process: listeners are method calls in the same JVM, there's no persistence, and in-flight events are lost on a crash. Kafka pub/sub is out-of-process: events are written to a durable, partitioned log; consumers in other services read at their own pace and can retry or replay from an offset.
+      Use Observer to decouple modules inside one service; use a broker for cross-service communication, durability and independent scaling.
+  - q: What are the risks of `@Async` event listeners in Spring, and how do you handle failures?
+    intuition: Where does an exception thrown on another thread go?
+    approach: |
+      The publisher has already returned (and its transaction committed), so the exception can't roll anything back; by default it's only logged via `AsyncUncaughtExceptionHandler`. You can end up with a confirmed order but no invoice.
+      Mitigations: configure an exception handler that alerts and records failures; make listeners idempotent and retryable; and for critical work use a durable mechanism (outbox + broker with retries and a dead-letter queue) instead of fire-and-forget threads. Also size the async executor — the default may create unbounded threads or queue indefinitely.
+  - q: How can the Observer pattern cause memory leaks?
+    intuition: Who holds a reference to whom?
+    approach: |
+      The subject holds strong references to its observers. If a short-lived object (a UI view, a per-request handler) subscribes to a long-lived subject and never unsubscribes, it can never be garbage-collected. Fixes: return and call unsubscribe handles, tie subscriptions to a lifecycle (`close()`, component unmount), or use weak references where the platform supports it.
+practice:
+  - task: When an order's status changes, notify an inventory observer (reserve stock on CONFIRMED), an email observer and an analytics observer. Adding an observer must not change the Order or OrderService code.
+    hint: Publish a `StatusChanged(orderId, from, to)` event after saving. Each observer filters for the transitions it cares about.
+    solution: |
+      Define `record OrderStatusChanged(String orderId, Status from, Status to)`. `OrderService.changeStatus()` validates the transition, saves, and publishes the event. `InventoryListener` acts when `to == CONFIRMED`; `EmailListener` and `AnalyticsListener` run `AFTER_COMMIT`. New listeners are new `@Component`s.
+    solutionCode: observer-spring-events
+  - task: Implement an in-memory event bus with `subscribe(type, handler)`, unsubscribe and `publish(event)`, delivering asynchronously.
+    hint: Map event class → handler list. Use a copy-on-write list and an executor; catch exceptions per handler.
+    solution: |
+      Handlers are stored per event class in `CopyOnWriteArrayList`s inside a `ConcurrentHashMap`. `publish` submits one task per handler to an executor and catches exceptions so a failing handler doesn't affect others. `subscribe` returns a `Runnable` that removes the handler.
+    solutionCode: observer-event-bus
+quiz:
+  - q: Which Spring annotation ensures a listener runs only after the publishing transaction commits?
+    options: ['@EventListener', '@TransactionalEventListener(phase = AFTER_COMMIT)', '@Async', '@Transactional(propagation = REQUIRES_NEW)']
+    correct: 1
+    why: '@EventListener runs immediately inside the transaction; @TransactionalEventListener defers to a transaction phase, AFTER_COMMIT by default.'
+  - q: An in-process observer is a poor fit when…
+    options:
+      - Two modules in one service need to react to the same event
+      - Subscribers live in other services and events must survive a crash
+      - You want to avoid a long if/else chain
+      - You need multiple listeners
+    correct: 1
+    why: In-process events aren't durable and can't reach other processes; use a message broker.

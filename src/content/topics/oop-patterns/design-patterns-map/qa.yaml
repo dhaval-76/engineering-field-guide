@@ -1,0 +1,38 @@
+questions:
+  - q: Which design patterns have you used in production, and why?
+    think: Interviewers want problem → pattern → trade-off, not a list of names. Pick two or three you can defend.
+    answer: |
+      Structure each example as *problem, pattern, result, trade-off*:
+      - "Payment methods kept growing an if/else. I moved each into a `PaymentProcessor` **strategy** discovered through a Spring **registry**; adding BNPL became a new class and its tests. Trade-off: one more indirection when reading the flow."
+      - "Order status logic was duplicated across services. We modelled it as a **state machine** with a transition table and conditional updates in SQL to stop concurrent illegal transitions."
+      - "We needed retries and metrics on outbound calls; **decorators** (via Resilience4j) wrapped the client without touching it."
+      Mention what you'd *not* do — e.g. avoiding hand-rolled singletons in favour of container-managed beans.
+  - q: How would you implement undo/redo in a text editor?
+    think: Each edit needs to be reversible. What object could know how to reverse itself?
+    answer: |
+      Use the **Command** pattern: every edit is an object with `execute()` and `undo()` (InsertText, DeleteRange, ApplyStyle). The editor keeps an undo stack and a redo stack: run → push to undo and clear redo; undo → pop, call `undo()`, push to redo; redo → pop redo, `execute()`, push to undo.
+      Refinements: merge consecutive keystrokes into one command, cap stack size, and for very large documents consider snapshots (Memento) or a persistent data structure instead of inverse operations.
+followUps:
+  - q: How do Chain of Responsibility and Decorator differ? Both pass calls along.
+    intuition: Does every element always delegate, and can it stop the chain?
+    approach: |
+      A decorator always delegates to the one object it wraps and adds behaviour around the call; the layering is fixed by composition. In a chain of responsibility each handler may **stop** the request (reject with 401, serve from cache) or pass it to the next handler; handlers are an ordered list, often configured externally. HTTP middleware blends both: most middleware decorates, some short-circuits.
+  - q: Template Method vs Strategy — which would you choose?
+    intuition: One uses inheritance, the other composition.
+    approach: |
+      Template Method varies steps through **subclassing** a base class that fixes the algorithm — simple, but behaviour is chosen at compile time and you can only inherit once. Strategy varies behaviour by **injecting** an object or lambda — swappable at runtime, testable in isolation, combinable. Prefer Strategy for business variation; Template Method fits framework base classes where the fixed sequence is the point.
+practice:
+  - task: Model a file system where `size()` works for both a single file and a folder that may contain folders.
+    hint: One interface for both; a folder sums its children.
+    solution: |
+      Composite: `sealed interface FileNode permits FileLeaf, Folder { long sizeBytes(); }`. A leaf returns its own size; a folder returns the sum over children, recursing naturally. Clients call `sizeBytes()` without checking which kind of node they hold.
+    solutionCode: patterns-composite
+quiz:
+  - q: Middleware that checks authentication, then rate limits, then calls the controller — and can return 401 or 429 early — is…
+    options: [Decorator, Chain of Responsibility, Observer, Facade]
+    correct: 1
+    why: Each handler may stop the request or pass it on; that's Chain of Responsibility.
+  - q: Which pattern makes undo/redo straightforward?
+    options: [Command, Singleton, Adapter, Builder]
+    correct: 0
+    why: Commands encapsulate an action and its inverse, so they can be stacked and replayed.

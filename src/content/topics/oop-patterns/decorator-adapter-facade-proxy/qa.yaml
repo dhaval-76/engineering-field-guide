@@ -1,0 +1,49 @@
+questions:
+  - q: A legacy PaymentGateway exposes `initiatePayment(Map<String,String>)`. Your code uses `PaymentProcessor.pay(Payment)`. You can't modify the legacy class. How do you integrate it?
+    think: Two incompatible interfaces, one of which you can't change. Where should the translation live?
+    answer: |
+      Write an **Adapter**: `LegacyGatewayAdapter implements PaymentProcessor`, holding a `LegacyGateway`. `pay(Payment)` maps the payment into the map the gateway expects (field names, units such as paise, currency codes), calls `initiatePayment`, and maps the response codes back into a `PaymentResult`. Vendor-specific exceptions are translated too.
+      The rest of the system only sees `PaymentProcessor`; replacing the gateway later means writing another adapter. If you also needed one simple call over auth, tokenisation, payment and audit services, that would be a **Facade**; if you needed logging/retry around it, that would be **Decorators**.
+  - q: Add rate limiting, logging and retries to a PaymentProcessor without modifying it.
+    think: Three cross-cutting concerns, same interface, combinable.
+    answer: |
+      Three decorators, each implementing `PaymentProcessor` and wrapping another: `RateLimitedProcessor`, `LoggingProcessor`, `RetryingProcessor`. Compose once at startup, e.g. `new RateLimited(new Logging(new Retrying(real, 3)), limiter)`.
+      Decide order deliberately (rate-limit outermost so retries also count against the limit; logging inside retries if you want each attempt logged). Only retry transient errors, and only if the gateway call is idempotent (send an idempotency key) — otherwise retries can double-charge. In Spring, Resilience4j provides these as annotations/decorators.
+followUps:
+  - q: Decorator vs inheritance for adding behaviour — when does each fail?
+    intuition: Count the combinations you'd need as subclasses.
+    approach: |
+      Inheritance fixes behaviour at compile time and multiplies classes: three optional features give up to eight subclasses, and you can't add them to an object you didn't construct. It also couples you to the parent's internals.
+      Decorators fail when the interface is large (every decorator must forward every method — use a base forwarding class), when stacking order is subtle, and when identity matters (`wrapped != original`).
+  - q: What is the difference between a Decorator and a Proxy?
+    intuition: They look identical structurally. Think about intent.
+    approach: |
+      Both implement the same interface and hold the real object. A **decorator** adds responsibilities and is designed to be stacked by the client (`Buffered(GZIP(file))`). A **proxy** controls access — caching, authorisation, lazy creation, remote calls — and is usually transparent to the client, which often doesn't know it isn't talking to the real object (Spring/Hibernate proxies).
+  - q: Why does `@Transactional` sometimes do nothing in Spring?
+    intuition: How does Spring add transaction behaviour to your class?
+    approach: |
+      Spring wraps beans in a proxy that starts/commits the transaction around calls **coming through the proxy**. Calling a `@Transactional` method from another method of the same class uses `this`, bypassing the proxy, so no transaction starts. Also: private or `final` methods can't be proxied, and checked exceptions don't trigger rollback by default. Fix by moving the method to another bean, injecting the proxy of self, or using `TransactionTemplate`.
+practice:
+  - task: 'Build a text formatter with decorators: Plain → Bold → Italic → Underline, producing `<u><i><b>Hello</b></i></u>`.'
+    hint: One interface with `render()`. Each decorator wraps a `Text` and adds its tags around `inner.render()`.
+    solution: |
+      Each decorator is a tiny record implementing `Text`. Wrapping order determines tag nesting: the outermost decorator's tags are outermost in the output.
+    solutionCode: decorator-text
+  - task: A sensor library gives Celsius via `temperatureC()`; a chart library expects `readingF()`. Write the adapter.
+    hint: Implement the target interface, hold the adaptee, convert C → F = C × 9/5 + 32.
+    solution: |
+      `CelsiusToFahrenheit implements FahrenheitSource` and wraps a `CelsiusSensor`. Neither library changes; the conversion lives in exactly one place.
+    solutionCode: adapter-temperature
+quiz:
+  - q: You wrap a vendor SDK so the rest of your code uses your own `EmailSender` interface. Which pattern is this?
+    options: [Decorator, Adapter, Facade, Proxy]
+    correct: 1
+    why: The adapter translates an incompatible interface (the SDK) into the one your code expects.
+  - q: Which pattern presents a NEW simplified interface over MANY components?
+    options: [Decorator, Adapter, Facade, Proxy]
+    correct: 2
+    why: A facade orchestrates several subsystems behind one simpler API.
+  - q: '`new BufferedInputStream(new GZIPInputStream(new FileInputStream(f)))` is an example of…'
+    options: [Adapter, Facade, Decorator, Abstract Factory]
+    correct: 2
+    why: Each layer is an InputStream wrapping an InputStream and adding behaviour (decompression, buffering).

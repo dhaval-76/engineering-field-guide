@@ -1,0 +1,68 @@
+questions:
+  - q: A UserService registers users, sends welcome emails and writes audit logs. Identify the SOLID violations and fix them.
+    think: Count the reasons the class would change. Then ask what happens when you add an SMS welcome message.
+    answer: |
+      - **SRP** — three concerns in one class (persistence, notification, audit). Extract `WelcomeNotifier` and `AuditLog`; `UserService.register()` only coordinates.
+      - **OCP** — adding SMS or WhatsApp means editing `UserService`. Define `interface NotificationChannel { void userRegistered(User u); }` and inject a `List<NotificationChannel>`; a new channel is a new class.
+      - **DIP** — depend on `UserRepository` / `NotificationChannel` abstractions, injected through the constructor, so tests can pass fakes and nothing `new`s up an SMTP client.
+  - q: Refactor `if (user != null && user.getProfile() != null && user.getProfile().getAddress() != null) return city;`. Which principles are involved?
+    think: The null-chain is a symptom of reaching through other objects. Who should know how to find a user's city?
+    answer: |
+      The deeper problem is reaching through three objects (a Law of Demeter smell) and mixing navigation with business logic.
+      - Short term: `Optional.ofNullable(user).map(User::profile).map(Profile::address).map(Address::city).orElse("Unknown")`.
+      - Better: give the owner the behaviour — `user.city()` returns `Optional<String>` — so callers don't depend on the internal structure (encapsulation, SRP).
+      - If several ways of resolving location exist (profile, billing address, IP), put them behind `interface LocationResolver` (DIP/OCP).
+followUps:
+  - q: Give a real Interface Segregation example you would apply in a Spring Boot service.
+    intuition: Look for one interface used by very different clients that each call a different subset of methods.
+    approach: |
+      An `OrderService` interface with `place`, `cancel`, `getById`, `listByCustomer` and `exportCsv`. The reporting module only reads; the checkout flow only writes.
+      Split into `OrderQueries { getById; listByCustomer }` and `OrderCommands { place; cancel }` (and a separate exporter). One class can implement both, but each client depends only on the role it uses — smaller mocks, clearer permissions, and it lines up naturally with CQRS if reads later move to a separate store.
+  - q: How does Open/Closed let you add a payment method without touching existing code?
+    intuition: Variation by type is the job of polymorphism. Where does the decision "which processor?" live?
+    approach: |
+      `interface PaymentProcessor { PaymentMethod method(); PaymentResult pay(Payment p); }` with `CardProcessor`, `UpiProcessor`, `WalletProcessor`.
+      Spring injects `List<PaymentProcessor>`; build a `Map<PaymentMethod, PaymentProcessor>` once. `PaymentService.pay(p)` looks up `processors.get(p.method())`. Adding BNPL = one new `@Component` class; `PaymentService` and its tests stay untouched.
+  - q: Give a concrete Liskov violation from the Java standard library.
+    intuition: Look for a subclass that inherits methods that break its own rules or the parent's.
+    approach: |
+      `java.util.Stack extends Vector`: a stack should only allow push/pop/peek, but it inherits `add(index, e)`, `remove(index)` and `get(index)`, so callers can break LIFO. Another: `Collections.unmodifiableList(...)` returns a `List` whose `add` throws — code written against `List` expecting mutability fails at runtime.
+      Modern Java recommends `ArrayDeque` for stacks (composition / a narrower interface).
+  - q: How does Dependency Inversion differ from Dependency Injection?
+    intuition: One is a design rule about direction of dependencies; the other is how objects get their collaborators.
+    approach: |
+      **DIP** says high-level policy and low-level detail should both depend on an abstraction, typically owned by the high-level module (`OrderService` → `OrderRepository` interface ← `JpaOrderRepository`).
+      **DI** is supplying a dependency from outside (constructor/setter) rather than creating it inside. Spring's container performs DI. You can inject a concrete class (DI without DIP) or look up an implementation from a factory (DIP without DI).
+practice:
+  - task: 'A `Logger` interface has `log`, `logError`, `logToFile`, `logToDb` and `logToSplunk`. Identify the ISP violation and redesign it.'
+    hint: Should a console logger have to know about Splunk? Separate "how a message is written" from "where it goes".
+    solution: |
+      Every implementation and caller is forced to depend on every destination. Introduce one small `LogSink { write(LogEvent) }` contract with `ConsoleSink`, `FileSink`, `SplunkSink`, and a `Logger` that fans out to configured sinks. New destination = new sink; callers only see `info/warn/error`.
+    solutionCode: solid-isp-logger
+  - task: 'Find every problem in: `void processUser(String id) { User u = db.query("SELECT * FROM users WHERE id=" + id); if (u.isAdmin()) { email.sendAdminReport(u.email()); db.execute("UPDATE users SET last_login=NOW() WHERE id=" + id); } }`'
+    hint: There's a security bug as well as design problems. Count responsibilities and hard-wired dependencies.
+    solution: |
+      SQL injection via string concatenation; SRP (query + update + email in one method); OCP (admin-only behaviour as an `if` that will grow); DIP (direct `db`/`email` concretes). Also a bug: `last_login` only updates for admins.
+      Fix: `UserRepository` with parameterised queries, a `LoginService` that always touches `last_login`, and pluggable `LoginHook`s (an `AdminReportHook`) injected as a list.
+    solutionCode: solid-refactor
+quiz:
+  - q: A Discount calculation uses a switch on discount type that is edited for every new campaign. Which principle is being violated?
+    options: [Single Responsibility, Open/Closed, Interface Segregation, Liskov Substitution]
+    correct: 1
+    why: Adding behaviour requires modifying working code. A class (or registered strategy) per discount makes it open for extension, closed for modification.
+  - q: Which is the best description of Dependency Inversion?
+    options:
+      - Always use a DI container
+      - High-level code depends on abstractions; concrete details are supplied from outside
+      - Low-level modules call high-level modules
+      - Every class must have an interface
+    correct: 1
+    why: DIP is about the direction of dependency. Containers and interfaces-everywhere are optional implementation choices.
+  - q: Square extends Rectangle and setWidth() also changes height. What breaks?
+    options:
+      - Encapsulation
+      - Liskov Substitution — code expecting a Rectangle gets wrong results with a Square
+      - Interface Segregation
+      - Nothing; this is fine
+    correct: 1
+    why: Callers relying on Rectangle's contract (width and height vary independently) behave incorrectly when handed a Square.

@@ -1,0 +1,26 @@
+<svg viewBox="0 0 600 120" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <marker id="strategy-state-patterns-d1-st-arr" markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto"><path d="M0,0 L0,6 L7,3 z" fill="var(--d-text)"></path></marker>
+  </defs>
+  <rect x="8" y="30" width="108" height="60" rx="8" fill="var(--d-info-soft)" stroke="var(--d-info)" stroke-width="1.5"></rect>
+  <text x="62" y="56" text-anchor="middle" font-family="var(--font-mono)" font-size="11" fill="var(--d-info)" font-weight="600">IDLE</text>
+  <text x="62" y="74" text-anchor="middle" font-family="var(--font-sans)" font-size="10" fill="var(--d-muted)">insertCoin() ok</text>
+  <path d="M116,60 L156,60" stroke="var(--d-text)" stroke-width="1.5" marker-end="url(#strategy-state-patterns-d1-st-arr)"></path>
+  <text x="136" y="54" text-anchor="middle" font-family="var(--font-mono)" font-size="9" fill="var(--d-text)">coin in</text>
+  <rect x="158" y="30" width="120" height="60" rx="8" fill="var(--d-ok-soft)" stroke="var(--d-ok)" stroke-width="1.5"></rect>
+  <text x="218" y="56" text-anchor="middle" font-family="var(--font-mono)" font-size="10" fill="var(--d-ok)" font-weight="600">HAS_COIN</text>
+  <text x="218" y="74" text-anchor="middle" font-family="var(--font-sans)" font-size="10" fill="var(--d-muted)">select product ok</text>
+  <path d="M278,60 L318,60" stroke="var(--d-text)" stroke-width="1.5" marker-end="url(#strategy-state-patterns-d1-st-arr)"></path>
+  <text x="298" y="54" text-anchor="middle" font-family="var(--font-mono)" font-size="9" fill="var(--d-text)">selected</text>
+  <rect x="320" y="30" width="120" height="60" rx="8" fill="var(--d-warn-soft)" stroke="var(--d-warn)" stroke-width="1.5"></rect>
+  <text x="380" y="56" text-anchor="middle" font-family="var(--font-mono)" font-size="10" fill="var(--d-warn)" font-weight="600">DISPENSING</text>
+  <text x="380" y="74" text-anchor="middle" font-family="var(--font-sans)" font-size="10" fill="var(--d-muted)">dispense() running</text>
+  <path d="M440,60 L480,60" stroke="var(--d-text)" stroke-width="1.5" marker-end="url(#strategy-state-patterns-d1-st-arr)"></path>
+  <text x="460" y="54" text-anchor="middle" font-family="var(--font-mono)" font-size="9" fill="var(--d-text)">done</text>
+  <rect x="482" y="30" width="108" height="60" rx="8" fill="var(--d-bad-soft)" stroke="var(--d-bad)" stroke-width="1.5"></rect>
+  <text x="536" y="56" text-anchor="middle" font-family="var(--font-mono)" font-size="11" fill="var(--d-bad)" font-weight="600">IDLE</text>
+  <text x="536" y="74" text-anchor="middle" font-family="var(--font-sans)" font-size="10" fill="var(--d-muted)">(back to start)</text>
+  <!-- return arrow -->
+  <path d="M62,90 L62,108 L536,108 L536,90" stroke="var(--d-text)" stroke-width="1" stroke-dasharray="3,2" fill="none" marker-end="url(#strategy-state-patterns-d1-st-arr)"></path>
+  <text x="300" y="118" text-anchor="middle" font-family="var(--font-mono)" font-size="9" fill="var(--d-muted)">coin return / cancel</text>
+</svg>

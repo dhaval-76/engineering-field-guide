@@ -16,7 +16,7 @@ import { createRequire } from 'node:module';
 import { basename, dirname, join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
-const RENDERER_VERSION = '3';
+const RENDERER_VERSION = '5';
 const root = new URL('../', import.meta.url).pathname;
 const args = new Set(process.argv.slice(2));
 
@@ -117,9 +117,12 @@ async function main() {
       console.error(`✗ ${p.file}\n  ${String(result.reason)}`);
       continue;
     }
-    const svg = result.value.svg
-      .replace(new RegExp(`id="${result.value.id}"`, 'g'), `id="mmd-${p.id}"`)
-      .replaceAll(`#${result.value.id}`, `#mmd-${p.id}`);
+    // Rename the generated id everywhere (root id, marker ids and their url(#…) references).
+    const oldId = result.value.id.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const svg = result.value.svg.replace(
+      new RegExp(`(?<![\\w-])${oldId}(?!\\d)`, 'g'),
+      `mmd-${p.id}`,
+    );
     await writeFile(p.out, postProcess(svg, p.id, p.hash));
     console.log(`✓ ${join(basename(dirname(dirname(p.file))), 'diagrams', `${p.id}.svg`)}`);
   }

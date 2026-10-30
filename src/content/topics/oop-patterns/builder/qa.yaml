@@ -1,0 +1,45 @@
+questions:
+  - q: "You see `new Pizza(\"large\", \"thin\", \"mozzarella\", true, false, true, false, \"pepperoni\")`. What's wrong, and how would you refactor it?"
+    think: Read the call site as a reviewer. Can you tell what the fifth argument means? What stops someone swapping two booleans?
+    answer: |
+      It's a telescoping/positional constructor: unreadable, and swapping two booleans or strings still compiles. Optional values force `null`s or more overloads.
+      Refactor with a builder: required `size` in `Pizza.builder(Size.LARGE)`, then `.crust(THIN).cheese(MOZZARELLA).topping("pepperoni").extraCheese().build()`. Use enums instead of strings, give optional fields defaults, validate cross-field rules in `build()` (e.g. stuffed crust only on large), and make `Pizza` immutable (final fields or a record).
+followUps:
+  - q: What's the difference between writing a builder by hand and using Lombok's @Builder? When does Lombok fall short?
+    intuition: Lombok generates the boilerplate, but what does it not know about your domain?
+    approach: |
+      `@Builder` generates the builder class and fluent setters. Gaps: every field is optional unless you add `@NonNull`; it can't express cross-field validation unless you write a custom `build()`; the product is mutable unless combined with `@Value`; and it can't enforce step order.
+      Use it for DTOs and test data; hand-write (or use a record's compact constructor) where invariants matter.
+  - q: What is a step builder, and when is it worth the extra code?
+    intuition: How could the type system stop you calling build() before setting a required field?
+    approach: |
+      Each step returns an interface exposing only the next legal method: `UrlStep → MethodStep → (BodyStep) → BuildStep`. Calling `body()` after `get()` or `build()` before `url()` doesn't compile.
+      Worth it for widely used public APIs (SDKs, internal platform libraries) where misuse is common and runtime failures are costly. For internal domain objects, a regular builder that validates in `build()` is enough.
+  - q: Why is the builder's product usually immutable, and why does that matter?
+    intuition: Think about threads and about invariants checked once in build().
+    approach: |
+      Validation in `build()` only means something if the object can't be changed afterwards. Immutable objects can be shared between threads without locks, safely used as map keys, and cached. Make fields `final`, avoid setters, and defensively copy mutable inputs (`List.copyOf`, `Map.copyOf`).
+practice:
+  - task: 'Build a fluent query builder: `select("name","age").from("users").where("age > ?", 18).orderBy("name").limit(10).build()`. `from()` is required.'
+    hint: Accumulate pieces in lists; assemble in `build()`. Keep values as bound parameters rather than concatenating them into SQL.
+    solution: |
+      Store columns, table, conditions and parameter values separately. `build()` throws if no table was set, joins conditions with `AND`, and returns both the SQL with `?` placeholders and the parameter list for the JDBC driver to bind.
+    solutionCode: builder-query
+  - task: Design a builder for an HTTP request where url and method are required, headers/body/timeout (default 5 s) are optional, and a body is only allowed for POST and PUT.
+    hint: Either validate in `build()`, or use a step builder so GET never exposes `body()`.
+    solution: |
+      The simple version validates in `build()` and throws `IllegalStateException("GET cannot have a body")`. The step-builder version makes the illegal call impossible: `get()` returns `BuildStep` (no `body`), while `post()`/`put()` return `BodyStep`.
+    solutionCode: builder-step
+quiz:
+  - q: Where should a builder check that "stuffed crust requires a large pizza"?
+    options: [In the crust() setter, In build(), In the caller, Nowhere — that's business logic]
+    correct: 1
+    why: Cross-field rules can only be checked once all fields are known, which is in build() (or the product's constructor).
+  - q: What problem does a step builder solve that a regular builder doesn't?
+    options:
+      - Immutability
+      - Compile-time enforcement of required steps and their order
+      - Thread safety
+      - Fewer classes
+    correct: 1
+    why: Each step returns an interface exposing only the next legal call, so misuse doesn't compile.

@@ -1,0 +1,93 @@
+---
+title: Factory, Factory Method & Abstract Factory
+summary: Move "which concrete class do I create?" out of the code that uses the object — from a simple factory function to Factory Method and Abstract Factory, and the self-registering factories you'll write with Spring.
+track: oop-patterns
+order: 32
+tags: [creational, factory, factory-method, abstract-factory, registry]
+aliases: [factory pattern, simple factory, factory method pattern, abstract factory pattern, registry pattern]
+prerequisites: [oop-patterns/oop-pillars]
+related: [oop-patterns/solid, oop-patterns/strategy-and-state, oop-patterns/builder]
+quickRef:
+  points:
+    - '**Simple factory** — one function/method maps a parameter (enum, string) to a concrete class. Most common in practice.'
+    - '**Factory Method** (GoF) — a base class runs a workflow and lets subclasses override the one step that *creates* an object.'
+    - '**Abstract Factory** (GoF) — one object creates a **family** of related products that must be used together (AWS vs local infra).'
+    - '**Registry** — implementations register themselves (Spring injects `List<Impl>` → `Map<Key, Impl>`): adding a type touches no existing file.'
+    - Callers depend on the interface and never write `new ConcreteThing()`.
+  useWhen: The concrete class depends on input or environment, creation is non-trivial, or new variants are added regularly.
+lastReviewed: 2026-10-30
+---
+
+## Why it matters
+
+`new EmailNotifier()` scattered through business code welds that code to one implementation. Every new channel means hunting down and editing every place that decides which class to create, and testing that code means really sending email.
+
+A factory puts the **decision about which class to instantiate** in one place. Callers ask for "a notifier for this channel" and get back something that implements `Notifier`. This keeps callers open for extension (SOLID's O) and lets them depend on an abstraction (the D).
+
+<Callout type="analogy">
+At a restaurant you order "veg burger". You don't walk into the kitchen, pick a chef and choose an oven. The kitchen decides how to make it; you get a burger. If the kitchen changes its supplier tomorrow, your order doesn't change.
+</Callout>
+
+<Diagram id="factory-kinds" caption="Three different things people call 'factory': a function that picks a class, a subclass hook inside a workflow, and an object that builds a matching family." />
+
+## Simple factory
+
+A static method or function that takes a key and returns the right implementation. It isn't one of the original Gang of Four patterns, but it's what you'll write most often.
+
+<CodeTabs id="factory-simple" title="One place knows the concrete classes" />
+
+Using a `switch` over an **enum** with no `default` makes the Java compiler complain when someone adds a new enum constant and forgets the factory — a cheap safety net.
+
+## Factory Method
+
+Factory Method is about **inheritance**. A base class implements an algorithm and declares an abstract "create" step; each subclass decides what gets created.
+
+<CodeTabs id="factory-method" title="Exporters share the workflow; subclasses choose the writer" />
+
+You see it in frameworks: a base class you extend overrides `createSomething()` to plug in your own piece. It's closely related to the Template Method pattern — Factory Method is a template method whose variable step is object creation.
+
+## Abstract Factory
+
+Abstract Factory creates a **family** of related objects that must be consistent with each other: all AWS services or all local stand-ins; all Material-style widgets or all native ones. Swapping the factory swaps the whole family at once, so you can't accidentally mix an S3 blob store with an in-memory queue.
+
+<CodeTabs id="factory-abstract" title="Pick the infrastructure family once at startup" />
+
+| | Simple factory | Factory Method | Abstract Factory |
+|---|---|---|---|
+| Mechanism | A function with a `switch`/map | Subclass overrides a creation hook | An object with several `create…()` methods |
+| Creates | One product | One product | A family of related products |
+| Varies by | A parameter | Which subclass you use | Which factory object you pass in |
+| Typical use | Choosing a handler from an enum | Framework extension points | Cloud/environment abstraction, UI themes, test doubles |
+
+## Registry: the factory that doesn't need editing
+
+A simple factory still has a `switch` someone must edit. A **registry** removes even that: each implementation declares what it handles, and the factory builds a lookup map from whatever is registered. With Spring, the container finds every implementation for you.
+
+<CodeTabs id="factory-registry" title="Self-registering processors" />
+
+This is the shape behind most real "add a new type without changing anything" designs: payment methods, notification channels, file importers, discount rules.
+
+<Callout type="tip" title="Factory or Strategy?">
+They often appear together. The **factory** decides *which* object to create; the object it returns is often a **strategy** — an interchangeable algorithm behind an interface. "Look up the payment processor for this method, then call `pay()`" is a registry/factory handing back a strategy.
+</Callout>
+
+## In production
+
+<Pitfalls>
+
+- **A factory that only wraps `new`.** If there's exactly one implementation and no creation logic, a factory is noise. Add it when there's a real choice or real setup.
+- **`default -> null` in the switch.** Returning null for an unknown key moves the failure to some later NullPointerException. Throw a clear exception.
+- **Stringly-typed keys.** `create("emial")` compiles. Prefer enums or typed keys.
+- **Duplicate registrations.** Two plug-ins claiming the same key should fail at startup — `Collectors.toUnmodifiableMap` does this — not silently overwrite each other.
+- **Static factories with hidden dependencies.** If created objects need configuration or clients, inject the factory (or let the container build them) instead of reaching for globals.
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- Factories centralise the choice of concrete class so callers depend only on interfaces.
+- Simple factory = a function; Factory Method = a subclass hook in a workflow; Abstract Factory = a family of matching products.
+- A registry (`List<Impl>` → `Map<Key, Impl>`) makes new variants a pure addition.
+- Factories usually hand back strategies — know how the two fit together.
+
+</KeyTakeaways>

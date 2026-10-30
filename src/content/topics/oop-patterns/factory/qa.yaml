@@ -1,0 +1,49 @@
+questions:
+  - q: OrderService has `if (type == ONLINE) new OnlineOrderProcessor() else if (type == IN_STORE) …`. Adding a B2B type requires editing it. How do you fix this?
+    think: Creation logic is scattered inside a consumer. Where should "which class?" live, and can adding a type avoid edits entirely?
+    answer: |
+      1. Introduce `interface OrderProcessor { OrderType supports(); void process(Order o); }`.
+      2. **Simple factory** — move the `switch` into `OrderProcessors.forType(type)`: one place to edit instead of many.
+      3. **Registry** (best with Spring) — make each processor a `@Component`; inject `List<OrderProcessor>` and build `Map<OrderType, OrderProcessor>` in the constructor. `OrderService` calls `registry.get(order.type()).process(order)`.
+      Adding B2B = a new `B2BOrderProcessor` class. No existing file changes, and duplicate registrations fail fast at startup.
+followUps:
+  - q: What is the difference between Factory Method and Abstract Factory?
+    intuition: Count the products. Factory Method varies one product via subclassing; Abstract Factory creates several related products via one object.
+    approach: |
+      **Factory Method**: an abstract `createWriter()` inside a base class's workflow; `CsvExporter` and `PdfExporter` override it. One product, chosen by subclass.
+      **Abstract Factory**: `interface StorageFactory { BlobStore blobStore(); Queue queue(); SecretStore secrets(); }` with `AwsFactory` and `LocalFactory`. Several products that must be consistent; chosen by which factory object you pass in.
+      Spring analogy: a `@Configuration` class with several `@Bean` methods that build a consistent set (DataSource, TransactionManager, JdbcTemplate) behaves like an abstract factory.
+  - q: How does Spring let you build a factory without a switch statement?
+    intuition: The container already knows every bean that implements an interface.
+    approach: |
+      Inject `List<PaymentProcessor>` (or `Map<String, PaymentProcessor>` keyed by bean name). Each implementation exposes the key it supports. In the constructor: `all.stream().collect(toUnmodifiableMap(PaymentProcessor::supports, p -> p))`.
+      New processors are discovered automatically. Alternatives: `@Qualifier("upi")` for a fixed choice at an injection point, or `ObjectProvider<T>` for lazy/prototype creation.
+  - q: Isn't a factory just a fancy `new`? When is it over-engineering?
+    intuition: What does the factory buy you if there is only ever one implementation?
+    approach: |
+      With one implementation and trivial construction it is over-engineering — call the constructor (or let DI inject it).
+      Factories pay off when: the class depends on runtime input or environment; construction needs setup (clients, config, validation) that callers shouldn't repeat; or variants are added regularly and you want additions not edits.
+practice:
+  - task: Build a payment processor factory for UPI, card and net banking, then add a wallet. How many existing lines did you change?
+    hint: Start from the interface. Let each processor report the method it supports and build a map from a list.
+    solution: |
+      With a registry, adding `WalletProcessor` changes **zero** existing lines — the new class registers itself. With a simple `switch` factory it's one new case. Either way callers never change.
+    solutionCode: factory-registry
+  - task: Implement a VehicleFactory that creates Car, Bike or Truck from a `VehicleType` and a licence plate, where adding Scooter needs no change to the creation method.
+    hint: Map each enum value to a constructor reference (`Function<String, Vehicle>`).
+    solution: |
+      Keep an `EnumMap<VehicleType, Function<String, Vehicle>>` of constructor references; `create` looks up and applies. Adding Scooter is one enum constant and one map entry (or a self-registering component). Unknown types throw with a clear message instead of returning null.
+    solutionCode: factory-vehicle-registry
+quiz:
+  - q: Which pattern lets you swap all cloud services (blob store, queue, secrets) to local stand-ins with one change?
+    options: [Simple factory, Factory Method, Abstract Factory, Singleton]
+    correct: 2
+    why: Abstract Factory creates a consistent family of related products; swapping the factory swaps the whole family.
+  - q: In Factory Method, who decides which concrete product is created?
+    options:
+      - The caller, via a parameter
+      - A subclass, by overriding the creation method
+      - A global registry
+      - The JVM
+    correct: 1
+    why: The base class defines the workflow and an abstract creation step; each subclass overrides that step.

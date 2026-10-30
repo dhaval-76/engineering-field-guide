@@ -1,0 +1,126 @@
+---
+title: SOLID Principles
+summary: Five rules that keep object-oriented code easy to change — what each one means, the smell that reveals a violation, and how to fix it without over-engineering.
+track: oop-patterns
+order: 20
+tags: [solid, srp, ocp, lsp, isp, dip, design-principles]
+aliases: [single responsibility, open closed, liskov substitution, interface segregation, dependency inversion]
+prerequisites: [oop-patterns/oop-pillars]
+quickRef:
+  points:
+    - '**S**ingle Responsibility — a class should have one reason to change (one actor/concern it serves).'
+    - '**O**pen/Closed — add behaviour by adding code (new class), not by editing working code.'
+    - '**L**iskov Substitution — a subtype must work anywhere its parent is expected, with no surprises.'
+    - '**I**nterface Segregation — clients shouldn''t depend on methods they don''t use; prefer small role interfaces.'
+    - '**D**ependency Inversion — business logic depends on abstractions; concrete details are injected from outside.'
+  useWhen: Reviewing a class that is hard to change or test, or justifying a design in an LLD interview.
+lastReviewed: 2026-10-30
+---
+
+## Why it matters
+
+Most software cost is spent changing code that already works. SOLID is a set of heuristics for keeping those changes **local**: a new requirement should mean a new class or a small edit in one place — not touching eight files and breaking three tests.
+
+A practical way to use SOLID is the **"add feature X" test**. Take a working design and ask: *what would I have to edit to add motorbike spots / a WhatsApp channel / a loyalty discount?* If the answer is "one new class", the design is in good shape. If it's "every `switch` statement in the codebase", one of these principles is being violated.
+
+<Diagram id="solid-overview" caption="The five principles at a glance." />
+
+<Callout type="warning" title="Heuristics, not laws">
+Applied blindly, SOLID produces an interface for every class and five layers of indirection. Apply a principle where change is **likely** — business rules, integrations, anything with variants — and keep simple things simple.
+</Callout>
+
+## S — Single Responsibility
+
+> A class should have one, and only one, reason to change.
+
+"Reason to change" means a **source** of change — a person, team or concern. A `UserService` that saves users, sends welcome emails and writes audit logs changes when the schema changes, when the email provider changes, and when the audit format changes. Those are three different people asking for edits in one file.
+
+<CodeTabs id="solid-srp" title="Splitting a class with three reasons to change" />
+
+**Smell:** the class name or description needs "and"; tests for one feature need mocks for unrelated ones; merge conflicts between people working on unrelated features.
+
+## O — Open/Closed
+
+> Software entities should be open for extension, closed for modification.
+
+Once code works and is tested, adding a variant shouldn't require editing it. Polymorphism (a class per variant) or a registry of strategies lets you add behaviour by adding code.
+
+<Diagram id="solid-ocp" caption="A growing if/else on a type string versus a Discount interface with one class per discount." />
+
+<CodeTabs id="solid-ocp" title="Discounts: from an if-chain to pluggable strategies" />
+
+**Smell:** a `switch`/`if` on a type that grows with every feature, often duplicated in several places.
+
+<Callout type="tip" title="When an if/else is fine">
+When the set of cases is genuinely fixed — the three states of a traffic light, HTTP methods you support — a `switch` is clearer than a class hierarchy. OCP matters where new variants are a realistic future.
+</Callout>
+
+## L — Liskov Substitution
+
+> If S is a subtype of T, objects of type T may be replaced with objects of type S without breaking the program.
+
+A subtype must keep the parent's **contract**: accept at least the same inputs (don't strengthen preconditions), deliver at least the same guarantees (don't weaken postconditions), and not throw where the parent wouldn't.
+
+<CodeTabs id="solid-lsp" title="Penguin can't fly; Square isn't a mutable Rectangle" />
+
+**Smell:** overrides that throw `UnsupportedOperationException`, do nothing, or need `instanceof` checks in callers. The fix is almost always to redraw the hierarchy around **capabilities** (a `Flyer` interface) or to use composition.
+
+## I — Interface Segregation
+
+> Clients should not be forced to depend on methods they do not use.
+
+Fat interfaces force implementers to write fake methods and force callers to depend on things they never call — which also makes them harder to fake in tests.
+
+<CodeTabs id="solid-isp" title="Role interfaces instead of one fat contract" />
+
+**SRP vs ISP:** SRP is about why a **class** changes. ISP is about what an **interface** forces on its clients and implementers. They often point at the same fix from different sides.
+
+## D — Dependency Inversion
+
+> High-level modules should not depend on low-level modules. Both should depend on abstractions.
+
+Business rules (high level) shouldn't `new` up an SMTP client (low level). Instead, the business code declares the abstraction it needs (`MessageSender`), and the concrete implementation is passed in from outside — at application startup, or by a DI container such as Spring.
+
+<CodeTabs id="solid-dip" title="Inject the dependency; decide the implementation at the edge" />
+
+| Term | What it is |
+|---|---|
+| **Dependency Inversion (DIP)** | The *principle*: depend on abstractions. |
+| **Dependency Injection (DI)** | The *technique*: pass dependencies in (constructor, setter) instead of creating them. |
+| **IoC container** (Spring, Guice, NestJS) | The *tool*: creates objects and injects their dependencies for you. |
+
+You can do DI without a container (plain constructors in `main`), and DI without DIP (injecting a concrete class) — that still helps testing but loses the decoupling.
+
+## Spotting violations quickly
+
+| Principle | What you see in code |
+|---|---|
+| SRP | Class description needs "and"; one class imports DB, HTTP and email clients |
+| OCP | `switch`/`if` on a type that grows; the same switch copied in several places |
+| LSP | Overrides that throw or no-op; callers checking `instanceof` |
+| ISP | Implementations full of `throw new UnsupportedOperationException()` |
+| DIP | `new ConcreteThing()` deep inside business methods; untestable without a real database |
+
+## Putting it together
+
+A realistic refactor touches several principles at once:
+
+<CodeTabs id="solid-refactor" title="One method, four violations — and the fixed design" />
+
+<Pitfalls>
+
+- **Interface for everything.** An interface with exactly one implementation that will never have another adds indirection with no benefit. Introduce it when a second implementation or a test seam is needed.
+- **Splitting by technical layer only.** `UserController/UserService/UserRepository` can still violate SRP if `UserService` holds every user-related rule. Split by *reason to change*.
+- **Treating LSP as "don't override".** Overriding is fine; changing the contract is not.
+- **Calling `@Autowired` field injection "DIP".** Field injection hides dependencies; prefer constructor injection so they're explicit and the object is valid once constructed.
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- SOLID keeps changes local; use the "add feature X" test to judge a design.
+- SRP: one reason to change. OCP: extend by adding code. LSP: subtypes keep the contract. ISP: small interfaces. DIP: depend on abstractions and inject details.
+- DIP is the principle, DI the technique, the container the tool.
+- Apply where change is likely; don't build abstractions for things that won't vary.
+
+</KeyTakeaways>

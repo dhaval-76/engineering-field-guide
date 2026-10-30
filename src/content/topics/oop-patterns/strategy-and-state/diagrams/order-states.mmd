@@ -1,0 +1,10 @@
+stateDiagram-v2
+  direction LR
+  [*] --> Placed
+  Placed --> Paid: pay()
+  Placed --> Cancelled: cancel()
+  Paid --> Shipped: ship()
+  Paid --> Cancelled: cancel() + refund
+  Shipped --> Delivered: deliver()
+  Delivered --> [*]
+  Cancelled --> [*]

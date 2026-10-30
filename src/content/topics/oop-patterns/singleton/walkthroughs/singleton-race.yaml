@@ -1,0 +1,61 @@
+title: How the naive getInstance() creates two objects
+frames:
+  - caption: Two request threads call `getInstance()` at almost the same moment. The static field is still `null`.
+    panels:
+      - kind: stack
+        label: Thread A
+        items: [{ v: 'getInstance()', tone: info }]
+      - kind: stack
+        label: Thread B
+        items: [{ v: 'getInstance()', tone: info }]
+      - kind: kv
+        label: Shared memory
+        pairs: [[instance, { v: 'null', tone: muted }]]
+  - caption: Thread A checks `instance == null` — true — and is about to construct.
+    panels:
+      - kind: stack
+        label: Thread A
+        items: [{ v: 'if (instance == null) ✓', tone: accent }]
+      - kind: stack
+        label: Thread B
+        items: ['getInstance()']
+      - kind: kv
+        label: Shared memory
+        pairs: [[instance, 'null']]
+  - caption: The scheduler pauses A. Thread B runs the same check and **also** sees `null`.
+    panels:
+      - kind: stack
+        label: Thread A
+        items: [{ v: 'paused', tone: muted }]
+      - kind: stack
+        label: Thread B
+        items: [{ v: 'if (instance == null) ✓', tone: warn }]
+      - kind: kv
+        label: Shared memory
+        pairs: [[instance, 'null']]
+  - caption: B constructs object **#1** and stores it.
+    panels:
+      - kind: stack
+        label: Thread A
+        items: [{ v: 'paused', tone: muted }]
+      - kind: stack
+        label: Thread B
+        items: [{ v: 'new Registry() → #1', tone: accent }]
+      - kind: kv
+        label: Shared memory
+        pairs: [[instance, { v: '#1', tone: accent }]]
+  - caption: A resumes. It already passed the check, so it constructs object **#2** and overwrites the field. B is holding #1, A and every later caller get #2 — two "singletons", each with its own state.
+    panels:
+      - kind: stack
+        label: Thread A
+        items: [{ v: 'new Registry() → #2', tone: bad }]
+      - kind: stack
+        label: Thread B
+        items: [{ v: 'returns #1', tone: warn }]
+      - kind: kv
+        label: Shared memory
+        pairs: [[instance, { v: '#2', tone: bad }]]
+  - caption: 'The fixes all make "check and create" happen once: a lock with a re-check (double-checked locking + `volatile`), or letting the JVM do it during class initialisation (holder idiom / enum).'
+    panels:
+      - kind: note
+        text: Class initialisation in the JVM runs exactly once and is synchronised by the JVM itself — that's why the holder idiom needs no explicit locks.

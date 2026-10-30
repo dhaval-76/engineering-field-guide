@@ -1,0 +1,18 @@
+<svg viewBox="0 0 660 180" xmlns="http://www.w3.org/2000/svg">
+  <rect x="4" y="4" width="308" height="152" rx="8" fill="var(--d-bad-soft)" stroke="var(--d-bad)" stroke-width="1.5" stroke-dasharray="5,3"></rect>
+  <text x="14" y="24" font-family="var(--font-mono)" font-size="10" fill="var(--d-bad)" font-weight="600">✗ VIOLATES OCP</text>
+  <text x="14" y="46" font-family="var(--font-mono)" font-size="11" fill="var(--d-text)">if (type.equals("FLAT"))    { ... }</text>
+  <text x="14" y="64" font-family="var(--font-mono)" font-size="11" fill="var(--d-text)">if (type.equals("PERCENT")) { ... }</text>
+  <text x="14" y="82" font-family="var(--font-mono)" font-size="11" fill="var(--d-text)">if (type.equals("SEASONAL")){ ... }</text>
+  <text x="14" y="100" font-family="var(--font-mono)" font-size="11" fill="var(--d-text)">// adding LOYALTY means editing here</text>
+  <text x="14" y="118" font-family="var(--font-mono)" font-size="11" fill="var(--d-text)">// risk of breaking existing logic</text>
+  <text x="320" y="100" text-anchor="middle" font-family="var(--font-mono)" font-size="20" fill="var(--d-muted)">→</text>
+  <rect x="340" y="4" width="316" height="152" rx="8" fill="var(--d-ok-soft)" stroke="var(--d-ok)" stroke-width="1.5" stroke-dasharray="5,3"></rect>
+  <text x="350" y="24" font-family="var(--font-mono)" font-size="10" fill="var(--d-ok)" font-weight="600">✓ FOLLOWS OCP</text>
+  <text x="350" y="46" font-family="var(--font-mono)" font-size="11" fill="var(--d-text)">interface Discount { double apply(); }</text>
+  <text x="350" y="64" font-family="var(--font-mono)" font-size="11" fill="var(--d-text)">class FlatDiscount implements Discount {}</text>
+  <text x="350" y="82" font-family="var(--font-mono)" font-size="11" fill="var(--d-text)">class PercentDiscount implements Discount {}</text>
+  <text x="350" y="102" font-family="var(--font-mono)" font-size="11" fill="var(--d-ok)" font-weight="600">// add LOYALTY?</text>
+  <text x="350" y="120" font-family="var(--font-mono)" font-size="11" fill="var(--d-text)">class LoyaltyDiscount implements Discount {}</text>
+  <text x="350" y="140" font-family="var(--font-mono)" font-size="9" fill="var(--d-ok)">// zero edits to existing classes</text>
+</svg>

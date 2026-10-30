@@ -84,7 +84,7 @@
     "draft": "drafts/w3/03-decorator-facade-adapter",
     "panelId": "w3-p2",
     "title": "Decorator + Facade + Adapter",
-    "targets": ["oop-patterns/decorator-facade-adapter"],
+    "targets": ["oop-patterns/decorator-adapter-facade-proxy"],
     "questions": 1,
     "followUps": 2,
     "practice": 2

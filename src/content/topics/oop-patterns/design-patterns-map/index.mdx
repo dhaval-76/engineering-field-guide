@@ -1,0 +1,105 @@
+---
+title: Design Patterns — A Practical Map
+summary: What design patterns are, the three families, which ones you'll actually use, and how to pick one from the problem in front of you — including Command, Chain of Responsibility, Template Method and Composite.
+track: oop-patterns
+order: 30
+tags: [design-patterns, gof, creational, structural, behavioral]
+aliases: [gang of four, gof patterns, list of design patterns, command pattern, chain of responsibility, template method, composite pattern]
+prerequisites: [oop-patterns/oop-pillars, oop-patterns/solid]
+related: [oop-patterns/singleton, oop-patterns/factory, oop-patterns/builder, oop-patterns/observer, oop-patterns/strategy-and-state, oop-patterns/decorator-adapter-facade-proxy]
+quickRef:
+  points:
+    - A pattern is a **named, reusable solution** to a recurring design problem — shared vocabulary, not a library.
+    - '**Creational** — how objects get made (Factory, Builder, Singleton). **Structural** — how objects are composed (Decorator, Adapter, Facade, Proxy, Composite). **Behavioural** — how objects collaborate (Strategy, State, Observer, Command, Chain of Responsibility, Template Method).'
+    - Start from the **problem** ("I need undo", "many ways to price") and the pattern follows; never start from a pattern.
+    - Most patterns are applications of "program to an interface" and "prefer composition".
+  useWhen: Naming a design in a review or interview, or looking for a proven shape for a recurring problem.
+lastReviewed: 2026-10-30
+---
+
+## Why it matters
+
+Design patterns give names to shapes of code that keep recurring. Saying "wrap the client in a retrying decorator" or "orders are a state machine" communicates a whole design in a sentence, and the pattern carries known trade-offs with it.
+
+They come from the 1994 *Gang of Four* book, which catalogued 23 patterns for object-oriented languages. Some are now built into languages (Iterator → `for…of`, Strategy → lambdas); a handful dominate day-to-day backend work and LLD interviews.
+
+<Callout type="warning" title="Problem first">
+Patterns are answers. Reaching for one before you have the question produces needless interfaces, factories for single classes and singletons everywhere. Describe the force first — "this varies", "this must be undoable", "callers shouldn't know about this vendor" — then name the pattern that resolves it.
+</Callout>
+
+## Find the pattern from the problem
+
+| You need to… | Reach for | Read more |
+|---|---|---|
+| Pick one of several implementations from input/config | Factory / registry | [Factory](../factory/) |
+| Build an object with many optional parts and validation | Builder | [Builder](../builder/) |
+| Guarantee one shared instance | Singleton (prefer a DI-managed bean) | [Singleton](../singleton/) |
+| Swap an algorithm (pricing, retry, sorting) | Strategy | [Strategy and State](../strategy-and-state/) |
+| Change behaviour as an object moves through a lifecycle | State / state machine | [Strategy and State](../strategy-and-state/) |
+| Let several parts react to an event without coupling | Observer / events | [Observer](../observer/) |
+| Add logging/retry/metrics without editing a class | Decorator | [Decorator & co.](../decorator-adapter-facade-proxy/) |
+| Use a vendor/legacy API through your own interface | Adapter | [Decorator & co.](../decorator-adapter-facade-proxy/) |
+| Give callers one call over many subsystems | Facade | [Decorator & co.](../decorator-adapter-facade-proxy/) |
+| Cache, authorise or lazy-load transparently | Proxy | [Decorator & co.](../decorator-adapter-facade-proxy/) |
+| Support undo/redo, queue or log actions | Command | below |
+| Pass a request through a series of checks | Chain of Responsibility | below |
+| Fix the steps of an algorithm but vary some | Template Method | below |
+| Treat single items and groups the same way | Composite | below |
+
+## Four more you'll meet often
+
+### Command
+
+Turn an action into an object with `execute()` (and often `undo()`). Once actions are objects you can put them on a stack for undo/redo, in a queue for later execution, or in a log to replay.
+
+<CodeTabs id="patterns-command" title="Undo/redo with command objects" />
+
+### Chain of Responsibility
+
+A request passes through a sequence of handlers; each can handle it, reject it, or pass it on. This is how HTTP middleware, servlet filters and Spring Security's filter chain work.
+
+<CodeTabs id="patterns-chain" title="Authentication and rate limiting as a handler chain" />
+
+### Template Method
+
+A base class defines the fixed sequence of steps in an algorithm and lets subclasses supply some of the steps. Frameworks use it heavily (`JdbcTemplate`, test lifecycle hooks). Composition (passing in strategies) is often a more flexible alternative.
+
+<CodeTabs id="patterns-template" title="An import pipeline with fixed steps" />
+
+### Composite
+
+Individual objects and groups of objects share one interface, so you can treat a tree uniformly — file systems, UI component trees, organisation charts, nested discount bundles.
+
+<CodeTabs id="patterns-composite" title="Folder size is the sum of its children, recursively" />
+
+## The rest of the catalogue, briefly
+
+| Pattern | Family | One-line idea | Where you'll see it |
+|---|---|---|---|
+| Abstract Factory | Creational | Create families of matching objects | Cloud/infra abstraction, UI themes |
+| Prototype | Creational | Create by copying an existing object | `clone()`, copying configured templates |
+| Bridge | Structural | Separate an abstraction from its implementation so both vary | JDBC API ↔ drivers |
+| Flyweight | Structural | Share immutable parts of many small objects | `Integer.valueOf` cache, glyphs in editors |
+| Iterator | Behavioural | Traverse without exposing internals | Built into every language's `for` loop |
+| Mediator | Behavioural | Objects talk via a central coordinator | Chat rooms, UI dialogs, air-traffic control |
+| Memento | Behavioural | Capture and restore an object's state | Undo via snapshots |
+| Visitor | Behavioural | Add operations over a fixed set of types | Compilers/AST processing; Java `switch` on sealed types often replaces it |
+| Interpreter | Behavioural | Represent a small language as objects | Rule engines, expression evaluators |
+
+## Patterns beyond the classic catalogue
+
+Backend systems lean on patterns that came after the GoF book; each has its own topic in this guide:
+
+- **Dependency Injection / Inversion of Control** — the container builds and wires objects (Spring).
+- **Repository** — a collection-like interface over persistence.
+- **Circuit breaker, retry, bulkhead** — resilience patterns for remote calls.
+- **Saga, outbox, CQRS, event sourcing** — patterns for consistency across services.
+
+<KeyTakeaways>
+
+- Patterns are shared names for recurring solutions; start from the problem, not the pattern.
+- Creational = making objects, structural = composing them, behavioural = how they collaborate.
+- The everyday set: Factory, Builder, Strategy, State, Observer, Decorator, Adapter, Facade, Proxy, Command, Chain of Responsibility, Template Method, Composite.
+- Modern language features (lambdas, sealed types, iterators) make several patterns lighter or built-in.
+
+</KeyTakeaways>

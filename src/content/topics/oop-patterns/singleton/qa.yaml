@@ -1,0 +1,52 @@
+questions:
+  - q: A load test shows two database connection pools, each with half the expected connections, even though the pool is a Singleton. What went wrong and how do you fix it?
+    think: Two instances of a "singleton" almost always means two threads raced through lazy initialisation.
+    answer: |
+      `getInstance()` used unsynchronised lazy initialisation. Two threads both saw `instance == null` and each created a pool; one reference was overwritten but the other thread kept using its own pool.
+      Fixes, in order of preference:
+      - **Holder idiom** — `private static class Holder { static final Pool INSTANCE = new Pool(); }`; JVM class initialisation runs once and is thread-safe.
+      - **Enum** singleton.
+      - **Double-checked locking** with a `volatile` field.
+      Better still, let Spring create the pool as a bean (it already does for `DataSource`) and inject it.
+  - q: What pattern is a class with a private constructor, a `private static volatile` field and a `getInstance()` with two null checks? Why is `volatile` there, and when would you replace it?
+    think: Know what can be reordered in `instance = new X()`.
+    answer: |
+      It's a Singleton using **double-checked locking**. The first check avoids locking on the fast path; the second, inside `synchronized`, prevents two creations.
+      `volatile` is needed because object creation is allocate → construct → publish, and without it the reference can be published before construction completes; another thread skipping the lock could then use a half-built object. `volatile` adds the ordering and visibility guarantees.
+      Replace it with the holder idiom or an enum (simpler, same guarantees), or with a container-managed bean injected through constructors so dependencies are visible and testable.
+followUps:
+  - q: When would you NOT use Singleton? What are its downsides?
+    intuition: Think about what global access does to testability and to reading the code.
+    approach: |
+      Downsides: hidden dependencies (callers reach a global instead of declaring a constructor parameter), hard-to-isolate tests (shared global state, can't inject a fake), global mutable state, multiple instances under multiple class loaders, and "one" meaning one per JVM.
+      Avoid it for anything holding request/user data or anything you need to swap in tests. Use a DI container singleton instead: Spring beans are singleton-scoped by default and injected through constructors.
+  - q: What happens to a Singleton in a deployment with three pods?
+    intuition: Where does the instance live?
+    approach: |
+      Each pod is a separate JVM, so there are three instances. Any in-memory state — counters, caches, rate-limit buckets, "is a job running" flags — is per pod and diverges.
+      Shared state must move to an external store: Redis for counters/locks/caches, a database for durable state, or a coordination service for leader election. The per-JVM singleton can remain as a client to that store.
+  - q: Can reflection or serialisation break a singleton? How does an enum prevent it?
+    intuition: Both are ways to create an object without calling your accessor.
+    approach: |
+      Reflection can make the private constructor accessible and call it; deserialisation creates a new object from bytes. Defences for a class singleton: throw from the constructor if an instance already exists, and implement `readResolve()` to return the existing instance.
+      An enum is protected by the language: the JVM forbids reflective instantiation of enums and serialises enum constants by name, so deserialisation returns the same constant.
+practice:
+  - task: Implement a `FeatureFlags` singleton that lazily loads flags from a file on first use, returns cached values afterwards, and can be replaced in unit tests.
+    hint: Use the holder idiom for lazy, thread-safe loading. Add a package-private override for tests, and reset it after each test.
+    solution: |
+      The holder idiom guarantees the file is read once, on first `get()`. A `volatile` override field gives tests a seam; tests call `overrideForTests(...)` in setup and `resetForTests()` in teardown.
+      Notice how much ceremony testing needs — that's the cost of global access, and why injecting a `FeatureFlags` instance is usually better.
+    solutionCode: singleton-config-testable
+quiz:
+  - q: Why is the static holder idiom thread-safe without any synchronized keyword?
+    options:
+      - Because static fields are always thread-safe
+      - Because the JVM initialises a class exactly once, with its own locking, on first use
+      - Because the field is final
+      - It isn't thread-safe
+    correct: 1
+    why: Class initialisation is guaranteed by the JVM spec to run once and to be safely published to all threads.
+  - q: In a Kubernetes deployment with 4 replicas, how many instances of a Java singleton exist?
+    options: ['1', '4 — one per JVM', 'It depends on the number of threads', '0 until first request across the cluster']
+    correct: 1
+    why: A singleton is scoped to one class loader in one process. Cluster-wide uniqueness needs external coordination.
