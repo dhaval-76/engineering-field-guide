@@ -1,0 +1,37 @@
+title: Merge vs rebase on the same branches
+frames:
+  - caption: 'You branched `feature` from `main` at **B** and committed **X** and **Y**. Meanwhile teammates added **C** and **D** to `main`.'
+    panels:
+      - kind: array
+        label: main
+        items: [A, B, C, { v: D, tone: info }]
+      - kind: array
+        label: feature (from B)
+        items: [A, B, X, { v: Y, tone: accent }]
+  - caption: '**Merge** `main` into `feature`: Git creates a new commit **M** with two parents (Y and D). X and Y keep their hashes; the history shows exactly what happened, including the fork.'
+    panels:
+      - kind: array
+        label: feature after merge
+        items: [A, B, X, Y, { v: 'M (parents Y, D)', tone: ok }]
+      - kind: note
+        text: 'C and D are reachable through M''s second parent.'
+  - caption: '**Rebase** `feature` onto `main` instead: Git replays your changes on top of D as **new** commits X′ and Y′ (different hashes). History is linear, as if you started today.'
+    panels:
+      - kind: array
+        label: feature after rebase
+        items: [A, B, C, D, { v: "X′", tone: accent }, { v: "Y′", tone: accent }]
+      - kind: note
+        text: "The old X and Y still exist (reflog) — but nothing points to them."
+  - caption: 'Why not rebase shared branches: a teammate who pulled the old `feature` still has X and Y. When they pull again, Git sees two versions of the same work and they end up with duplicated commits and conflicts.'
+    panels:
+      - kind: array
+        label: teammate's copy
+        items: [A, B, X, Y, { v: 'Z (their new work)', tone: warn }]
+      - kind: array
+        label: remote feature
+        items: [A, B, C, D, "X′", "Y′"]
+  - caption: '**Squash-merge** the PR: the whole branch becomes one commit **S** on `main`. Clean main history, one commit per change; the branch is deleted afterwards.'
+    panels:
+      - kind: array
+        label: main after squash-merge
+        items: [A, B, C, D, { v: 'S = X+Y', tone: ok }]

@@ -1,0 +1,47 @@
+questions:
+  - q: 'A teammate asks: "Should I rebase or merge to integrate main into my feature branch?" What do you tell them?'
+    think: Who else has these commits? What should history look like to the next reader?
+    answer: |
+      Both are valid; what matters is whether the branch is shared. **Rebase** rewrites your commits on top of the latest `main` — linear, readable history and per-commit conflict resolution — so it's ideal for your own branch before review; afterwards push with `--force-with-lease`. **Merge** never rewrites anything, so it's the only safe option on branches others have pulled. For landing the PR, follow the team convention — usually squash-merge or rebase-merge so `main` gets one clean commit per change. And keep branches short-lived: most painful merges come from branches that lived for weeks.
+  - q: 'You pushed a commit containing a live API key to a public repository. What do you do?'
+    think: What's already happened to that key by the time you notice?
+    answer: |
+      1. **Revoke/rotate the key immediately** at the provider and check its usage logs — assume it's already been harvested (public pushes are scanned within seconds). Reverting the commit doesn't help: the key remains in history and in every clone.
+      2. **Remove it from history** with `git filter-repo` (or BFG), force-push all refs, ask the host to purge caches, and have collaborators re-clone.
+      3. **Prevent recurrence**: push protection / secret scanning, a pre-commit scanner (gitleaks), secrets from a manager or CI secret store, `.env` in `.gitignore`. Write a short blameless post-mortem.
+followUps:
+  - q: What's the difference between reset, revert and restore?
+    intuition: Move a branch, add an inverse commit, or change files?
+    approach: |
+      `restore` changes files in the working tree or index without touching commits. `reset` moves the current branch pointer to another commit (`--soft` keeps changes staged, `--mixed` unstaged, `--hard` discards them) — it rewrites the branch, so only on unshared history. `revert` creates a new commit that undoes an earlier one — history is preserved, so it's the safe way to undo on `main`.
+  - q: How do you recover a branch you deleted or a commit lost after a hard reset?
+    intuition: Git rarely deletes commits immediately.
+    approach: |
+      `git reflog` lists every position `HEAD` has been at (kept ~90 days by default). Find the commit hash and `git switch -c rescue <hash>` (or `git reset --hard <hash>` on the branch). Uncommitted changes discarded by `reset --hard` or `restore` are not recoverable this way — commit or stash before risky operations.
+  - q: Trunk-based development or GitFlow?
+    intuition: How often do you release, and how many versions do you support?
+    approach: |
+      Trunk-based (short-lived branches merged to `main` daily, unfinished features behind flags, `main` always releasable) suits continuous delivery and reduces merge pain. GitFlow (develop/release/hotfix branches) suits software shipped in versions with stabilisation periods and several supported releases. Most web services today use trunk-based or GitHub flow.
+  - q: How do you find which commit introduced a regression?
+    intuition: Binary search over history.
+    approach: |
+      `git bisect start`, mark a known bad and good commit, then test each midpoint Git checks out (or `git bisect run <test command>` to automate). It finds the first bad commit in log₂(n) steps. Works best when every commit builds — another reason for small, coherent commits.
+practice:
+  - task: 'Your branch has six messy commits ("WIP", "fix bug", "WIP 2", "add tests", "fix lint", "final"). Turn them into two clean commits — feature and tests — and update the PR.'
+    hint: Interactive rebase onto origin/main; pick the first of each group, fixup the rest, reword as needed; force-push with lease.
+    solution: |
+      `git fetch && git rebase -i origin/main`. In the plan, keep `pick` on the first feature commit and mark the other feature commits `fixup` (or `squash` to combine messages); move the test-related commits together, `pick` the first and `fixup` the rest; `reword` both picks to clear messages. Save, resolve any conflicts, run the tests, then `git push --force-with-lease`. Next time, use `git commit --fixup=<hash>` while working and `--autosquash` to do this automatically.
+    solutionCode: git-cleanup
+quiz:
+  - q: Which command safely undoes a commit that's already on a shared main branch?
+    options: [git reset --hard HEAD~1, git revert <hash>, git commit --amend, git rebase -i]
+    correct: 1
+    why: revert adds a new inverse commit; the others rewrite shared history.
+  - q: What does `git push --force-with-lease` protect against?
+    options: [Pushing secrets, Overwriting commits someone else pushed since your last fetch, Merge conflicts, Pushing to main]
+    correct: 1
+    why: It only forces if the remote branch is still where you last saw it.
+  - q: After rebasing, your commits…
+    options: [Keep their hashes, Get new hashes, Are deleted, Become merge commits]
+    correct: 1
+    why: Rebase creates new commits with new parents, hence new hashes.

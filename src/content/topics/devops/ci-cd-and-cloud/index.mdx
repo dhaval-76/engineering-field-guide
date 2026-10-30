@@ -1,0 +1,127 @@
+---
+title: CI/CD and Cloud Fundamentals
+summary: Pipelines that build once and promote one artifact, rolling, blue-green and canary deploys with feature flags, zero-downtime schema changes, CI secured with OIDC, DORA metrics, and core cloud services.
+track: devops
+order: 30
+tags: [devops, ci-cd, github-actions, deployment, cloud, aws]
+aliases: [ci, cd, continuous integration, continuous delivery, continuous deployment, pipeline, github actions, jenkins, gitlab ci, artifact, build once deploy many, blue green, canary, rolling deployment, feature flags, dark launch, expand and contract, database migration, flyway, liquibase, oidc, secrets in ci, dora metrics, aws, gcp, azure, ec2, ecs, eks, lambda, s3, rds, sqs, sns, iam, regions, availability zones, terraform, infrastructure as code]
+prerequisites: [devops/git-workflow, devops/docker-kubernetes]
+related: [backend/testing, architecture/resilience-patterns]
+quickRef:
+  points:
+    - '**CI**: every change is built and tested automatically. **Continuous delivery**: every green build is deployable. **Continuous deployment**: it''s deployed automatically.'
+    - '**Build once, promote the same artifact** (image digest) through staging to production; only configuration differs.'
+    - '**Rolling** (default), **blue-green** (instant switch and rollback), **canary** (small % first, watch metrics), **feature flags** (decouple deploy from release).'
+    - 'Schema changes: **expand → migrate → contract** so old and new code both work during a rollout.'
+    - 'CI security: short-lived **OIDC** credentials, least privilege, pinned actions, protected branches, scanning.'
+    - 'Measure with **DORA**: deploy frequency, lead time, change failure rate, time to restore.'
+  useWhen: Setting up or reviewing a pipeline, choosing a deployment strategy, or answering cloud-basics questions.
+lastReviewed: 2026-10-30
+---
+
+## Why it matters
+
+The faster and safer a team can get a change into production, the smaller each change is, the easier it is to find what broke, and the less any single deploy matters. A good pipeline is the team's quality gate and its undo button. The [DORA research](https://dora.dev) consistently finds that teams deploying more often also have *fewer* failed changes and recover faster — speed and stability come from the same practices.
+
+<Callout type="analogy">
+An assembly line with inspection stations. Every part (commit) passes the same checks in the same order; a failed check stops the line before a faulty car leaves the factory. New models are first sold in one town (canary) before going nationwide, and the factory can switch back to last year's model overnight (rollback).
+</Callout>
+
+## A pipeline
+
+<Diagram id="pipeline" caption="Fast checks first; build one immutable artifact; promote it through environments with gates." />
+
+| Stage | Purpose | Keep it… |
+|---|---|---|
+| Lint, compile, unit tests | catch most bugs in minutes | under ~10 minutes; parallel; cached |
+| Integration tests (Testcontainers) | SQL, serialization, wiring ([Testing](../../backend/testing/)) | reliable — quarantine flaky tests |
+| Security checks | dependency and image scanning, secret scanning, SAST | blocking on high severity |
+| Build & publish | container image tagged with the commit SHA, plus SBOM/signature | built **once** |
+| Deploy to staging | same image, staging config; smoke tests | automatic |
+| Deploy to production | gated (approval or automatic), progressive | observable and reversible |
+
+<CodeTabs id="github-actions-pipeline" title="GitHub Actions: test, build once, deploy to staging and production with OIDC" />
+
+## Deployment strategies
+
+| Strategy | How | Rollback | Cost / caveats |
+|---|---|---|---|
+| **Rolling** | replace instances gradually | roll back the same way (minutes) | old and new versions serve together |
+| **Blue-green** | run the new version alongside, switch all traffic at once | switch back (seconds) | double capacity during the switch; shared database must suit both |
+| **Canary** | send 1% → 10% → 50% → 100%, comparing error rate and latency | shift traffic back | needs good metrics and automation (Argo Rollouts, Flagger, service mesh) |
+| **Feature flags** | deploy code dark, enable per user/percentage at runtime | flip the flag | flag debt — remove old flags |
+| **Shadow / dark launch** | copy production traffic to the new version, discard its responses | — | careful with side effects |
+
+<Walkthrough id="canary-release" />
+
+## Database migrations during deploys
+
+During any rolling or canary deploy, **old and new code run at the same time** against the same database, and a rollback must keep working. So schema changes are split into backward-compatible steps:
+
+<CodeTabs id="expand-contract" title="Renaming a column without downtime: expand, migrate, contract" />
+
+- Run migrations with Flyway or Liquibase as a pipeline step (or a pre-deploy job), never by hand.
+- Use online operations: `CREATE INDEX CONCURRENTLY`, adding nullable columns, batched backfills; set a short `lock_timeout` so a migration fails rather than blocking traffic.
+
+## Securing the pipeline
+
+- **No long-lived cloud keys in CI**: use OpenID Connect — the CI job gets a short-lived token from the cloud provider, scoped to one role and one repository/branch.
+- **Least privilege** per job; production deploy permissions only on the protected branch and environment.
+- **Pin third-party actions** to a commit SHA; review updates (supply-chain attacks target CI).
+- **Branch protection**: required reviews and checks; no direct pushes to `main`.
+- Sign images and produce an SBOM; verify signatures at deploy (admission policies).
+
+## Measuring delivery: DORA metrics
+
+| Metric | Measures | Strong teams |
+|---|---|---|
+| Deployment frequency | how often you ship | on demand, many times a day |
+| Lead time for changes | commit → production | under a day |
+| Change failure rate | deploys causing incidents/rollbacks | low (roughly under 15%) |
+| Time to restore service | incident → recovery | under an hour |
+
+## Cloud fundamentals
+
+**Regions** are separate geographic locations; each has several **availability zones** — isolated data centres with independent power and networking. Spread instances across zones for high availability; use multiple regions for disaster recovery or latency. Under the **shared responsibility model**, the provider secures the infrastructure and you secure your configuration, identities, data and code.
+
+| Need | AWS | Google Cloud | Azure |
+|---|---|---|---|
+| Virtual machines | EC2 | Compute Engine | Virtual Machines |
+| Managed Kubernetes | EKS | GKE | AKS |
+| Simple containers | ECS / Fargate, App Runner | Cloud Run | Container Apps |
+| Functions | Lambda | Cloud Run functions | Functions |
+| Object storage | S3 | Cloud Storage | Blob Storage |
+| Managed SQL | RDS, Aurora | Cloud SQL, AlloyDB, Spanner | Azure SQL, Database for PostgreSQL |
+| Key-value / document | DynamoDB | Firestore, Bigtable | Cosmos DB |
+| Cache | ElastiCache / MemoryDB | Memorystore | Azure Cache for Redis |
+| Queue | SQS | Pub/Sub, Cloud Tasks | Service Bus, Storage Queues |
+| Pub/sub, streaming | SNS, EventBridge, MSK, Kinesis | Pub/Sub, Managed Kafka | Event Grid, Event Hubs |
+| CDN | CloudFront | Cloud CDN | Front Door |
+| Secrets | Secrets Manager, Parameter Store | Secret Manager | Key Vault |
+| Identity & access | IAM | IAM | Entra ID, RBAC |
+| Monitoring & logs | CloudWatch, X-Ray | Cloud Monitoring, Logging, Trace | Azure Monitor, App Insights |
+
+**Infrastructure as code** (Terraform/OpenTofu, CloudFormation, Pulumi) keeps cloud resources reviewed, versioned and reproducible, through the same pull-request flow as application code.
+
+<Pitfalls>
+
+- **Rebuilding the artifact per environment** — what you tested isn't what you ship.
+- **Slow, flaky pipelines** — people stop trusting red builds and start bypassing them.
+- **Long-lived access keys in CI secrets** — prime targets; use OIDC.
+- **Unpinned third-party actions** with write permissions.
+- **Breaking schema changes deployed with the code** — the old pods (and rollbacks) fail.
+- **Manual production changes** ("click-ops") that drift from code.
+- **Deploying without the metrics to judge it** — canaries need error-rate and latency comparisons.
+- **Single-AZ deployments** of anything that must stay up.
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- Fast, reliable checks first; build one artifact; promote it unchanged.
+- Choose rolling, blue-green or canary by how fast you need to undo; flags separate deploy from release.
+- Expand → migrate → contract for every schema change.
+- OIDC, least privilege, pinned actions, protected branches.
+- Know the core cloud building blocks and design across availability zones.
+
+</KeyTakeaways>

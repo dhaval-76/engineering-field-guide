@@ -1,0 +1,86 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: orders
+  labels: { app: orders }
+spec:
+  replicas: 3
+  selector:
+    matchLabels: { app: orders }
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0          # never drop below 3 ready pods during a rollout
+      maxSurge: 1                # add one new pod at a time
+  template:
+    metadata:
+      labels: { app: orders }
+    spec:
+      terminationGracePeriodSeconds: 40
+      containers:
+        - name: orders
+          image: ghcr.io/acme/orders:3f2e1d0          # immutable tag = git commit SHA
+          ports: [{ containerPort: 8080 }]
+          env:
+            - name: SPRING_PROFILES_ACTIVE
+              value: prod
+            - name: SERVER_SHUTDOWN                      # finish in-flight requests on SIGTERM
+              value: graceful
+            - name: DB_PASSWORD
+              valueFrom: { secretKeyRef: { name: orders-db, key: password } }
+          envFrom:
+            - configMapRef: { name: orders-config }
+          resources:
+            requests: { cpu: "500m", memory: "1Gi" }
+            limits:   { memory: "1Gi" }                  # memory request = limit; no CPU limit (avoid throttling)
+          startupProbe:                                  # up to 30 × 5 s = 150 s to start
+            httpGet: { path: /actuator/health/liveness, port: 8080 }
+            periodSeconds: 5
+            failureThreshold: 30
+          readinessProbe:
+            httpGet: { path: /actuator/health/readiness, port: 8080 }
+            periodSeconds: 5
+          livenessProbe:
+            httpGet: { path: /actuator/health/liveness, port: 8080 }
+            periodSeconds: 10
+            failureThreshold: 3
+          lifecycle:
+            preStop:                                     # let endpoints update before shutdown starts
+              sleep: { seconds: 5 }
+          securityContext:
+            runAsNonRoot: true
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true                 # Tomcat needs a writable /tmp → mount one
+          volumeMounts:
+            - { name: tmp, mountPath: /tmp }
+      volumes:
+        - { name: tmp, emptyDir: {} }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: orders                    # other pods call http://orders
+spec:
+  selector: { app: orders }
+  ports: [{ port: 80, targetPort: 8080 }]
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: orders
+spec:
+  scaleTargetRef: { apiVersion: apps/v1, kind: Deployment, name: orders }
+  minReplicas: 3
+  maxReplicas: 12
+  metrics:
+    - type: Resource
+      resource: { name: cpu, target: { type: Utilization, averageUtilization: 65 } }
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: orders
+spec:
+  minAvailable: 2                 # node drains can't take more than one pod at a time
+  selector:
+    matchLabels: { app: orders }

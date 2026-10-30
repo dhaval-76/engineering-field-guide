@@ -1,0 +1,47 @@
+questions:
+  - q: 'Design a CI/CD pipeline for a Spring Boot service deployed to Kubernetes.'
+    think: What must happen on every PR versus on main? What is built, and how many times?
+    answer: |
+      **On every PR**: compile, lint, unit tests, integration tests with Testcontainers, dependency and secret scanning — fast (aim for under ~10 minutes) with dependency caching and parallel jobs; required to pass before merge, with branch protection.
+
+      **On main**: build the container image **once**, tag it with the commit SHA, scan and sign it, push to the registry. Deploy that exact image to **staging** with staging config, run smoke tests, then promote to **production** behind an environment gate, rolling out progressively (canary with automated metric analysis, or rolling with readiness gates) and rolling back automatically on failure. Database migrations run as a separate step and are backward compatible (expand/contract). Cloud access uses short-lived OIDC credentials scoped per environment; third-party actions are pinned. Track DORA metrics to see whether the pipeline helps.
+  - q: Blue-green vs canary vs rolling — how do you choose?
+    think: How quickly do you need to undo, how much extra capacity can you afford, and how good are your metrics?
+    answer: |
+      **Rolling** is the default on Kubernetes: no extra infrastructure, gradual, but old and new versions overlap and rollback is another rollout. **Blue-green** keeps a full copy of the new version and switches traffic at once — instant rollback and a clean cut-over, at the cost of double capacity during the switch and a database that must work with both. **Canary** exposes a small share of users first and compares metrics — the best protection against bad releases, but it needs reliable metrics, automation, and traffic-splitting infrastructure. Feature flags complement all three by separating *deploying* code from *releasing* a feature.
+followUps:
+  - q: What does "build once, deploy many" mean, and why does it matter?
+    intuition: Is what you tested what you shipped?
+    approach: |
+      Produce one immutable artifact (an image identified by digest) per commit and promote it unchanged through every environment, injecting only environment-specific configuration. Rebuilding per environment can pick up different dependency versions or build inputs, so production would run something that was never tested.
+  - q: How do you change a database schema without downtime?
+    intuition: Old and new code run at the same time during a deploy.
+    approach: |
+      Expand–migrate–contract: add new structures in a backward-compatible way (nullable columns, new tables), deploy code that writes both and reads the old, backfill in batches, switch reads to the new structure, and only after no running version uses the old structure, remove it. Use online DDL (`CREATE INDEX CONCURRENTLY`), short lock timeouts, and migrations run by the pipeline.
+  - q: How should CI authenticate to the cloud?
+    intuition: What happens if a CI secret leaks?
+    approach: |
+      With OIDC federation: the CI provider issues a signed token for the job, and the cloud exchanges it for short-lived credentials of a role whose trust policy only accepts that repository, branch and environment. No static keys to leak or rotate; permissions are least-privilege per job.
+  - q: What are availability zones and why do they matter?
+    intuition: What fails together?
+    approach: |
+      Zones are physically separate data centres within a region, with independent power, cooling and networking, connected by low-latency links. Spreading replicas (application instances, database standbys) across zones survives a data-centre failure with little latency cost. Regions protect against regional outages and serve distant users but add latency and data-replication complexity.
+practice:
+  - task: Write a GitHub Actions workflow that tests on every PR and, on main, builds one image, deploys it to staging, then to production after approval — without long-lived cloud credentials.
+    hint: Separate jobs with needs; id-token write permission; configure-aws-credentials with role-to-assume; environments for staging and production; pass the image tag between jobs via outputs.
+    solution: |
+      A `test` job runs on PRs and pushes (`./mvnw verify`). On `main`, an `image` job assumes a push role via OIDC, builds and pushes `orders:<sha>`, and outputs the image reference. `deploy-staging` (environment `staging`) assumes a staging deploy role, updates the Deployment to that image, waits for `rollout status`, and runs smoke tests. `deploy-production` (environment `production` with required reviewers) does the same in production and runs `rollout undo` if the rollout doesn't complete. Workflow-level `permissions: contents: read` keeps the default token minimal; actions are pinned by SHA.
+    solutionCode: github-actions-pipeline
+quiz:
+  - q: Which strategy gives the fastest rollback, at the cost of double capacity during the switch?
+    options: [Rolling, Blue-green, Canary, Recreate]
+    correct: 1
+    why: Traffic switches back to the still-running old environment in seconds.
+  - q: You need to rename a column used by a running service. The first release should…
+    options: [Rename the column, Add the new column and write to both, Drop the old column, Stop the service]
+    correct: 1
+    why: Expand first so old and new code both work during and after the rollout.
+  - q: Which DORA metric captures how often deployments cause failures?
+    options: [Deployment frequency, Lead time for changes, Change failure rate, Time to restore]
+    correct: 2
+    why: Change failure rate is the share of deployments that lead to incidents or rollbacks.

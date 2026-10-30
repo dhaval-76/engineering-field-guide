@@ -1,0 +1,52 @@
+questions:
+  - q: 'One replica of a Spring Boot service is OOM-killed every few hours; during restarts users get 503s for ~45 s. How do you stop the errors, and then fix the OOM?'
+    think: Why does a restarting pod receive traffic at all? And which memory ran out — heap or container?
+    answer: |
+      **Stop the 503s**: traffic should only reach pods that are ready. Add a **readiness probe** on `/actuator/health/readiness` and a **startup probe** so slow JVM starts aren't killed or sent traffic early; keep at least two replicas with a PodDisruptionBudget; enable graceful shutdown (`server.shutdown=graceful`, a short `preStop` sleep) so pods being replaced finish requests.
+
+      **Find the OOM**: `kubectl describe pod` → `OOMKilled`, exit 137 means the *container* exceeded its memory limit — not necessarily the heap. Check JVM settings: on JDK 10+ the JVM sees the limit; default heap is 25% of it, but teams often hard-code `-Xmx` near the limit, leaving no room for metaspace, thread stacks, direct buffers (Netty), and the code cache. Set `-XX:MaxRAMPercentage=75`, enable Native Memory Tracking to see non-heap use, and compare with heap metrics; if heap grows steadily, take a heap dump (`jcmd 1 GC.heap_dump`) and look for a leak. Set memory request = limit and size it from measurements.
+  - q: How does Kubernetes achieve a zero-downtime deployment, and what can still cause errors?
+    think: What happens to in-flight requests on the old pods?
+    answer: |
+      A RollingUpdate with `maxUnavailable: 0` and `maxSurge: 1` starts a new pod, waits until its **readiness** probe passes, adds it to the Service, then terminates an old pod — repeating until all are replaced. Errors still happen when: readiness is missing or too optimistic (traffic to a warming JVM); old pods exit immediately on SIGTERM (no graceful shutdown, `sh -c` entrypoint swallowing the signal); endpoints are updated slightly after SIGTERM (fix with a `preStop` sleep); the new version is incompatible with the old one during the overlap (database migrations must be backward compatible); or connections are long-lived (WebSockets/gRPC need draining). Roll back with `kubectl rollout undo`.
+followUps:
+  - q: Liveness, readiness and startup probes — what's the difference?
+    intuition: Restart, stop traffic, or wait.
+    approach: |
+      **Startup**: gives slow-starting apps time; other probes are disabled until it succeeds; failure after its threshold restarts the container. **Readiness**: failing removes the pod from Service endpoints (no traffic) without restarting — for warm-up, shutdown and temporary inability to serve. **Liveness**: failing restarts the container — only for a process that's stuck; never check dependencies there.
+  - q: Requests vs limits?
+    intuition: What the scheduler reserves vs what the kernel enforces.
+    approach: |
+      Requests are reserved capacity — the scheduler places pods on nodes with enough unrequested CPU/memory, and they set the pod's share under contention. Limits are hard caps: memory over the limit gets the container OOM-killed; CPU over the limit is throttled. Memory request = limit avoids surprise evictions; many teams set CPU requests and omit CPU limits to prevent throttling-induced latency.
+  - q: How do you make a container image smaller and safer?
+    intuition: What does the runtime actually need?
+    approach: |
+      Multi-stage builds (build tools stay in the build stage), a minimal runtime base (JRE, slim, distroless), only production dependencies, layer ordering for caching, a non-root user, no secrets in any layer (use BuildKit secrets), pinned base versions and regular rebuilds for patches, and image scanning in CI.
+  - q: Why does `ENTRYPOINT sh -c "java -jar app.jar"` cause problems on shutdown?
+    intuition: Who is PID 1, and who receives SIGTERM?
+    approach: |
+      The shell becomes PID 1 and receives SIGTERM, but doesn't forward it to the Java child, so the app never starts graceful shutdown and is SIGKILLed after the grace period — mid-request. Use exec form (`["java", …]`), pass options via `JAVA_TOOL_OPTIONS`, or `exec java …` inside a script.
+practice:
+  - task: Write a Dockerfile and Kubernetes manifests for a Spring Boot service that deploys with zero downtime, shuts down gracefully, and doesn't get OOM-killed.
+    hint: Multi-stage build, JRE base, non-root, exec-form entrypoint, MaxRAMPercentage; Deployment with surge rollout, startup/readiness/liveness probes, memory request = limit, graceful shutdown, preStop, PDB.
+    solution: |
+      Image: build with the Maven wrapper in a JDK stage, extract Spring Boot layers, copy them into a JRE stage running as a non-root user, set `JAVA_TOOL_OPTIONS=-XX:MaxRAMPercentage=75`, exec-form entrypoint, tag with the commit SHA. Manifests: Deployment with `maxUnavailable: 0, maxSurge: 1`, startup probe (generous), readiness and liveness on the Actuator health groups, `server.shutdown=graceful`, `preStop` sleep and a grace period longer than the slowest request, memory request = limit sized from metrics, CPU request; a Service; an HPA on CPU; and a PodDisruptionBudget.
+    solutionCode: k8s-deployment
+  - task: New pods crash right after a deploy. Walk through your response.
+    hint: Roll back first, then use describe, logs --previous and events.
+    solution: |
+      Roll back (`kubectl rollout undo`) to restore service, then diagnose: `kubectl get pods` for the state, `kubectl describe pod` for events (OOMKilled, failed probes, image pull errors, scheduling), `kubectl logs --previous` for the crash, and compare config/secrets between revisions (`kubectl rollout history`). Typical causes: missing env/secret, failing DB migration, probe misconfigured, memory too low. Fix forward through the pipeline, then a short post-mortem.
+    solutionCode: k8s-debug
+quiz:
+  - q: A pod's readiness probe fails. What does Kubernetes do?
+    options: [Restarts the container, Removes the pod from Service endpoints, Deletes the Deployment, Nothing]
+    correct: 1
+    why: Readiness controls traffic; liveness controls restarts.
+  - q: Exit code 137 with reason OOMKilled means…
+    options: [The Java heap is full, The container exceeded its memory limit, The node rebooted, The image is too large]
+    correct: 1
+    why: The kernel killed the process for exceeding the cgroup limit — heap, native memory, or both.
+  - q: Which Dockerfile instruction lets the JVM receive SIGTERM directly?
+    options: ['ENTRYPOINT sh -c "java -jar app.jar"', 'ENTRYPOINT ["java", "-jar", "app.jar"]', 'RUN java -jar app.jar', 'CMD java -jar app.jar']
+    correct: 1
+    why: Exec form makes java PID 1; shell form wraps it in /bin/sh.

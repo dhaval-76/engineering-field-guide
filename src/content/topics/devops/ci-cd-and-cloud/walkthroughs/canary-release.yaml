@@ -1,0 +1,33 @@
+title: A canary release, step by step
+frames:
+  - caption: 'Version **v42** is running everywhere. The new image **v43** has passed CI and staging.'
+    panels:
+      - kind: kv
+        label: Traffic
+        pairs: [[v42, { v: '100%', tone: ok }], [v43, { v: '0%', tone: muted }]]
+  - caption: 'Deploy v43 alongside and send it **5%** of traffic. Compare it with v42 on error rate, p99 latency and key business metrics (checkouts per minute).'
+    panels:
+      - kind: kv
+        label: Traffic
+        pairs: [[v42, '95%'], [v43, { v: '5%', tone: info }]]
+      - kind: kv
+        label: v43 vs v42
+        pairs: [[errors, { v: '0.21% vs 0.20%', tone: ok }], [p99, { v: '310 ms vs 300 ms', tone: ok }]]
+  - caption: 'Metrics hold for the bake time (say 15 minutes), so increase to **25%**, then **50%**, checking at each step.'
+    panels:
+      - kind: kv
+        label: Traffic
+        pairs: [[v42, '50%'], [v43, { v: '50%', tone: info }]]
+  - caption: 'At 50% the error rate for v43 jumps — a code path only some customers hit. The analysis fails and traffic shifts back to v42 **automatically**. Half the users saw errors for a minute, not everyone for an hour.'
+    panels:
+      - kind: kv
+        label: v43 vs v42
+        pairs: [[errors, { v: '2.8% vs 0.2%', tone: bad }]]
+      - kind: kv
+        label: Traffic
+        pairs: [[v42, { v: '100%', tone: ok }], [v43, { v: '0% (rolled back)', tone: warn }]]
+  - caption: 'The fix ships as **v44** and goes through the same steps to 100%. Tools such as Argo Rollouts or Flagger automate the steps and the metric checks; feature flags give the same control per feature instead of per deployment.'
+    panels:
+      - kind: kv
+        label: Traffic
+        pairs: [[v44, { v: '100%', tone: ok }]]

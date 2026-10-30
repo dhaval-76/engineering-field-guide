@@ -1,0 +1,122 @@
+---
+title: Git and Team Workflow
+summary: How Git really stores history, merge vs rebase, branching strategies, good pull requests and commit messages, undoing almost anything safely, finding bugs with bisect, and what to do when a secret is pushed.
+track: devops
+order: 10
+tags: [devops, git, github, workflow, code-review]
+aliases: [git, github, gitlab, merge vs rebase, rebase, interactive rebase, squash, fixup, autosquash, cherry-pick, reset, revert, restore, reflog, stash, bisect, force with lease, trunk based development, gitflow, github flow, feature flags, pull request, code review, conventional commits, leaked secret, git filter-repo, bfg]
+prerequisites: []
+related: [devops/ci-cd-and-cloud, backend/testing]
+quickRef:
+  points:
+    - 'A commit is a **snapshot** with parent pointers; a branch is just a **movable name** for a commit; `HEAD` is where you are.'
+    - '**Merge** joins histories with a merge commit (nothing rewritten). **Rebase** replays your commits on a new base (new hashes) — fine for *your* unpushed or unshared branch.'
+    - 'Never rewrite shared history; if you must force-push your own branch, use `--force-with-lease`.'
+    - 'Undo: `git restore` (files), `git reset` (move a branch — local only), `git revert` (new commit that undoes — safe on shared branches), `git reflog` (find "lost" commits).'
+    - '**Trunk-based** development with small PRs and feature flags is the common default; GitFlow suits scheduled releases.'
+    - 'Pushed a secret? **Rotate it first** — rewriting history comes second.'
+  useWhen: Daily development, code review, cleaning up a branch before review, recovering from a mistake.
+lastReviewed: 2026-10-30
+---
+
+## Why it matters
+
+Git is the one tool every engineer uses every day, and most Git fear comes from not knowing what a command does to the commit graph. Once you see commits as snapshots and branches as pointers, rebasing, resetting and recovering stop being scary — and you can keep a history that reviewers and future debuggers can actually read.
+
+<Callout type="analogy">
+Commits are photos in an album, each labelled with the photo that came before it. A branch is a sticky note saying "latest photo of this storyline". Moving the sticky note (reset) doesn't destroy photos; they stay in the drawer (reflog) for a while even if no note points at them.
+</Callout>
+
+## The model
+
+| Thing | What it is |
+|---|---|
+| Commit | a full snapshot of the tree + author, message, and parent commit(s); named by its hash |
+| Branch | a file containing one commit hash; moves forward when you commit |
+| `HEAD` | which branch (or commit) you have checked out |
+| Index (staging area) | the snapshot you're building for the next commit (`git add`) |
+| Remote-tracking branch | `origin/main` — your last-known copy of the remote's branch |
+
+## Merge vs rebase
+
+<Walkthrough id="merge-vs-rebase" />
+
+| | Merge | Rebase |
+|---|---|---|
+| History | true shape, with merge commits | linear, as if you'd started from the latest main |
+| Existing commits | untouched | rewritten (new hashes) |
+| Conflicts | resolved once, in the merge commit | resolved per replayed commit |
+| Safe on shared branches | yes | no — others still have the old commits |
+| Typical use | integrating a PR into `main` (often as a squash) | updating your own branch before review |
+
+Common team setup: rebase (or merge) `main` into your feature branch while working, clean it up with interactive rebase, and integrate via the platform's **squash-merge** or **rebase-merge** so `main` stays readable.
+
+<CodeTabs id="git-daily" title="Daily commands, with what they do to the graph" />
+
+## Branching strategies
+
+| Strategy | Shape | Fits |
+|---|---|---|
+| **Trunk-based** | short-lived branches (hours to a couple of days) merged to `main` behind **feature flags**; `main` always deployable | continuous delivery, most product teams |
+| **GitHub flow** | branch → PR → merge → deploy from `main` | similar, slightly longer branches |
+| **GitFlow** | `develop`, `release/*`, `hotfix/*` branches around `main` | versioned software with scheduled releases, multiple supported versions |
+
+Long-lived branches are the main source of painful merges; feature flags let unfinished work merge safely without being visible.
+
+## Pull requests and commits
+
+- **Small and focused** — one change per PR; reviewers can actually review 200 lines, not 2,000.
+- **The description explains *why*** and the trade-offs; the diff shows *what*. Link the ticket; add screenshots for UI.
+- **CI green before review**: build, tests, lint, security scans.
+- **Commit messages**: imperative summary under ~72 characters ("Add idempotency keys to payment API"), a body explaining why. Many teams use Conventional Commits (`feat:`, `fix:`) to generate changelogs.
+- **Review kindly and specifically**: ask questions, distinguish blocking issues from nits, approve when it's better than before.
+
+<CodeTabs id="git-cleanup" title="Cleaning up a branch before review: fixup commits and interactive rebase" />
+
+## Undoing things
+
+<CodeTabs id="git-undo" title="Undo, from 'unstage a file' to 'recover a deleted branch'" />
+
+| Situation | Command | Rewrites history? |
+|---|---|---|
+| Discard changes to a file | `git restore <file>` | no |
+| Unstage a file | `git restore --staged <file>` | no |
+| Fix the last commit (not pushed) | `git commit --amend` | yes (local) |
+| Undo the last commit, keep changes | `git reset --soft HEAD~1` | yes (local) |
+| Undo a pushed commit on a shared branch | `git revert <hash>` | no — adds an inverse commit |
+| Find a commit you "lost" | `git reflog` | no |
+| Apply one fix to another branch | `git cherry-pick <hash>` | no (new commit) |
+
+## Finding the commit that broke something
+
+`git bisect` binary-searches history: mark a good and a bad commit, and Git checks out the midpoint until it finds the first bad one — about 10 steps for 1,000 commits. With a test script, `git bisect run` does it automatically. This is one strong reason to keep every commit on `main` building and passing.
+
+<CodeTabs id="git-bisect" title="Automated bisect with a test command" />
+
+## When a secret gets pushed
+
+<CodeTabs id="git-secret-leak" title="Leaked credential: rotate, then clean up" />
+
+Treat any pushed secret as compromised: bots scan public pushes within seconds, and forks, clones, caches and CI logs keep copies even after you rewrite history. **Revoke and rotate first**, then remove it from history, then prevent recurrence with secret scanning (GitHub push protection, gitleaks) and a secrets manager.
+
+<Pitfalls>
+
+- **Rebasing or force-pushing a shared branch** — teammates' history diverges.
+- **`git push --force`** instead of `--force-with-lease`, overwriting someone else's commits.
+- **`git reset --hard`** with uncommitted work you wanted — it's gone (only committed work is in the reflog).
+- **Giant PRs and long-lived branches** — slow reviews, painful conflicts.
+- **"fix", "wip", "asdf" commit messages** on `main`.
+- **Reverting a secret commit and thinking it's safe** — the secret is still in history and already scraped.
+- **Committing generated files, build output or `.env` files** — use `.gitignore`.
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- Commits are snapshots, branches are pointers; most commands just move pointers.
+- Rebase your own branch, merge (or squash-merge) shared ones; force-push only with lease.
+- Small PRs, clear "why", green CI, trunk-based flow with feature flags.
+- `revert` for shared history, `reflog` to recover, `bisect` to hunt regressions.
+- Leaked secret: rotate first.
+
+</KeyTakeaways>

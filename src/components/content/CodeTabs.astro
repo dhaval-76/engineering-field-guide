@@ -19,7 +19,7 @@ const uid = `code-${id}`;
   class="code-tabs"
   data-code-tabs
   data-copy-scope
-  data-langs={variants.map((v) => v.lang).join(',')}
+  data-langs={variants.map((v) => v.tab).join(',')}
 >
   <div class="bar">
     {title && <figcaption class="title">{title}</figcaption>}
@@ -28,11 +28,11 @@ const uid = `code-${id}`;
         <button
           type="button"
           role="tab"
-          id={`${uid}-tab-${v.lang}`}
-          aria-controls={`${uid}-${v.lang}`}
+          id={`${uid}-tab-${v.tab}`}
+          aria-controls={`${uid}-${v.tab}`}
           aria-selected={i === 0 ? 'true' : 'false'}
           tabindex={i === 0 ? 0 : -1}
-          data-lang={v.lang}
+          data-lang={v.tab}
         >
           {v.label}
         </button>
@@ -47,9 +47,9 @@ const uid = `code-${id}`;
   {variants.map((v, i) => (
     <div
       role="tabpanel"
-      id={`${uid}-${v.lang}`}
-      aria-labelledby={`${uid}-tab-${v.lang}`}
-      data-lang={v.lang}
+      id={`${uid}-${v.tab}`}
+      aria-labelledby={`${uid}-tab-${v.tab}`}
+      data-lang={v.tab}
       hidden={i !== 0}
       set:html={v.html}
     />

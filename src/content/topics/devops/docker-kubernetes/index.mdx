@@ -1,0 +1,130 @@
+---
+title: Docker and Kubernetes
+summary: Containers from first principles, small and secure images for JVM, Node and Python services, and the Kubernetes objects you actually use — pods, deployments, services, probes, resources, config, autoscaling, rollouts and debugging.
+track: devops
+order: 20
+tags: [devops, docker, containers, kubernetes, deployment, jvm]
+aliases: [docker, dockerfile, container, image, layer, multi-stage build, distroless, buildpacks, jib, docker compose, kubernetes, k8s, pod, deployment, replicaset, service, ingress, gateway api, configmap, secret, liveness probe, readiness probe, startup probe, requests and limits, oomkilled, crashloopbackoff, hpa, rolling update, rollback, graceful shutdown, kubectl, maxrampercentage]
+prerequisites: [architecture/resilience-patterns]
+related: [devops/ci-cd-and-cloud, architecture/microservices, java-runtime/garbage-collection]
+quickRef:
+  points:
+    - 'A container is a **process** with its own filesystem view, isolated by namespaces and limited by cgroups — not a VM.'
+    - 'Images are **layers**: put rarely-changing steps first (dependencies), app code last; **multi-stage** builds keep build tools out of the runtime image.'
+    - 'Run as **non-root**, use **exec-form** `ENTRYPOINT` so the app gets SIGTERM, and pin base images.'
+    - 'JVM in containers: it reads the cgroup limit (JDK 10+); size the heap with `-XX:MaxRAMPercentage` and leave room for non-heap memory.'
+    - 'Kubernetes: **Deployment** → ReplicaSet → Pods; **Service** gives a stable name; **probes** decide traffic (readiness) and restarts (liveness).'
+    - 'Set memory **requests = limits**; set CPU requests; roll out with `maxUnavailable: 0`; `kubectl rollout undo` to roll back.'
+  useWhen: Packaging a service, deploying to Kubernetes, or debugging a crashing or OOM-killed pod.
+lastReviewed: 2026-10-30
+---
+
+## Why it matters
+
+Containers made "it works on my machine" a solved problem: the image carries the runtime, libraries and configuration defaults, and runs the same everywhere. Kubernetes runs those containers across many machines, restarts them when they die, scales them, and rolls out new versions without downtime. Most backend engineers now write a Dockerfile and Kubernetes manifests (or Helm values) as part of a service — and debug them when a pod is `OOMKilled` at 3 a.m.
+
+<Callout type="analogy">
+Shipping containers: whatever is inside, the box has a standard shape, so any ship, crane or truck can move it. Kubernetes is the port authority: it decides which ship each container goes on, replaces damaged ones, and keeps the number of containers of each kind at what was ordered.
+</Callout>
+
+## Containers in one minute
+
+| Concept | Meaning |
+|---|---|
+| Image | a read-only stack of filesystem layers + metadata (entrypoint, env, user) |
+| Container | a running process started from an image, with a writable layer on top |
+| Namespaces | what the process can *see*: its own PIDs, network, mounts, hostname |
+| cgroups | what it can *use*: CPU, memory, I/O limits |
+| Registry | stores and serves images (Docker Hub, ECR, GCR, GHCR) |
+
+Because containers share the host kernel, they start in milliseconds and add almost no overhead — and they're a weaker isolation boundary than VMs.
+
+## Good images
+
+<CodeTabs id="dockerfile" title="Multi-stage Dockerfiles for a Spring Boot, Node and Python service" />
+
+- **Layer order = cache efficiency**: copy dependency manifests and download dependencies before copying source, so code changes don't re-download the internet.
+- **Multi-stage**: build with a JDK/Maven or full Node image; ship only the runtime and the artifact. Smaller images pull faster and have fewer vulnerabilities.
+- **Security**: non-root user, minimal base (JRE, `-slim`, distroless), no secrets in layers (they stay in history even if deleted later — use build secrets), scan images in CI.
+- **Signals**: use exec-form `ENTRYPOINT ["java", …]` so the JVM is PID 1 and receives SIGTERM for graceful shutdown; `sh -c` swallows it.
+- **Reproducibility**: pin base images to a version (or digest); tag images with the commit SHA, not just `latest`.
+- Alternatives without a Dockerfile: Spring Boot's Cloud Native Buildpacks (`./mvnw spring-boot:build-image`) or Jib.
+
+### The JVM inside a container
+
+Since JDK 10 the JVM detects container memory and CPU limits (`UseContainerSupport` is on by default). By default the heap is only 25% of the limit — set `-XX:MaxRAMPercentage=75` (via `JAVA_TOOL_OPTIONS`) and keep the rest for metaspace, thread stacks, direct buffers and the code cache. An **OOMKilled** pod (exit code 137) means the *container* exceeded its limit — often native memory, not the heap; a Java `OutOfMemoryError` means the heap filled. See [Garbage collection](../../java-runtime/garbage-collection/).
+
+## Kubernetes objects you use daily
+
+<Diagram id="k8s-objects" caption="How a request reaches a pod, and which object owns what." />
+
+| Object | Purpose |
+|---|---|
+| **Pod** | one or more containers sharing network and volumes; the unit of scheduling; disposable |
+| **Deployment** | desired state for stateless pods: image, replicas, rollout strategy (manages ReplicaSets) |
+| **Service** | stable virtual IP + DNS name load-balancing across matching pods |
+| **Ingress / Gateway API** | HTTP routing from outside the cluster to services, TLS termination |
+| **ConfigMap / Secret** | configuration and credentials injected as env vars or files |
+| **HorizontalPodAutoscaler** | adjusts replicas from CPU, memory or custom metrics |
+| **StatefulSet** | stable identities and volumes (databases, Kafka) — prefer managed services where possible |
+| **Job / CronJob** | run-to-completion and scheduled work |
+| **PodDisruptionBudget** | keeps a minimum available during node maintenance |
+
+<CodeTabs id="k8s-deployment" title="A production-shaped Deployment, Service, HPA and PDB" />
+
+### Probes
+
+| Probe | Question | On failure |
+|---|---|---|
+| **startup** | has the app finished starting? | keep waiting (liveness/readiness paused) until the threshold, then restart |
+| **readiness** | should it receive traffic now? | removed from Service endpoints; **not** restarted |
+| **liveness** | is it stuck beyond recovery? | container restarted |
+
+Spring Boot exposes `/actuator/health/liveness` and `/actuator/health/readiness` and flips readiness off during shutdown. Keep dependencies out of liveness ([Resilience patterns](../../architecture/resilience-patterns/)).
+
+### Resources
+
+- **Requests** reserve capacity and drive scheduling; **limits** cap usage. Exceeding the memory limit → OOMKilled; exceeding a CPU limit → throttling (latency spikes).
+- Common guidance: memory request = limit (predictable), CPU request set from measurements, CPU limit often omitted or generous to avoid throttling — teams differ, so measure.
+- JVM services need CPU at startup (JIT, class loading): too-tight CPU makes startup slow and probes fail.
+
+### Rollouts and graceful shutdown
+
+- `RollingUpdate` with `maxUnavailable: 0, maxSurge: 1` adds a new pod, waits for readiness, then removes an old one — no capacity dip.
+- On termination, Kubernetes removes the pod from endpoints **and** sends SIGTERM at roughly the same time; a short `preStop` sleep lets load balancers catch up, and `server.shutdown=graceful` lets in-flight requests finish within `terminationGracePeriodSeconds`.
+- `kubectl rollout undo deployment/orders` returns to the previous ReplicaSet.
+
+## Debugging
+
+<CodeTabs id="k8s-debug" title="From 'pods are crashing' to a cause" />
+
+| Status | Usually means |
+|---|---|
+| `Pending` | no node has enough requested CPU/memory, or a volume/affinity can't be satisfied |
+| `ImagePullBackOff` | wrong image name/tag or missing registry credentials |
+| `CrashLoopBackOff` | the process exits on start — read `logs --previous` |
+| `OOMKilled` (exit 137) | container exceeded its memory limit |
+| Running but not Ready | readiness probe failing — check its endpoint and timing |
+
+<Pitfalls>
+
+- **`ENTRYPOINT sh -c "java …"`** — SIGTERM never reaches the JVM; pods are killed after the grace period mid-request.
+- **Running as root** and shipping build tools in the runtime image.
+- **`latest` tags** — you can't tell what's running or roll back reliably.
+- **Heap = memory limit** — no room for native memory → OOMKilled.
+- **Liveness probe on a slow-starting app** without a startup probe → restart loop.
+- **Dependencies in liveness checks** → restart storms during a database incident.
+- **No resource requests** → noisy neighbours and unpredictable scheduling.
+- **Secrets in images or plain manifests in Git** — use Secrets fed from a secret manager.
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- Containers are isolated processes; images are cached layers — order them well and keep them small.
+- Non-root, exec-form entrypoint, pinned bases, SHA tags.
+- JVM: `MaxRAMPercentage` with headroom; know OOMKilled vs OutOfMemoryError.
+- Deployment + Service + probes + resources + PDB + HPA is the standard shape.
+- Zero-downtime = readiness gating, surge rollouts and graceful shutdown.
+
+</KeyTakeaways>

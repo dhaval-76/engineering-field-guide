@@ -1,0 +1,12 @@
+flowchart TD
+  U[Client] --> I[Ingress / Gateway<br/>TLS · host and path routing]
+  I --> S[Service: orders<br/>stable DNS + virtual IP]
+  S --> P1[Pod orders-a<br/>ready ✓]
+  S --> P2[Pod orders-b<br/>ready ✓]
+  S -. not ready: no traffic .-> P3[Pod orders-c<br/>starting]
+  D[Deployment: orders<br/>image · replicas · strategy] --> RS[ReplicaSet<br/>current revision]
+  RS --> P1
+  RS --> P2
+  RS --> P3
+  H[HPA] -. adjusts replicas .-> D
+  CM[ConfigMap / Secret] -. env and files .-> P1

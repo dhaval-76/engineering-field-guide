@@ -1,0 +1,78 @@
+# .github/workflows/delivery.yml
+name: delivery
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:                         # one deploy at a time per branch; newer runs cancel older PR runs
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4                       # pin to a full commit SHA in real repos
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: '21', cache: maven }
+      - run: ./mvnw -B verify                           # unit + Testcontainers integration tests (Docker is available)
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: { name: test-reports, path: '**/target/surefire-reports' }
+
+  image:
+    needs: test
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write                                   # allow requesting an OIDC token
+      contents: read
+    outputs:
+      image: ${{ steps.meta.outputs.image }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::123456789012:role/gha-push-orders   # trusts only this repo's main branch
+          aws-region: eu-west-1
+      - id: ecr
+        uses: aws-actions/amazon-ecr-login@v2
+      - id: meta
+        run: echo "image=${{ steps.ecr.outputs.registry }}/orders:${{ github.sha }}" >> "$GITHUB_OUTPUT"
+      - run: |
+          docker build -t "${{ steps.meta.outputs.image }}" .
+          docker push "${{ steps.meta.outputs.image }}"        # built ONCE; promoted below
+
+  deploy-staging:
+    needs: image
+    runs-on: ubuntu-latest
+    environment: staging
+    permissions: { id-token: write, contents: read }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: aws-actions/configure-aws-credentials@v4
+        with: { role-to-assume: arn:aws:iam::123456789012:role/gha-deploy-staging, aws-region: eu-west-1 }
+      - run: aws eks update-kubeconfig --name staging
+      - run: |
+          kubectl set image deployment/orders orders=${{ needs.image.outputs.image }} -n orders
+          kubectl rollout status deployment/orders -n orders --timeout=5m
+      - run: ./scripts/smoke-test.sh https://staging.example.com
+
+  deploy-production:
+    needs: [image, deploy-staging]
+    runs-on: ubuntu-latest
+    environment: production                              # required reviewers + only from main
+    permissions: { id-token: write, contents: read }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: aws-actions/configure-aws-credentials@v4
+        with: { role-to-assume: arn:aws:iam::123456789012:role/gha-deploy-prod, aws-region: eu-west-1 }
+      - run: aws eks update-kubeconfig --name production
+      - run: |
+          kubectl set image deployment/orders orders=${{ needs.image.outputs.image }} -n orders
+          kubectl rollout status deployment/orders -n orders --timeout=10m \
+            || (kubectl rollout undo deployment/orders -n orders && exit 1)

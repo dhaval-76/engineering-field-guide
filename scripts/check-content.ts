@@ -31,13 +31,14 @@ const qaFiles = await list('src/content/topics/**/qa.yaml');
 const stem = (f: string) => basename(f).replace(/\.[^.]+$/, '');
 const snippetIds = new Map<string, string[]>();
 for (const f of codeFiles) {
-  const id = stem(f);
+  const id = stem(f).split('@')[0]!; // <id>@<appExt>.<ext> is a per-stack variant of <id>
   snippetIds.set(id, [...(snippetIds.get(id) ?? []), f]);
 }
 // Snippets that demonstrate one language's own runtime (the JS event loop, ES modules) and have no Java equivalent.
 const LANGUAGE_SPECIFIC = new Set(['singleton-module', 'event-loop-order', 'blocking-the-loop', 'resilience-other']);
 for (const [id, files] of snippetIds) {
-  const exts = files.map((f) => f.split('.').pop());
+  // A variant's language is its @app extension (dockerfile@py.dockerfile → py).
+  const exts = files.map((f) => basename(f).match(/@([^.]+)\./)?.[1] ?? f.split('.').pop());
   if (new Set(exts).size !== exts.length)
     errors.push(`Snippet "${id}" has two files with the same language: ${files.join(', ')}`);
   // SQL/shell/config-only snippets are language-neutral; only flag code that has no Java variant.
