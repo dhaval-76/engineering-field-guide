@@ -1,0 +1,76 @@
+---
+title: ThreadLocal and Request Context
+summary: Per-thread state for request context (user, trace id, tenant) without passing parameters through every layer — how ThreadLocal works, the thread-pool leak that exposes one user's data to another, and modern replacements like ScopedValue.
+track: concurrency
+order: 80
+tags: [concurrency, threadlocal, request-context, mdc, scoped-values]
+aliases: [thread local, threadlocal memory leak, inheritablethreadlocal, mdc logging, scopedvalue, asynclocalstorage, contextvars]
+prerequisites: [concurrency/executors-thread-pools]
+related: [concurrency/completablefuture, java-runtime/garbage-collection]
+quickRef:
+  points:
+    - Each thread sees its **own** value for the same `ThreadLocal`; the values are stored in a map on the `Thread`.
+    - '**Always `remove()` in `finally`** — pool threads are reused, so leftover values leak memory and leak data into the next request.'
+    - Values don't follow work to other threads (executors, `CompletableFuture`); capture and restore them explicitly.
+    - 'Common uses: request/trace context, SLF4J `MDC`, Spring transactions and `SecurityContextHolder`.'
+    - 'Modern options: `ScopedValue` (Java 25) in Java, `AsyncLocalStorage` in Node, `contextvars` in Python.'
+  useWhen: Cross-cutting, request-scoped data — trace ids, the current user or tenant — that most layers read but shouldn't take as a parameter.
+lastReviewed: 2026-10-30
+---
+
+## Why it matters
+
+Some data is needed almost everywhere during a request — the trace id for logs, the current user for auditing, the tenant for queries — but passing it as a parameter through every method clutters every signature. In the classic thread-per-request model, each request runs on one thread, so storing the data **per thread** makes it available anywhere in that request. It's also a classic source of production bugs: forget to clear it and the next request on that pooled thread sees someone else's data.
+
+<Callout type="analogy">
+A locker per employee. Everyone uses the same locker number system (`ThreadLocal`), but each person only opens their own locker. If an employee leaves and their locker isn't emptied, the next hire assigned to it finds the previous person's belongings.
+</Callout>
+
+## How it works
+
+<Diagram id="threadlocal-map" caption="The ThreadLocal is just a key; each Thread carries its own map of values." />
+
+- `set(v)` stores `v` in the current thread's `ThreadLocalMap`, keyed by the `ThreadLocal`.
+- `get()` looks it up in the current thread's map — no locking needed, since no other thread reads that map.
+- The map's keys are weak references to the `ThreadLocal`, but **values are strong**: while the thread lives, the value lives (unless removed).
+
+## Request context
+
+<CodeTabs id="request-context" title="Per-request context — ThreadLocal in Java, AsyncLocalStorage in Node, contextvars in Python" />
+
+## Other uses
+
+<CodeTabs id="threadlocal-uses" title="Per-thread instances, MDC, and handing context to another thread" />
+
+## Crossing threads
+
+A `ThreadLocal` value is invisible to any other thread — including the executor thread that runs your `CompletableFuture` callback or `@Async` method. Options:
+
+- **Capture and restore** in the task (as above), or use a decorating executor (Spring's `TaskDecorator`, Micrometer's context propagation).
+- **`InheritableThreadLocal`** copies values when a thread is **created**. Pool threads are created once and reused, so they inherit whatever was set at creation time — stale context. Avoid it with pools.
+
+## ScopedValue (Java 25)
+
+<CodeTabs id="scoped-value" title="ScopedValue: bound for a call, cleared automatically" />
+
+`ScopedValue` is immutable, bound for a bounded scope and released automatically, which removes the leak and makes it cheap with virtual threads (a `ThreadLocal` per virtual thread multiplies memory). Prefer it for new code on Java 25+.
+
+<Pitfalls>
+
+- **No `remove()`** — memory leak and cross-request data exposure on pooled threads.
+- **Large values** (caches, big buffers) in ThreadLocals of long-lived pool threads.
+- **Assuming the value exists** in async callbacks or `@Async` methods.
+- **`InheritableThreadLocal` with pools** — stale values.
+- **Hidden dependencies** — business logic that reads ThreadLocals is harder to test; keep it to cross-cutting concerns.
+- **Classloader leaks** in app servers: a value whose class came from a redeployed web app pins the old classloader.
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- Per-thread values via a map on each Thread; perfect for request-scoped cross-cutting data.
+- Set in a filter, `remove()` in `finally` — every time.
+- Propagate explicitly across threads; don't rely on InheritableThreadLocal with pools.
+- Java 25: prefer `ScopedValue`; Node: `AsyncLocalStorage`; Python: `contextvars`.
+
+</KeyTakeaways>

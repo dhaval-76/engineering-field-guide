@@ -1,0 +1,38 @@
+title: How two transfers deadlock — and how lock ordering prevents it
+frames:
+  - caption: 'T1 runs `transfer(A → B)` and locks **A**. At the same moment T2 runs `transfer(B → A)` and locks **B**.'
+    panels:
+      - kind: kv
+        label: Locks
+        pairs: [[A, { v: held by T1, tone: info }], [B, { v: held by T2, tone: plum }]]
+      - kind: list
+        label: Wait-for
+        items: []
+  - caption: 'T1 now needs **B** (held by T2); T2 needs **A** (held by T1). Each waits for the other: a **cycle** in the wait-for graph.'
+    panels:
+      - kind: kv
+        label: Locks
+        pairs: [[A, { v: held by T1, tone: info }], [B, { v: held by T2, tone: plum }]]
+      - kind: list
+        label: Wait-for
+        items: [{ v: T1 → waits for B (T2), tone: bad }, { v: T2 → waits for A (T1), tone: bad }]
+  - caption: 'Nothing can break the cycle: locks can''t be taken away, and neither thread will give up what it holds. Both threads stay BLOCKED forever — **deadlock**.'
+    panels:
+      - kind: note
+        text: 'All four Coffman conditions hold: mutual exclusion, hold-and-wait, no preemption, circular wait.'
+  - caption: 'With **lock ordering**, both transfers lock the lower id first. T1 gets **A**; T2 also asks for **A** first and waits — while holding nothing.'
+    panels:
+      - kind: kv
+        label: Locks
+        pairs: [[A, { v: held by T1, tone: info }], [B, { v: free, tone: muted }]]
+      - kind: list
+        label: Wait-for
+        items: [{ v: T2 → waits for A, tone: warn }]
+  - caption: 'T1 takes **B**, finishes and releases both. T2 then gets A and B. No cycle can form, so no deadlock.'
+    panels:
+      - kind: kv
+        label: Locks
+        pairs: [[A, { v: held by T2, tone: plum }], [B, { v: held by T2, tone: plum }]]
+      - kind: list
+        label: Done
+        items: [{ v: T1 ✓, tone: ok }]

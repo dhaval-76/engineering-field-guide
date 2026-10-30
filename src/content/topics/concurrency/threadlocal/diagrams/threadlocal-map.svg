@@ -1,0 +1,28 @@
+<svg viewBox="0 0 720 220" xmlns="http://www.w3.org/2000/svg" font-family="var(--font-sans)" font-size="12">
+  <text x="20" y="20" fill="var(--d-muted)" font-weight="600" letter-spacing=".05em">ONE ThreadLocal OBJECT…</text>
+  <rect x="20" y="34" width="180" height="40" rx="6" fill="var(--d-accent-soft)" stroke="var(--d-accent)"/>
+  <text x="34" y="58" fill="var(--d-text)" font-family="var(--font-mono)" font-size="11">USER (ThreadLocal)</text>
+  <text x="20" y="104" fill="var(--d-muted)">is only a key. The values</text>
+  <text x="20" y="120" fill="var(--d-muted)">live on each Thread:</text>
+  <text x="20" y="150" fill="var(--d-muted)">get() = currentThread()</text>
+  <text x="20" y="166" fill="var(--d-muted)">.threadLocals.get(USER)</text>
+
+  <g font-family="var(--font-mono)" font-size="11">
+    <rect x="260" y="20" width="200" height="80" rx="6" fill="var(--d-fill)" stroke="var(--d-stroke)"/>
+    <text x="274" y="40" fill="var(--d-text)" font-weight="600">Thread http-1</text>
+    <text x="274" y="62" fill="var(--d-muted)">threadLocals:</text>
+    <text x="274" y="82" fill="var(--d-text)">USER → "alice"</text>
+
+    <rect x="490" y="20" width="200" height="80" rx="6" fill="var(--d-fill)" stroke="var(--d-stroke)"/>
+    <text x="504" y="40" fill="var(--d-text)" font-weight="600">Thread http-2</text>
+    <text x="504" y="62" fill="var(--d-muted)">threadLocals:</text>
+    <text x="504" y="82" fill="var(--d-text)">USER → "bob"</text>
+
+    <rect x="260" y="124" width="430" height="70" rx="6" fill="var(--d-bad-soft)" stroke="var(--d-bad)"/>
+    <text x="274" y="146" fill="var(--d-text)" font-weight="600">Thread http-1, next request (no remove())</text>
+    <text x="274" y="168" fill="var(--d-text)">USER → "alice"   ← carol's request now sees alice</text>
+    <text x="274" y="184" fill="var(--d-muted)">pool threads live for hours: a leak and a data exposure</text>
+  </g>
+  <line x1="200" y1="54" x2="258" y2="54" stroke="var(--d-line)"/>
+  <line x1="460" y1="60" x2="488" y2="60" stroke="var(--d-line)" stroke-dasharray="3 3"/>
+</svg>

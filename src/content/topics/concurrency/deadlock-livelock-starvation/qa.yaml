@@ -1,0 +1,33 @@
+questions:
+  - q: Production is stuck. Thread A holds a lock on account X and waits for account Y; thread B holds Y and waits for X. How do you detect, diagnose and fix it?
+    think: How do you see lock ownership in a live JVM? What order are the locks taken in?
+    answer: |
+      **Detect:** take a thread dump (`jstack <pid>`, `jcmd <pid> Thread.print`, or `/actuator/threaddump`); the JVM reports "Found one Java-level deadlock" with each thread, the lock it holds and the one it wants. For automated alerting, `ThreadMXBean.findDeadlockedThreads()` in a health check. **Diagnose:** the transfer code locks `from` then `to`, so X→Y and Y→X transfers lock in opposite orders — circular wait. **Fix:** lock in a global order (lower account id first) regardless of direction; or `tryLock` with a timeout and jittered retry. **Mitigate now:** restart the instance. **Better design:** in a multi-instance service the JVM locks don't protect the data anyway — do the transfer in one database transaction that locks both rows in id order (`SELECT … WHERE id IN (?, ?) ORDER BY id FOR UPDATE`) and retry on a database deadlock error.
+followUps:
+  - q: How do you detect a deadlock in a running JVM?
+    intuition: The JVM knows which thread owns which lock.
+    approach: |
+      A thread dump: `jstack`, `jcmd Thread.print`, `kill -3` (prints to stdout), or Spring Boot's `/actuator/threaddump`. It lists each thread's state and locks and explicitly reports deadlocks. Programmatically, `ThreadMXBean.findDeadlockedThreads()` covers both monitors and `java.util.concurrent` locks; JFR and APM tools also flag them.
+  - q: Explain livelock with an example. How is it different from deadlock?
+    intuition: Are the threads blocked or running?
+    approach: |
+      In livelock threads aren't blocked — they keep reacting to each other and retrying, so CPU is busy but no work completes. Example: two threads using `tryLock` that both fail, both back off for exactly 10 ms, both retry at the same instant, forever. Fix with randomised backoff or a deterministic tie-breaker. In deadlock, threads are blocked and use no CPU.
+  - q: What is starvation and how does a fair lock help?
+    intuition: Who gets the lock when it's released?
+    approach: |
+      Starvation is a thread that never gets a resource while others keep getting it. Default `synchronized` and `ReentrantLock` allow barging: a newly arriving thread can grab a just-released lock ahead of long waiters. `new ReentrantLock(true)` hands the lock to the longest waiter, bounding the wait but reducing throughput under contention. Other sources: writers starved by readers, one tenant monopolising a shared pool.
+practice:
+  - task: A library lends books. Implement checkout and return so that two users can check out different books at the same time but nobody can check out a book that's already out. Then add an atomic swap of two books between users without deadlocks.
+    hint: Per-key atomic operations in a ConcurrentHashMap for single books; for the swap, lock both books in a global order.
+    solution: |
+      `checkout`: `checkedOut.putIfAbsent(bookId, userId) == null`. `return`: `checkedOut.remove(bookId, userId)`. Swap: get a per-book `ReentrantLock` via `computeIfAbsent`, lock the lower id first, then the higher, update both, unlock in reverse. In a real service, a conditional `UPDATE … WHERE holder IS NULL` in the database is the source of truth.
+    solutionCode: library-checkout
+quiz:
+  - q: Which change removes the circular-wait condition?
+    options: [Using fair locks, Acquiring locks in one global order, Making the lock fields volatile, Increasing the thread-pool size]
+    correct: 1
+    why: If everyone acquires in the same order, no cycle can form.
+  - q: CPU is at 100% and no requests complete. Thread dumps show threads RUNNABLE in a retry loop. Most likely?
+    options: [Deadlock, Livelock, Starvation, A memory leak]
+    correct: 1
+    why: Busy but making no progress — deadlocked threads would be BLOCKED or WAITING.

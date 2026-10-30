@@ -1,0 +1,33 @@
+questions:
+  - q: Users occasionally see another user's name in audit logs. The service stores the current user in a ThreadLocal set by a filter. What's wrong?
+    think: What happens to a pool thread's ThreadLocal values after the request ends?
+    answer: |
+      Tomcat (or any server) reuses threads from a pool. If the filter sets the ThreadLocal but doesn't `remove()` it in a `finally` block — or some path (an exception, an early return, an async dispatch) skips the cleanup — the value stays on the thread, and a later request that doesn't overwrite it (e.g. an unauthenticated endpoint, a background job on the same pool) reads the previous user. Fix: set and `remove()` in `try`/`finally` in one filter; fail loudly when context is missing instead of returning a stale value; propagate context explicitly into async tasks; consider `ScopedValue` on Java 25+.
+followUps:
+  - q: How does ThreadLocal work internally?
+    intuition: Where does the data actually live?
+    approach: |
+      Each `Thread` has a `threadLocals` field of type `ThreadLocalMap`. `set` puts `{this ThreadLocal → value}` into the current thread's map; `get` reads it back. The map uses weak keys (the ThreadLocal) but strong values, so stale entries are only cleaned up opportunistically — which is why you `remove()` explicitly.
+  - q: When would you use InheritableThreadLocal, and what's the catch?
+    intuition: When is the value copied?
+    approach: |
+      It copies the parent's values into a child thread **at thread creation**. That suits spawning a new thread per task, but pool threads are created once and reused, so they keep whatever context existed when they were created. For pools, capture context at submission and restore it inside the task (a `TaskDecorator` or context-propagation library).
+  - q: Why can ThreadLocal be a problem with virtual threads?
+    intuition: How many virtual threads might exist at once?
+    approach: |
+      Virtual threads are cheap and numerous — possibly millions. A ThreadLocal holding a heavyweight object (a formatter, a buffer) is duplicated per virtual thread, multiplying memory, and caching via ThreadLocal stops making sense because virtual threads aren't reused. `ScopedValue` was designed for this case.
+practice:
+  - task: Implement multi-tenant request logging that includes the tenant id on every log line without passing it as a parameter through the service layers.
+    hint: A filter sets a ThreadLocal (and MDC) from a header and clears both in finally; the log pattern prints %X{tenant}.
+    solution: |
+      `TenantContext` wraps a `ThreadLocal<String>`; `TenantFilter` rejects requests without `X-Tenant-Id`, sets `TenantContext` and `MDC.put("tenant", …)`, and clears both in `finally`. Repositories read `TenantContext.get()` to scope queries; the logging pattern includes `%X{tenant}`.
+    solutionCode: tenant-context
+quiz:
+  - q: Where are ThreadLocal values stored?
+    options: [In the ThreadLocal object, 'In a map on each Thread object', In a global ConcurrentHashMap, On the thread's stack]
+    correct: 1
+    why: The ThreadLocal is the key into the current thread's ThreadLocalMap.
+  - q: A CompletableFuture callback running on a pool thread calls RequestContext.current(). What does it see?
+    options: [The caller's context, Nothing or a stale value from that pool thread, A copy made at submit time, Always the main thread's value]
+    correct: 1
+    why: ThreadLocal values don't propagate to other threads unless you copy them.

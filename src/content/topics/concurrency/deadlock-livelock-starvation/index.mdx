@@ -1,0 +1,87 @@
+---
+title: Deadlock, Livelock and Starvation
+summary: The three ways concurrent code stops making progress — the four Coffman conditions behind deadlock, prevention with lock ordering and tryLock, detecting deadlocks in a running JVM, and how livelock and starvation differ.
+track: concurrency
+order: 90
+tags: [concurrency, deadlock, livelock, starvation, locks]
+aliases: [coffman conditions, how to prevent deadlock, lock ordering, trylock, thread dump deadlock, fair lock, database deadlock]
+prerequisites: [concurrency/volatile-and-synchronized]
+related: [concurrency/threads-and-race-conditions, concurrency/producer-consumer, concurrency/executors-thread-pools]
+quickRef:
+  points:
+    - '**Deadlock**: everyone waits, nothing moves. **Livelock**: everyone moves, nothing progresses. **Starvation**: some thread never gets a turn.'
+    - 'Deadlock needs all four: **mutual exclusion, hold-and-wait, no preemption, circular wait**. Break any one.'
+    - 'The standard fix: acquire locks in **one global order** (e.g. by id). Alternative: `tryLock(timeout)`, release and retry with **random** backoff.'
+    - 'Detect with a thread dump (`jstack`, `jcmd Thread.print`, `/actuator/threaddump`) or `ThreadMXBean.findDeadlockedThreads()`.'
+    - 'Databases deadlock too: they detect it and abort one transaction — retry it, and touch rows in a consistent order.'
+  useWhen: Any code that holds more than one lock, row or resource at a time.
+lastReviewed: 2026-10-30
+---
+
+## Why it matters
+
+A deadlocked service doesn't crash — it just stops responding while health checks may still pass. Threads pile up, pools exhaust and requests time out. The usual cause is innocent-looking code that takes two locks in different orders on different paths, like a money transfer in both directions. Livelock and starvation are rarer but just as confusing in production, because CPU usage looks normal or even high.
+
+<Callout type="analogy">
+Two people meet in a narrow corridor. **Deadlock:** both stop and wait for the other to move. **Livelock:** both politely step left, then both step right, forever. **Starvation:** one person always steps aside, and a steady stream of others keeps walking past them.
+</Callout>
+
+## How a deadlock forms
+
+<Walkthrough id="deadlock-cycle" />
+
+## The four conditions (Coffman)
+
+| Condition | Meaning | How to break it |
+|---|---|---|
+| Mutual exclusion | Only one holder at a time | Usually required; sometimes use lock-free structures or immutable data |
+| Hold and wait | Holding one resource while waiting for another | Acquire everything at once, or don't hold a lock while calling out |
+| No preemption | Locks can't be taken away | `tryLock(timeout)`: give up what you hold and retry |
+| Circular wait | A cycle of waiters | **Global lock order** — the most common fix |
+
+## Prevention
+
+<CodeTabs id="deadlock-ordering" title="Lock ordering — Java, Python and async locks in JavaScript" />
+
+<CodeTabs id="deadlock-trylock" title="tryLock with timeout and jittered backoff" />
+
+Other habits that prevent deadlocks:
+
+- **Don't call unknown code while holding a lock** — listeners, callbacks, remote calls and anything that might take its own locks.
+- **Keep lock scopes small**; prefer one coarse lock to many fine ones when contention is low.
+- **Use higher-level tools** (`ConcurrentHashMap.compute`, queues, actors, single-writer designs) so you hold fewer locks.
+- **Bounded pools can deadlock too**: tasks waiting for subtasks queued in the same full pool (thread-starvation deadlock).
+
+## Detection
+
+<CodeTabs id="deadlock-detect" title="Thread dumps and ThreadMXBean" />
+
+In a dump, look for threads in `BLOCKED` (`waiting to lock <0x…>`) or `WAITING (parking)` on a `ReentrantLock`, and match "locked" / "waiting to lock" addresses to find the cycle.
+
+**Databases** keep a wait-for graph and detect cycles automatically: PostgreSQL aborts one transaction with `deadlock detected`, MySQL InnoDB with error 1213. Retry the aborted transaction, and lock rows in a consistent order (e.g. `ORDER BY id … FOR UPDATE`).
+
+## Livelock and starvation
+
+<CodeTabs id="livelock-starvation" title="Livelock with symmetric backoff; fair vs unfair locks" />
+
+- **Livelock** fix: random jitter in backoff (the same reason network retries use jittered exponential backoff), or a deterministic tie-breaker.
+- **Starvation** fixes: fair locks or queues where ordering matters, bounded work per holder, separate pools or queues per tenant or priority. Fair locks cost throughput, so use them only when bounded waiting is a requirement.
+
+<Pitfalls>
+
+- **Two code paths taking the same locks in different orders** — often in different classes.
+- **Nested `synchronized` on objects passed in as arguments** (order depends on the caller).
+- **Synchronized methods calling each other across objects** (A.sync → B.sync and B.sync → A.sync).
+- **Retrying with fixed delays** — a recipe for livelock.
+- **Ignoring database deadlock errors** instead of retrying the transaction.
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- Deadlock = all four Coffman conditions; break circular wait with a global lock order.
+- tryLock + random backoff when ordering isn't possible.
+- Thread dumps and ThreadMXBean find deadlocks; databases detect them and abort a victim.
+- Livelock needs randomness; starvation needs fairness or isolation.
+
+</KeyTakeaways>
