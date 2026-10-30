@@ -1,0 +1,27 @@
+title: From a virtual address to RAM
+frames:
+  - caption: 'A process reads address 0x7f3a…1040. Addresses are virtual: the top bits name a **page** (4 KB), the low bits an offset in it.'
+    panels:
+      - kind: kv
+        label: Address
+        pairs: [[page number, '0x7f3a…1'], [offset, '0x040']]
+  - caption: 'The CPU checks the **TLB** (a small cache of translations). Hit → the physical frame is known immediately. Miss → walk the page tables in memory.'
+    panels:
+      - kind: rows
+        label: Lookup
+        items: [{ v: 'TLB miss', tone: warn }, 'page-table walk']
+  - caption: 'The page-table entry says the page isn''t in RAM yet (first touch of freshly allocated memory). → **minor page fault**: the kernel picks a free frame, zeroes it, maps it. Microseconds.'
+    panels:
+      - kind: kv
+        label: Page-table entry
+        pairs: [[present, { v: 'no → fault', tone: warn }], [after fault, { v: 'frame 0x1c2f', tone: ok }]]
+  - caption: 'For a memory-mapped file page that isn''t cached, the fault reads it from disk — a **major fault**, milliseconds. That''s why cold starts and the first scan of a large file are slow, and later ones fast (page cache).'
+    panels:
+      - kind: kv
+        label: Fault types
+        pairs: [[minor, 'map a frame — µs'], [major, { v: 'read from disk — ms', tone: bad }]]
+  - caption: 'Under memory pressure the kernel evicts clean page-cache pages, then swaps out anonymous pages (if swap exists), and finally the OOM killer ends a process. A container hitting its cgroup memory limit is OOM-killed even if the host has free RAM.'
+    panels:
+      - kind: rows
+        label: Under pressure
+        items: ['drop page cache', 'swap (slow)', { v: 'OOM kill', tone: bad }]

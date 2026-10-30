@@ -1,0 +1,13 @@
+sequenceDiagram
+  participant C as Client
+  participant D as DNS resolver
+  participant S as Server :443
+  C->>D: A? shop.example.com
+  D-->>C: 203.0.113.10 (TTL 300)
+  C->>S: TCP SYN
+  S-->>C: SYN-ACK
+  C->>S: ACK + TLS ClientHello (key share)
+  S-->>C: ServerHello, certificate, Finished
+  C->>S: Finished + GET /cart
+  S-->>C: 200 OK
+  Note over C,S: later requests reuse the connection: 1 round trip each

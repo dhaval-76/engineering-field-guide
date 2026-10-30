@@ -1,0 +1,39 @@
+title: What happens when a browser opens https://shop.example.com/cart
+frames:
+  - caption: '**DNS**: the browser asks its resolver for shop.example.com. If not cached, the resolver asks root → .com → example.com''s name servers and gets an IP (cached for the record''s TTL).'
+    panels:
+      - kind: rows
+        label: Steps
+        items: [{ v: 'DNS: shop.example.com → 203.0.113.10', tone: accent }]
+      - kind: kv
+        label: Round trips
+        pairs: [[so far, '0–several (cache hit = 0)']]
+  - caption: '**TCP handshake** to 203.0.113.10:443 — SYN, SYN-ACK, ACK. One round trip before any data can flow.'
+    panels:
+      - kind: rows
+        label: Steps
+        items: ['DNS', { v: 'TCP: SYN → SYN-ACK → ACK', tone: accent }]
+      - kind: kv
+        label: Round trips
+        pairs: [[so far, '1']]
+  - caption: '**TLS 1.3**: the client offers ciphers and a key share; the server answers with its certificate and key share. Keys are agreed and the server''s identity checked. One more round trip.'
+    panels:
+      - kind: rows
+        label: Steps
+        items: ['DNS', 'TCP', { v: 'TLS: ClientHello → ServerHello + certificate', tone: accent }]
+      - kind: kv
+        label: Round trips
+        pairs: [[so far, '2']]
+  - caption: '**HTTP request** `GET /cart` with cookies, over the encrypted connection. A load balancer may terminate TLS and forward to an app server; the response streams back.'
+    panels:
+      - kind: rows
+        label: Steps
+        items: ['DNS', 'TCP', 'TLS', { v: 'HTTP: GET /cart → 200', tone: accent }]
+      - kind: kv
+        label: Round trips
+        pairs: [[so far, '3 (+ server time)']]
+  - caption: 'At 100 ms per round trip (a distant mobile user), that''s ~300 ms before the server even works. **Keep-alive** and connection reuse make every later request cost one round trip; HTTP/3 merges the transport and TLS handshakes, and resumption can send data in the first flight (0-RTT).'
+    panels:
+      - kind: kv
+        label: Later requests on the same connection
+        pairs: [[round trips, { v: '1', tone: ok }]]

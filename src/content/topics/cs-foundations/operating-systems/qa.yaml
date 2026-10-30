@@ -1,0 +1,37 @@
+questions:
+  - q: 'A service handling 10,000 mostly idle WebSocket connections runs out of memory with a thread-per-connection design. What are your options?'
+    think: What does each blocked connection cost in that design?
+    answer: |
+      Each platform thread reserves stack memory (~1 MB virtual by default) and adds scheduler overhead, so 10,000 threads mostly waiting on idle sockets waste resources. Options: (1) **non-blocking I/O with an event loop** (Netty/Spring WebFlux, Node.js) — a few threads monitor all sockets via epoll and run handlers when data arrives; (2) **virtual threads** (Java 21) — keep blocking-style code while blocked virtual threads cost only a small heap object; (3) reduce per-thread stack size as a stopgap. Also raise the file-descriptor limit, since each socket is a descriptor.
+  - q: 'The host shows almost no free memory, but the application isn''t under pressure. Is something wrong?'
+    think: Where does Linux put unused RAM?
+    answer: |
+      Probably not. Linux uses otherwise idle RAM as **page cache** for file data and reclaims it instantly when applications need memory; tools show it as "buff/cache". Look at "available" memory, swap activity, major page faults and OOM events instead. In containers, compare the process's RSS (and the cgroup's usage) with its memory limit.
+followUps:
+  - q: Process vs thread?
+    intuition: What do they share?
+    approach: |
+      A process has its own address space, file descriptors and resources; isolation means one crashing doesn't corrupt another, at the cost of heavier creation and IPC. Threads within a process share memory and descriptors, so they communicate cheaply but need synchronisation, and a bug in one can corrupt all. Services typically run one process with many threads; isolation between services comes from processes and containers.
+  - q: What is a context switch and why does it matter?
+    intuition: Saving and restoring a cook's workspace.
+    approach: |
+      The kernel saves one thread's registers and state and loads another's, possibly switching address spaces (between processes) and invalidating cached data. Each costs microseconds plus cache misses afterwards. Too many runnable threads cause thrashing — more time switching than working — which is why CPU-bound pools are sized near the core count.
+  - q: What do cgroups and namespaces do for containers?
+    intuition: Limits vs views.
+    approach: |
+      Namespaces give a process its own view of the system — PIDs, network interfaces, mount points, hostname — so it looks isolated. Cgroups limit and account resources — CPU time, memory, I/O. Together they make a container: a regular Linux process that sees its own world and can't use more than its share. CPU limits throttle; memory limits trigger the OOM killer.
+practice:
+  - task: Inspect a running service's threads, memory, file descriptors and container limits from a shell.
+    hint: /proc/<pid>/status, /proc/<pid>/fd, /proc/<pid>/limits, ps, free, /sys/fs/cgroup.
+    solution: |
+      Thread count from `/proc/PID/task` or `Threads:` in `/proc/PID/status`; RSS vs virtual size and page faults via `ps -o rss,vsz,maj_flt,min_flt`; descriptor count from `/proc/PID/fd` against the `open files` limit; context switches in `/proc/PID/status`; and inside a container, `/sys/fs/cgroup/memory.max`, `cpu.max` and `cpu.stat` (throttling). Compare with what the JVM thinks (heap, threads) to find mismatches.
+    solutionCode: os-inspect
+quiz:
+  - q: 'An application first reads a large file slowly, then quickly the second time. Why?'
+    options: [JIT compilation, The page cache holds the file in RAM, The disk got faster, TCP keep-alive]
+    correct: 1
+    why: The first read populates the page cache; later reads are served from memory.
+  - q: Which mechanism lets one thread wait on thousands of sockets at once on Linux?
+    options: [fork, epoll, mmap, swap]
+    correct: 1
+    why: epoll reports which file descriptors are ready, so a few threads can serve many connections.

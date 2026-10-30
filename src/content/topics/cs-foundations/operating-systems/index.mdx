@@ -1,0 +1,93 @@
+---
+title: Operating Systems Essentials
+summary: The OS ideas that explain backend behaviour — processes vs threads, scheduling and context switches, virtual memory and paging, the page cache, file descriptors, blocking vs non-blocking I/O and epoll, and the limits containers impose.
+track: cs-foundations
+order: 30
+tags: [cs-foundations, operating-systems, linux, memory, io, concurrency]
+aliases: [operating system, process vs thread, context switch, scheduler, virtual memory, paging, page fault, swap, page cache, file descriptor, ulimit, blocking io, non blocking io, epoll, kqueue, io_uring, select, system call, user space kernel space, cgroups, namespaces, oom killer, signals, sigterm, virtual threads]
+prerequisites: [cs-foundations/complexity]
+related: [concurrency/threads-and-race-conditions, concurrency/event-loop-and-async, devops/docker-kubernetes]
+quickRef:
+  points:
+    - '**Process** = isolated address space; **thread** = a schedulable execution path sharing its process''s memory.'
+    - 'The scheduler time-slices runnable threads over cores; **context switches** cost microseconds and cache warmth.'
+    - '**Virtual memory**: each process sees its own address space, mapped to physical pages on demand; **page faults** load pages; swapping is slow.'
+    - 'The **page cache** keeps file data in RAM — why repeated reads are fast and why "free" memory is mostly cache.'
+    - 'Everything I/O is a **file descriptor**; servers handle thousands of sockets with **non-blocking I/O + epoll** (or many cheap virtual threads).'
+    - 'Containers are processes limited by **cgroups** (CPU, memory) and isolated by **namespaces**.'
+  useWhen: Reasoning about performance, memory, concurrency models, container limits, or why a service runs out of threads, files or memory.
+lastReviewed: 2026-10-30
+---
+
+## Why it matters
+
+Thread pools, connection limits, OOM kills, "too many open files", GC pauses that look like CPU starvation, slow first requests after a deploy — all are operating-system behaviours showing through your application. A working model of processes, memory and I/O turns these from mysteries into predictable trade-offs.
+
+<Callout type="analogy">
+A shared kitchen (the CPU) with a few stoves (cores). Each recipe being cooked is a thread; the head chef (scheduler) rotates cooks between stoves so everyone progresses. Each restaurant (process) has its own pantry (address space); cooks in the same restaurant share it. Swapping a cook out mid-recipe costs time — they must put away their tools and the next one must set up (a context switch).
+</Callout>
+
+## Processes and threads
+
+| | Process | Thread |
+|---|---|---|
+| Memory | own address space | shares the process's heap |
+| Creation cost | higher (fork/exec) | lower |
+| Isolation | a crash doesn't affect others | a crash (or corrupt state) affects the whole process |
+| Communication | pipes, sockets, shared memory | shared variables (needs synchronisation) |
+
+JVM platform threads map 1:1 to OS threads (~1 MB stack reserved each, scheduler cost); Java 21 **virtual threads** are scheduled by the JVM onto a few carrier threads, so a blocked virtual thread doesn't hold an OS thread ([Threads](../../concurrency/threads-and-race-conditions/)).
+
+## Scheduling and context switches
+
+The scheduler gives each runnable thread a time slice on a core. Switching between threads saves and restores registers and disturbs CPU caches — microseconds each. Thousands of runnable threads mean more switching than work; a CPU-bound pool sized near the core count avoids it, while I/O-bound work tolerates more threads (they're mostly waiting).
+
+## Virtual memory
+
+<Walkthrough id="virtual-memory" />
+
+- Each process sees a private virtual address space; the MMU translates pages (typically 4 KB) to physical frames via page tables (cached in the TLB).
+- Memory is allocated lazily: touching a page for the first time causes a **minor page fault**; reading a page of a file not in RAM causes a **major fault** (disk I/O).
+- When RAM runs out, the kernel evicts page cache, then swaps anonymous memory (slow), and finally the **OOM killer** terminates a process. In containers, exceeding the cgroup memory limit kills the container ([Docker and Kubernetes](../../devops/docker-kubernetes/)).
+
+## Files, the page cache and descriptors
+
+- Reads go through the **page cache**: the first read hits disk, later reads come from RAM; writes land in cache and are flushed later unless you `fsync` — which is what databases do for durability.
+- Every open file and socket is a **file descriptor**; per-process limits (`ulimit -n`) cap connections — "too many open files" usually means leaked connections or a too-low limit.
+
+## I/O models
+
+<CodeTabs id="os-io-models" title="Blocking threads, an event loop with non-blocking sockets, and virtual threads" />
+
+| Model | How a server waits for 10,000 clients | Examples |
+|---|---|---|
+| Blocking I/O, thread per connection | 10,000 OS threads, each blocked in `read` | classic Tomcat, JDBC |
+| Non-blocking I/O + readiness (epoll/kqueue) | a few threads ask "which sockets are ready?" | Netty, Node.js, nginx, Redis |
+| Completion-based (io_uring, IOCP) | submit operations, collect completions | newer runtimes, databases |
+| Virtual threads / green threads | blocking-style code; runtime parks threads cheaply | Java 21 virtual threads, Go goroutines |
+
+## Containers in OS terms
+
+A container is a normal process with **namespaces** (its own view of PIDs, network, mounts, hostname) and **cgroups** (limits on CPU time, memory, I/O). CPU limits are enforced by throttling within each scheduling period, which can add latency spikes; memory limits are hard and enforced by the OOM killer. Signals matter: orchestrators send SIGTERM and later SIGKILL — the application must handle SIGTERM to shut down gracefully.
+
+<CodeTabs id="os-inspect" title="Inspecting a process: threads, memory, descriptors, limits" />
+
+<Pitfalls>
+
+- **Thousands of platform threads** for I/O-bound work — memory and context switches; use pools, async I/O or virtual threads.
+- **Assuming free memory is wasted** — Linux uses spare RAM as page cache.
+- **Swap on latency-sensitive servers** — usually disabled or minimised.
+- **Leaking file descriptors** (unclosed sockets/files) until the process hits its limit.
+- **Blocking calls inside an event loop.**
+- **Ignoring SIGTERM** — killed mid-request on every deploy.
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- Processes isolate, threads share; context switches are real costs.
+- Virtual memory, page faults, page cache and the OOM killer explain most memory behaviour.
+- Sockets are file descriptors; scale connections with non-blocking I/O or virtual threads.
+- Containers are processes with namespaces and cgroup limits — handle SIGTERM.
+
+</KeyTakeaways>

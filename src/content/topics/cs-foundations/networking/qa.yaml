@@ -1,0 +1,37 @@
+questions:
+  - q: 'What happens when you type a URL into the browser and press Enter?'
+    think: Go layer by layer, and count round trips.
+    answer: |
+      The browser parses the URL, checks caches (HSTS may force HTTPS), and resolves the host name via DNS (browser, OS and resolver caches, else root → TLD → authoritative, cached by TTL). It opens a TCP connection to port 443 (SYN, SYN-ACK, ACK — one round trip), performs a TLS 1.3 handshake (one more; verifies the certificate chain and host name), then sends the HTTP request (HTTP/2 or HTTP/3 if negotiated via ALPN). A CDN or load balancer may terminate TLS and forward to an application server, which reads cookies, queries caches and databases and responds. The browser parses HTML, discovers CSS/JS/images and fetches them over the same (multiplexed) connection, then renders. Mention where caching and connection reuse cut the cost.
+  - q: 'Users far from your region report slow API calls, but server-side latency metrics look fine. What might be happening?'
+    think: What isn't counted in server-side timing?
+    answer: |
+      Server metrics start when the request arrives; the user also pays DNS, TCP and TLS handshakes and every round trip at, say, 150 ms. Likely culprits: new connections per request (no keep-alive), chatty APIs needing many sequential calls, large uncompressed payloads, or TLS without session resumption. Fixes: connection reuse, HTTP/2 or HTTP/3, a CDN/edge to terminate TLS near users, batching or aggregating calls (BFF), compression, caching, and regional deployments. Confirm with client-side timings (curl `-w`, RUM).
+followUps:
+  - q: TCP or UDP — when would you use UDP?
+    intuition: Is late data still useful?
+    approach: |
+      UDP when timeliness beats reliability or the application handles reliability itself: live voice/video and games (a late packet is useless), DNS queries (tiny, retried by the client), metrics shipping where loss is tolerable, and QUIC/HTTP/3, which implements its own reliable streams on top of UDP to avoid TCP's head-of-line blocking and handshake costs.
+  - q: What does HTTP/2 improve over HTTP/1.1, and what does HTTP/3 add?
+    intuition: Requests per connection and the effect of a lost packet.
+    approach: |
+      HTTP/2 multiplexes many concurrent requests over one TCP connection with compressed headers, removing HTTP/1.1's one-at-a-time limitation. But a single lost TCP packet stalls every stream until it's retransmitted. HTTP/3 runs over QUIC on UDP: streams are independent (no cross-stream head-of-line blocking), transport and TLS handshakes are combined, and connections survive network changes (Wi-Fi to mobile).
+  - q: L4 vs L7 load balancing?
+    intuition: What can the balancer see?
+    approach: |
+      L4 balances TCP/UDP connections by IP and port — very fast and protocol-agnostic, but can't route by URL or see individual HTTP requests on a reused connection. L7 terminates HTTP (and usually TLS): path/host/header routing, per-request balancing, retries, header injection, WAF — at higher CPU cost. Long-lived gRPC/WebSocket connections need L7 or client-side balancing to spread load.
+practice:
+  - task: Break down where time goes in a single HTTPS request and show how to inspect each layer from the command line.
+    hint: dig for DNS, curl -w for timings, openssl s_client for TLS, ss for connection states.
+    solution: |
+      `dig` shows the resolved addresses and remaining TTL; `curl -w` with `time_namelookup`, `time_connect`, `time_appconnect`, `time_starttransfer` and `time_total` splits DNS, TCP, TLS, server time and transfer; `curl --http2/--http3` checks protocol support; `openssl s_client` shows the certificate chain and expiry; `ss` counts established and TIME_WAIT connections to spot connection churn. Compare a first request with a repeated one on a reused connection.
+    solutionCode: net-debugging
+quiz:
+  - q: How many round trips does a new HTTPS connection over TCP with TLS 1.3 need before the request can be sent?
+    options: ['0', '1', '2', '4']
+    correct: 2
+    why: One for the TCP handshake, one for TLS 1.3 (DNS extra if not cached).
+  - q: Which protocol does HTTP/3 run on?
+    options: [TCP, UDP via QUIC, SCTP, WebSocket]
+    correct: 1
+    why: QUIC provides reliable, multiplexed streams over UDP.
