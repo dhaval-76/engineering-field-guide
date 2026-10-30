@@ -1,0 +1,110 @@
+---
+title: 'Design: A Distributed Log (Kafka-like Messaging)'
+summary: Designing a durable, replayable messaging system from first principles — partition logs on disk, replication with in-sync replicas and a high watermark, metadata consensus, consumer groups and offsets.
+track: system-design
+order: 60
+tags: [system-design, case-study, messaging, distributed-systems, storage]
+aliases: [design kafka, design a message queue, distributed log, commit log, append only log, segment, offset index, page cache, zero copy, sendfile, leader follower replication, isr, high watermark, log end offset, controller, raft, consumer group coordinator, offset storage, retention, design a message broker]
+prerequisites: [system-design/kafka-deep-dive, databases/replication]
+related: [system-design/kafka-vs-rabbitmq, databases/cap-and-consistency, databases/sharding]
+quickRef:
+  points:
+    - 'Core abstraction: a **partitioned, replicated, append-only log**; consumers read by **offset**.'
+    - 'Storage: sequential appends to **segment files** + a sparse offset **index**; rely on the OS page cache and **zero-copy** sends.'
+    - 'Replication: one **leader** per partition, followers fetch; a write is committed when all **in-sync replicas** have it; consumers see only up to the **high watermark**.'
+    - 'Metadata (partitions, leaders, ISR) lives in a small **consensus** group (Raft); data does not.'
+    - 'Consumer groups store **committed offsets** in the log itself; partitions are the unit of parallelism.'
+  useWhen: '"Design Kafka / a message queue / an event bus" — or to understand why Kafka behaves as it does.'
+lastReviewed: 2026-10-30
+---
+
+## Requirements
+
+**Functional**: producers publish messages to named topics; consumers read them in order per partition; many independent consumer groups; replay from any retained offset; configurable retention.
+**Non-functional**: 1 M messages/s at ~1 KB (≈ 1 GB/s in, several GB/s out with fan-out); durable once acknowledged (survive one broker loss); per-key ordering; horizontal scaling; latency in milliseconds.
+
+## Estimates
+
+| | |
+|---|---|
+| Ingress | 1 M msg/s × 1 KB ≈ **1 GB/s** |
+| Egress | 3 consumer groups ≈ 3 GB/s (+ replication traffic 2 GB/s) |
+| Storage | 1 GB/s × 86,400 ≈ **86 TB/day**; 7 days × RF 3 ≈ 1.8 PB |
+| Brokers | at ~100–200 MB/s sustained writes per broker (disk + network) → tens of brokers |
+| Partitions | enough for producer/consumer parallelism: hundreds to thousands across topics |
+
+The numbers say: sequential disk I/O, batching and compression are essential; storage forces retention limits or tiered storage to object storage; one machine can't hold a topic, so partitions must spread across brokers.
+
+## API
+
+```text
+produce(topic, key, value, acks)          → (partition, offset)
+fetch(topic, partition, offset, maxBytes) → records[], highWatermark
+commit(group, topic, partition, offset)
+joinGroup(group, topics) / heartbeat       → assigned partitions
+```
+
+## High-level design
+
+<Diagram id="log-system" caption="Producers write to partition leaders; followers replicate; a Raft controller quorum tracks metadata; consumer groups track offsets." />
+
+## Storage: why a log is fast
+
+<CodeTabs id="partition-log" title="A partition as segment files with a sparse offset index" />
+
+- Each partition is a directory of **segments** (e.g. 1 GB files named by their base offset). Appends go to the active segment; old segments are immutable and deleted (or compacted) wholesale by retention — no per-message deletes.
+- A **sparse index** maps every Nth offset to a byte position; finding offset X = binary search in the index + short scan.
+- **Sequential writes** run at disk bandwidth; the OS **page cache** serves recent data to consumers from memory; **zero-copy** (`sendfile`) streams bytes from the page cache to the socket without copying through the JVM.
+- **Batching and compression** at the producer amortise per-message costs; the broker stores batches as-is.
+
+## Replication
+
+<Walkthrough id="replication-hwm" />
+
+- Each partition has replicas on different brokers (and racks/zones). The **leader** handles writes; **followers fetch** from it like consumers.
+- **In-sync replicas (ISR)**: followers that have caught up recently. A record is **committed** when every ISR member has it; the **high watermark** marks the last committed offset, and consumers can only read up to it — so a consumer never sees a record that could later disappear.
+- `acks=all` + `min.insync.replicas=2` → an acknowledged write exists on at least two brokers.
+- If the leader fails, the controller elects a new leader **from the ISR** — no committed data lost. Electing an out-of-sync replica ("unclean election") would trade data loss for availability; it's off by default.
+
+## Metadata and coordination
+
+A small **controller quorum** (Raft — Kafka's KRaft) stores the cluster's metadata: topics, partitions, replica placement, leaders and ISR. Brokers watch it and act on changes. Only metadata goes through consensus; message data flows through partition replication, which is why throughput scales with brokers.
+
+## Consumers
+
+- A **group coordinator** (one broker per group) tracks members via heartbeats and assigns partitions; a member that stops heartbeating or polling loses its partitions (rebalance).
+- **Offsets** are stored as records in an internal compacted topic keyed by (group, topic, partition) — the log stores its own bookkeeping.
+- Consumers **pull** in batches at their own pace; slow consumers don't slow producers, they just lag.
+
+<CodeTabs id="offset-store" title="Consumer offsets and group assignment, simplified" />
+
+## Deep dives and trade-offs
+
+| Topic | Decision |
+|---|---|
+| Ordering | per partition only; keys pick partitions; global order would need one partition (no scaling) |
+| Delivery | at-least-once by default; idempotent producers de-dupe retries; transactions for read-process-write |
+| Hot partitions | a heavy key overloads one partition — salt the key, or accept per-key throughput limits |
+| Retention vs cost | delete policy, compaction for latest-per-key, tiered storage for long history |
+| Push vs pull | pull lets consumers control rate and batch; long polling avoids busy waiting |
+| Rebalancing partitions | add brokers then move replicas gradually (throttled) to avoid saturating the network |
+| Multi-region | replicate topics between clusters asynchronously (MirrorMaker 2, cluster linking); per-region producers |
+
+<Pitfalls>
+
+- **Treating the broker as a database** — no indexes beyond offset and time; query by key needs another store.
+- **Random-access per-message deletes** — logs delete whole segments.
+- **Consensus for every message** — kills throughput; keep consensus for metadata.
+- **Letting consumers read uncommitted records** — they could see data that vanishes after a leader change.
+- **Global ordering requirements** — they cap the system at one partition.
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- Partitioned, replicated, append-only logs read by offset.
+- Sequential I/O, segments, sparse indexes, page cache and zero-copy make it fast.
+- Leader + ISR + high watermark make it durable without per-message consensus.
+- Consumer groups pull, track offsets in the log, and scale with partitions.
+
+</KeyTakeaways>

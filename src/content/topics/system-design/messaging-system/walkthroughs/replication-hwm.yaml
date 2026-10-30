@@ -1,0 +1,39 @@
+title: Replication and the high watermark
+frames:
+  - caption: 'Partition `orders-0` has three replicas. All are in sync up to offset 41; the **high watermark** (HW) is 42 — consumers can read offsets 0–41.'
+    panels:
+      - kind: kv
+        label: Log end offset
+        pairs: [[leader A, '42'], [follower B, '42'], [follower C, '42']]
+      - kind: kv
+        label: State
+        pairs: [[ISR, 'A, B, C'], [high watermark, { v: '42', tone: ok }]]
+  - caption: 'A producer sends records 42–44 with `acks=all`. The leader appends them; followers haven''t fetched yet. They are **not committed** — consumers still see up to 41.'
+    panels:
+      - kind: kv
+        label: Log end offset
+        pairs: [[leader A, { v: '45', tone: info }], [follower B, '42'], [follower C, '42']]
+      - kind: kv
+        label: State
+        pairs: [[high watermark, '42'], [producer, { v: 'waiting for ack', tone: warn }]]
+  - caption: 'Followers fetch 42–44. Once every ISR member has them, the leader advances the HW to 45 and acknowledges the producer. Consumers can now read them.'
+    panels:
+      - kind: kv
+        label: Log end offset
+        pairs: [[leader A, '45'], [follower B, '45'], [follower C, '45']]
+      - kind: kv
+        label: State
+        pairs: [[high watermark, { v: '45', tone: ok }], [producer, { v: 'acked', tone: ok }]]
+  - caption: 'Follower C becomes slow (GC pauses, disk trouble) and falls behind. After `replica.lag.time.max.ms`, it''s **removed from the ISR** — writes no longer wait for it. With `min.insync.replicas=2`, A and B still satisfy `acks=all`.'
+    panels:
+      - kind: kv
+        label: Log end offset
+        pairs: [[leader A, '60'], [follower B, '60'], [follower C, { v: '47 (lagging)', tone: warn }]]
+      - kind: kv
+        label: State
+        pairs: [[ISR, { v: 'A, B', tone: info }], [high watermark, '60']]
+  - caption: 'Broker A crashes. The controller picks a new leader **from the ISR** — B, which has everything up to 59. Nothing acknowledged is lost. C catches up from B and rejoins the ISR.'
+    panels:
+      - kind: kv
+        label: Replicas
+        pairs: [[A, { v: down, tone: bad }], [B, { v: 'leader (LEO 60)', tone: ok }], [C, 'catching up from B']]

@@ -1,0 +1,10 @@
+flowchart TD
+  P[Producers<br/>key = orderId → partition] --> Cluster
+  subgraph Cluster["Kafka cluster — KRaft controllers manage metadata"]
+    direction LR
+    B1[Broker 1<br/>P0 leader<br/>P1, P2 followers]
+    B2[Broker 2<br/>P1 leader<br/>P0, P2 followers]
+    B3[Broker 3<br/>P2 leader<br/>P0, P1 followers]
+  end
+  Cluster --> C1[Group inventory<br/>consumer A: P0, P1 · consumer B: P2]
+  Cluster --> G2[Group analytics<br/>one consumer: P0, P1, P2]

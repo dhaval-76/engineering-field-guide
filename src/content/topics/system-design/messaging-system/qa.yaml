@@ -1,0 +1,43 @@
+questions:
+  - q: 'Design a Kafka-like messaging system: 1 M messages per second, durable once acknowledged, ordered per key, replayable by many consumer groups.'
+    think: What is the core data structure, how do you spread it, and how do you keep it durable without consensus on every message?
+    answer: |
+      **Abstraction**: topics split into partitions, each an append-only log; producers choose partitions by key hash (per-key order); records are addressed by offset.
+
+      **Storage**: segment files with sparse offset indexes; sequential appends; reads served from the page cache with zero-copy; producer batching and compression. Retention deletes whole segments; compaction keeps latest-per-key.
+
+      **Replication**: replicas across brokers/zones; leader per partition; followers fetch; ISR tracking; commit when all ISR have a record; consumers read only to the high watermark; `acks=all` + min ISR 2; leader election from the ISR.
+
+      **Metadata**: a Raft controller quorum holds partition assignments, leaders and ISR — consensus for metadata only.
+
+      **Consumers**: pull-based fetch by offset; groups with a coordinator assign partitions and handle rebalances; committed offsets stored in a compacted internal topic.
+
+      **Scale**: ~1 GB/s in → tens of brokers; partitions for parallelism; 86 TB/day → retention limits or tiered storage. Trade-offs: per-partition ordering only, at-least-once by default, hot keys limit per-partition throughput.
+followUps:
+  - q: Why is appending to a log on disk fast enough for a million messages per second?
+    intuition: Sequential vs random I/O, and who caches.
+    approach: |
+      Sequential writes run at the disk's full bandwidth, unlike random writes. Batching amortises per-message overhead; compression reduces bytes; the OS page cache keeps recent data in memory for consumers (most reads never touch disk); and zero-copy transfers move data from page cache to network without user-space copies. Throughput then scales by adding partitions across brokers.
+  - q: What is the high watermark and why do consumers only read up to it?
+    intuition: Could a record a consumer read later vanish?
+    approach: |
+      The high watermark is the highest offset replicated to all in-sync replicas. Records above it exist only on some replicas; if the leader failed, a new leader might not have them and they'd be truncated. Restricting consumers to the high watermark guarantees they never act on data that could disappear.
+  - q: How would you support global ordering across a whole topic?
+    intuition: What enforces order, and what does it cost?
+    approach: |
+      Only a single partition (one leader, one consumer per group) provides total order — which caps throughput at one broker and one consumer. Usually you redefine the requirement as per-entity ordering (key by entity id) or attach sequence numbers/timestamps and order at the consumer for a bounded window.
+practice:
+  - task: Sketch a partition's on-disk format and implement append, read-from-offset and retention, plus committed-offset storage for consumer groups.
+    hint: Segment files named by base offset; a sparse index; delete whole segments; offsets as (group, topic, partition) → next offset.
+    solution: |
+      A partition is a sorted map of segments by base offset; `append` writes to the active segment, adds an index entry every few KB and rolls at a size limit; `read(offset)` finds the segment with the greatest base offset ≤ offset, binary-searches the sparse index and scans forward; retention removes whole segments older than the cutoff. Offsets are stored per (group, topic, partition) as "next to read", never moved backwards accidentally, and fall back to earliest/latest for new groups or expired data.
+    solutionCode: partition-log
+quiz:
+  - q: In a Kafka-like design, what goes through the consensus (Raft) quorum?
+    options: [Every message, Cluster metadata such as leaders and ISR, Consumer records, Nothing]
+    correct: 1
+    why: Consensus per message would cap throughput; data uses leader/follower replication with the ISR.
+  - q: How does a log system remove expired data?
+    options: [Deletes individual messages, Deletes whole old segment files, Rewrites the log daily, Consumers delete what they read]
+    correct: 1
+    why: Segments are immutable; retention drops entire files, which is cheap.

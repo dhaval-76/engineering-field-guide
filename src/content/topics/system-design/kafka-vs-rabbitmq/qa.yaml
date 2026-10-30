@@ -1,0 +1,37 @@
+questions:
+  - q: 'An OrderPlaced event must reach inventory, email and analytics. Analytics will be deployed in two weeks and needs the history. Kafka or RabbitMQ?'
+    think: How many consumers need the same message, and does anyone need messages from before they existed?
+    answer: |
+      **Kafka.** It's a fan-out of facts: one topic (`order-events`, keyed by order id so each order's events stay ordered), and each service is its own **consumer group** with its own offsets, so they progress independently and one slow consumer doesn't affect the others. Retention (say 30 days, or longer for this topic) lets analytics start two weeks later and replay from the beginning by resetting its group's offsets — impossible with classic queues, where messages vanish after acknowledgement. Consumers are idempotent because delivery is at-least-once. RabbitMQ would need a queue per service bound to a fanout exchange and still couldn't provide history (unless using RabbitMQ streams).
+  - q: 'Users upload images that need resizing by a pool of workers; some images fail and should be retried a few times, then parked for inspection. Which broker?'
+    think: Is this distributing work or broadcasting facts?
+    answer: |
+      A **work queue** fits: RabbitMQ (or SQS). Each job goes to one worker; per-message acknowledgement means a failed job is redelivered without blocking others; a delivery limit plus a dead-letter exchange parks poison messages; prefetch controls how much each worker holds; priorities or delays are available if needed. Doing this on Kafka would need retry topics and a DLT, and one stuck message can delay its whole partition. If the app already uses Postgres and volume is modest, a jobs table with `FOR UPDATE SKIP LOCKED` is also a good choice.
+followUps:
+  - q: What does at-least-once delivery mean for your consumers?
+    intuition: When can a message arrive twice?
+    approach: |
+      A message is redelivered if the consumer crashes, times out or loses its partition/lease after processing but before acknowledging/committing. Consumers must therefore be idempotent: record processed message ids (unique constraint) in the same transaction as the effect, or make the operation naturally idempotent (upserts, setting a state rather than incrementing).
+  - q: How is ordering guaranteed in Kafka and RabbitMQ?
+    intuition: Ordering exists within one sequence processed by one consumer.
+    approach: |
+      Kafka orders messages within a partition; using an entity id as the key keeps that entity's messages in one partition, consumed by one consumer of a group. RabbitMQ preserves order within a queue, but competing consumers, redeliveries and requeues interleave processing — for strict ordering use a single consumer per queue or consistent-hash exchanges to shard by key.
+  - q: When would you pick SQS/SNS over Kafka on AWS?
+    intuition: Operations vs features.
+    approach: |
+      SQS is a fully managed queue with no capacity planning, per-message visibility timeouts and DLQs — ideal for job processing. SNS fans out to multiple SQS queues for pub/sub. Choose Kafka (MSK) or Kinesis when you need replay, long retention, very high throughput with ordering per key, or stream processing. Many AWS systems use SNS→SQS for simple fan-out and only adopt Kafka when replay and streaming matter.
+practice:
+  - task: 'Set up order events for inventory, email and analytics using Kafka, and an image-resize job queue using RabbitMQ, including retries and dead-lettering.'
+    hint: One topic keyed by order id, one consumer group per service; a quorum queue with a delivery limit and dead-letter exchange.
+    solution: |
+      Kafka: create `order-events` with enough partitions for peak consumer parallelism (e.g. 12) and replication factor 3; produce with the order id as key; each service listens with its own `groupId`; analytics resets its offsets to earliest when it launches; consumers are idempotent. RabbitMQ: declare a durable quorum queue `thumbnails` with `x-delivery-limit` and a dead-letter exchange routing to `thumbnails.failed`; workers consume with a small prefetch and acknowledge after success; failures are redelivered up to the limit, then dead-lettered for inspection and replay.
+    solutionCode: fanout-vs-workqueue
+quiz:
+  - q: A new consumer needs all events from the past week. Which model supports this naturally?
+    options: [A classic queue, A log with retention, A fanout exchange, An RPC call]
+    correct: 1
+    why: Logs keep messages after they're read; a new consumer group can start from an old offset.
+  - q: Default delivery guarantee you should design for with both Kafka and RabbitMQ?
+    options: [Exactly-once, At-most-once, At-least-once, Best-effort without retries]
+    correct: 2
+    why: Acknowledging after processing means crashes cause redelivery, so duplicates are possible.

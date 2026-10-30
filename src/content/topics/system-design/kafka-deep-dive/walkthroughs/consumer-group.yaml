@@ -1,0 +1,33 @@
+title: A consumer group through a crash
+frames:
+  - caption: 'Topic `payments` has 4 partitions. Group `charger` has two consumers; each owns two partitions and processes them in order.'
+    panels:
+      - kind: kv
+        label: Assignment
+        pairs: [[consumer A, 'P0, P1'], [consumer B, 'P2, P3']]
+      - kind: kv
+        label: Committed offsets
+        pairs: [[P0, '120'], [P1, '98'], [P2, '77'], [P3, '64']]
+  - caption: 'Consumer B processes P2 records 77–81 (charging cards), but crashes **before committing**. Its committed offset for P2 is still 77.'
+    panels:
+      - kind: rows
+        label: Consumer B
+        items: [{ v: 'processed P2: 77, 78, 79, 80, 81', tone: warn }, { v: 'commit → never happened', tone: bad }]
+      - kind: kv
+        label: Committed offsets
+        pairs: [[P2, { v: '77', tone: warn }]]
+  - caption: 'B stops heartbeating; after the session timeout the group **rebalances**. A takes over P2 and P3 and resumes from the **committed** offsets.'
+    panels:
+      - kind: kv
+        label: Assignment
+        pairs: [[consumer A, { v: 'P0, P1, P2, P3', tone: info }], [consumer B, { v: '(gone)', tone: muted }]]
+  - caption: 'A re-reads P2 from offset 77 — records 77–81 are delivered **again**. Without protection, five customers are charged twice. This is at-least-once delivery working as designed.'
+    panels:
+      - kind: rows
+        label: Consumer A on P2
+        items: [{ v: '77 again', tone: bad }, { v: '78 again', tone: bad }, '…', { v: '82 (new)', tone: ok }]
+  - caption: 'With an **idempotent consumer**, A inserts each payment id into `processed_payments` in the same transaction as the charge record; ids 77–81 already exist, so A skips them and commits. Duplicates are harmless.'
+    panels:
+      - kind: rows
+        label: Consumer A on P2
+        items: [{ v: '77 → already processed, skip', tone: ok }, { v: '… 81 → skip', tone: ok }, { v: '82 → charge, record, commit', tone: ok }]

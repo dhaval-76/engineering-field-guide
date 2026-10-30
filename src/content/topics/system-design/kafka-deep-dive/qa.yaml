@@ -1,0 +1,47 @@
+questions:
+  - q: 'A payment consumer crashed during a deploy; afterwards 50 payments had been charged twice. What happened, and how do you prevent it?'
+    think: What had been processed, and what had been committed, at the moment of the crash?
+    answer: |
+      The consumer had processed (charged) records whose offsets weren't committed yet — with auto-commit on a 5-second timer, or commit-after-batch, a crash mid-batch leaves the committed offset behind. After the rebalance, another consumer resumed from the committed offset and re-delivered those records: at-least-once delivery, as designed. The bug is a **non-idempotent consumer**.
+
+      Fix: (1) disable auto-commit and commit after processing; (2) make processing idempotent — insert the event id into a `processed_events` table with a unique constraint **in the same database transaction** as recording the payment, and skip if it already exists; (3) pass an idempotency key to the payment provider so a crash between the provider call and the commit can't double-charge; (4) retry transient failures a few times and send poison messages to a dead-letter topic. Kafka transactions alone wouldn't help, because the side effect (charging a card) is outside Kafka.
+  - q: 'Consumer lag on a topic keeps growing. How do you scale consumption?'
+    think: What limits parallelism within a group?
+    answer: |
+      First find out why: is processing slow (downstream calls, DB writes) or are there too few consumers? Within a group, at most one consumer handles a partition, so parallelism is capped at the partition count. Steps: add consumer instances up to the number of partitions; increase partitions if needed (plan for key remapping — ordering for a key holds only after the change); make processing faster — batch database writes (`max.poll.records` and bulk inserts), cache lookups, avoid synchronous calls per record; if order only matters per key, process different keys in parallel inside a consumer (a per-key executor) while keeping each key sequential. Keep each poll's processing within `max.poll.interval.ms` to avoid rebalance loops, and autoscale on lag.
+followUps:
+  - q: How does Kafka guarantee ordering, and when does it break?
+    intuition: Order exists per partition, per sequential consumer.
+    approach: |
+      Records in one partition are stored and delivered in order; the producer's key determines the partition, so per-key order holds. It breaks with null or inconsistent keys, when the partition count changes (keys remap), when a consumer processes one partition's records in parallel, with non-idempotent producers retrying (fixed by idempotence), or with non-blocking retry topics that move a failed record out of line.
+  - q: What do acks=all and min.insync.replicas do together?
+    intuition: How many copies exist before the producer hears "OK"?
+    approach: |
+      With `acks=all`, the leader acknowledges only after all in-sync replicas have the record. `min.insync.replicas=2` makes the write fail if fewer than two replicas are in sync, so an acknowledged write always exists on at least two brokers. With replication factor 3, one broker can be down while writes continue, and no acknowledged data is lost if a leader fails.
+  - q: What triggers a rebalance and how do you reduce its impact?
+    intuition: Membership changes, or a member that looks dead.
+    approach: |
+      A consumer joining or leaving, a crash (missed heartbeats beyond `session.timeout.ms`), or a member not polling within `max.poll.interval.ms` (slow processing). Reduce impact with cooperative-sticky assignment or Kafka 4's new group protocol (only moved partitions pause), static membership for rolling restarts, bounded work per poll, and commit-on-revoke so progress isn't lost.
+  - q: When would you use log compaction?
+    intuition: Do you need history, or the latest value per key?
+    approach: |
+      For changelog topics where consumers need the current state of each key — user profiles, product prices, configuration, Kafka Streams state stores. Compaction keeps at least the latest record per key (and tombstones for deletions), so a new consumer can rebuild the full current state without reading every historical change.
+practice:
+  - task: 'Implement a Spring Kafka payment consumer that commits only after successful processing, retries transient errors with backoff, sends poison messages to a dead-letter topic, and never charges twice.'
+    hint: DefaultErrorHandler + DeadLetterPublishingRecoverer; a processed_events table claimed in the same transaction as the payment; an idempotency key to the gateway.
+    solution: |
+      Disable auto-commit (Spring commits after the listener returns). Configure a `DefaultErrorHandler` with exponential backoff (e.g. 3 retries) and a `DeadLetterPublishingRecoverer`, marking validation errors as not retryable. In a `@Transactional` service method, `INSERT … ON CONFLICT DO NOTHING` the event id into `processed_events`; if nothing was inserted, return; otherwise call the gateway with an idempotency key derived from the event id and record the outcome in the same transaction. Test by delivering the same record twice (embedded Kafka or Testcontainers) and asserting one charge.
+    solutionCode: kafka-idempotent-consumer
+quiz:
+  - q: A topic has 6 partitions and a group has 8 consumers. How many consumers receive records?
+    options: ['8', '6', '4', '1']
+    correct: 1
+    why: Each partition is assigned to one member of a group; the extra two sit idle.
+  - q: Which settings ensure an acknowledged write survives one broker failure?
+    options: ['acks=1, RF=1', 'acks=all, RF=3, min.insync.replicas=2', 'acks=0, RF=3', 'linger.ms=0']
+    correct: 1
+    why: Acknowledged writes then always exist on at least two replicas.
+  - q: Auto-commit is on and the consumer crashes mid-batch. Possible outcomes?
+    options: [Only duplicates, Only lost records, Both duplicates and skipped records, Neither]
+    correct: 2
+    why: The timer may have committed offsets beyond unprocessed records (skips) or behind processed ones (duplicates).
