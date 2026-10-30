@@ -1,6 +1,6 @@
 /** Single place for site identity. Change `repo` if the GitHub repository is renamed. */
 const repo = 'engineering-field-guide';
-const githubUser = process.env.GITHUB_REPOSITORY_OWNER ?? 'your-github-username';
+const githubUser = process.env.GITHUB_REPOSITORY_OWNER ?? 'dhaval-76';
 
 export const site = {
   name: 'Engineering Field Guide',
