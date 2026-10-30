@@ -1,0 +1,80 @@
+---
+title: Graphs, BFS and DFS (including Grids)
+summary: Modelling problems as graphs and exploring them — adjacency lists, grids as implicit graphs, depth-first search for components and cycles, breadth-first search for shortest paths in unweighted graphs, multi-source BFS, and cloning graphs.
+track: dsa
+order: 90
+tags: [dsa, graphs, bfs, dfs, grids, patterns]
+aliases: [graph, adjacency list, adjacency matrix, breadth first search, bfs, depth first search, dfs, connected components, number of islands, flood fill, rotting oranges, multi source bfs, shortest path unweighted, word ladder, clone graph, visited set, grid traversal, matrix bfs, cycle detection undirected, bipartite]
+prerequisites: [dsa/trees-and-bst]
+related: [dsa/stacks-and-monotonic-stacks, dsa/heaps-and-top-k]
+quickRef:
+  points:
+    - 'Represent graphs as **adjacency lists** (`Map<node, List<node>>`); a grid is an implicit graph with up to 4 neighbours per cell.'
+    - '**BFS** (queue) explores by distance → **shortest path in unweighted graphs**; mark visited when **enqueuing**.'
+    - '**DFS** (recursion/stack) explores deeply → components, reachability, cycle detection, path enumeration.'
+    - '**Multi-source BFS**: start the queue with all sources (all rotten oranges, all gates) at distance 0.'
+    - 'Every vertex and edge processed once: **O(V + E)**; grids O(rows × cols).'
+  complexity: 'O(V + E) time, O(V) space for visited + queue/stack.'
+  useWhen: 'Relationships between items, grids/mazes, reachability, connectivity, or fewest-steps questions.'
+lastReviewed: 2026-10-30
+---
+
+## Recognise it
+
+- Things connected to other things: friends, cities, courses with prerequisites, words differing by one letter.
+- A **grid** where you can move up/down/left/right: islands, mazes, flood fill.
+- "**Minimum number of steps/moves**" with equal-cost moves → BFS.
+- "Count groups", "is X reachable", "does a cycle exist" → DFS (or BFS, or union-find).
+
+<Callout type="analogy">
+BFS is a stone dropped in a pond: ripples reach everything at distance 1, then 2, then 3 — so the first time a ripple touches the shore is the shortest distance. DFS is a maze explorer who follows one corridor to its end before backtracking to try the next.
+</Callout>
+
+## Representing a graph
+
+<CodeTabs id="dsa-graph-build" title="Adjacency list from an edge list, and grid neighbours" />
+
+| Representation | Space | Edge check | Iterate neighbours | Use when |
+|---|---|---|---|---|
+| Adjacency list | O(V + E) | O(degree) | O(degree) | sparse graphs — almost always |
+| Adjacency matrix | O(V²) | O(1) | O(V) | dense, small V |
+| Implicit (grid, rule) | none | compute | compute | grids, word ladders, state spaces |
+
+## BFS: shortest paths by number of steps
+
+<Walkthrough id="grid-bfs" />
+
+<CodeTabs id="dsa-bfs-grid" title="Shortest path in a grid with BFS" />
+
+## DFS: components and reachability
+
+<CodeTabs id="dsa-number-of-islands" title="Number of islands — DFS flood fill (recursive and iterative)" />
+
+## Multi-source BFS
+
+All sources start in the queue together, so each cell's distance is to its **nearest** source — one pass instead of one BFS per source.
+
+<CodeTabs id="dsa-rotting-oranges" title="Rotting oranges — minutes until all rot, multi-source BFS" />
+
+## Copying a graph
+
+<CodeTabs id="dsa-clone-graph" title="Clone graph — map original → copy while traversing" />
+
+<Pitfalls>
+
+- **Marking visited when dequeuing** in BFS — the same node is enqueued many times.
+- **No visited set** on graphs with cycles — infinite loops.
+- **Recursive DFS on large grids** (10⁶ cells) — stack overflow; use an explicit stack or BFS.
+- **Mutating the input grid** to mark visited when the caller needs it intact.
+- **BFS on weighted graphs** — it only finds fewest edges; use Dijkstra for weights ([Shortest paths](../shortest-paths/)).
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- Adjacency lists for real graphs; neighbours computed on the fly for grids.
+- BFS = shortest path in steps; DFS = exploration, components, cycles.
+- Visited sets prevent repeats; multi-source BFS handles "nearest of many".
+- O(V + E) for both.
+
+</KeyTakeaways>

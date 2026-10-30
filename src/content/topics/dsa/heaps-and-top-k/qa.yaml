@@ -1,0 +1,33 @@
+questions:
+  - q: 'Find the kth largest element in an unsorted array. Compare approaches.'
+    think: Do you need everything sorted, or just the boundary?
+    answer: |
+      Sorting is O(n log n). A **min-heap of size k** holds the k largest seen so far; each element is pushed and the smallest popped when the size exceeds k; the root is the answer — O(n log k) time, O(k) space, and it works on streams. **Quickselect** partitions around a pivot and recurses into one side — O(n) average, O(n²) worst (randomise the pivot), O(1) extra space, but it mutates the array. Mention the trade-offs and pick the heap for streams, quickselect for one-off in-memory arrays.
+  - q: 'Design a structure that supports adding numbers and returning the median at any time.'
+    think: The median splits the data into two halves — which element of each half do you need?
+    answer: |
+      Keep the lower half in a max-heap and the upper half in a min-heap, with the lower heap holding the same number of elements or one more. To add: push into the lower heap, move its maximum to the upper heap, and if the upper heap becomes larger, move its minimum back. The median is the lower heap's top (odd count) or the average of both tops (even). O(log n) per insertion, O(1) per query.
+followUps:
+  - q: Why is building a heap from n elements O(n), not O(n log n)?
+    intuition: Most nodes are near the bottom.
+    approach: |
+      Heapify sifts down every non-leaf from the last parent to the root. Half the nodes are leaves (no work), a quarter sift down at most one level, an eighth two levels, and so on; the sum n/4·1 + n/8·2 + … converges to O(n).
+  - q: Heap vs balanced BST (TreeMap) for a priority queue?
+    intuition: What operations do you need?
+    approach: |
+      A heap gives O(1) min, O(log n) insert/remove-min, is array-backed and cache-friendly, but can't efficiently remove arbitrary elements or iterate in order. A balanced BST supports min and max, ordered iteration, arbitrary deletes and range queries in O(log n), at higher constant cost. Use a heap for pure priority queues; a TreeMap/TreeSet when you need deletes, both ends or order.
+practice:
+  - task: Merge k sorted linked lists into one sorted list.
+    hint: Put each list's head in a min-heap; repeatedly pop the smallest and push its successor.
+    solution: |
+      Push every non-null head into a min-heap keyed by value. Pop the smallest, append it to the result via a tail pointer, and push its `next` if present. Repeat until the heap is empty. Each of N nodes is pushed and popped once in a heap of at most k items: O(N log k) time, O(k) space. (Pairwise merging in a balanced way gives the same bound.)
+    solutionCode: dsa-merge-k-lists
+quiz:
+  - q: To keep the k largest elements of a stream, which heap and size?
+    options: [Max-heap of all elements, Min-heap of size k, Max-heap of size k, Min-heap of all elements]
+    correct: 1
+    why: The min-heap's root is the weakest of the k largest — the one to evict.
+  - q: In an array-based heap, where are the children of index i?
+    options: ['i+1 and i+2', '2i and 2i+1 (0-based)', '2i+1 and 2i+2 (0-based)', 'i/2 and i/2+1']
+    correct: 2
+    why: With 0-based indexing, children are at 2i+1 and 2i+2; the parent at (i−1)/2.

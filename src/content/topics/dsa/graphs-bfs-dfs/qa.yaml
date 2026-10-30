@@ -1,0 +1,33 @@
+questions:
+  - q: 'Count the islands in a grid of land (1) and water (0), where land connects horizontally and vertically.'
+    think: What is an island in graph terms?
+    answer: |
+      Each island is a connected component of land cells. Scan the grid; whenever you find unvisited land, increment the count and flood-fill (DFS or BFS) to mark every connected land cell visited (sink it, or use a visited array). Each cell is processed a constant number of times: O(rows × cols) time; O(rows × cols) worst-case stack/queue. Use an explicit stack or BFS for large grids to avoid recursion depth limits. Union-find also works and supports islands added over time.
+  - q: 'In a grid of oranges, rotten ones infect neighbours every minute. How long until all are rotten?'
+    think: Several starting points spreading simultaneously.
+    answer: |
+      Multi-source BFS: put every rotten orange in the queue at minute 0 and count fresh ones. Process the queue level by level — each level is one minute — rotting fresh neighbours and decrementing the fresh count. When the queue empties, return the minutes if no fresh oranges remain, else −1. O(rows × cols). Running a separate BFS from each rotten orange would multiply the work.
+followUps:
+  - q: Why mark nodes visited when enqueuing rather than when dequeuing in BFS?
+    intuition: How many times can a node enter the queue otherwise?
+    approach: |
+      If you mark on dequeue, a node can be enqueued by each of its neighbours before it is processed, inflating the queue (up to O(E) entries) and doing redundant work. Marking on enqueue guarantees each node enters the queue exactly once, and since BFS discovers nodes in distance order, the first discovery already has the shortest distance.
+  - q: BFS or DFS?
+    intuition: Shortest steps vs full exploration.
+    approach: |
+      BFS for fewest steps/levels in unweighted graphs and for "nearest" questions; it uses memory proportional to the frontier. DFS for exploring components, detecting cycles, topological order, enumerating paths and backtracking; it uses memory proportional to the depth. For plain reachability or counting components, either works.
+practice:
+  - task: Find the fewest steps from the top-left to the bottom-right of a grid with walls, or −1.
+    hint: BFS from the start, marking cells visited as you enqueue them; the first time you reach the target is optimal.
+    solution: |
+      Return −1 if start or target is a wall. Enqueue the start with distance 0 and mark it. Pop cells in FIFO order; if it's the target, return its distance; otherwise enqueue each in-bounds, non-wall, unvisited neighbour with distance + 1, marking it immediately. If the queue empties, the target is unreachable. O(rows × cols) time and space.
+    solutionCode: dsa-bfs-grid
+quiz:
+  - q: Which algorithm finds the shortest path in an unweighted graph?
+    options: [DFS, BFS, Binary search, Sorting]
+    correct: 1
+    why: BFS visits nodes in increasing order of distance from the source.
+  - q: Time complexity of BFS or DFS with adjacency lists?
+    options: ['O(V)', 'O(E)', 'O(V + E)', 'O(V · E)']
+    correct: 2
+    why: Every vertex is visited once and every edge examined once (twice if undirected).

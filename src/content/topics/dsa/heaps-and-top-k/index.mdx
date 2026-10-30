@@ -1,0 +1,82 @@
+---
+title: Heaps, Priority Queues and Top-K
+summary: Always knowing the smallest or largest element cheaply — how a binary heap works, top-K with a size-K heap, merging K sorted lists, the running median with two heaps, and scheduling problems.
+track: dsa
+order: 70
+tags: [dsa, heap, priority-queue, top-k, patterns]
+aliases: [heap, binary heap, min heap, max heap, priority queue, heapify, sift up, sift down, top k, kth largest element, k closest points, top k frequent elements, merge k sorted lists, find median from data stream, two heaps, task scheduler, meeting rooms ii, quickselect]
+prerequisites: [cs-foundations/complexity]
+related: [dsa/linked-lists, low-level-design/task-scheduler]
+quickRef:
+  points:
+    - 'A heap gives the min (or max) in **O(1)**, insert and remove in **O(log n)**; building from n items is O(n).'
+    - '**Top-K largest**: keep a **min-heap of size K**; push each item, pop when size > K → O(n log K).'
+    - '**Merge K sorted** sources: heap of the current head of each → O(N log K).'
+    - '**Running median**: max-heap for the lower half, min-heap for the upper half, balanced in size.'
+    - 'Java `PriorityQueue` is a min-heap by default; Python `heapq` is a min-heap (negate for max).'
+  complexity: 'push/pop O(log n), peek O(1), heapify O(n); top-K O(n log K).'
+  useWhen: 'Repeatedly needing the current best/smallest item, K largest/smallest, or merging sorted streams.'
+lastReviewed: 2026-10-30
+---
+
+## Recognise it
+
+- "**K** largest / smallest / most frequent / closest" → size-K heap (or quickselect).
+- Repeatedly take the **next earliest / cheapest** item while adding new ones → priority queue (scheduling, Dijkstra).
+- Merge **sorted** streams → heap of heads.
+- Median or percentile of a **stream** → two heaps.
+
+<Callout type="analogy">
+A hospital emergency room: patients don't leave in arrival order but by urgency. The triage desk always knows who is most urgent, and adding a patient doesn't require re-sorting everyone — just placing them correctly among a few comparisons.
+</Callout>
+
+## How a binary heap works
+
+<Walkthrough id="heap-ops" />
+
+A heap is a complete binary tree stored in an array: children of index `i` are `2i + 1` and `2i + 2`, the parent is `(i − 1) / 2`. The **heap property** (each parent ≤ its children for a min-heap) puts the minimum at index 0. Push = append and **sift up**; pop = move the last element to the root and **sift down**. Both touch one root-to-leaf path: O(log n).
+
+<CodeTabs id="dsa-heap-impl" title="A min-heap from scratch" />
+
+## Worked problems
+
+### Kth largest element / top-K
+
+Keep a min-heap of the K largest seen so far; its root is the Kth largest. Each new element larger than the root replaces it.
+
+<CodeTabs id="dsa-top-k" title="Kth largest and top-K frequent — size-K heaps" />
+
+### Merge K sorted lists
+
+<CodeTabs id="dsa-merge-k-lists" title="Merge K sorted lists — heap of current heads" />
+
+### Find the median of a data stream
+
+The lower half in a **max-heap**, the upper half in a **min-heap**, sizes differing by at most one. The median is the top of the larger heap, or the average of both tops.
+
+<CodeTabs id="dsa-median-stream" title="Running median — two heaps, O(log n) per insert" />
+
+| Approach for top-K | Time | Space | Notes |
+|---|---|---|---|
+| Sort everything | O(n log n) | O(n) | simplest |
+| Size-K heap | O(n log K) | O(K) | streams, K ≪ n |
+| Quickselect | O(n) average, O(n²) worst | O(1) | in place, unordered result |
+| Bucket sort (frequencies) | O(n) | O(n) | when counts are bounded by n |
+
+<Pitfalls>
+
+- **Max-heap of everything for top-K largest** — O(n log n); a size-K min-heap is cheaper.
+- **Comparators that overflow** (`a - b` with large ints) — use `Integer.compare`.
+- **Python max-heaps** — push negated values (or tuples with negated keys).
+- **Ties with uncomparable payloads** in Python tuples — add a counter as a tiebreaker.
+- **Assuming iteration order** of a `PriorityQueue` is sorted — only `poll` returns elements in order.
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- Heaps keep the best element at the top with O(log n) updates.
+- Size-K min-heap for K largest; heap of heads for K-way merges; two heaps for medians.
+- Know your language's default (min-heap) and how to flip it.
+
+</KeyTakeaways>

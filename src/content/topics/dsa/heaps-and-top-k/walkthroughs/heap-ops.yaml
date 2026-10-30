@@ -1,0 +1,27 @@
+title: Push and pop in a min-heap
+frames:
+  - caption: 'A min-heap stored as an array. Index i''s children are 2i+1 and 2i+2. Every parent ≤ its children, so the minimum (1) is at index 0.'
+    panels:
+      - kind: array
+        label: heap
+        items: [{ v: '1', tone: ok }, '3', '2', '7', '5', '4']
+  - caption: '**Push 0**: append at the end (index 6, parent 2 holding 2). 0 < 2 → swap.'
+    panels:
+      - kind: array
+        label: heap
+        items: ['1', '3', { v: '2', tone: warn }, '7', '5', '4', { v: '0', tone: accent }]
+  - caption: 'Now at index 2, parent 0 holds 1. 0 < 1 → swap. 0 reaches the root: one path, O(log n) swaps (**sift up**).'
+    panels:
+      - kind: array
+        label: heap
+        items: [{ v: '0', tone: ok }, '3', '1', '7', '5', '4', '2']
+  - caption: '**Pop**: remove the root (0), move the last element (2) to the root, then **sift down**: swap with the smaller child (1 at index 2).'
+    panels:
+      - kind: array
+        label: heap
+        items: [{ v: '1', tone: ok }, '3', { v: '2', tone: accent }, '7', '5', '4']
+  - caption: 'At index 2, the only child is 4 (index 5); 2 ≤ 4, so it stops. The heap property holds again; the new minimum is 1.'
+    panels:
+      - kind: array
+        label: heap
+        items: ['1', '3', '2', '7', '5', '4']

@@ -1,0 +1,84 @@
+---
+title: Binary Trees and Binary Search Trees
+summary: Thinking recursively about trees — the four traversals, depth and diameter with post-order, level-order BFS, binary search tree properties, validating and searching BSTs, lowest common ancestor, and serialising a tree.
+track: dsa
+order: 80
+tags: [dsa, trees, binary-tree, bst, recursion, patterns]
+aliases: [binary tree, binary search tree, bst, tree traversal, preorder, inorder, postorder, level order, bfs on tree, maximum depth, diameter of binary tree, invert binary tree, same tree, validate bst, kth smallest in bst, lowest common ancestor, lca, path sum, serialize deserialize tree, balanced tree]
+prerequisites: [dsa/stacks-and-monotonic-stacks]
+related: [dsa/graphs-bfs-dfs, databases/indexing, dsa/heaps-and-top-k]
+quickRef:
+  points:
+    - 'Most tree problems are **"solve for the children, combine at the node"** — write the recursive definition first.'
+    - 'Pre-order (node first) to pass info **down**; post-order (children first) to compute info **up** (height, sums, diameter).'
+    - '**Level order** = BFS with a queue, processing one level at a time.'
+    - '**BST**: left < node < right for every subtree → in-order traversal is sorted; search/insert O(h).'
+    - 'Validate a BST with **bounds** passed down, not just parent comparisons.'
+    - 'Height h is O(log n) when balanced, O(n) when degenerate — recursion depth too.'
+  complexity: 'Traversals O(n) time, O(h) stack space; BST operations O(h).'
+  useWhen: 'Hierarchical data, recursive structure, ordered sets, and anything asking for depths, paths or ancestors.'
+lastReviewed: 2026-10-30
+---
+
+## Recognise it
+
+- Input is a tree (or a hierarchy: org charts, file systems, expression trees).
+- The answer for a node depends on its children's answers → **post-order recursion**.
+- The answer depends on the path from the root → **pass state down** (pre-order).
+- "By level", "right side view", "minimum depth" → **BFS**.
+- Sorted order, k-th smallest, range queries → **BST** properties.
+
+<Callout type="analogy">
+A company asking "how many people work under each manager?" Every manager asks their direct reports for their counts, adds them up and adds one for themselves — the question flows down, the answers flow back up. That's post-order recursion.
+</Callout>
+
+<CodeTabs id="dsa-tree-node" title="The tree node used in these examples" />
+
+## Traversals
+
+<Walkthrough id="tree-traversals" />
+
+<CodeTabs id="dsa-tree-traversals" title="Pre/in/post-order (recursive and iterative) and level order" />
+
+## Information flowing up: depth and diameter
+
+The diameter (longest path between any two nodes) passes through some node as `leftHeight + rightHeight`. A single post-order pass computes heights and tracks the best sum.
+
+<CodeTabs id="dsa-tree-depth-diameter" title="Max depth and diameter — post-order in one pass" />
+
+## Binary search trees
+
+<CodeTabs id="dsa-validate-bst" title="Validate a BST with bounds, and k-th smallest via in-order" />
+
+A BST stays efficient only when balanced; self-balancing variants (red-black trees in Java's `TreeMap`, AVL trees) keep height O(log n). Databases use B-trees, which are wide, shallow relatives ([Indexing](../../databases/indexing/)).
+
+## Lowest common ancestor
+
+<CodeTabs id="dsa-lca" title="Lowest common ancestor — general tree and BST" />
+
+| Problem | Technique | Complexity |
+|---|---|---|
+| Max depth, balanced check, diameter | post-order, return heights | O(n) |
+| Path sum, root-to-leaf paths | pre-order, pass remaining sum down | O(n) |
+| Level order, right side view | BFS by level | O(n) |
+| Validate BST | bounds passed down | O(n) |
+| k-th smallest in BST | in-order, stop at k | O(h + k) |
+| LCA | post-order "found in left/right" | O(n); O(h) in a BST |
+
+<Pitfalls>
+
+- **Validating a BST by comparing only with the parent** — a deep node can violate an ancestor's bound.
+- **Missing base cases** (`null` children).
+- **Recomputing heights** at every node (O(n²)) instead of returning them up.
+- **Recursion depth** on degenerate trees (a "linked list" of 10⁵ nodes) — use iteration.
+- **Integer bounds** when values can equal `Integer.MIN_VALUE` — use `null` or `long` bounds.
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- Define the answer recursively: what do children return, what does the node combine?
+- Post-order for bottom-up values; pre-order for top-down state; BFS for levels.
+- BST invariants are about whole subtrees: pass bounds; in-order is sorted.
+
+</KeyTakeaways>

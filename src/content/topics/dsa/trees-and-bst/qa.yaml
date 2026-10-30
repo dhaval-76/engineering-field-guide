@@ -1,0 +1,33 @@
+questions:
+  - q: 'Determine whether a binary tree is a valid binary search tree.'
+    think: Is comparing each node with its parent enough?
+    answer: |
+      No — a node in the left subtree of the root must be smaller than the root even if it's a right child of its own parent. Recurse with **bounds**: the root has (−∞, +∞); going left tightens the upper bound to the node's value, going right tightens the lower bound. Every node must be strictly inside its bounds. O(n) time, O(h) stack. Alternatively, an in-order traversal must be strictly increasing.
+  - q: 'Find the diameter (longest path between any two nodes) of a binary tree.'
+    think: Where does the longest path "bend"? What does each node need from its children?
+    answer: |
+      The longest path passes through some highest node, combining the deepest path in its left subtree and in its right subtree: `height(left) + height(right)` edges. Do one post-order pass that returns each subtree's height and updates a global best with `l + r` at every node. O(n) time. Calling a separate height function at every node would be O(n²).
+followUps:
+  - q: When do you choose BFS over DFS on a tree?
+    intuition: Levels vs paths.
+    approach: |
+      BFS (level order with a queue) when the question is about levels or the shallowest something: level averages, right side view, minimum depth — it can stop at the first leaf. DFS (recursion or a stack) for path-based and subtree-based questions: path sums, heights, validation, LCA. Space: BFS holds a whole level (up to n/2 nodes); DFS holds a root-to-leaf path (O(h)).
+  - q: Why do databases use B-trees instead of binary search trees?
+    intuition: What does each node visit cost on disk?
+    approach: |
+      Each node visit may be a disk/page read. A binary tree over 100 million keys is ~27 levels deep; a B-tree node holds hundreds of keys per page, so the same data is 3–4 levels deep — far fewer I/Os. B-trees also keep leaves sorted and linked for range scans.
+practice:
+  - task: Find the lowest common ancestor of two nodes in a binary tree, and a faster version for a BST.
+    hint: General tree — post-order, returning whichever target you found; BST — compare values to decide the direction.
+    solution: |
+      General: if the node is null or one of the targets, return it; otherwise recurse left and right; if both return non-null, this node is the LCA; else return the non-null one. O(n) time, O(h) space. BST: start at the root; if both values are smaller go left, if both larger go right, otherwise the current node splits them and is the LCA — O(h) time, O(1) space.
+    solutionCode: dsa-lca
+quiz:
+  - q: Which traversal visits a BST's values in sorted order?
+    options: [Pre-order, In-order, Post-order, Level order]
+    correct: 1
+    why: Left subtree (smaller), node, right subtree (larger).
+  - q: What is the worst-case search time in an unbalanced BST with n nodes?
+    options: ['O(1)', 'O(log n)', 'O(n)', 'O(n log n)']
+    correct: 2
+    why: Inserting sorted data creates a chain of height n.

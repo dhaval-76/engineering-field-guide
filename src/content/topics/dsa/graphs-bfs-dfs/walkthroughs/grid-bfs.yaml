@@ -1,0 +1,33 @@
+title: BFS spreads outward one step at a time
+frames:
+  - caption: 'Find the fewest steps from S (top-left) to T (bottom-right); # is a wall. Start: the queue holds S at distance 0.'
+    panels:
+      - kind: rows
+        label: grid
+        items: ['S . . #', '# # . #', '. . . .', '. # # T']
+      - kind: queue
+        label: queue
+        items: [{ v: '(0,0) d0', tone: accent }]
+  - caption: 'Distance 1 and 2: the only way out of S is right. Each cell is marked visited when it is **added** to the queue, so it is never added twice.'
+    panels:
+      - kind: rows
+        label: distances
+        items: ['0 1 2 #', '# # . #', '. . . .', '. # # T']
+      - kind: queue
+        label: queue
+        items: [{ v: '(1,2) d3', tone: accent }]
+  - caption: 'The wave reaches row 2 at distance 4, then spreads both ways along it.'
+    panels:
+      - kind: rows
+        label: distances
+        items: ['0 1 2 #', '# # 3 #', '. 5 4 5', '. # # T']
+      - kind: queue
+        label: queue
+        items: ['(2,1) d5', '(2,3) d5']
+  - caption: 'At distance 6 the wave reaches T. Because BFS explores in order of distance, the first time T is reached is the shortest path: **6 steps**. O(rows × cols).'
+    panels:
+      - kind: rows
+        label: distances
+        items: ['0 1 2 #', '# # 3 #', '6 5 4 5', '. # # 6']
+      - kind: note
+        text: 'T reached at distance 6.'
