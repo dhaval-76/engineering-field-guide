@@ -1,0 +1,45 @@
+questions:
+  - q: '"Is your design CP or AP?" — how do you answer for a ticket-booking system?'
+    think: Which operations break the business if they're inconsistent, and which merely look a bit stale?
+    answer: |
+      Answer per operation. **Reserving a seat and charging** must be consistent: a seat is held with a conditional write / unique constraint on one leader (or a consensus-backed store), so during a partition the minority side refuses with a retryable error rather than double-selling — CP for that path. **Browsing events and the seat map** favour availability and latency: served from replicas and caches, possibly seconds stale, with a final check at reservation time — AP. **"My bookings"** needs read-your-writes, provided by sticky routing to the leader after booking. Then mention PACELC: in normal operation the reservation path pays a quorum round trip, which is acceptable for a low-volume, high-value write.
+  - q: What does the C in CAP mean, and how is it different from the C in ACID?
+    think: One is about replicas agreeing, the other about rules on data.
+    answer: |
+      CAP's **C** is linearizability: the replicated system behaves like a single copy — after a write completes, all later reads (from any node) see it. ACID's **C** means a transaction takes the database from one valid state to another, respecting constraints (foreign keys, checks) — largely the application's and the schema's responsibility. Isolation levels (the I in ACID) are yet another axis: how concurrent transactions see each other.
+followUps:
+  - q: What does PACELC add to CAP?
+    intuition: Partitions are rare; what do you trade off the rest of the time?
+    approach: |
+      When there's no partition, a replicated system still chooses between **latency** and **consistency**: waiting for a quorum or a distant leader on each operation, or answering from a nearby replica that may be behind. That everyday trade-off usually matters more than the partition case.
+  - q: Explain eventual consistency and when it's acceptable.
+    intuition: What does a user lose if they see a value a few seconds old?
+    approach: |
+      If writes stop, all replicas eventually return the same value; in between, reads may be stale or differ between replicas. It's acceptable where staleness is harmless or self-correcting — likes, view counts, recommendations, search indexes, catalogue pages — and unacceptable for invariants such as balances, stock reservations or uniqueness, unless a final strongly consistent check guards the critical step.
+  - q: Why do consensus clusters use 3 or 5 nodes?
+    intuition: How many must agree, and how many can fail?
+    approach: |
+      Progress needs a majority (⌊N/2⌋ + 1). Three nodes tolerate one failure, five tolerate two. Four nodes still tolerate only one (majority is three), so even sizes add cost without resilience. More nodes also mean slower commits, so clusters stay small; data is sharded across many such groups (as in Spanner or CockroachDB).
+  - q: How can a system provide read-your-writes without strong consistency everywhere?
+    intuition: Only the writer needs it immediately.
+    approach: |
+      Route a user's reads to the leader for a short time after they write, or carry the write's version/log position and only read from replicas that have reached it; or use session tokens (Cosmos DB's session consistency, MongoDB causal sessions). Everyone else keeps reading from nearby replicas.
+practice:
+  - task: For a seat-booking flow, show how to read a seat's state consistently and reserve it so that two users can never hold the same seat, using a store with tunable consistency.
+    hint: A strongly consistent read for display at checkout, and a conditional write as the real guard.
+    solution: |
+      Browsing can use eventually consistent reads. At checkout, the reservation is a **conditional write** on the seat item — `attribute_not_exists(holder)` in DynamoDB, `INSERT … IF NOT EXISTS` in Cassandra (Paxos), or a unique constraint / `UPDATE … WHERE holder IS NULL` in SQL. Exactly one of two concurrent attempts succeeds; the other gets a condition failure → "seat just taken". Add an expiry (`held_until`) so abandoned holds are released, and confirm the hold when payment succeeds.
+    solutionCode: consistency-settings
+quiz:
+  - q: According to CAP, when must a replicated system choose between consistency and availability?
+    options: [Always, Only during a network partition, Only when a node crashes, Only for writes]
+    correct: 1
+    why: Without a partition, a system can be both consistent and available — the remaining trade-off is latency.
+  - q: A 4-node Raft cluster tolerates how many node failures?
+    options: ['0', '1', '2', '3']
+    correct: 1
+    why: A majority of 4 is 3, so only one node can fail — same as a 3-node cluster.
+  - q: Which consistency model is enough for "users always see their own profile edits"?
+    options: [Linearizable, Read-your-writes, Eventual, None needed]
+    correct: 1
+    why: Only the writer needs to see the change immediately; others can lag.

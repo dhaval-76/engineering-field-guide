@@ -117,7 +117,6 @@
 .wt-cell.tone-bad {
   border-color: var(--d-bad);
   background: var(--d-bad-soft);
-  text-decoration: line-through;
 }
 .wt-cell.tone-info {
   border-color: var(--d-info);

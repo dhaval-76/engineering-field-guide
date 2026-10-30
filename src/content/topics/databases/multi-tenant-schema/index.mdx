@@ -1,0 +1,98 @@
+---
+title: Multi-Tenant Data Design
+summary: Storing many customers' data in one system — shared tables, schema or database per tenant; isolation with row-level security and Hibernate; noisy neighbours, migrations, and moving a big tenant without downtime.
+track: databases
+order: 100
+tags: [databases, multi-tenancy, saas, security, postgresql, hibernate, system-design]
+aliases: [multi tenancy, multi-tenant, saas database, tenant isolation, tenant_id, shared schema, schema per tenant, database per tenant, silo, pool, bridge, row level security, rls, create policy, hibernate tenantid, currenttenantidentifierresolver, noisy neighbour, tenant migration, hybrid tenancy, data residency]
+prerequisites: [databases/sql-fundamentals, concurrency/threadlocal]
+related: [databases/sharding, backend/authn-authz, databases/indexing]
+quickRef:
+  points:
+    - '**Shared tables + `tenant_id`** (pool): cheapest, scales to many small tenants; isolation depends on every query filtering correctly.'
+    - '**Schema per tenant** (bridge): stronger separation, per-tenant restore; migrations and connections multiply.'
+    - '**Database per tenant** (silo): strongest isolation, per-tenant performance and residency; highest cost and ops.'
+    - 'Common answer: **hybrid** — pool for most, silo for enterprise/regulated tenants, behind a tenant registry.'
+    - 'Enforce isolation in depth: tenant from the **authenticated token**, tenant-aware data access (Hibernate `@TenantId`), and **PostgreSQL row-level security** as the backstop.'
+    - 'Lead every index with `tenant_id`; rate-limit and quota per tenant to contain noisy neighbours.'
+  useWhen: Building a SaaS product, or a design question where "an enterprise customer wants their data isolated".
+lastReviewed: 2026-10-30
+---
+
+## Why it matters
+
+A SaaS product serves thousands of organisations from one system. The data model decides how cheaply you can onboard a tiny customer, whether a bug can show one company another's invoices, whether one huge customer can slow everyone down, and whether you can say "yes" when a bank asks for its data in its own database in its own region. Cross-tenant data leaks are among the most damaging bugs a SaaS company can ship.
+
+<Callout type="analogy">
+Tenants in a building. An apartment block (shared tables) is cheap per family, but every door lock must work — one master-key mistake opens someone else's flat. Terraced houses (schema per tenant) share walls and utilities but have separate front doors. Detached houses (database per tenant) cost the most and give complete separation, their own garden and their own utility meters.
+</Callout>
+
+## Three models
+
+<Diagram id="tenancy-models" caption="Pool, bridge and silo: isolation and cost rise from left to right." />
+
+| | Shared tables (pool) | Schema per tenant (bridge) | Database per tenant (silo) |
+|---|---|---|---|
+| Isolation | logical — every query filters by `tenant_id` | separate tables, shared server | separate database (or cluster) |
+| Cost per tenant | lowest | medium | highest |
+| Tenants per server | 10,000s+ | hundreds to a few thousand (catalog size, connections) | one |
+| Migrations | once | per schema | per database |
+| Noisy neighbours | everyone shares resources | shared server | isolated |
+| Per-tenant backup/restore | hard (row-level) | easy (dump a schema) | easy |
+| Data residency / custom versions | hard | partial | natural |
+| Cross-tenant analytics | easy | `UNION` across schemas or a warehouse | warehouse |
+
+<CodeTabs id="tenancy-schema" title="Shared tables done right: tenant in every key, index and foreign key" />
+
+## Enforcing isolation in depth
+
+A leak needs only one query without a tenant filter. Rely on several layers so a single mistake isn't enough:
+
+1. **Identify the tenant from the authenticated token**, not from a header or URL the client controls ([Authentication](../../backend/authn-authz/)); put it in request context ([ThreadLocal](../../concurrency/threadlocal/)).
+2. **Make data access tenant-aware by default**, so developers can't forget: Hibernate's `@TenantId` adds the filter to every query and sets it on every insert.
+3. **Backstop in the database** with **row-level security**: the database refuses rows of other tenants even for a hand-written query.
+4. **Test it**: automated tests that log in as tenant A and try to read tenant B's resources by id.
+
+<CodeTabs id="tenancy-rls" title="PostgreSQL row-level security keyed on a session setting" />
+
+<CodeTabs id="tenancy-hibernate" title="Hibernate: discriminator column (@TenantId) or schema per tenant" />
+
+<Callout type="warning">
+With a connection pool, a tenant setting on a connection outlives the request. Use `SET LOCAL` / `set_config(…, true)` inside the transaction so it resets at commit — a plain `SET` would leak tenant A's id to the next request that borrows that connection.
+</Callout>
+
+## Performance and noisy neighbours
+
+- **Indexes start with `tenant_id`**: `(tenant_id, created_at)`, `(tenant_id, email)` — every query is within a tenant, and unique constraints are per tenant (`UNIQUE (tenant_id, email)`).
+- **Skew**: the largest tenant may be 1,000× the median, so the planner's averages mislead; check plans with a big tenant's id. Partition or shard by `tenant_id` ([Sharding](../sharding/)) when the shared database fills.
+- **Contain heavy tenants**: per-tenant rate limits and quotas, separate worker queues, statement timeouts, and moving whales to their own database.
+- **Tenant-aware caching keys** (`tenant:42:product:7`) — a missing tenant in a cache key is a leak too.
+
+## Operating many tenants
+
+- **Migrations** run once for shared tables; for schema- or database-per-tenant, run them in parallel batches with a per-tenant migration history, using backward-compatible steps (add nullable column → backfill → enforce) so old and new code both work mid-rollout.
+- **Tenant registry**: `tenant_id → tier, region, database, status` — the router and onboarding read it.
+- **Onboarding and offboarding** are features: provision, seed, and later export and delete all of a tenant's data (contracts and GDPR).
+
+<Walkthrough id="tenant-move" />
+
+<Pitfalls>
+
+- **Trusting a tenant id from the client** (header, path, body).
+- **A query without `tenant_id`** — reports, admin tools and background jobs are the usual culprits.
+- **Plain `SET app.tenant_id`** on pooled connections — the value leaks to the next borrower.
+- **Unique constraints without `tenant_id`** — one tenant's email blocks another's.
+- **Cache keys, file paths and search indexes without the tenant** — leaks outside the database.
+- **Database per tenant for thousands of small tenants** — connection counts, migrations and cost explode.
+- **Running RLS-protected queries as a superuser or table owner** — they bypass policies unless `FORCE ROW LEVEL SECURITY` is set.
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- Pool for scale, silo for isolation, hybrid with a tenant registry for real products.
+- Tenant from the token → tenant-aware data access → row-level security → tests.
+- `tenant_id` leads every key, index, cache key and constraint.
+- Plan for whales: quotas, routing, and online moves to dedicated databases.
+
+</KeyTakeaways>

@@ -1,0 +1,33 @@
+title: A partition forces a choice
+frames:
+  - caption: 'Two replicas of a stock counter, one in each data centre, kept in sync over the network. Both show **1** item left.'
+    panels:
+      - kind: kv
+        label: Replicas
+        pairs: [[DC North, { v: 'stock 1', tone: ok }], [DC South, { v: 'stock 1', tone: ok }]]
+      - kind: note
+        text: 'Link: up'
+  - caption: 'The link between data centres fails — a **partition**. Each side is healthy and still receiving customer requests, but neither can reach the other.'
+    panels:
+      - kind: kv
+        label: Replicas
+        pairs: [[DC North, 'stock 1'], [DC South, 'stock 1']]
+      - kind: note
+        text: 'Link: DOWN ✗'
+  - caption: 'A customer in the north buys the item. **Choice C**: the north can''t confirm the south agrees, so it refuses (or only the side holding the majority/leader accepts). Correct, but some customers get errors.'
+    panels:
+      - kind: rows
+        label: Consistent (CP)
+        items: [{ v: 'North: "try again later" (503)', tone: warn }, { v: 'South: "try again later" (503)', tone: warn }]
+  - caption: '**Choice A**: each side keeps answering from its own copy. The north sells the item… and so does the south. Both customers succeed; the system now has to reconcile an oversell.'
+    panels:
+      - kind: kv
+        label: Available (AP)
+        pairs: [[DC North, { v: 'sold → stock 0', tone: ok }], [DC South, { v: 'sold → stock 0', tone: ok }]]
+      - kind: note
+        text: 'After the link heals: 2 sold, 1 in stock → apologise, backorder, refund.'
+  - caption: 'Neither is "right" — it depends on the operation. Seat reservations and payments usually pick **C**; product pages, likes and carts usually pick **A** and reconcile. Without a partition, both sides can be consistent and available — the remaining cost is **latency** (PACELC).'
+    panels:
+      - kind: kv
+        label: Per operation
+        pairs: [[reserve seat, { v: C, tone: info }], [browse seat map, { v: A, tone: ok }], [add to cart, { v: A, tone: ok }], [charge card, { v: C, tone: info }]]

@@ -1,0 +1,32 @@
+title: The order that disappeared
+frames:
+  - caption: 'Asha places an order. The write goes to the **primary**, which commits and replies. The replica has not received it yet (async replication, ~2 s behind under load).'
+    panels:
+      - kind: kv
+        label: Primary
+        pairs: [['order #881', { v: 'PLACED', tone: ok }]]
+      - kind: kv
+        label: Replica
+        pairs: [['order #881', { v: '(not yet)', tone: muted }]]
+  - caption: 'Her browser immediately loads **My orders**, a read-only request routed to the replica. #881 isn''t there. Asha assumes the purchase failed and buys again.'
+    panels:
+      - kind: rows
+        label: Asha sees
+        items: [{ v: 'My orders: (none)', tone: bad }]
+      - kind: note
+        text: 'Read-your-writes violated.'
+  - caption: 'Fix 1 — **sticky to primary after a write**: the write response sets a short marker (cookie or Redis key). For the next few seconds her reads go to the primary.'
+    panels:
+      - kind: kv
+        label: Routing for Asha
+        pairs: [[last write, '10:00:02'], ['reads until 10:00:07', { v: primary, tone: info }], [after that, replica]]
+  - caption: 'Fix 2 — **wait for the position**: the write returns the primary''s log position (LSN 3/A2001F28). A replica serves her only if it has replayed past it; otherwise use another replica or the primary.'
+    panels:
+      - kind: kv
+        label: Replicas
+        pairs: [[replica-1, { v: 'at 3/A2001E00 — behind', tone: warn }], [replica-2, { v: 'at 3/A2002000 — ok', tone: ok }]]
+  - caption: 'A different anomaly: two reads hit **two replicas** with different lag. The order appears, then vanishes on refresh. Fix: pin each user to one replica (hash of user id) — **monotonic reads**.'
+    panels:
+      - kind: rows
+        label: Refreshes
+        items: [{ v: 'replica-2 → #881 shown', tone: ok }, { v: 'replica-1 → #881 missing', tone: bad }]

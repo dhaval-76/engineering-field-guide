@@ -1,0 +1,53 @@
+questions:
+  - q: 'You have a PostgreSQL primary and two read replicas. Users complete a purchase, open "Order history" (served from a replica), and sometimes don''t see the order. How do you fix it without giving up read scaling?'
+    think: Which reads need to see which writes? Is it everyone, or only the user who wrote?
+    answer: |
+      It's a **read-your-writes** violation caused by replication lag. Only the writer needs to see their write immediately, so fix it for them:
+
+      - **Sticky reads after writes**: when a user writes, set a short-lived marker (a cookie or Redis key with a few seconds' TTL). While it's present, route that user's reads to the primary. Only recent writers — a few percent of traffic — hit the primary.
+      - **Position-based**: return the commit's WAL position (LSN) with the write; later reads carry it, and the router uses a replica only if `pg_last_wal_replay_lsn()` has passed it.
+      - Pin users to one replica for **monotonic reads**, so data doesn't flicker between replicas.
+
+      Also monitor replica lag and alert on it; in Spring, route with `AbstractRoutingDataSource` wrapped in `LazyConnectionDataSourceProxy` so the `readOnly` flag is known before the connection is chosen.
+  - q: Your primary database's zone fails. What happens with asynchronous replication and automatic failover, and how would you reduce the risk?
+    think: What had the old primary confirmed that the replicas never received? Could it come back?
+    answer: |
+      A replica is promoted after the failure is detected (often 30–60 s). Writes the old primary had **confirmed but not yet shipped** are lost — RPO is a few seconds. If the old primary wasn't actually dead (network partition) and keeps accepting writes, there are two primaries: **split brain**, with divergent data that's painful to reconcile.
+
+      Reduce risk with: a **synchronous standby** in another zone (RPO = 0 for confirmed writes, at the cost of write latency); failover managed by a consensus-based tool or a managed service that **fences** the old primary (revokes its role, cuts its network or storage); clients that reconnect through a stable endpoint; and idempotent client retries so writes in flight during failover can be safely repeated.
+followUps:
+  - q: Synchronous vs asynchronous replication?
+    intuition: When does the client get its "OK"?
+    approach: |
+      Synchronous: the leader waits for a follower to confirm before replying — no confirmed write is lost if the leader dies, but every write pays a network round trip and a slow follower slows writes. Asynchronous: the leader replies immediately — fast, but a failover can lose recent writes. The usual compromise: one synchronous standby (often in another zone) plus asynchronous read replicas.
+  - q: In a leaderless store with N = 3, W = 2, R = 2, what's guaranteed?
+    intuition: Do the nodes you wrote to and the nodes you read from overlap?
+    approach: |
+      Because W + R = 4 > 3, every read contacts at least one replica that acknowledged the latest successful write, so it can return the newest version (by timestamp/version) and repair stale replicas. One node can be down for both reads and writes. It isn't full linearizability: concurrent writes, partial failures and sloppy quorums can still produce anomalies.
+  - q: How do multi-leader systems resolve conflicts?
+    intuition: Two regions edited the same record at the same time.
+    approach: |
+      Avoid them where possible (route each record's writes to one home leader). Otherwise: last-write-wins (simple, loses data, depends on clocks); merging with CRDTs (counters, sets, text sequences that merge deterministically); or storing all conflicting versions and resolving in the application or with the user. Choose per data type — a shopping cart can be merged; a bank balance shouldn't be multi-leader at all.
+  - q: Physical vs logical replication in PostgreSQL?
+    intuition: Copying pages vs copying row changes.
+    approach: |
+      Physical streaming ships WAL page changes; the replica is a byte-identical, read-only copy on the same major version — used for standbys and read replicas. Logical replication decodes the WAL into row-level changes per table; subscribers can be different versions or other systems — used for zero-downtime major upgrades, partial replication, and change data capture into Kafka (Debezium).
+practice:
+  - task: 'Design data placement for a store with users in India, the EU and the US: users must see their own writes immediately; the catalogue may be slightly stale; payments must never be lost or read stale; a whole region may fail.'
+    hint: Different data, different guarantees. Where does each type of data have its single leader, and what is synchronous?
+    solution: |
+      **Payments and orders**: one leader (home region), a synchronous standby in a second zone for RPO = 0, reads from the leader (or replicas only with an LSN check); regional failover promotes a standby with fencing, and clients retry idempotently. **User-facing reads of own data**: async replicas in each region with read-your-writes routing (sticky-to-leader after writes). **Catalogue**: async replicas in every region plus a regional cache/CDN; staleness of seconds is fine; edits go to the leader. **Region loss**: cross-region async replicas for everything (RPO seconds for non-payment data), runbooks/automation to promote, and DNS/global load balancing to move traffic. If writes must be local in every region, partition data by user home region rather than going multi-leader for money.
+    solutionCode: read-routing
+quiz:
+  - q: With asynchronous replication, what can be lost when the leader crashes?
+    options: [Nothing, Writes confirmed to clients but not yet received by followers, Only uncommitted transactions, The whole database]
+    correct: 1
+    why: The leader confirmed them before shipping, so the promoted follower never saw them.
+  - q: N = 5 replicas. Which choice guarantees reads overlap the latest write?
+    options: ['W=2, R=2', 'W=3, R=3', 'W=1, R=3', 'W=2, R=3']
+    correct: 1
+    why: W + R must exceed N; 3 + 3 = 6 > 5.
+  - q: A user's data appears and then disappears on refresh. Which guarantee is missing?
+    options: [Read-your-writes, Monotonic reads, Durability, Atomicity]
+    correct: 1
+    why: Successive reads went to replicas with different lag; pin the user to one replica.

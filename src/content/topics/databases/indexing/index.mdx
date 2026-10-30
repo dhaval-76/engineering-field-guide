@@ -4,7 +4,7 @@ summary: How B-tree indexes find rows in a few page reads, how to design composi
 track: databases
 order: 30
 tags: [databases, indexing, performance, postgresql, mysql, explain]
-aliases: [index, b-tree, b+tree, composite index, leftmost prefix, covering index, include, index only scan, partial index, expression index, functional index, gin, gist, brin, hash index, clustered index, secondary index, explain analyze, seq scan, bitmap heap scan, selectivity, cardinality, create index concurrently]
+aliases: [index, b-tree, b+tree, lsm tree, sstable, compaction, composite index, leftmost prefix, covering index, include, index only scan, partial index, expression index, functional index, gin, gist, brin, hash index, clustered index, secondary index, explain analyze, seq scan, bitmap heap scan, selectivity, cardinality, create index concurrently]
 prerequisites: [databases/sql-fundamentals]
 related: [backend/debugging-slow-api, backend/pagination, databases/joins-normalization-window-functions]
 quickRef:
@@ -118,6 +118,18 @@ Read the plan inside-out and look for: **estimated `rows` far from actual** (sta
 - **Locks during creation.** Plain `CREATE INDEX` blocks writes to the table while it builds. In production use `CREATE INDEX CONCURRENTLY` (PostgreSQL) or online DDL (MySQL).
 
 <CodeTabs id="index-maintenance" title="Finding unused and missing indexes, and building safely" />
+
+## Storage engines: B-trees and LSM trees
+
+Relational databases store tables and indexes in **B-trees** updated in place. Many write-heavy stores (Cassandra, ScyllaDB, RocksDB, and engines built on it such as MyRocks) use **log-structured merge trees** instead: writes go to an in-memory table and a log, are flushed as sorted immutable files (SSTables), and background **compaction** merges those files.
+
+| | B-tree (PostgreSQL, InnoDB) | LSM tree (Cassandra, RocksDB) |
+|---|---|---|
+| Write | find the page, modify it in place (random I/O) | append to memory + log; flush sequentially |
+| Read | one tree descent | check memtable and several files; Bloom filters skip most files |
+| Write amplification | page rewrites, WAL | compaction rewrites data several times |
+| Space | pages partly empty after splits | old versions and tombstones until compaction |
+| Best at | read-heavy and mixed OLTP, range scans | very high write rates: events, metrics, time series |
 
 <CodeTabs id="jpa-indexes" title="Declaring indexes from JPA — and the queries that need special ones" />
 

@@ -1,0 +1,120 @@
+---
+title: Replication
+summary: Keeping copies of data on several machines — sync and async followers, the anomalies replication lag causes and how to avoid them, failover, multi-leader conflicts, leaderless quorums, and logical replication for CDC.
+track: databases
+order: 70
+tags: [databases, replication, distributed-systems, high-availability, postgresql]
+aliases: [replication, primary replica, leader follower, master slave, read replica, synchronous replication, asynchronous replication, semi-synchronous, replication lag, read your writes, monotonic reads, consistent prefix, failover, split brain, fencing, rpo, rto, multi-leader, multi-master, conflict resolution, last write wins, crdt, leaderless, quorum, n w r, read repair, hinted handoff, logical replication, wal, cdc, debezium, abstractroutingdatasource]
+prerequisites: [databases/transactions-isolation]
+related: [databases/sharding, databases/cap-and-consistency, databases/sql-vs-nosql]
+quickRef:
+  points:
+    - 'Replicate for **availability**, **read scaling** and **latency** (copies near users). The cost is lag and failover complexity.'
+    - '**Async** followers: fast writes, may lose the last seconds on failover. **Sync** (or semi-sync, one sync follower): no loss, slower writes.'
+    - 'Lag breaks **read-your-writes** and **monotonic reads**: route a user''s reads to the primary briefly after they write, or to a replica that has caught up to their write''s position.'
+    - 'Failover needs **fencing** — a demoted primary must not keep accepting writes (split brain).'
+    - '**Multi-leader** and **leaderless** accept writes in many places and must resolve conflicts (last-write-wins loses data; CRDTs or app merges).'
+    - 'Quorums: with N replicas, **W + R > N** means every read overlaps the latest write.'
+  useWhen: Adding read replicas, planning failover or multi-region, or explaining stale reads.
+lastReviewed: 2026-10-30
+---
+
+## Why it matters
+
+One database server is one failure away from an outage, and one machine's CPU away from a read bottleneck. Replication keeps copies of the data on other machines so that a replica can take over, serve reads, or sit closer to users. Every copy, though, is a little behind — and most of the subtle bugs in replicated systems are a user reading from a copy that hasn't caught up.
+
+<Callout type="analogy">
+A head chef (leader) writes every recipe change in a notebook, and assistants (followers) copy the notebook into their own. Customers can ask any assistant for a recipe — but an assistant who hasn't copied the latest page will give the old version. If the head chef falls ill, an assistant takes over; if the old chef comes back and keeps writing changes too, you have two head chefs and a mess (split brain).
+</Callout>
+
+## Leader-follower replication
+
+All writes go to the **leader** (primary). It records changes in its log — PostgreSQL's write-ahead log (WAL), MySQL's binlog — and streams them to **followers** (replicas), which apply them in the same order. Reads can go to any node.
+
+<Diagram id="leader-follower" caption="Writes go to the leader; followers apply its log. Synchronous followers confirm before the client gets its answer." />
+
+| Mode | The leader replies to the client after… | Lose data if the leader dies? | Write latency |
+|---|---|---|---|
+| Asynchronous | writing locally | yes — whatever followers hadn't received | lowest |
+| Semi-synchronous / one sync follower | at least one follower confirms | no, if that follower is promoted | + one network round trip |
+| Fully synchronous (all followers) | all followers confirm | no | slowest; any follower outage stops writes |
+
+Managed databases (RDS Multi-AZ, Cloud SQL HA, Azure) usually keep one synchronous standby in another zone for failover and asynchronous read replicas for scaling.
+
+<CodeTabs id="replication-setup" title="PostgreSQL: a synchronous standby and measuring lag" />
+
+## Problems caused by replication lag
+
+Asynchronous followers are usually milliseconds behind — but under load, during a long migration, or after a network blip, it can be seconds or minutes.
+
+<Walkthrough id="replication-lag" />
+
+| Guarantee | Broken when | Fix |
+|---|---|---|
+| **Read-your-writes** | you write, then read from a replica that hasn't got it | read from the primary for a few seconds after the user writes; or remember the write's log position (LSN) and only use replicas that have replayed past it |
+| **Monotonic reads** | consecutive reads hit replicas at different points, so data "disappears" | pin each user/session to one replica (hash of user id) |
+| **Consistent prefix** | you see an answer before the question (causally related writes applied out of order) | keep related writes in one partition / one leader; causal ordering metadata |
+
+<CodeTabs id="read-routing" title="Routing reads to replicas in Spring — and keeping read-your-writes" />
+
+## Failover
+
+When the leader fails, a follower is **promoted** and clients are redirected. The hard parts:
+
+- **Detecting failure** — a slow leader looks like a dead one. Too eager a timeout causes needless failovers; too lax means long outages.
+- **Choosing the follower** with the most data; with async replication, writes the old leader had confirmed but not shipped are **lost** (RPO > 0).
+- **Split brain** — if the old leader comes back (or was never really down) and still accepts writes, two leaders diverge. Prevent it with **fencing**: a consensus-based manager (Patroni with etcd, orchestrator, managed services) that revokes the old leader's role, plus fencing tokens or STONITH.
+- **RPO** (how much data you can lose) and **RTO** (how long you can be down) are business decisions; replication mode and automation follow from them.
+
+## Multi-leader replication
+
+Several nodes accept writes — typically one leader per region, or offline-capable clients (each phone is a "leader"). Writes are fast and local, but two leaders can change the same record concurrently, and the conflict must be resolved:
+
+- **Last-write-wins (LWW)** by timestamp — simple, silently discards one write; clocks drift.
+- **Merge** — union of sets, sum of counters; **CRDTs** (conflict-free replicated data types) make merges automatic and order-independent.
+- **Application resolution** — keep both versions and ask the user or apply domain rules.
+- **Avoid conflicts** — route all writes for one record (one user, one document) to the same leader.
+
+Collaborative editors use CRDTs (Figma-style, Yjs, Automerge) or operational transformation (Google Docs).
+
+## Leaderless replication and quorums
+
+Dynamo-style stores (Cassandra, ScyllaDB, Riak; DynamoDB's internal design is related but presents a leader per partition) send each write to all **N** replicas and wait for **W** acknowledgements; reads ask **R** replicas and take the newest version.
+
+<CodeTabs id="quorum" title="Quorums in Cassandra, and what N, W and R buy you" />
+
+- **W + R > N** → the read set and write set overlap in at least one replica, so a read sees the latest acknowledged write (with caveats: concurrent writes, sloppy quorums, failed writes that partially applied).
+- N = 3, W = 2, R = 2 tolerates one node down for both reads and writes. W = 1, R = 1 is fastest and eventually consistent.
+- Replicas converge through **read repair** (fix stale replicas seen during reads), **hinted handoff** (a neighbour holds writes for a down node) and **anti-entropy** (background Merkle-tree comparison).
+
+## Physical vs logical replication
+
+| | Physical (streaming WAL) | Logical (decoded changes) |
+|---|---|---|
+| What's sent | page-level changes | rows inserted/updated/deleted per table |
+| Replica | exact copy, read-only, same major version | any subscriber; subset of tables; other versions |
+| Used for | standbys, read replicas, failover | major-version upgrades, migrations between databases, **CDC** into Kafka (Debezium), search indexes and caches |
+
+**Change data capture** turns the replication stream into events, which is the reliable way to keep caches, search indexes and other services in sync with the database without dual writes.
+
+<Pitfalls>
+
+- **Reading your own write from a replica** — the "my order disappeared" bug.
+- **Routing reads by `readOnly` without a lazy connection proxy** — the connection is chosen before the flag is set, so everything goes to the primary (or the wrong node).
+- **Assuming no data loss** with async replication and automatic failover.
+- **Two leaders after a network split** — failover without fencing.
+- **Last-write-wins on data that matters** — concurrent updates silently vanish.
+- **Long-running queries on replicas** — they delay replay (or get cancelled) and increase lag.
+- **No lag monitoring** — alert on replay lag in seconds and bytes.
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- Leader-follower is the default: one writer, log shipping, replicas for reads and failover.
+- Choose sync/async per RPO; one synchronous standby is a common balance.
+- Design for lag: read-your-writes, monotonic reads, consistent prefix.
+- Failover is safe only with fencing; multi-leader and leaderless need conflict resolution.
+- Logical replication and CDC keep other systems in sync without dual writes.
+
+</KeyTakeaways>

@@ -9,6 +9,8 @@ public class TenantFilter extends OncePerRequestFilter {
     @Override
     protected void doFilterInternal(HttpServletRequest req, HttpServletResponse res, FilterChain chain)
             throws ServletException, IOException {
+        // Simplified: in production take the tenant from the authenticated token's claims,
+        // never from a header the client controls.
         String tenant = req.getHeader("X-Tenant-Id");
         if (tenant == null) { res.sendError(400, "missing tenant"); return; }
         TenantContext.set(tenant);

@@ -1,0 +1,29 @@
+title: Moving a large tenant to its own database, online
+frames:
+  - caption: 'Tenant 7 has grown to 1 TB in the shared database and slows its neighbours. The registry says it lives in `shared-1`.'
+    panels:
+      - kind: kv
+        label: Registry
+        pairs: [[tenant 7, { v: shared-1, tone: warn }]]
+  - caption: '**Copy**: provision `db-t7`, take a consistent snapshot of tenant 7''s rows, and start **logical replication / CDC** filtered to tenant 7 so new changes keep flowing.'
+    panels:
+      - kind: rows
+        label: Progress
+        items: [{ v: 'snapshot 1 TB → db-t7', tone: info }, { v: 'change stream: lag 40 s → 2 s → 0.3 s', tone: info }]
+  - caption: '**Verify** while it runs: row counts and checksums per table, plus sample reads compared between the two databases.'
+    panels:
+      - kind: rows
+        label: Checks
+        items: [{ v: 'counts match', tone: ok }, { v: 'checksums match', tone: ok }]
+  - caption: '**Cut over**: pause writes for tenant 7 only (the gateway queues or returns 503 + Retry-After for a second or two), wait for lag = 0, flip the registry to `db-t7`, resume. Other tenants never notice.'
+    panels:
+      - kind: kv
+        label: Registry
+        pairs: [[tenant 7, { v: db-t7, tone: ok }]]
+      - kind: note
+        text: 'Write pause: ~1–2 s for one tenant.'
+  - caption: '**Clean up** after a safety period: stop replication, keep a backup, then delete tenant 7''s rows from `shared-1` in small batches.'
+    panels:
+      - kind: rows
+        label: shared-1
+        items: [{ v: 'DELETE … WHERE tenant_id = 7 LIMIT 10,000 (repeat)', tone: muted }]

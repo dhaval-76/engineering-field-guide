@@ -1,0 +1,47 @@
+questions:
+  - q: 'Your orders table has 2 billion rows and the primary is at its write limit. How would you scale it?'
+    think: What's actually exhausted, and which cheaper steps are left before sharding?
+    answer: |
+      First confirm the bottleneck (write IOPS, CPU, locks, vacuum) and check the cheaper options: query and index fixes, removing unused indexes (they cost writes), batching writes, archiving old orders (partition by month and detach old partitions), moving analytics to a replica or warehouse, and a bigger instance.
+
+      If writes still exceed one machine, shard by **`customer_id`** (or `tenant_id` in B2B): "my orders", order creation and payments for a customer stay on one shard, so transactions stay local. Use 1,024 **virtual shards** mapped to physical databases so growth moves buckets, not keys. Generate ids without a central sequence (Snowflake-style or UUID v7), and for lookups by order id either embed the shard in the id or keep an `order_id → customer_id` index. Global queries (all orders today) go to a separate analytics store fed by CDC. Migrate online: dual-write or CDC into the new shards, backfill, verify, switch reads per bucket, then writes.
+  - q: How do you choose a shard key, and what goes wrong with a bad one?
+    think: Look at the queries, the distribution of values and the transactions.
+    answer: |
+      A good key is in almost every query, has many evenly used values, keeps data that's read or written together on one shard, and never changes. Bad keys show up as: **scatter-gather** for common queries (key not in the query), **hot shards** (monotonic keys with range sharding; one huge tenant or celebrity), **distributed transactions** (a business operation spanning keys on different shards), and **painful moves** (a key that changes, such as a user's country). Check against the top queries by volume, and plan for the biggest key from day one (directory overrides or splitting).
+followUps:
+  - q: Partitioning vs sharding?
+    intuition: One database or many?
+    approach: |
+      Partitioning splits a table into pieces inside one database — the planner prunes irrelevant partitions and old data can be dropped instantly, but all partitions share the same machine's CPU, memory and write log. Sharding spreads data across separate databases on separate machines, multiplying write capacity and storage, at the cost of cross-shard queries, transactions and operations.
+  - q: Why is `hash(key) % N` a poor routing scheme?
+    intuition: What happens when N changes?
+    approach: |
+      Changing N remaps almost every key (≈ (N)/(N+1) of them), so adding one shard means moving most of the data. Fixed virtual buckets mapped to physical shards, or consistent hashing, move only the keys the new shard takes over.
+  - q: How do you handle a query that needs data from all shards?
+    intuition: Can you answer it somewhere else?
+    approach: |
+      For occasional admin queries, scatter-gather: run on every shard in parallel, merge and re-sort, paginate with care (each shard returns its top N). For frequent global queries, maintain a separate read model — a search index, warehouse or a dedicated aggregate table fed by CDC/events — instead of querying the shards.
+  - q: How do you enforce a unique email across shards sharded by user id?
+    intuition: Which shard would know?
+    approach: |
+      No single shard sees all emails. Keep a global uniqueness table keyed (and sharded) by email — insert into it first (or in a saga), then create the user on its shard; or use a small global database for identity data. Deletion and email changes must update both.
+practice:
+  - task: Implement a shard router for a multi-tenant SaaS that supports adding databases without rehashing and moving a large tenant to a dedicated database.
+    hint: Stable hash → fixed number of buckets → bucket-to-database map, plus a directory of pinned tenants checked first.
+    solution: |
+      Hash the tenant id with a stable function (Murmur/SHA-based — not language `hashCode`/`hash()`), take it modulo a fixed number of buckets (e.g. 1,024), and look up the bucket's database in a map. Keep a directory of pinned tenants that overrides the bucket map. Adding a database = copy some buckets' data, then update the map for those buckets; moving a tenant = copy its rows, briefly pause its writes, add it to the directory. In Spring, plug the router into an `AbstractRoutingDataSource` that reads the tenant from the request context.
+    solutionCode: shard-router
+quiz:
+  - q: Which sharding strategy keeps range scans on one shard but risks hot spots with increasing keys?
+    options: [Hash, Range, Random, Round-robin]
+    correct: 1
+    why: Consecutive keys share a shard — including all of the newest writes.
+  - q: Going from 4 to 5 shards with hash % N moves roughly what share of keys?
+    options: ['20%', '50%', '80%', '0%']
+    correct: 2
+    why: A key keeps its shard only when hash % 4 = hash % 5, which happens for about 1 in 5 keys.
+  - q: In PostgreSQL declarative partitioning, a primary key must…
+    options: [Be a UUID, Include the partition key, Be on a separate table, Not exist]
+    correct: 1
+    why: Uniqueness is enforced per partition, so the partition key has to be part of it.

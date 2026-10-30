@@ -1,0 +1,27 @@
+title: Where does a key live?
+frames:
+  - caption: '**Range sharding** by customer id. Range scans stay on one shard — but ids are increasing, so every new customer lands on the last shard.'
+    panels:
+      - kind: kv
+        label: Shards
+        pairs: [['shard 1', '1 – 1M'], ['shard 2', '1M – 2M'], ['shard 3', { v: '2M – … ← all new signups', tone: warn }]]
+  - caption: '**Hash sharding** with `hash(id) % 4`. Load spreads evenly, and "customer 42" is one lookup — but "customers 1–1000" asks every shard.'
+    panels:
+      - kind: kv
+        label: hash % 4
+        pairs: [['id 42 → 1', 'shard 1'], ['id 43 → 3', 'shard 3'], ['id 44 → 0', 'shard 0'], ['id 45 → 2', 'shard 2']]
+  - caption: 'Add a fifth shard and use `% 5`: about **80%** of keys now map to a different shard. Moving that much data online is a project.'
+    panels:
+      - kind: kv
+        label: '% 4 → % 5'
+        pairs: [['id 42', { v: 'shard 1 → 2', tone: bad }], ['id 43', { v: 'shard 3 → 3', tone: ok }], ['id 44', { v: 'shard 0 → 4', tone: bad }], ['id 45', { v: 'shard 2 → 0', tone: bad }]]
+  - caption: '**Virtual shards**: hash into 1,024 fixed buckets, then map buckets to databases. Adding a database moves a set of whole buckets; no key changes bucket.'
+    panels:
+      - kind: kv
+        label: Buckets → databases
+        pairs: [['0 – 255', db-a], ['256 – 511', db-b], ['512 – 767', db-c], ['768 – 1023', db-d], ['192 – 255 (moved)', { v: db-e, tone: ok }]]
+  - caption: '**Directory** overrides: the largest tenant gets a database of its own. The router checks the directory first, then the bucket map.'
+    panels:
+      - kind: kv
+        label: Directory
+        pairs: [[tenant 7 (enterprise), { v: db-tenant-7, tone: plum }], [everyone else, by bucket]]

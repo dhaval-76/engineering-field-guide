@@ -1,0 +1,43 @@
+questions:
+  - q: 'Design the data layer for a SaaS product with 10,000 tenants, mostly small, where some enterprise customers demand that their data is isolated.'
+    think: What does each isolation level cost, and do all tenants need the same one?
+    answer: |
+      Use a **hybrid**. Small and medium tenants share tables with a `tenant_id` column (cheap, one migration, scales to tens of thousands). Enterprise tenants who pay for isolation get a **dedicated database** (in their region if required). A **tenant registry** maps tenant → tier, region, database, and the data-access layer routes each request's connection by tenant.
+
+      Isolation in depth for the shared pool: tenant taken from the authenticated token; Hibernate `@TenantId` (or an equivalent repository base) so every query is filtered; PostgreSQL **row-level security** with a transaction-local `app.tenant_id` as the backstop; `tenant_id` leading every primary key, unique constraint, index and cache key; and automated cross-tenant access tests. Add per-tenant quotas and rate limits for noisy neighbours, and a runbook (or automation) to move a growing tenant to its own database online.
+  - q: 'How do you guarantee one tenant can never read another tenant''s data, even if a developer forgets a WHERE clause?'
+    think: Which layers can enforce it without each query remembering?
+    answer: |
+      Don't rely on each query. Layers: (1) the tenant comes only from the verified token; (2) the ORM enforces tenancy automatically (Hibernate `@TenantId`/filters, a tenant-scoped repository base class); (3) the database enforces it with row-level security policies on every tenant table, with `FORCE ROW LEVEL SECURITY`, a non-owner application role, and the tenant set with `set_config(…, true)` per transaction so pooled connections can't leak it — and if the setting is missing, queries fail closed; (4) separate schemas or databases for high-risk tenants; (5) tests that try cross-tenant ids on every endpoint, plus audit logs. Also check non-database paths: caches, files, search indexes, exports, background jobs.
+followUps:
+  - q: Shared tables vs schema per tenant vs database per tenant — when would you pick each?
+    intuition: Count of tenants, size variance, isolation and compliance requirements, and ops capacity.
+    approach: |
+      Shared tables for many small tenants and fast onboarding. Schema per tenant for a moderate number of tenants that want per-tenant backup/restore or customisation, accepting per-schema migrations and catalog bloat beyond a few thousand schemas. Database per tenant for few, large or regulated tenants needing performance isolation, residency, or their own encryption keys — accepting cost and operational overhead.
+  - q: How do you migrate a large tenant to a dedicated database with near-zero downtime?
+    intuition: Copy, keep in sync, switch quickly for one tenant only.
+    approach: |
+      Provision the target, snapshot the tenant's data, stream ongoing changes (logical replication or CDC filtered by tenant), verify counts and checksums, then cut over: pause that tenant's writes briefly, wait for zero lag, update the tenant registry, resume. Clean up old rows in batches after a safety period.
+  - q: How do you run schema migrations across thousands of tenant schemas or databases?
+    intuition: Long locks multiplied by thousands; partial completion.
+    approach: |
+      Use backward-compatible, lock-light steps (add nullable columns, backfill in batches, then add constraints; `CREATE INDEX CONCURRENTLY`) so code can run against both old and new schema. Run in parallel batches with per-tenant migration history so the process is resumable and idempotent; canary on a few tenants first; track progress and failures centrally.
+practice:
+  - task: Implement tenant isolation for a Spring Boot + PostgreSQL service with shared tables, so that a missing WHERE clause can't leak data.
+    hint: '@TenantId with a CurrentTenantIdentifierResolver, plus RLS policies and set_config(''app.tenant_id'', ?, true) at the start of each transaction.'
+    solution: |
+      Resolve the tenant from the JWT in a filter into a request-scoped context (cleared in `finally`). Mark the tenant column with Hibernate `@TenantId` and register a `CurrentTenantIdentifierResolver`, so reads are filtered and inserts stamped automatically. In PostgreSQL, enable and force row-level security with a policy `USING/WITH CHECK (tenant_id = current_setting('app.tenant_id')::bigint)`, connect as a non-owner role, and set the variable transaction-locally at the start of each transaction. Composite keys and foreign keys `(tenant_id, id)` stop cross-tenant references. Add integration tests that request tenant B's ids as tenant A and expect 404.
+    solutionCode: tenancy-hibernate
+quiz:
+  - q: Why use `set_config('app.tenant_id', '42', true)` instead of `SET app.tenant_id = '42'`?
+    options: [It's faster, The setting is transaction-local and can't leak to the next user of a pooled connection, SET doesn't work with RLS, It encrypts the value]
+    correct: 1
+    why: Plain SET lasts for the session — i.e. the pooled connection — across requests.
+  - q: In a shared-table design, which unique constraint is right for user emails?
+    options: [UNIQUE (email), UNIQUE (tenant_id, email), No constraint, UNIQUE (id, email)]
+    correct: 1
+    why: The same person can belong to several tenants; uniqueness is per tenant.
+  - q: Which model best serves a bank that needs its data in its own database in the EU?
+    options: [Shared tables, Schema per tenant, Database per tenant, Any — it doesn't matter]
+    correct: 2
+    why: A dedicated database can be placed, sized, encrypted and backed up per tenant.
