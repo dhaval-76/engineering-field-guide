@@ -1,0 +1,144 @@
+---
+title: Indexing and Query Plans
+summary: How B-tree indexes find rows in a few page reads, how to design composite, covering, partial and expression indexes for real queries, the other index types, what indexes cost, and how to read EXPLAIN ANALYZE.
+track: databases
+order: 30
+tags: [databases, indexing, performance, postgresql, mysql, explain]
+aliases: [index, b-tree, b+tree, composite index, leftmost prefix, covering index, include, index only scan, partial index, expression index, functional index, gin, gist, brin, hash index, clustered index, secondary index, explain analyze, seq scan, bitmap heap scan, selectivity, cardinality, create index concurrently]
+prerequisites: [databases/sql-fundamentals]
+related: [backend/debugging-slow-api, backend/pagination, databases/joins-normalization-window-functions]
+quickRef:
+  points:
+    - 'A B-tree index keeps keys **sorted** with pointers to rows: equality, ranges, `ORDER BY` and prefix `LIKE ''abc%''` in O(log n) page reads.'
+    - 'Composite `(a, b, c)` serves queries on `a`, `a,b`, `a,b,c` — not `b` alone. Put **equality columns first, then the range or sort column**.'
+    - '**Covering** (`INCLUDE`) → index-only scan, no table visits. **Partial** (`WHERE status = ''PENDING''`) → small index for a hot subset.'
+    - 'A function on the column (`lower(email)`, `date(created_at)`) or a leading wildcard defeats a plain index — use an expression or trigram index.'
+    - 'Every index slows writes and uses memory. Drop unused ones; build new ones with `CREATE INDEX CONCURRENTLY`.'
+    - '`EXPLAIN (ANALYZE, BUFFERS)`: compare **estimated vs actual rows**; look for Seq Scan on big tables, Sort, and rows removed by filter.'
+  complexity: 'Lookup O(log n) — about 4 levels plus one table page for 100M rows, and the upper levels are usually cached; full scan O(n).'
+  useWhen: A query is slow, you're designing a table's access paths, or reviewing a migration that adds an index.
+lastReviewed: 2026-10-30
+---
+
+## Why it matters
+
+Without an index, `WHERE email = 'asha@example.com'` reads every row of the table. That's fine for 1,000 rows and a disaster for 50 million. The right index turns seconds into milliseconds; the wrong ones slow every write, waste memory and still don't get used. Most "the database is slow" incidents end with one well-designed index — or with removing a function call that stopped an existing one from being used.
+
+<Callout type="analogy">
+The index at the back of a textbook: terms in alphabetical order, each with page numbers. You don't read the book to find "deadlock" — you jump to D, find the entry, go to page 212. A composite index is like a phone book sorted by surname, then first name: great for "Smith, John", useless for "everyone called John".
+</Callout>
+
+## How a B-tree index works
+
+<Diagram id="btree-index" caption="A B+tree: sorted keys in leaf pages linked left to right, a few levels of routing pages above them." />
+
+- Keys live in **leaf pages**, sorted, each with a pointer to its row (PostgreSQL: a physical location; MySQL InnoDB: the primary key).
+- **Internal pages** route searches; a page holds hundreds of keys, so the tree is very shallow — about 3–4 levels for 100 million rows.
+- Leaves are **linked**, so a range (`BETWEEN`, `>`, `ORDER BY … LIMIT`) is "find the start, then walk right".
+
+<Walkthrough id="index-lookup" />
+
+<Chart
+  type="line"
+  title="Pages read to find one row by key"
+  log
+  x={['10K rows', '1M rows', '100M rows', '10B rows']}
+  series={[
+    { name: 'full table scan', values: [100, 10000, 1000000, 100000000], tone: 'bad' },
+    { name: 'B-tree index', values: [3, 4, 5, 6], tone: 'ok' },
+  ]}
+  yLabel="pages"
+  caption="Index levels plus one table page, assuming ~100 rows per table page and ~300 keys per index page. The index gains a level each time the table grows ~300×."
+/>
+
+### Clustered and secondary indexes
+
+**MySQL InnoDB** stores the table itself as a B-tree ordered by primary key (a *clustered index*); secondary indexes store the primary key, so a secondary lookup is two tree searches — and a wide or random primary key (UUID v4) bloats every index and scatters inserts. **PostgreSQL** stores rows in an unordered *heap*; every index, including the primary key's, points to a row's physical location (`CLUSTER` reorders the table once but isn't maintained). SQL Server lets you choose which index is clustered.
+
+## Designing indexes for queries
+
+Indexes serve queries, so start from the queries: which columns are filtered with `=`, which with ranges, what's sorted, and what's selected.
+
+<CodeTabs id="index-composite" title="Composite indexes: column order, sorting and the leftmost prefix" />
+
+| Query on index `(customer_id, status, created_at)` | Uses the index? |
+|---|---|
+| `WHERE customer_id = ?` | ✓ leftmost prefix |
+| `WHERE customer_id = ? AND status = ?` | ✓ |
+| `WHERE customer_id = ? AND status = ? ORDER BY created_at DESC LIMIT 20` | ✓ seeks, reads 20 entries in order, no sort |
+| `WHERE customer_id = ? ORDER BY created_at` | partly — must sort, because `status` sits between |
+| `WHERE status = ?` | ✗ no leading column (some engines can skip-scan, slowly) |
+| `WHERE customer_id = ? AND created_at > ?` | partly — seeks on `customer_id`, filters `created_at` inside it |
+
+**Rule of thumb:** equality columns first, then **one** range or sort column last. After a range condition, later columns can't be used for seeking.
+
+<CodeTabs id="index-covering" title="A covering index for a list endpoint" />
+
+### Special-purpose indexes
+
+<CodeTabs id="index-special" title="Partial, expression, trigram, JSONB and BRIN indexes" />
+
+| Type | Good for | Example |
+|---|---|---|
+| B-tree (default) | `=`, ranges, sorting, prefix `LIKE` | almost everything |
+| Partial | a small, hot subset of rows | `WHERE status = 'PENDING'`, `WHERE deleted_at IS NULL` |
+| Expression | queries that apply a function | `lower(email)`, `(created_at::date)` |
+| Hash | equality only | rarely better than a B-tree in practice |
+| GIN | "contains": JSONB, arrays, full-text, trigrams | `tags @> '{sale}'`, `name ILIKE '%phone%'` |
+| GiST / SP-GiST | geometry, ranges, nearest-neighbour | `ST_DWithin(location, …)`, overlapping bookings |
+| BRIN | huge append-only tables ordered by time | logs and events by `created_at` — tiny index |
+
+### When the planner ignores your index
+
+- **Low selectivity.** If a condition matches a large fraction of rows (`status = 'DELIVERED'` for 90% of orders), reading the table sequentially is cheaper than millions of random index lookups. The same column can still deserve a *partial* index for its rare values.
+- **Functions and casts** on the column: `WHERE lower(email) = …`, `WHERE created_at::date = …`, comparing a `bigint` column to a `text` parameter. Rewrite the condition or index the expression.
+- **Leading wildcards**: `LIKE '%son'` can't use a B-tree; use a trigram GIN index or full-text search.
+- **`OR` across different columns** — often fine with a bitmap OR of two indexes, otherwise rewrite as `UNION ALL`.
+- **Stale statistics** — the planner's row estimates are wrong. `ANALYZE` the table.
+- **Tiny tables** — a few pages are faster to scan than to search.
+
+## Reading EXPLAIN ANALYZE
+
+<CodeTabs id="explain-reading" title="A slow plan and a fast plan, annotated" />
+
+| Node | Meaning |
+|---|---|
+| Seq Scan | reads the whole table — expected for small tables or big result sets, suspicious otherwise |
+| Index Scan | walks the index, then fetches each row from the table |
+| Index Only Scan | answers from the index alone (watch `Heap Fetches` — high means the visibility map is stale; `VACUUM`) |
+| Bitmap Index / Heap Scan | collects matching row locations first, then reads table pages in order — for medium result sets |
+| Sort / Hash / Nested Loop / Hash Join / Merge Join | see [Joins](../joins-normalization-window-functions/) |
+
+Read the plan inside-out and look for: **estimated `rows` far from actual** (statistics, correlated columns), large **`Rows Removed by Filter`** (the index doesn't match the filter), a **Sort** before a `LIMIT` (an index in the right order would avoid it), and **`Buffers: shared read`** (pages from disk rather than cache).
+
+## What indexes cost
+
+- **Writes.** Every `INSERT` and `DELETE` updates every index; an `UPDATE` updates the indexes on changed columns (in PostgreSQL, changing any indexed column also rules out cheap "HOT" updates). Ten indexes can make writes several times slower.
+- **Memory.** Indexes compete with table data for the buffer cache. An index that doesn't fit in memory is much slower.
+- **Locks during creation.** Plain `CREATE INDEX` blocks writes to the table while it builds. In production use `CREATE INDEX CONCURRENTLY` (PostgreSQL) or online DDL (MySQL).
+
+<CodeTabs id="index-maintenance" title="Finding unused and missing indexes, and building safely" />
+
+<CodeTabs id="jpa-indexes" title="Declaring indexes from JPA — and the queries that need special ones" />
+
+<Pitfalls>
+
+- **One single-column index per column** "just in case" — the planner can combine them, but one composite index matching the query is far better, and the rest only slow writes.
+- **Wrong composite order** — range column first, or a column that's never filtered on as the leading column.
+- **Duplicate indexes** — `(a)` is redundant next to `(a, b)`.
+- **Missing indexes on foreign keys** — PostgreSQL doesn't create them; joins and `ON DELETE CASCADE` scan the child table.
+- **`CREATE INDEX` without `CONCURRENTLY`** on a busy table — writes queue behind it.
+- **Testing on a tiny dataset** — the plan with 100 rows says nothing about 100 million.
+- **Random UUID v4 primary keys on InnoDB** — page splits and a bloated clustered index; prefer time-ordered ids (UUID v7, Snowflake-style).
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- B-tree: sorted, shallow, linked leaves — equality, ranges and order in a few page reads.
+- Design from the query: equality columns, then one range/sort column, then `INCLUDE` for covering.
+- Partial, expression, GIN, GiST and BRIN indexes for the cases a plain B-tree can't serve.
+- Read plans for estimate vs actual, filters, sorts and buffers.
+- Indexes cost writes and memory: measure usage, drop the unused, build concurrently.
+
+</KeyTakeaways>

@@ -1,0 +1,56 @@
+questions:
+  - q: A query filtering a 50M-row orders table by customer_id and status is slow. Someone added an index on customer_id, but it barely helped. Why, and what would you do?
+    think: How many rows does the customer_id index return, and what happens to them next?
+    answer: |
+      The single-column index finds all of that customer's orders — maybe tens of thousands for a big business customer — and the database then fetches each row from the table just to check `status`, discarding most of them (`Rows Removed by Filter` in the plan). If the query also sorts and limits, it sorts all of them first.
+
+      Steps: run `EXPLAIN (ANALYZE, BUFFERS)` to confirm; create a composite index matching the query — equality columns first, then the sort column: `(customer_id, status, created_at DESC)`, with `INCLUDE` for selected columns if it's a hot list query; if the query always targets one rare status (e.g. `PENDING`), a **partial** index `ON orders (customer_id, created_at) WHERE status = 'PENDING'` is smaller still. Build it with `CREATE INDEX CONCURRENTLY`, then drop the now-redundant single-column index (it's a prefix of the new one).
+  - q: When can adding an index make things worse?
+    think: Who pays for an index besides the query that uses it?
+    answer: |
+      Every write pays: inserts and deletes update all indexes, and updates touch indexes on changed columns (in PostgreSQL, also losing cheap HOT updates). On write-heavy tables — events, logs, counters — extra indexes reduce throughput and increase replication lag. Indexes also consume memory, pushing hot table pages out of the cache. A plain `CREATE INDEX` blocks writes while building. And occasionally the planner picks a new index that's worse for some queries because its estimates are off. So: index for measured queries, verify with plans, monitor `pg_stat_user_indexes` and drop unused ones.
+followUps:
+  - q: What is a covering index?
+    intuition: Can the query be answered without visiting the table at all?
+    approach: |
+      An index that contains every column the query needs — in the key or via `INCLUDE` — so the database returns results from the index alone (Index Only Scan). It removes the random table reads that dominate index scans. Costs: a larger index and more write work. In PostgreSQL it also depends on the visibility map being current (`Heap Fetches: 0` after `VACUUM`).
+  - q: Clustered vs non-clustered index?
+    intuition: Is the table itself ordered by the index?
+    approach: |
+      A clustered index *is* the table, stored in key order — InnoDB always clusters by primary key, so secondary indexes hold the primary key and a lookup through them is two tree searches. A non-clustered (secondary) index is a separate structure pointing to rows. PostgreSQL has no maintained clustered index: tables are heaps and all indexes point at physical row locations. Practical consequence for InnoDB: keep primary keys short and increasing.
+  - q: Why might the database not use an index you created?
+    intuition: Can it use it — and if it can, does it think it's cheaper?
+    approach: |
+      It *can't* when the query wraps the column in a function or cast, uses a leading wildcard, skips the leading column of a composite index, or compares mismatched types. It *won't* when it estimates that many rows match (low selectivity — a sequential scan is cheaper), when the table is tiny, or when statistics are stale and estimates are wrong. Check `EXPLAIN`, `ANALYZE` the table, rewrite the predicate, or create an expression/partial index.
+  - q: Which index type would you use for JSONB containment, geo queries, and a 2-billion-row append-only event log queried by time?
+    intuition: B-trees are for ordered, scalar values.
+    approach: |
+      JSONB containment (`@>`): GIN (`jsonb_path_ops` for smaller, faster containment-only). Geo / nearest-neighbour / overlapping ranges: GiST (PostGIS). Huge time-ordered append-only table: BRIN on the timestamp — kilobytes in size, because it stores only min/max per block range — usually combined with time partitioning.
+practice:
+  - task: Design the best index for `SELECT id, status, total FROM orders WHERE customer_id = ? AND created_at > ? ORDER BY created_at DESC LIMIT 20` and explain each decision.
+    hint: Equality first, then the column used for both the range and the sort; what else would let it skip the table?
+    solution: |
+      `CREATE INDEX CONCURRENTLY ON orders (customer_id, created_at DESC) INCLUDE (id, status, total)`. `customer_id` first because it's an equality condition — the search seeks straight to that customer's entries. `created_at DESC` next satisfies both the range and the `ORDER BY`, so there's no Sort node and the scan stops after 20 entries. `INCLUDE` makes it covering, so the plan is an Index Only Scan with no table visits. In MySQL, append the columns to the key instead of `INCLUDE`.
+    solutionCode: index-covering
+  - task: Load a million rows, compare query plans before and after an index, and find a case where the index exists but isn't used.
+    hint: generate_series for data; EXPLAIN (ANALYZE, BUFFERS); try a low-selectivity condition and a function on the column.
+    solution: |
+      Before the index, the plan is a Seq Scan reading the whole table with almost every row removed by the filter. With an index shaped like the query, it becomes an Index (Only) Scan reading a handful of pages, often 100–1000× faster. A condition matching ~25% of rows keeps the Seq Scan even with an index (low selectivity), and `created_at::date = …` ignores an index on `created_at` until you rewrite it as a half-open range.
+    solutionCode: index-experiment
+quiz:
+  - q: 'Index on (a, b, c). Which WHERE clause can NOT seek using it?'
+    options: ['a = 1', 'a = 1 AND b = 2', 'b = 2 AND c = 3', 'a = 1 AND b = 2 AND c = 3']
+    correct: 2
+    why: Without the leading column a, the sorted order of the index doesn't help locate rows.
+  - q: '`WHERE lower(email) = ''asha@x.com''` with an index on email. What happens?'
+    options: [The index is used, The index is ignored, An error, The index is used only for exact case]
+    correct: 1
+    why: The expression doesn't match the indexed value; create an index on lower(email).
+  - q: Which index fits a 2-billion-row, append-only table queried by time range?
+    options: [Hash, GIN, BRIN, A B-tree on every column]
+    correct: 2
+    why: BRIN stores min/max per block range — tiny and effective when rows are physically ordered by time.
+  - q: 'What does "Rows Removed by Filter: 4,497,310" in a plan suggest?'
+    options: [The query is optimal, The index doesn't cover a filter condition, Statistics are perfect, The table is empty]
+    correct: 1
+    why: Rows were fetched and then discarded — an index including that condition would avoid reading them.

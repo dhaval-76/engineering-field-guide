@@ -1,0 +1,36 @@
+title: Write skew — both doctors go off call
+frames:
+  - caption: 'Rule: **at least one** doctor on call for shift 1. Alice and Bob are both on call, and both feel unwell.'
+    panels:
+      - kind: kv
+        label: on_call (shift 1)
+        pairs: [[alice, { v: 'on call', tone: ok }], [bob, { v: 'on call', tone: ok }]]
+  - caption: 'Both start a Repeatable Read transaction and check the rule: `count(*) … WHERE on_call` → **2** in both snapshots. Each concludes it''s safe to leave.'
+    panels:
+      - kind: rows
+        label: Alice's transaction
+        items: [{ v: 'count on call = 2 ✓', tone: info }]
+      - kind: rows
+        label: Bob's transaction
+        items: [{ v: 'count on call = 2 ✓', tone: info }]
+  - caption: 'Alice updates **her** row; Bob updates **his**. Different rows, so no lock conflict and no "concurrent update" error.'
+    panels:
+      - kind: rows
+        label: Alice's transaction
+        items: ['count on call = 2 ✓', { v: 'UPDATE alice → off', tone: accent }]
+      - kind: rows
+        label: Bob's transaction
+        items: ['count on call = 2 ✓', { v: 'UPDATE bob → off', tone: accent }]
+  - caption: 'Both commit. Each transaction was correct against its own snapshot, but together they broke the rule: **nobody is on call**.'
+    panels:
+      - kind: kv
+        label: on_call (shift 1)
+        pairs: [[alice, { v: 'off', tone: bad }], [bob, { v: 'off', tone: bad }]]
+  - caption: 'With **SERIALIZABLE**, PostgreSQL notices that each transaction read data the other wrote and aborts one with 40001. Its retry sees count = 1 and refuses. Alternatives: `FOR UPDATE` on the rows that were counted, or a constraint.'
+    panels:
+      - kind: rows
+        label: Alice
+        items: [{ v: 'COMMIT ✓', tone: ok }]
+      - kind: rows
+        label: Bob
+        items: [{ v: 'ERROR 40001 → retry → count = 1 → refuse', tone: warn }]

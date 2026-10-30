@@ -1,0 +1,38 @@
+title: Finding id = 52, then reading a range
+frames:
+  - caption: 'Start at the **root page**. Its keys split the key space: under 40, 40–79, 80 and above. 52 belongs to the middle child.'
+    panels:
+      - kind: array
+        label: Root
+        items: [{ v: '< 40', tone: muted }, { v: '40–79 ✓', tone: accent }, { v: '≥ 80', tone: muted }]
+      - kind: kv
+        label: Pages read
+        pairs: [[index, '1'], [table, '0']]
+  - caption: 'In the **leaf page**, keys are sorted, so a binary search finds 52 next to its row pointer. (Real trees have one or two more routing levels; each is one more page.)'
+    panels:
+      - kind: array
+        label: Leaf
+        items: ['40', { v: '52 → page 812', tone: accent }, '67']
+      - kind: kv
+        label: Pages read
+        pairs: [[index, '2'], [table, '0']]
+  - caption: 'Follow the pointer to the **table page** and return the row. Three pages in total, whatever the table size — versus scanning every page.'
+    panels:
+      - kind: rows
+        label: Table page 812
+        items: [{ v: 'id=52 · Asha · PAID · 120.00', tone: ok }]
+      - kind: kv
+        label: Pages read
+        pairs: [[index, '2'], [table, '1']]
+  - caption: 'Now `WHERE id BETWEEN 52 AND 91`. Find 52 as before, then **walk right** along the leaf chain — entries are already in order, so no sort is needed.'
+    panels:
+      - kind: array
+        label: Leaf chain
+        items: [{ v: '52', tone: accent }, { v: '67', tone: accent }, { v: '80', tone: accent }, { v: '91', tone: accent }, { v: '97', tone: muted }]
+      - kind: note
+        text: 'Stops at 97 > 91. With LIMIT, it stops even earlier.'
+  - caption: 'Each match still needs a **table visit** — random reads if rows are scattered. That''s why the planner switches to a sequential scan when a condition matches a large share of the table, and why **covering** indexes (all needed columns in the index) are so fast.'
+    panels:
+      - kind: kv
+        label: Matches → table pages
+        pairs: [['52', 'page 812'], ['67', 'page 3'], ['80', 'page 5120'], ['91', 'page 77']]

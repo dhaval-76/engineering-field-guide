@@ -1,0 +1,35 @@
+EXPLAIN (ANALYZE, BUFFERS)
+SELECT id, total FROM orders WHERE customer_id = 42 AND status = 'PAID'
+ORDER BY created_at DESC LIMIT 20;
+
+── Before: only an index on (status) ──────────────────────────────────────────────
+Limit  (actual time=2843.1..2843.2 rows=20 loops=1)
+  ->  Sort  (actual time=2843.1..2843.1 rows=20 loops=1)           ← sorting before LIMIT
+        Sort Key: created_at DESC
+        Sort Method: top-N heapsort  Memory: 27kB
+        ->  Bitmap Heap Scan on orders  (cost=… rows=4100) (actual rows=61 loops=1)
+              Recheck Cond: (status = 'PAID')
+              Filter: (customer_id = 42)
+              Rows Removed by Filter: 4497310                        ← read 4.5M rows to keep 61
+              Heap Blocks: exact=412004
+              Buffers: shared hit=1201 read=410803                   ← mostly from disk
+              ->  Bitmap Index Scan on orders_status_idx  (actual rows=4497371)
+Execution Time: 2843.6 ms
+
+── After: CREATE INDEX ON orders (customer_id, status, created_at DESC) INCLUDE (total)
+Limit  (actual time=0.031..0.044 rows=20 loops=1)
+  ->  Index Only Scan using orders_customer_status_created_idx on orders
+        (cost=0.56..9.10 rows=61) (actual rows=20 loops=1)          ← estimate ≈ reality
+        Index Cond: ((customer_id = 42) AND (status = 'PAID'))
+        Heap Fetches: 0                                              ← never touched the table
+        Buffers: shared hit=5                                        ← five cached pages
+Execution Time: 0.061 ms
+
+What to look for, in order:
+1. Where does the time go? Each node shows actual time (first row..all rows) per loop.
+2. rows estimated vs actual — 10× off means bad statistics or correlated columns (ANALYZE,
+   CREATE STATISTICS) and probably a bad plan choice.
+3. "Rows Removed by Filter" large → the index doesn't cover that condition.
+4. A Sort feeding a Limit → an index in the ORDER BY order would avoid sorting.
+5. loops=N on an inner node → multiply its time by N (nested loops).
+6. Buffers read (disk) vs hit (cache).

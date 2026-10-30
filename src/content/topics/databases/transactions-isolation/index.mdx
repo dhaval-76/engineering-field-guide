@@ -1,0 +1,126 @@
+---
+title: Transactions, Isolation and Locking
+summary: What concurrent transactions see of each other — dirty reads, phantoms, lost updates and write skew; how MVCC and locks prevent them; what each isolation level really guarantees in PostgreSQL and MySQL; and safe retries.
+track: databases
+order: 40
+tags: [databases, transactions, isolation, mvcc, locking, concurrency, postgresql, mysql]
+aliases: [acid, isolation levels, read committed, repeatable read, serializable, snapshot isolation, ssi, mvcc, dirty read, non-repeatable read, phantom read, lost update, write skew, select for update, for share, skip locked, nowait, deadlock, serialization failure, "40001", advisory lock, gap lock, next-key lock]
+prerequisites: [databases/sql-fundamentals]
+related: [concurrency/case-payment-thread-safety, backend/jpa-hibernate, backend/spring-aop, concurrency/deadlock-livelock-starvation]
+quickRef:
+  points:
+    - 'Isolation level = which anomalies you accept. Defaults: **PostgreSQL Read Committed**, **MySQL InnoDB Repeatable Read**.'
+    - '**MVCC**: readers see a snapshot and never block writers; writers to the *same row* still wait for each other.'
+    - 'Read Committed allows **lost updates** in read-modify-write code. Fix with an atomic `UPDATE … SET x = x - ?`, `SELECT … FOR UPDATE`, or a `@Version` check.'
+    - '**Write skew** (two transactions read the same rows, each writes a *different* row) survives snapshot isolation — needs Serializable or explicit locks.'
+    - 'Serializable and deadlocks abort transactions by design: **retry the whole transaction** on `40001` / `40P01`.'
+    - '`FOR UPDATE SKIP LOCKED` turns a table into a safe work queue.'
+  useWhen: Writing code where concurrent requests read and modify the same data — balances, stock, bookings, quotas, job queues.
+lastReviewed: 2026-10-30
+---
+
+## Why it matters
+
+A database runs many transactions at once. Running them strictly one after another would be correct but slow, so databases let them overlap and use **isolation levels** to decide how much they may see of each other. Most race-condition bugs in backends — double bookings, oversold stock, negative balances — are a transaction relying on a guarantee its isolation level doesn't give. ([ACID](../sql-fundamentals/) in one line each is in SQL fundamentals; this page is about the **I**.)
+
+<Callout type="analogy">
+A shared document with tracked changes. Read Committed: whenever you look, you see everyone's *accepted* changes so far — the text can change between two glances. Repeatable Read: you work on a copy taken when you started; it never changes under you, but two people editing different paragraphs of their own copies can produce a combined document that breaks a rule neither of them broke alone (write skew). Serializable: the editor guarantees the result is as if people had taken turns, rejecting a change when that's impossible.
+</Callout>
+
+## The anomalies
+
+| Anomaly | What happens | Example |
+|---|---|---|
+| Dirty read | you read another transaction's uncommitted change, which is then rolled back | a balance that never existed |
+| Non-repeatable read | reading the same row twice gives different values | a report's totals don't add up |
+| Phantom read | re-running a query returns new rows that match | "count bookings, then insert" sees a new booking appear |
+| Lost update | two read-modify-write cycles; the second write overwrites the first | two debits of 900 from 1000 both succeed |
+| Write skew | two transactions read an overlapping set, then each updates a *different* row, breaking a rule that spans rows | both on-call doctors go off call |
+
+## Isolation levels in practice
+
+| Level | Dirty read | Non-repeatable read | Phantom | Lost update | Write skew |
+|---|---|---|---|---|---|
+| Read Uncommitted | possible (PostgreSQL treats it as Read Committed) | possible | possible | possible | possible |
+| **Read Committed** (PostgreSQL, Oracle, SQL Server default) | no | possible | possible | possible | possible |
+| **Repeatable Read** (MySQL default) | no | no | no in PostgreSQL; plain reads no in MySQL | PostgreSQL: detected (error); MySQL: possible | possible |
+| **Serializable** | no | no | no | no | no |
+
+The SQL standard defines levels by the anomalies they forbid, and real databases differ. **PostgreSQL's** Repeatable Read is *snapshot isolation*: one snapshot for the whole transaction, and a concurrent update to a row you also update fails with a serialization error. Its Serializable adds conflict detection (SSI) and aborts transactions that could produce a non-serial result. **MySQL InnoDB's** Repeatable Read gives plain `SELECT`s a snapshot, but `UPDATE` and locking reads act on the *latest* committed data and use gap locks — so a read-modify-write can still lose an update.
+
+## How databases isolate: MVCC and locks
+
+<Walkthrough id="mvcc-snapshot" />
+
+- **MVCC** (multi-version concurrency control): an update writes a new row version; old versions remain until no running transaction can see them (PostgreSQL's `VACUUM` cleans them). Readers pick the version visible to their snapshot, so **reads don't block writes and writes don't block reads**.
+- **Row locks** are still taken by writes: two transactions updating the same row queue up — the second waits for the first to commit or roll back, then (in Read Committed) re-checks its `WHERE` against the new version.
+- **Long transactions** hold old snapshots open, which stops cleanup and bloats tables — another reason to keep them short.
+
+## Read-modify-write: lost updates
+
+The most common bug: read a value into application code, change it, write it back. Under Read Committed, two requests do this concurrently and one change vanishes. The [payment thread-safety case](../../concurrency/case-payment-thread-safety/) walks through it in detail; the fixes, from simplest:
+
+<CodeTabs id="lost-update-fixes" title="Four ways to make read-modify-write safe" />
+
+| Fix | Behaviour under contention | Use when |
+|---|---|---|
+| Atomic `UPDATE … SET balance = balance - ? WHERE … AND balance >= ?` | serialized on the row lock, no retries | the rule fits in one statement |
+| `SELECT … FOR UPDATE`, then update | others wait | multi-step logic on a few hot rows |
+| Optimistic version check (`WHERE version = ?`) | losers get 0 rows → retry or 409 | low contention, user edits |
+| Serializable isolation | losers aborted → retry | complex invariants across many rows |
+
+## Write skew
+
+<Walkthrough id="write-skew" />
+
+<CodeTabs id="write-skew" title="The on-call bug and three fixes" />
+
+Write skew is the anomaly snapshot isolation doesn't prevent, because the two transactions never write the *same* row. Typical cases: "at least one doctor on call", "a meeting room can't be double-booked" (insert two overlapping bookings), "a username must be unique" (without a unique constraint), "total spending under a limit across several cards". Fixes: run it as **Serializable**; **lock the rows the decision depends on** (`FOR UPDATE` on the set — but you can't lock rows that don't exist yet); or **materialize the conflict** as a constraint the database enforces: a unique index, an exclusion constraint for overlapping ranges, a single "summary" row that every transaction updates.
+
+## Locking reads and job queues
+
+<CodeTabs id="locking-reads" title="FOR UPDATE, FOR SHARE, NOWAIT, SKIP LOCKED and advisory locks" />
+
+| Clause | Meaning |
+|---|---|
+| `FOR UPDATE` | lock the selected rows for writing; other writers and lockers wait |
+| `FOR NO KEY UPDATE` (PostgreSQL) | same, but doesn't block inserts of rows referencing these by foreign key |
+| `FOR SHARE` | others may read and share-lock, but not modify |
+| `NOWAIT` | fail immediately instead of waiting |
+| `SKIP LOCKED` | silently skip locked rows — workers grab different jobs |
+
+## Deadlocks and retries
+
+Two transactions that lock the same rows in opposite orders deadlock. The database detects the cycle within about a second (`deadlock_timeout` in PostgreSQL, immediately in InnoDB), aborts one transaction with an error, and lets the other continue. Prevent most deadlocks by **locking in a consistent order** (e.g. by account id — see [Deadlock, livelock and starvation](../../concurrency/deadlock-livelock-starvation/)) and keeping transactions short; handle the rest by retrying.
+
+<CodeTabs id="retry-transaction" title="Retrying a transaction on serialization failure or deadlock" />
+
+- Retry the **whole transaction** from its first read, never just the failed statement — its earlier reads are stale.
+- Retry only **retryable** errors: SQLSTATE `40001` (serialization failure) and `40P01` (deadlock) in PostgreSQL; MySQL error 1213 (deadlock) and 1205 (lock wait timeout).
+- Limit attempts and add jittered backoff. Make side effects (emails, HTTP calls) happen after commit, or idempotent.
+
+## In Spring
+
+`@Transactional(isolation = Isolation.SERIALIZABLE)`, `timeout`, and `readOnly` map straight to these settings; propagation decides whether a method joins the caller's transaction ([Spring AOP and transactions](../../backend/spring-aop/)). JPA's `@Lock(PESSIMISTIC_WRITE)` issues `FOR UPDATE`, and `@Version` is the optimistic check ([JPA and Hibernate](../../backend/jpa-hibernate/)).
+
+<Pitfalls>
+
+- **Assuming `@Transactional` prevents races** — at Read Committed, read-modify-write still loses updates.
+- **"Check, then insert" without a constraint** — two transactions both see "no booking" and both insert.
+- **Retrying only the failed statement** after a serialization error.
+- **Not retrying at all** at Serializable — the level is designed to abort transactions.
+- **HTTP calls or user think-time inside a transaction** — row locks and an old snapshot held for seconds.
+- **Locking rows in different orders** in different code paths — deadlocks under load.
+- **Testing concurrency with one request at a time** — races appear only under real parallelism; test with threads or a load tool.
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- Know your database's default and what it doesn't protect: Read Committed allows lost updates and write skew.
+- MVCC: snapshots for reads, row locks for writes.
+- Make read-modify-write atomic, locked, or version-checked.
+- Prevent write skew with Serializable, locks on the deciding rows, or a constraint.
+- Abort-and-retry is normal: retry whole transactions on 40001/40P01 with backoff.
+
+</KeyTakeaways>

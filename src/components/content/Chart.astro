@@ -52,7 +52,7 @@ const fmt = (n: number) =>
 // Line chart geometry
 const W = 640,
   H = 300,
-  pad = { l: 56, r: 120, t: 16, b: 40 };
+  pad = { l: 56, r: 120, t: 30, b: 40 };
 const all = series.flatMap((s) => s.values);
 const yMaxRaw = Math.max(1, ...all);
 const scaleY = (v: number) => {
@@ -98,7 +98,7 @@ const barLen = (v: number) => {
         </text>
       ))}
       {yLabel && (
-        <text class="tick" x={14} y={pad.t + 6}>
+        <text class="tick" x={pad.l - 8} y={12} text-anchor="end">
           {yLabel}
         </text>
       )}

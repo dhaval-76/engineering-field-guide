@@ -1,0 +1,47 @@
+title: Two transactions, two versions of a row
+frames:
+  - caption: 'The `accounts` row for Asha has one committed version: balance **1000**.'
+    panels:
+      - kind: rows
+        label: Row versions
+        items: [{ v: 'v1 · balance 1000 · committed', tone: ok }]
+      - kind: kv
+        label: Transactions
+        pairs: [[T1, { v: 'not started', tone: muted }], [T2, { v: 'not started', tone: muted }]]
+  - caption: '**T1** starts and runs `UPDATE … SET balance = 400`. The database writes a **new version** and locks the row. v1 stays — other transactions may still need it.'
+    panels:
+      - kind: rows
+        label: Row versions
+        items: ['v1 · balance 1000 · committed', { v: 'v2 · balance 400 · T1, uncommitted', tone: warn }]
+      - kind: kv
+        label: Transactions
+        pairs: [[T1, { v: 'holds row lock', tone: warn }], [T2, { v: 'not started', tone: muted }]]
+  - caption: '**T2** reads the row. v2 isn''t committed, so T2 sees **v1 = 1000** — no dirty read, and T2 didn''t have to wait: readers don''t block on writers.'
+    panels:
+      - kind: rows
+        label: Row versions
+        items: [{ v: 'v1 · balance 1000 · committed ← T2 reads', tone: info }, 'v2 · balance 400 · T1, uncommitted']
+      - kind: kv
+        label: Transactions
+        pairs: [[T1, 'holds row lock'], [T2, { v: 'read 1000', tone: info }]]
+  - caption: 'T2 tries to **update** the same row. Writers do conflict: T2 **waits** for T1''s row lock.'
+    panels:
+      - kind: rows
+        label: Row versions
+        items: ['v1 · balance 1000 · committed', 'v2 · balance 400 · T1, uncommitted']
+      - kind: kv
+        label: Transactions
+        pairs: [[T1, 'holds row lock'], [T2, { v: 'waiting for T1', tone: bad }]]
+  - caption: 'T1 **commits**; v2 becomes the current version. What happens to T2 depends on its isolation level.'
+    panels:
+      - kind: rows
+        label: Row versions
+        items: [{ v: 'v1 · balance 1000 · old', tone: muted }, { v: 'v2 · balance 400 · committed', tone: ok }]
+      - kind: kv
+        label: T2 under…
+        pairs: [[Read Committed, { v: 're-reads v2 = 400, applies its update to it', tone: info }], [Repeatable Read (PG), { v: 'ERROR 40001 — row changed since snapshot', tone: bad }]]
+  - caption: 'Once no running transaction can see v1, **VACUUM** (PostgreSQL) or the purge thread (InnoDB) removes it. A transaction left open for hours keeps every old version alive — table bloat.'
+    panels:
+      - kind: rows
+        label: Row versions
+        items: [{ v: 'v2 · balance 400 · committed', tone: ok }]

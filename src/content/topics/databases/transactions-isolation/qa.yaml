@@ -1,0 +1,58 @@
+questions:
+  - q: 'A wallet service debits balances with `@Transactional`: load the account, check the balance, subtract, save. Under load, some accounts go negative. Isn''t the transaction supposed to prevent that?'
+    think: Which isolation level is in use, and what does it promise about a value you read earlier in the transaction?
+    answer: |
+      `@Transactional` gives atomicity, not mutual exclusion. At the default Read Committed (PostgreSQL) two requests can both read 1000, both pass the check, and both write — a **lost update**, or with a decrement, a double spend. MySQL's Repeatable Read doesn't help either: the `UPDATE` acts on the latest data, not the snapshot.
+
+      Fixes: make it one statement (`UPDATE accounts SET balance = balance - :amt WHERE id = :id AND balance >= :amt`, check rows affected); or lock first (`SELECT … FOR UPDATE` / JPA `PESSIMISTIC_WRITE`), keeping the transaction short; or optimistic locking with `@Version` and a retry. Add `CHECK (balance >= 0)` as a safety net, and make the operation idempotent so client retries don't double-charge.
+  - q: 'A meeting-room booking service checks "no overlapping booking exists" and then inserts. Occasionally two people get the same slot. You''re already using Repeatable Read. Why, and how do you fix it?'
+    think: What row could the first transaction lock to stop the second?
+    answer: |
+      This is **write skew / phantom**: both transactions query for overlapping bookings, both see none in their snapshots, and both insert a *new* row. Neither wrote a row the other read, so snapshot isolation sees no conflict — and `FOR UPDATE` can't lock rows that don't exist yet.
+
+      Fixes: best is to **let the database enforce the rule** — a PostgreSQL exclusion constraint `EXCLUDE USING gist (room_id WITH =, during WITH &&)` (or a unique constraint on `(room_id, slot)` if slots are discrete); the loser gets a constraint violation → 409. Alternatives: run as SERIALIZABLE and retry on 40001; or lock a row that represents the room (`SELECT … FROM rooms WHERE id = ? FOR UPDATE`) so bookings for one room serialize.
+followUps:
+  - q: Explain the four standard isolation levels.
+    intuition: Each level forbids one more anomaly — but real databases differ from the standard.
+    approach: |
+      **Read Uncommitted** may see uncommitted data (PostgreSQL never does). **Read Committed**: each statement sees data committed before it began — values can change between statements. **Repeatable Read**: the transaction sees one snapshot; re-reads return the same data (PostgreSQL also prevents phantoms and detects concurrent updates; MySQL's locking reads and updates still see the latest data). **Serializable**: the outcome equals some serial order; databases enforce it by aborting conflicting transactions (PostgreSQL SSI) or with heavier locking (MySQL), so callers must retry.
+  - q: What is MVCC and why does it matter?
+    intuition: Why don't long reports block writes?
+    approach: |
+      Multi-version concurrency control keeps several versions of a row; each transaction reads the version visible to its snapshot. Readers never wait for writers and vice versa — only writers to the same row wait. Costs: old versions must be cleaned up (VACUUM / purge), and long-running transactions prevent that cleanup, causing bloat.
+  - q: What does SKIP LOCKED do, and when would you use it?
+    intuition: Many workers, one table of jobs.
+    approach: |
+      `SELECT … FOR UPDATE SKIP LOCKED` locks the rows it can and silently skips rows another transaction holds. Several workers can each claim a different batch of jobs without blocking each other or processing the same job twice. Claim in a short transaction (mark RUNNING), process outside it, and add a timeout/reaper for jobs whose worker died.
+  - q: How does a database handle a deadlock, and what should the application do?
+    intuition: Who breaks the cycle?
+    approach: |
+      The database detects the wait-for cycle and aborts one transaction (PostgreSQL SQLSTATE 40P01, MySQL error 1213); the other proceeds. The application should retry the aborted transaction from the start with backoff. To reduce deadlocks: acquire locks in a consistent order (e.g. sort account ids), keep transactions short, and avoid lock escalation through large unindexed updates.
+practice:
+  - task: Write a transaction runner that retries on serialization failures and deadlocks, and explain what must not happen inside the retried block.
+    hint: Which SQLSTATEs are retryable? What happens to an email sent in attempt 1?
+    solution: |
+      Wrap the unit of work so each attempt opens a new transaction, runs the *whole* block (all reads included), and commits. Catch only SQLSTATE `40001` and `40P01` (MySQL 1213/1205), retry up to a limit with jittered exponential backoff, and rethrow everything else. The block must be free of non-database side effects — an email or HTTP call made in a failed attempt can't be rolled back; publish those after commit (or via an outbox) and make them idempotent.
+    solutionCode: retry-transaction
+  - task: Build a job queue on PostgreSQL that several workers poll without double-processing jobs or blocking each other.
+    hint: FOR UPDATE SKIP LOCKED, a partial index on ready jobs, and short claim transactions.
+    solution: |
+      `jobs(id, payload, status, run_after)` with a partial index on `run_after WHERE status = 'READY'`. A worker claims a batch with `SELECT … WHERE status = 'READY' AND run_after <= now() ORDER BY run_after LIMIT 10 FOR UPDATE SKIP LOCKED`, marks them RUNNING (with a `locked_until`), commits, processes outside the transaction, then marks DONE or reschedules with backoff. A reaper resets RUNNING jobs whose `locked_until` passed. Processing should be idempotent because a job can run twice after a crash.
+    solutionCode: locking-reads
+quiz:
+  - q: What is the default isolation level in PostgreSQL?
+    options: [Read Uncommitted, Read Committed, Repeatable Read, Serializable]
+    correct: 1
+    why: PostgreSQL defaults to Read Committed; MySQL InnoDB defaults to Repeatable Read.
+  - q: Two transactions each read the same set of rows and then update different rows, breaking a cross-row rule. This is…
+    options: [A dirty read, A lost update, Write skew, A deadlock]
+    correct: 2
+    why: Write skew isn't prevented by snapshot isolation because the writes don't overlap.
+  - q: After a 40001 serialization failure, what should the application retry?
+    options: [Only the failed UPDATE, The COMMIT, The whole transaction from the start, Nothing — it's a bug]
+    correct: 2
+    why: Earlier reads in the transaction are stale; the whole unit of work must run again.
+  - q: Under MVCC, does a long-running SELECT block concurrent UPDATEs to the rows it reads?
+    options: [Yes, always, 'No — readers use a snapshot', Only at Serializable, Only for indexed rows]
+    correct: 1
+    why: Readers see old versions; writers create new ones. (Long transactions do delay cleanup of old versions.)
