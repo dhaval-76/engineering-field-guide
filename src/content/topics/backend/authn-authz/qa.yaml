@@ -1,0 +1,53 @@
+questions:
+  - q: A logged-in user opens /admin/users and gets a 403. Explain exactly which components made that decision and why it isn't a 401.
+    think: Authentication succeeded — what failed?
+    answer: |
+      The bearer token was valid, so Spring Security's resource-server filter (`BearerTokenAuthenticationFilter` with a `JwtDecoder`) authenticated the request and put a `JwtAuthenticationToken` with the user's authorities into the `SecurityContext`. Then the `AuthorizationFilter` evaluated the rule `requestMatchers("/admin/**").hasRole("ADMIN")` (or `@PreAuthorize` on the method); the user's authorities lack `ROLE_ADMIN`, so it threw `AccessDeniedException`, which the `ExceptionTranslationFilter` turned into 403. A 401 would mean the identity was missing or invalid (no token, bad signature, expired), and comes with `WWW-Authenticate`.
+  - q: A user logs out on their phone, yet the account is still accessible from another device for 15 minutes. Why, and how do you fix it?
+    think: What does logout actually change when access tokens are self-contained JWTs?
+    answer: |
+      JWT access tokens are verified locally until `exp`; logout only deletes the token on one client, so any copy stays valid for its remaining lifetime. Fixes: shorten access-token TTL (5–10 minutes) and revoke the **refresh-token family** on logout so no new access tokens are issued; for "log out everywhere" or a compromised account, bump a per-user token version / not-before time checked from a cache on each request; for instant revocation of specific tokens, a `jti` deny list in Redis with TTL equal to the remaining lifetime, or opaque tokens with introspection. Choose based on how fast revocation must take effect versus the per-request cost.
+  - q: Your team says "we use JWT for auth". A senior asks whether that's OAuth, and someone claims OAuth is "more secure than JWT". Clarify.
+    answer: |
+      JWT is a token format (signed claims); OAuth 2 is a protocol for clients to obtain delegated access tokens (flows, scopes, consent, refresh); OpenID Connect adds authentication with ID tokens. An OAuth server often issues JWT access tokens, but it can also issue opaque tokens. If the app mints its own JWTs at `/login`, that's first-party token auth, not OAuth — fine for one app. "More secure" depends on implementation: short TTLs, validation of `iss`/`aud`/`alg`, rotation and revocation. You need OAuth/OIDC (via an identity provider) for SSO, social login, third-party clients and delegated access.
+followUps:
+  - q: How do you revoke a JWT before it expires?
+    intuition: Verification is local — so what extra state can you consult cheaply?
+    approach: |
+      Short TTL plus refresh-token revocation (most common); a per-user token version or not-before timestamp in a cache; a `jti` deny list with TTL; or opaque tokens with introspection. Each step adds state and latency in exchange for faster revocation.
+  - q: Session cookies or JWTs?
+    intuition: Where does the state live, and who is the client?
+    approach: |
+      Server-rendered web apps and BFFs: sessions in `HttpOnly`, `Secure`, `SameSite` cookies with CSRF protection — simple and instantly revocable. APIs for mobile apps, third parties and service-to-service: bearer tokens verified locally. Avoid storing tokens where JavaScript can read them; a BFF lets browsers use cookies while backends use tokens.
+  - q: Authorization code vs client credentials — when do you use each?
+    intuition: Is a user present?
+    approach: |
+      Authorization code (with PKCE) when a user signs in and grants a client access; tokens act on that user's behalf. Client credentials when a service calls another service with its own identity and no user — scheduled jobs, internal APIs. For user context across services, pass or exchange the user's token (token exchange) rather than using a powerful service token for everything.
+  - q: RBAC vs ABAC — when do you choose each?
+    intuition: Can a role express "only their own orders"?
+    approach: |
+      RBAC for coarse capabilities (admins can refund). Ownership/ABAC rules for anything involving the specific resource or context (`order.customerId == user.id`, same tenant, business hours). Most systems combine them: roles gate the endpoint, attributes gate the record, and queries are scoped so non-owned rows are never loaded. For sharing-heavy domains (documents, folders), relationship-based models fit better.
+  - q: How do you implement SSO across five microservices?
+    intuition: Who logs the user in, and how does each service trust the token?
+    approach: |
+      A central identity provider (Keycloak, Okta, Auth0, Entra ID) handles login (OIDC code + PKCE). Each service is an OAuth resource server that validates access tokens locally with the IdP's JWKS keys, checking `iss`, its own `aud` and required scopes. Service-to-service calls use client credentials or token exchange. Logout ends the IdP session and revokes refresh tokens; access tokens expire quickly.
+practice:
+  - task: Implement refresh-token rotation — POST /auth/refresh exchanges a refresh token for a new access token and a new refresh token; refresh tokens are single-use, stored hashed and revocable; reuse of an old refresh token logs out that login everywhere.
+    hint: Random opaque tokens, SHA-256 in the database, a family id per login, an atomic "mark used if unused" update, revoke the family on reuse.
+    solution: |
+      Look up by hash, reject expired/revoked, then `UPDATE … SET used_at = now() WHERE id = ? AND used_at IS NULL`; if 0 rows, someone replayed a used token → revoke the whole family. Otherwise issue a new access token (minutes) and a new refresh token in the same family.
+    solutionCode: refresh-rotation
+  - task: Design authorization for a multi-tenant SaaS — users belong to one organisation with role OWNER, ADMIN or MEMBER and may only see their organisation's data. Show the token claims and the Spring configuration.
+    hint: org_id and roles as claims; map roles to authorities; take org_id only from the token; scope every query; consider database row-level security as a backstop.
+    solution: |
+      Claims `{sub, org_id, roles, aud}`; a `JwtAuthenticationConverter` maps `roles` to `ROLE_*`; services read `org_id` from the authenticated token and pass it to every repository method (`findByOrgId`); `@PreAuthorize("hasAnyRole('OWNER','ADMIN')")` for management actions; PostgreSQL RLS policies on `org_id` catch a forgotten filter.
+    solutionCode: tenant-claims
+quiz:
+  - q: Which claim stops a token issued for the billing API from being accepted by the orders API?
+    options: [sub, exp, aud, iat]
+    correct: 2
+    why: The audience names the intended recipient; each API must check it.
+  - q: Why does PKCE exist?
+    options: [To encrypt the access token, 'So an intercepted authorization code can''t be exchanged by someone else', To replace refresh tokens, To shorten token lifetime]
+    correct: 1
+    why: Only the client holding the original code_verifier can redeem the code.

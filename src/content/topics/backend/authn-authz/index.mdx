@@ -1,0 +1,111 @@
+---
+title: Authentication and Authorization
+summary: Proving who a caller is and what they may do — sessions vs tokens, JWT anatomy and validation, OAuth 2 and OpenID Connect flows, refresh-token rotation and revocation, password storage, and role, ownership and tenant checks in Spring.
+track: backend
+order: 40
+tags: [backend, security, authentication, authorization, jwt, oauth2, spring-security]
+aliases: [authn vs authz, jwt, oauth2, openid connect, oidc, pkce, refresh token rotation, jwt revocation, rbac vs abac, spring security, session vs token, 401 vs 403, sso]
+prerequisites: [backend/rest-api-design]
+related: [concurrency/threadlocal, backend/idempotency]
+quickRef:
+  points:
+    - '**Authentication** = who are you (401 if unknown). **Authorization** = may you do this (403, or 404 to hide existence).'
+    - '**JWT is a token format; OAuth 2 is a delegation protocol; OIDC adds login (ID token) on top.** Use authorization code + **PKCE**; implicit and password grants are obsolete.'
+    - 'Validate every JWT: **signature** (expected `alg` only), `iss`, `aud`, `exp`. Payloads are readable — no secrets in them.'
+    - 'Short-lived access tokens (5–15 min) + refresh tokens that are **hashed, rotated, single-use** with reuse detection. Logout revokes the refresh family.'
+    - 'Authorize at three levels: route/scope, **ownership** of the specific resource, and **tenant** scoping of every query.'
+    - 'Passwords: slow salted hashes (bcrypt, scrypt, Argon2id), rate limiting, MFA / passkeys.'
+  useWhen: Building login, protecting an API, integrating "Sign in with…", or designing service-to-service auth.
+lastReviewed: 2026-10-30
+---
+
+## Why it matters
+
+Broken access control is the top entry in the OWASP Top 10, and most of it isn't exotic: an endpoint that checks "logged in" but not "owns this order", a JWT accepted without checking its audience, refresh tokens that live forever. Every backend engineer touches this code, and interviews probe it constantly — "401 or 403?", "how do you log out a JWT?", "JWT or OAuth?".
+
+<Callout type="analogy">
+A hotel. Showing your passport at check-in is **authentication**. The key card that opens your room, the gym and the pool — but not other guests' rooms or the staff office — is **authorization**. The card expires at checkout (token expiry), and reception can cancel it if you lose it (revocation).
+</Callout>
+
+## Sessions or tokens
+
+| | Server session + cookie | Self-contained token (JWT) |
+|---|---|---|
+| Where state lives | Server (memory, Redis, DB) | In the token; server keeps only keys |
+| Per-request check | Look up the session id | Verify signature locally |
+| Revocation | Instant (delete the session) | Hard until expiry — short TTL + refresh |
+| Scaling | Shared session store | Any instance verifies |
+| Fits | Server-rendered web apps, BFFs | APIs, mobile apps, service-to-service |
+| Browser storage | `HttpOnly; Secure; SameSite` cookie — needs CSRF protection | Avoid `localStorage` (XSS can read it); prefer a backend-for-frontend holding tokens |
+
+Both are valid. Many modern web apps use a **BFF**: the browser holds an `HttpOnly` session cookie, and the BFF holds OAuth tokens and calls APIs with them.
+
+## JWT anatomy and validation
+
+<CodeTabs id="jwt-anatomy" title="Header, claims, signature" />
+
+<CodeTabs id="resource-server" title="Validating tokens properly — Spring resource server, Node (jose), Python (PyJWT)" />
+
+- Prefer **asymmetric** signatures (RS256/ES256): the issuer signs with a private key, every API verifies with the public key from the issuer's **JWKS** endpoint, and keys rotate via `kid`. Symmetric HS256 means every verifier can also mint tokens.
+- Pin the accepted algorithms; old libraries accepted `alg: none` or confused RS/HS keys.
+- Check `aud` — a token for another API must not work on yours.
+
+## OAuth 2 and OpenID Connect
+
+<Diagram id="oauth-code-pkce" caption="Authorization code flow with PKCE — the standard for web, mobile and single-page apps." />
+
+| Flow | Who | Use for |
+|---|---|---|
+| Authorization code + **PKCE** | A user, through a browser or app | Login, "Sign in with Google", third-party access to user data |
+| Client credentials | A service, no user | Service-to-service calls, batch jobs |
+| Device code | A user on a TV / CLI | Devices without a browser |
+| Refresh token | Same client, later | New access tokens without logging in again |
+| ~~Implicit~~, ~~password~~ | — | Removed in OAuth 2.1 / current best practice |
+
+**PKCE** binds the code to the client that started the flow: the client sends `SHA256(verifier)` first and the verifier on exchange, so an intercepted code is useless. **`state`** protects the callback against CSRF. **OpenID Connect** adds an **ID token** (a JWT about the user, for the client) and a `userinfo` endpoint — OAuth alone says what a client may access, not who the user is.
+
+"JWT vs OAuth" is a category error: an OAuth server usually issues JWT access tokens. If you mint your own JWTs at a login endpoint, you've built token auth, not OAuth — fine for a single first-party app, but use an identity provider (Keycloak, Auth0, Okta, Cognito, Entra ID) once you need SSO, social login, MFA or third-party clients.
+
+## Refresh tokens, logout and revocation
+
+<CodeTabs id="refresh-rotation" title="Hashed, rotated refresh tokens with reuse detection" />
+
+Ways to cut off a JWT before it expires, in order of preference:
+
+1. **Short access-token TTL** (5–15 minutes) and revoke the refresh token — at most one TTL of continued access.
+2. **Per-user token version / "not before"** claim checked against a cache — revokes all of a user's tokens (password change, compromised account).
+3. **Deny list of `jti`s** in Redis with TTL = remaining lifetime — instant, but a lookup per request.
+4. **Opaque tokens + introspection** at the authorization server — instant, central, but a network call (usually cached briefly).
+
+## Authorization models
+
+<CodeTabs id="authorization-checks" title="Role checks, ownership checks and query scoping" />
+
+- **RBAC** — roles carry permissions (`ADMIN`, `SUPPORT`). Simple; can't express "only your own orders".
+- **Ownership / ABAC** — decisions on attributes of the user, resource and context (`order.customerId == user.id`, region, time). Most real rules need this.
+- **ReBAC** — relationships ("editor of the folder that contains this doc"), as in Google Zanzibar and its open-source descendants (OpenFGA, SpiceDB).
+- **Scopes** limit what a *client* may do on the user's behalf; roles and ownership limit what the *user* may do. Check both.
+- Enforce on the server for every request — hiding a button in the UI is not authorization.
+
+<CodeTabs id="password-hashing" title="Storing and checking passwords" />
+
+<Pitfalls>
+
+- **Checking authentication but not ownership** (IDOR): `/orders/123` → change to `/orders/124`.
+- **Trusting ids from the request** (`orgId` in the body) instead of from the verified token.
+- **Not validating `aud`/`iss`**, accepting unexpected algorithms, or long-lived access tokens.
+- **Tokens in `localStorage`** or in URLs (they leak through history, logs and referrers).
+- **Disabling CSRF with cookie-based auth**.
+- **Hand-rolled crypto and JWT filters** when the framework's resource server does it correctly.
+- **Different errors for "unknown user" and "wrong password"** — account enumeration.
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- 401 = not authenticated; 403 = not allowed. Authenticate once at the edge, authorize on every resource.
+- JWT is a format, OAuth 2 a protocol, OIDC the login layer; use code + PKCE.
+- Verify signature, `iss`, `aud`, `exp`; keep access tokens short and refresh tokens rotated and revocable.
+- Roles for coarse rules, ownership and tenant scoping for data; enforce in queries.
+
+</KeyTakeaways>

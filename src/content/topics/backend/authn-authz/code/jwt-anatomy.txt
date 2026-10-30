@@ -1,0 +1,14 @@
+eyJhbGciOiJSUzI1NiIsImtpZCI6ImsxIn0 . eyJpc3MiOiJodHRwczovL2F1dGguZXhhbXBsZS5jb20iLC4uLn0 . SflKxwRJSMeKKF2QT4fwpM…
+└──────────── header ─────────────┘   └────────────────── payload (claims) ────────────────┘   └── signature ──┘
+
+header   {"alg": "RS256", "kid": "k1"}                 which algorithm and which key signed it
+payload  {"iss": "https://auth.example.com",           who issued it        ← verify
+          "aud": "orders-api",                         who it's for         ← verify
+          "sub": "user_42",                            who it's about
+          "scope": "orders:read orders:write",         what it allows
+          "exp": 1793350800, "iat": 1793349900,        valid until / issued at ← verify (allow small clock skew)
+          "jti": "9f1c…"}                              unique id (for revocation lists)
+signature RS256(base64url(header) + "." + base64url(payload), issuer's PRIVATE key)
+
+The payload is only base64-encoded, NOT encrypted: anyone holding the token can read it.
+Never put secrets or personal data you wouldn't show the user in a JWT.
