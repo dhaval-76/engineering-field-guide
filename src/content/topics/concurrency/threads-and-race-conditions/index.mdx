@@ -1,0 +1,95 @@
+---
+title: Threads and Race Conditions
+summary: What threads share and what they don't, why count++ loses updates, check-then-act bugs, and the three ways to fix them — locks, compare-and-swap, and not sharing — with their trade-offs in Java, JavaScript and Python.
+track: concurrency
+order: 10
+tags: [concurrency, threads, race-condition, atomic, cas, longadder]
+aliases: [race condition, thread safety, atomicinteger vs synchronized, longadder, check then act, lost update, multithreading basics]
+prerequisites: [java-runtime/data-types-and-memory]
+related: [low-level-design/parking-lot, java-runtime/immutability]
+quickRef:
+  points:
+    - Threads share the **heap** (objects, static fields) and each have their own **stack** (locals). Races happen only on shared, mutable state.
+    - '`count++` and "if absent then put" are **read-modify-write / check-then-act** sequences — another thread can interleave between the steps.'
+    - 'Fixes: **lock** (`synchronized`, `ReentrantLock`), **CAS** (`AtomicLong`, `compareAndSet`, `ConcurrentHashMap.merge`), or **don''t share** (confinement, immutability, `LongAdder` cells).'
+    - '`LongAdder` beats `AtomicLong` for very write-heavy counters; `AtomicLong` gives exact reads; locks are needed for multi-step invariants.'
+    - Across several servers, in-memory locks don't help — do it atomically in the database or Redis.
+  useWhen: Any time two threads (or requests) can touch the same data — counters, balances, caches, inventory.
+lastReviewed: 2026-10-30
+---
+
+## Why it matters
+
+Concurrency bugs are the hardest bugs in software: they depend on timing, so they pass tests, appear under load, and vanish when you add logging. Every backend handles requests on many threads at once, so any shared mutable state — a counter, a cache, an account balance, a "spots left" number — is a potential race. Interviews probe this constantly, and LLD answers that ignore it lose points.
+
+<Callout type="analogy">
+Two people updating the same shared spreadsheet cell from their own printed copies. Each reads "5", adds one, and types "6". Both did their job correctly; the sheet still says 6 instead of 7.
+</Callout>
+
+## Threads: what's shared
+
+<CodeTabs id="thr-create" title="Creating threads in Java, and the equivalents in Node and Python" />
+
+| Lives in | Shared between threads? | Examples |
+|---|---|---|
+| Thread stack | No | Local variables, method parameters |
+| Heap | **Yes** | Objects, their fields, arrays, collection contents |
+| Static fields | **Yes** | Singletons, caches, counters |
+
+Only shared **and** mutable state can race. That's why immutable objects and thread-confined data are safe by construction.
+
+**Platform threads** map one-to-one to OS threads (expensive: about a megabyte of stack, kernel scheduling). **Virtual threads** (Java 21) are scheduled by the JVM and cheap enough to create one per task. Node runs JavaScript on a single event-loop thread (parallel CPU work uses worker threads), and CPython's GIL runs one thread's bytecode at a time — but **races still happen in both** wherever an operation spans several steps and something can interleave.
+
+## The lost update
+
+<Walkthrough id="lost-update" />
+
+<CodeTabs id="thr-race" title="A counter that loses increments, and check-then-act" />
+
+Two families of race:
+
+- **Read-modify-write** — `count++`, `balance -= x`, `list.add` on a non-thread-safe list.
+- **Check-then-act** — `if (!map.containsKey(k)) map.put(k, v)`, `if (spot.isFree()) spot.take()`. The condition can become false between the check and the act.
+
+There's also a **visibility** problem: without synchronisation, a thread may not see another thread's writes at all (or see them in a different order). That's covered in the topic on `volatile` and the Java Memory Model.
+
+## Three ways to fix it
+
+<CodeTabs id="thr-counters" title="synchronized, AtomicLong and LongAdder counters" />
+
+| Approach | How | Best for | Cost |
+|---|---|---|---|
+| **Lock** (`synchronized`, `ReentrantLock`) | Only one thread in the critical section | Multi-step invariants touching several fields | Threads block and wait under contention |
+| **CAS / atomics** (`AtomicLong`, `compareAndSet`, `ConcurrentHashMap.merge`) | CPU instruction updates only if the value is unchanged; retry otherwise | Single variables, low–moderate contention | Wasted retries under heavy contention |
+| **Striping** (`LongAdder`) | Each thread updates its own cell; reads sum the cells | Very write-heavy counters (metrics) | Reads cost more and aren't atomic snapshots |
+| **Don't share** | Confine data to one thread, or make it immutable | Whenever possible | Requires designing for it |
+
+<CodeTabs id="thr-withdraw" title="Fixing check-then-act on a balance: lock, CAS loop, database" />
+
+The same rule scales up: when several application instances share data, an in-process lock protects nothing. Push the atomic step into the shared store — a conditional `UPDATE … WHERE balance >= :amt`, a Redis `INCRBY`/Lua script, or a database lock.
+
+## Thread safety vs atomicity
+
+- **Atomic**: an operation happens all at once from other threads' point of view.
+- **Thread-safe**: a class behaves correctly under concurrent use.
+
+A thread-safe collection doesn't make *your sequence* of calls atomic: `synchronizedList.contains(x)` followed by `add(x)` is still check-then-act. Use the collection's atomic compound operations (`putIfAbsent`, `computeIfAbsent`, `merge`) or an external lock around the sequence.
+
+<Pitfalls>
+
+- **Calling `run()` instead of `start()`** — runs on the current thread, silently.
+- **"It's just a read"** — reads without synchronisation can see stale or half-updated values.
+- **Locking on different objects** — two `synchronized` methods on different instances don't exclude each other.
+- **Compound actions on thread-safe collections** — still racy.
+- **Testing concurrency with a few runs** — races are probabilistic; use stress tests and tools (jcstress) or design them out.
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- Races need shared, mutable state and an interleaving between steps.
+- Read-modify-write and check-then-act must be made atomic: locks, CAS, or no sharing.
+- Atomics for single variables, `LongAdder` for hot counters, locks for multi-field invariants.
+- Across processes, do the atomic step in the database or cache.
+
+</KeyTakeaways>

@@ -1,0 +1,37 @@
+questions:
+  - q: A background thread loops `while (running) doWork();` and another thread sets `running = false`, but the loop never stops. Why?
+    think: Is there anything that forces the loop to re-read the field?
+    answer: |
+      Without `volatile` (or a lock) there's no happens-before relationship between the write and the reads, so the JIT may read `running` once and treat it as a constant inside the loop. Declare it `volatile`, or better, use interruption (`thread.interrupt()` with `while (!Thread.currentThread().isInterrupted())`), which also wakes threads blocked in `sleep`, `wait` or `queue.take()`.
+  - q: Config must be reloadable at runtime while 100 worker threads read it on every request. How do you make it thread-safe without slowing reads?
+    think: Many readers, one rare writer. Can readers avoid locks entirely?
+    answer: |
+      Make the config an immutable object and keep it in a `volatile` field (or `AtomicReference`). Reload by building a complete new object, then assigning it in one write. Readers do a single volatile read — no locks — and always see either the whole old config or the whole new one. Immutability means there's nothing to coordinate after publication.
+followUps:
+  - q: Why is count++ not atomic even when count is volatile?
+    intuition: volatile makes each individual read and write visible. How many steps is count++?
+    approach: |
+      It's read, add, write. Two threads can both read 5 and both write 6. volatile guarantees they each see the latest value at the moment they read, not that nobody writes in between. Use `AtomicInteger.incrementAndGet()` (CAS) or a lock.
+  - q: Explain happens-before.
+    intuition: It's the rule that decides whether a write must be visible to a read.
+    approach: |
+      If A happens-before B, B sees everything A did (and A's effects aren't reordered after B). Edges come from program order within a thread, unlocking then locking the same monitor, writing then reading the same volatile, `Thread.start()`/`join()`, final-field initialisation, and concurrent utilities (queue put → take). Writes not connected by such an edge may be invisible or seen out of order. A volatile write also "carries" all the writer's earlier plain writes to the reader.
+  - q: ReentrantLock vs synchronized — when do you need ReentrantLock?
+    intuition: What can't synchronized do?
+    approach: |
+      When you need `tryLock` (non-blocking or with timeout, e.g. to avoid deadlock), interruptible lock waits, fairness, multiple `Condition`s, or locking that doesn't follow block structure. Otherwise `synchronized` is simpler and releases automatically. Both provide the same memory-visibility guarantees.
+practice:
+  - task: Implement a one-way "done" flag that can be set from many threads, where exactly one thread should run the completion action.
+    hint: A volatile boolean is visible but two threads could both see false and both set it.
+    solution: |
+      Use `AtomicBoolean done` and `if (done.compareAndSet(false, true)) runCompletion();` — exactly one thread wins. A plain `volatile boolean` works only if a single thread ever sets it.
+    solutionCode: jmm-publish
+quiz:
+  - q: Which provides mutual exclusion?
+    options: [volatile, synchronized, final, transient]
+    correct: 1
+    why: Only locks give exclusive access; volatile only gives visibility and ordering.
+  - q: Thread A writes x = 1 (plain), then flag = true (volatile). Thread B reads flag == true. What is B guaranteed to see for x?
+    options: ['0 or 1', '1', 'Nothing guaranteed', 'An exception']
+    correct: 1
+    why: The volatile write happens-before the volatile read, which carries A's earlier write to x.

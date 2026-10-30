@@ -1,0 +1,32 @@
+questions:
+  - q: Two threads call withdraw(500) on an account with 1,000 at the same time. Both pass the balance check and the final balance is 500 instead of 0. Fix it.
+    think: The check and the write are separate steps. Make them one — and think about multiple servers.
+    answer: |
+      It's a check-then-act race. In one process: make `withdraw` `synchronized` (or use a `ReentrantLock`), or use an `AtomicLong` with a compare-and-set loop that re-checks the balance on each attempt. With several application instances, the in-memory fix isn't enough: do it in the database with `UPDATE accounts SET balance = balance - :amt WHERE id = :id AND balance >= :amt` (0 rows → insufficient funds) or `SELECT … FOR UPDATE` in a transaction. For money, also record each change in a ledger table.
+  - q: Implement a counter used by 100 threads — synchronized, AtomicInteger and LongAdder. When would you choose each?
+    answer: |
+      `synchronized` is simplest and fine at low contention, or when the counter is part of a larger invariant. `AtomicInteger/AtomicLong` use CAS — no blocking, exact reads, good for moderate contention. `LongAdder` stripes updates across cells so many threads rarely collide; `sum()` is costlier and not a point-in-time snapshot while writes continue — ideal for metrics and request counts, not for values you check-and-act on.
+followUps:
+  - q: What's the difference between thread safety and atomicity?
+    intuition: Can calls on a thread-safe object still race?
+    approach: |
+      Atomicity is a property of one operation (indivisible as seen by others). Thread safety is a property of a class under concurrent use. A thread-safe collection makes each call safe, but a sequence of calls (`if (!contains) add`) isn't atomic. Use compound methods (`putIfAbsent`, `computeIfAbsent`, `merge`) or lock around the sequence.
+  - q: Does Node.js or Python have race conditions, given the event loop and the GIL?
+    intuition: What can happen between two awaits, or between two bytecodes?
+    approach: |
+      Yes. In Node, any `await` lets other requests run, so "read, await something, write" is a race (e.g. two requests reading the same stock count before either writes). In CPython the GIL can switch threads between bytecodes, and `x += 1` is several. And across processes or servers (the common case for both) the database is shared regardless. Fix with atomic database operations, locks (`asyncio.Lock`, `threading.Lock`), or idempotent designs.
+practice:
+  - task: Simulate 100 threads trying to take the last 5 parking spots — show double-booking without synchronisation, then make it exactly 5.
+    hint: Represent each spot's occupant as an AtomicReference, or guard a list with a lock; a Semaphore(5) models capacity.
+    solution: |
+      Unsynchronised `if (free) take()` on a shared list produces more than five "successes". With `AtomicReference.compareAndSet(null, car)` per spot (or a lock around find-and-take), exactly five threads succeed. A `Semaphore(5)` also caps concurrency — `tryAcquire()` succeeds five times — but you still need to assign specific spots atomically.
+    solutionCode: thr-withdraw
+quiz:
+  - q: Which of these is atomic in Java?
+    options: ['count++ on an int field', 'atomicLong.incrementAndGet()', 'if (!map.containsKey(k)) map.put(k, v) on a ConcurrentHashMap', 'list.add(x) on an ArrayList']
+    correct: 1
+    why: AtomicLong uses a CPU compare-and-swap; the others are multi-step or not thread-safe.
+  - q: Where do local variables of a method live?
+    options: [On the heap, shared by all threads, On the calling thread's stack — not shared, In Metaspace, In the string pool]
+    correct: 1
+    why: Each thread has its own stack frames; only objects (on the heap) can be shared.

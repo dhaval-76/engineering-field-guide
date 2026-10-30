@@ -1,0 +1,42 @@
+title: Why count++ loses updates
+frames:
+  - caption: '`count++` is really three steps: **read** the value into a register, **add 1**, **write** it back. Two threads run it at the same time; count starts at 5.'
+    panels:
+      - kind: kv
+        label: Shared memory
+        pairs: [[count, { v: '5', tone: accent }]]
+      - kind: stack
+        label: Thread A
+        items: ['read', 'add', 'write']
+      - kind: stack
+        label: Thread B
+        items: ['read', 'add', 'write']
+  - caption: 'Thread A **reads 5**. Before it writes, the scheduler switches to Thread B, which also **reads 5**.'
+    panels:
+      - kind: kv
+        label: Shared memory
+        pairs: [[count, '5']]
+      - kind: stack
+        label: Thread A
+        items: [{ v: 'read → 5', tone: info }]
+      - kind: stack
+        label: Thread B
+        items: [{ v: 'read → 5', tone: warn }]
+  - caption: Both compute 6. Thread B writes **6**.
+    panels:
+      - kind: kv
+        label: Shared memory
+        pairs: [[count, { v: '6', tone: info }]]
+      - kind: stack
+        label: Thread A
+        items: ['add → 6 (waiting)']
+      - kind: stack
+        label: Thread B
+        items: [{ v: 'write 6', tone: ok }]
+  - caption: 'Thread A writes **6** too. Two increments, but count went from 5 to 6 — one update was **lost**. Nothing crashed; the number is just wrong.'
+    panels:
+      - kind: kv
+        label: Shared memory
+        pairs: [[count, { v: '6 (should be 7)', tone: bad }]]
+      - kind: note
+        text: 'Fixes make read-modify-write indivisible: a lock (synchronized), a CPU compare-and-swap (AtomicLong), or no sharing at all (per-thread state, LongAdder cells).'

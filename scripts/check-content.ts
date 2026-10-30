@@ -53,7 +53,8 @@ const banned = /\bSDE[- ]?(1|2|3|I{1,3})\b|\bweek\s+\d\b|\bW[1-8]\b(?!\w)/i;
 for (const f of mdxFiles) {
   const src = await readFile(join(root, f), 'utf8');
   try {
-    parse(src.split(/^---$/m)[1] ?? '');
+    const fm = parse(src.split(/^---$/m)[1] ?? '') as { summary?: string };
+    if ((fm.summary?.length ?? 0) > 240) errors.push(`${f}: summary is ${fm.summary!.length} chars (max 240)`);
   } catch (e) {
     errors.push(`${f}: invalid frontmatter YAML — ${(e as Error).message.split('\n')[0]}`);
   }

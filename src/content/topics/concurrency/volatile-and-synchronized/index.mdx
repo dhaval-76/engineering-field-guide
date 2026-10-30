@@ -1,0 +1,100 @@
+---
+title: volatile, synchronized, Locks and the Java Memory Model
+summary: Visibility vs atomicity, what happens-before guarantees, when volatile is enough, synchronized vs ReentrantLock, read-write locks, and patterns like stop flags and hot-reloadable config.
+track: concurrency
+order: 20
+tags: [concurrency, volatile, synchronized, jmm, locks, reentrantlock]
+aliases: [volatile vs synchronized, java memory model, happens before, reentrantlock vs synchronized, readwritelock, stampedlock, visibility problem]
+prerequisites: [concurrency/threads-and-race-conditions]
+related: [oop-patterns/singleton, java-runtime/immutability]
+quickRef:
+  points:
+    - 'Two separate problems: **visibility** (does another thread see my write?) and **atomicity** (can another thread interleave my steps?).'
+    - '`volatile`: visibility + ordering for one variable. **Not** atomic for `count++` or check-then-act.'
+    - '`synchronized` / `Lock`: mutual exclusion **and** visibility — everything done inside is visible to the next thread that takes the same lock.'
+    - '**Happens-before**: unlock → later lock (same monitor); volatile write → later read; `start()` → thread''s actions; thread''s actions → `join()`.'
+    - 'Use `ReentrantLock` for `tryLock`/timeouts/interruptibility; `ReadWriteLock` for read-mostly data; volatile reference to an immutable object for config swaps.'
+  useWhen: Stop flags, publishing objects to other threads, guarding multi-field state, or explaining "why does this loop never end?"
+lastReviewed: 2026-10-30
+---
+
+## Why it matters
+
+Locks are only half of thread safety. Even with no interleaving at all, a thread may simply **never see** another thread's write, or see writes in a surprising order — because compilers, JIT and CPUs reorder and cache aggressively for speed. The Java Memory Model (JMM) defines exactly when a write is guaranteed to be visible. `volatile` and locks are the tools that create those guarantees.
+
+<Callout type="analogy">
+Two colleagues working from their own notes. Without an agreed sync point, one may keep working from an outdated note forever. A `volatile` variable is a status board everyone checks directly. A lock is a meeting room: whatever you decided inside is known to the next person who enters.
+</Callout>
+
+## Visibility: the loop that never ends
+
+<CodeTabs id="jmm-flag" title="A stop flag with and without volatile" />
+
+Without a happens-before relationship between the write and the read, the JIT may hoist `running` out of the loop as a constant. Nothing is wrong with CPU caches here (they're coherent on modern hardware); the problem is that the **program** is allowed to never re-read the field. `volatile` forbids that and orders memory around the access.
+
+## Happens-before
+
+<Diagram id="happens-before" caption="A volatile write publishes everything the writer did before it; a reader that sees the volatile value sees all of it too." />
+
+If action A **happens-before** B, everything A did is visible to B. The rules you'll use:
+
+| Edge | Means |
+|---|---|
+| Program order | Within one thread, earlier statements happen-before later ones |
+| Monitor | `unlock` of a lock happens-before every later `lock` of the same lock |
+| Volatile | A write to a volatile field happens-before every later read of that field |
+| Thread start / join | `t.start()` happens-before anything in `t`; everything in `t` happens-before `t.join()` returning |
+| Final fields | Values set in a constructor are visible to any thread that gets the reference afterwards |
+| Concurrent utilities | Putting into a `ConcurrentHashMap`/`BlockingQueue` happens-before the get/take that sees it |
+
+That last row is why you rarely need `volatile` directly: concurrent collections, executors and futures carry these guarantees for you.
+
+## volatile: when it's enough
+
+<CodeTabs id="jmm-publish" title="Publishing a new immutable config with one volatile write" />
+
+`volatile` is right for **one variable** that is written as a whole: stop flags, status fields, and swapping a reference to an immutable object. It's wrong for anything that reads, then writes based on what it read (`count++`, `if (x == null) x = …`) — use atomics or a lock. The double-checked-locking singleton needs `volatile` for the same publication reason.
+
+## Locks: synchronized and java.util.concurrent.locks
+
+<CodeTabs id="jmm-locks" title="synchronized, ReentrantLock with tryLock, and ReadWriteLock — plus Python and JS" />
+
+| | `synchronized` | `ReentrantLock` | `ReentrantReadWriteLock` | `StampedLock` |
+|---|---|---|---|---|
+| Mutual exclusion + visibility | Yes | Yes | Writers exclusive, readers shared | Yes + optimistic reads |
+| Re-entrant | Yes | Yes | Yes | **No** |
+| Try / timeout / interruptible | No | Yes | Yes | Yes |
+| Fairness option | No | Yes | Yes | No |
+| Release | Automatic at block end | Manual, in `finally` | Manual | Manual |
+| Use when | Simple critical sections | Need timeouts, conditions, fairness | Read-mostly data | Extremely read-heavy hot paths |
+
+Both `synchronized` and `ReentrantLock` are fast in modern JVMs; choose by features, not folklore. (Virtual-thread pinning inside `synchronized` was removed in Java 24.)
+
+## volatile vs synchronized vs atomics
+
+| | `volatile` | `synchronized` / `Lock` | `AtomicX` |
+|---|---|---|---|
+| Visibility | Yes | Yes | Yes |
+| Atomic read-modify-write | No | Yes | Yes (single variable, CAS) |
+| Blocks threads | No | Yes | No (retries) |
+| Multi-variable invariants | No | **Yes** | No |
+| Typical use | Flags, publication | Compound state | Counters, single-value state machines |
+
+<Pitfalls>
+
+- **`volatile` counters** — visible but still racy.
+- **Locking on different objects** in different methods guarding the same data — no exclusion at all.
+- **`lock()` without `unlock()` in `finally`** — one exception and the lock is held forever.
+- **Calling unknown code while holding a lock** (listeners, callbacks, I/O) — deadlocks and latency.
+- **Reading shared state without the lock** "because it's only a read" — no happens-before, stale values.
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- Visibility and atomicity are different problems; locks solve both, volatile only visibility/ordering.
+- Happens-before edges (locks, volatile, start/join, concurrent collections) are what make writes visible.
+- volatile for flags and immutable-reference swaps; locks for compound state; atomics for single values.
+- Prefer high-level concurrent utilities; they carry the guarantees for you.
+
+</KeyTakeaways>

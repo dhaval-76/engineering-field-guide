@@ -1,0 +1,10 @@
+sequenceDiagram
+  participant W as Writer thread
+  participant M as Shared memory
+  participant R as Reader thread
+  W->>M: config = new Config(...)  (plain writes)
+  W->>M: ready = true  (volatile write)
+  Note over W,M: Everything W wrote before the volatile write…
+  R->>M: if (ready)  (volatile read sees true)
+  Note over M,R: …is guaranteed visible after the volatile read
+  R->>M: use config  (sees the fully built object)
