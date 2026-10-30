@@ -10,6 +10,7 @@ import { readFile } from 'node:fs/promises';
 import { glob } from 'node:fs/promises';
 import { basename, join } from 'node:path';
 import { parse } from 'yaml';
+import { posix } from 'node:path';
 
 const root = new URL('../', import.meta.url).pathname;
 const errors: string[] = [];
@@ -63,8 +64,19 @@ const termIds = new Set(glossaryFiles.map(stem));
 const used = { code: new Set<string>(), diagram: new Set<string>(), walk: new Set<string>() };
 const banned = /\bSDE[- ]?(1|2|3|I{1,3})\b|\bweek\s+\d\b|\bW[1-8]\b(?!\w)/i;
 
+const topicKey = (f: string) => f.match(/topics\/([^/]+\/[^/]+)\/index\.mdx$/)?.[1];
+const topicKeys = new Set(mdxFiles.map(topicKey).filter(Boolean));
+
 for (const f of mdxFiles) {
   const src = await readFile(join(root, f), 'utf8');
+  const self = topicKey(f);
+  // Relative markdown links between topics, e.g. [RAG](../rag/) or [Kafka](../../system-design/kafka-deep-dive/)
+  for (const m of src.matchAll(/\]\((\.\.\/[^)#\s]*)/g)) {
+    if (!self) break;
+    const target = posix.join(`/${self}/`, m[1]!).replace(/^\/|\/$/g, '');
+    if (target.split('/').length === 2 && !topicKeys.has(target))
+      errors.push(`${f}: link ${m[1]} points to missing topic ${target}`);
+  }
   try {
     const fm = parse(src.split(/^---$/m)[1] ?? '') as { summary?: string };
     if ((fm.summary?.length ?? 0) > 240) errors.push(`${f}: summary is ${fm.summary!.length} chars (max 240)`);
