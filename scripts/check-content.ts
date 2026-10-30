@@ -50,6 +50,11 @@ const banned = /\bSDE[- ]?(1|2|3|I{1,3})\b|\bweek\s+\d\b|\bW[1-8]\b(?!\w)/i;
 
 for (const f of mdxFiles) {
   const src = await readFile(join(root, f), 'utf8');
+  try {
+    parse(src.split(/^---$/m)[1] ?? '');
+  } catch (e) {
+    errors.push(`${f}: invalid frontmatter YAML — ${(e as Error).message.split('\n')[0]}`);
+  }
   for (const m of src.matchAll(/<CodeTabs\s+id="([^"]+)"/g)) {
     used.code.add(m[1]!);
     if (!snippetIds.has(m[1]!)) errors.push(`${f}: <CodeTabs id="${m[1]}"> has no code files`);

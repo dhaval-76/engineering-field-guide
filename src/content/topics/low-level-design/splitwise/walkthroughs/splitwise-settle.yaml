@@ -1,0 +1,33 @@
+title: Settling the trip (amounts in ₹)
+frames:
+  - caption: 'Expenses: Alice paid ₹1,200 dinner (all 4), Bob ₹800 taxi (Bob, Carol, Dave), Carol ₹600 hotel (all 4). Net balance = paid − share owed. The balances always sum to **zero**.'
+    panels:
+      - kind: kv
+        label: Net balance
+        pairs: [[Alice, { v: '+750.00', tone: ok }], [Bob, { v: '+83.33', tone: ok }], [Carol, { v: '−116.67', tone: bad }], [Dave, { v: '−716.66', tone: bad }]]
+      - kind: note
+        text: 'Bob: paid 800, owes 300 (dinner) + 266.67 (taxi) + 150 (hotel) = 716.67 → +83.33. The taxi''s 800 ÷ 3 leaves a paisa over, given to the first participants.'
+  - caption: Take the **largest debtor** (Dave, 716.66) and the **largest creditor** (Alice, 750). Dave pays Alice 716.66 — Dave is now settled.
+    panels:
+      - kind: kv
+        label: Net balance
+        pairs: [[Alice, { v: '+33.34', tone: ok }], [Bob, { v: '+83.33', tone: ok }], [Carol, { v: '−116.67', tone: bad }], [Dave, { v: '0', tone: muted }]]
+      - kind: list
+        label: Transfers
+        items: [{ v: 'Dave → Alice 716.66', tone: accent }]
+  - caption: Now the largest creditor is Bob (83.33) and the only debtor is Carol (116.67). Carol pays Bob 83.33 — Bob is settled.
+    panels:
+      - kind: kv
+        label: Net balance
+        pairs: [[Alice, { v: '+33.34', tone: ok }], [Bob, { v: '0', tone: muted }], [Carol, { v: '−33.34', tone: bad }], [Dave, { v: '0', tone: muted }]]
+      - kind: list
+        label: Transfers
+        items: ['Dave → Alice 716.66', { v: 'Carol → Bob 83.33', tone: accent }]
+  - caption: Carol pays Alice 33.34 and everyone is at zero. **3 transfers for 4 people** — the greedy never needs more than n − 1.
+    panels:
+      - kind: kv
+        label: Net balance
+        pairs: [[Alice, { v: '0', tone: muted }], [Bob, { v: '0', tone: muted }], [Carol, { v: '0', tone: muted }], [Dave, { v: '0', tone: muted }]]
+      - kind: list
+        label: Transfers
+        items: ['Dave → Alice 716.66', 'Carol → Bob 83.33', { v: 'Carol → Alice 33.34', tone: accent }]

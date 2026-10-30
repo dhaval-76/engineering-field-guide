@@ -1,0 +1,27 @@
+title: LOOK scheduling for one car (floors 0–9)
+frames:
+  - caption: The car is at floor **3**, going **UP**. Pending stops are 1, 5 and 8.
+    panels:
+      - kind: array
+        label: Floors 0 → 9
+        items: [0, { v: 1, tone: info, tag: stop }, 2, { v: 3, tone: accent, tag: car ↑ }, 4, { v: 5, tone: info, tag: stop }, 6, 7, { v: 8, tone: info, tag: stop }, 9]
+  - caption: Going up, the next stop is the **smallest stop ≥ current floor** — 5. Floor 1 waits even though it's closer; that's what prevents the car from zig-zagging.
+    panels:
+      - kind: array
+        label: Floors 0 → 9
+        items: [0, { v: 1, tone: info }, 2, 3, 4, { v: 5, tone: accent, tag: car ↑ doors }, 6, 7, { v: 8, tone: info }, 9]
+  - caption: Someone on 6 presses UP while the car is at 5. 6 is **ahead in the current direction**, so it is served on this sweep.
+    panels:
+      - kind: array
+        label: Floors 0 → 9
+        items: [0, { v: 1, tone: info }, 2, 3, 4, 5, { v: 6, tone: accent, tag: car ↑ doors }, 7, { v: 8, tone: info }, 9]
+  - caption: Car reaches 8. Nothing is left above, so LOOK **reverses here** instead of travelling to the top floor (that would be SCAN).
+    panels:
+      - kind: array
+        label: Floors 0 → 9
+        items: [0, { v: 1, tone: info }, 2, 3, 4, 5, 6, 7, { v: 8, tone: accent, tag: car ↓ }, 9]
+  - caption: Going down, the next stop is the **largest stop ≤ current floor** — 1. Each floor was visited at most once per sweep, and no request can wait more than about two sweeps.
+    panels:
+      - kind: array
+        label: Floors 0 → 9
+        items: [0, { v: 1, tone: accent, tag: car ↓ doors }, 2, 3, 4, 5, 6, 7, 8, 9]

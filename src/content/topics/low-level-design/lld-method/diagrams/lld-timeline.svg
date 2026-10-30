@@ -1,0 +1,41 @@
+<svg viewBox="0 0 720 170" xmlns="http://www.w3.org/2000/svg" font-family="var(--font-sans)" font-size="12">
+  <!-- 45 minutes across 680px: 1 min ≈ 15.1px, starting x=20 -->
+  <text x="20" y="18" fill="var(--d-muted)" font-weight="600" letter-spacing=".05em">A 45-MINUTE LLD ROUND</text>
+  <g>
+    <rect x="20"  y="30" width="76"  height="44" fill="var(--d-info-soft)" stroke="var(--d-info)"/>
+    <rect x="96"  y="30" width="76"  height="44" fill="var(--d-plum-soft)" stroke="var(--d-plum)"/>
+    <rect x="172" y="30" width="60"  height="44" fill="var(--d-ok-soft)" stroke="var(--d-ok)"/>
+    <rect x="232" y="30" width="106" height="44" fill="var(--d-warn-soft)" stroke="var(--d-warn)"/>
+    <rect x="338" y="30" width="242" height="44" fill="var(--d-accent-soft)" stroke="var(--d-accent)"/>
+    <rect x="580" y="30" width="120" height="44" fill="var(--d-fill)" stroke="var(--d-stroke)"/>
+  </g>
+  <g text-anchor="middle" fill="var(--d-text)" font-weight="600">
+    <text x="58"  y="50">1 Clarify</text>
+    <text x="134" y="50">2 Entities</text>
+    <text x="202" y="50">3 APIs</text>
+    <text x="285" y="50">4 Classes</text>
+    <text x="459" y="50">5 Code the core flows</text>
+    <text x="640" y="50">6 Harden</text>
+  </g>
+  <g text-anchor="middle" fill="var(--d-muted)" font-size="11">
+    <text x="58"  y="66">0–5</text>
+    <text x="134" y="66">5–10</text>
+    <text x="202" y="66">10–14</text>
+    <text x="285" y="66">14–21</text>
+    <text x="459" y="66">21–37</text>
+    <text x="640" y="66">37–45</text>
+  </g>
+  <g fill="var(--d-muted)" font-size="11">
+    <text x="20"  y="96">Actors, features in scope,</text>
+    <text x="20"  y="110">scale, out-of-scope list</text>
+    <text x="172" y="96">Nouns → classes,</text>
+    <text x="172" y="110">verbs → methods</text>
+    <text x="338" y="96">Happy path of the 2–3 most important</text>
+    <text x="338" y="110">operations, with the patterns you named</text>
+    <text x="580" y="96">Concurrency, edge</text>
+    <text x="580" y="110">cases, extensions</text>
+  </g>
+  <line x1="20" y1="130" x2="700" y2="130" stroke="var(--d-line)"/>
+  <text x="20" y="152" fill="var(--d-text)">Roughly 40% understanding and design, 40% code, 20% hardening. In a 90-minute machine-coding round the</text>
+  <text x="20" y="166" fill="var(--d-text)">same steps apply, but step 5 grows to most of the time and the code must compile and run.</text>
+</svg>

@@ -1,0 +1,46 @@
+classDiagram
+  direction LR
+  class ParkingLot {
+    +park(Vehicle) Optional~Ticket~
+    +pay(ticketId, Money)
+    +exit(ticketId)
+  }
+  class ParkingSpot {
+    -id
+    -floor
+    -size SpotSize
+    +tryOccupy(Vehicle) bool
+    +release()
+  }
+  class Ticket {
+    -entry Instant
+    -status TicketStatus
+    +markPaid(Money)
+    +close()
+  }
+  class Vehicle {
+    plate
+    type VehicleType
+  }
+  class SpotSelector {
+    <<interface>>
+    +candidates(Vehicle, spots)
+  }
+  class PricingPolicy {
+    <<interface>>
+    +feeFor(Ticket, exit) Money
+  }
+  class SpotListener {
+    <<interface>>
+    +spotChanged(spot, nowFree)
+  }
+  ParkingLot "1" *-- "*" ParkingSpot
+  ParkingLot "1" o-- "*" Ticket : active
+  Ticket --> ParkingSpot
+  Ticket --> Vehicle
+  ParkingLot --> SpotSelector
+  ParkingLot --> PricingPolicy
+  ParkingLot --> SpotListener
+  SpotSelector <|.. NearestSmallestFit
+  PricingPolicy <|.. HourlyWithDailyCap
+  SpotListener <|.. DisplayBoard

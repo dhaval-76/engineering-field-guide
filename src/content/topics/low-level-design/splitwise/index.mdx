@@ -1,0 +1,110 @@
+---
+title: Design Splitwise (Expense Sharing)
+summary: Groups, expenses and split strategies, a balance ledger kept in exact integer money, and the debt-simplification algorithm that settles a group in at most n − 1 transfers — including why "minimum" is harder than it looks.
+track: low-level-design
+order: 23
+tags: [lld, splitwise, strategy, greedy, heap, money]
+aliases: [expense sharing app, splitwise lld, debt simplification, minimum cash flow, settle up]
+prerequisites: [low-level-design/lld-method, oop-patterns/strategy-and-state]
+related: [low-level-design/parking-lot]
+quickRef:
+  points:
+    - 'Entities: `User`, `Group`, `Expense(paidBy, amount, shares)`, `SplitStrategy` (Equal, Exact, Percent, Shares), `Transfer`.'
+    - Store money as **integer minor units** (paise/cents) — distribute leftover paise deterministically so shares always sum exactly.
+    - 'Keep a **net balance** per person (paid − owed). Balances in a group always sum to zero.'
+    - 'Simplify with a greedy on two heaps: largest debtor pays largest creditor. Each step zeroes someone → **≤ n − 1 transfers**.'
+    - The true minimum number of transfers is NP-hard in general; greedy is the practical answer.
+  complexity: 'Simplification O(n log n) with heaps for n people with non-zero balances.'
+  useWhen: '"Design Splitwise", shared wallets, any ledger where many small debts are netted before payment.'
+lastReviewed: 2026-10-30
+---
+
+## Why it matters
+
+Splitwise looks like CRUD — users, groups, expenses — but the interview is really about three things: modelling **split rules** so new ones are easy to add, handling **money** without rounding errors, and the **settle-up algorithm**. It's popular because each part has a common mistake interviewers can probe.
+
+<Callout type="analogy">
+After a trip, instead of everyone paying everyone back for every bill, you work out who is up and who is down overall. Then the person furthest in the red pays the person furthest in the black, and you repeat until everyone is square.
+</Callout>
+
+## Clarify
+
+- Groups and one-off expenses between two people? (Both; a one-off is a two-person group.)
+- Split types: equal, exact amounts, percentages, shares? (All four, pluggable.)
+- Multiple currencies? (Single currency first; extension later.)
+- Settle-up: record payments made outside the app? (Yes — a payment is just a transfer in the ledger.)
+- Activity history and edits/deletes of expenses? (Expenses are immutable; an edit is a reversal plus a new expense.)
+
+## Entities
+
+- **`Expense`** — who paid, total, how much each participant owes, description, timestamp. Immutable.
+- **`SplitStrategy`** — turns `(total, participants)` into exact shares.
+- **`Group`** — members, expenses, and the derived **net balance** per member.
+- **`Transfer`** — a suggested or recorded payment from one person to another.
+
+## Split strategies and exact money
+
+<CodeTabs id="splitwise-splits" title="Equal, exact and percent splits in integer paise" />
+
+Two rules prevent most bugs:
+
+1. **Never use `double` for money.** ₹800 ÷ 3 is ₹266.666…; floating point accumulates errors and balances stop summing to zero. Use `long` minor units (or `BigDecimal` with explicit rounding).
+2. **Shares must add up to the total exactly.** Equal split gives the leftover paise to the first participants in a stable order; percent split lets the last person absorb rounding.
+
+## The ledger: net balances
+
+Every expense changes balances: the payer is credited the full amount; each participant is debited their share (the payer too, if they're a participant). A settle-up payment from A to B is recorded the same way.
+
+<CodeTabs id="splitwise-ledger" title="Group with an incremental net-balance ledger" />
+
+Because every expense credits exactly what it debits, **the net balances in a group always sum to zero** — a useful invariant to assert in tests.
+
+Splitwise also shows pairwise "you owe Bob ₹83" views. Those come from either the simplified plan or a pairwise ledger (`balance[A][B]`); the net-balance map is the simpler source of truth.
+
+## Simplifying debts
+
+Settling every expense separately could take dozens of payments. Netting first, then matching debtors with creditors, cuts this to at most n − 1.
+
+<Walkthrough id="splitwise-settle" />
+
+<CodeTabs id="splitwise-simplify" title="Greedy settlement with two heaps" />
+
+### Is greedy optimal?
+
+Greedy guarantees **at most n − 1** transfers because every step brings at least one person to zero. But it doesn't always find the true minimum. If the group splits into independent subsets whose balances each sum to zero — say A owes B ₹50 and C owes D ₹70 — those subsets can settle separately, and the true minimum is `n − (number of such zero-sum subsets)`. Finding the largest number of zero-sum subsets is NP-hard (it's related to subset sum), so practical systems use the greedy, which is usually optimal or one transfer away.
+
+<Callout type="insight">
+Saying "greedy gives at most n − 1 transfers; the exact minimum is NP-hard because it requires partitioning people into the most zero-sum groups" is a strong answer. Many candidates incorrectly claim greedy is always optimal.
+</Callout>
+
+## Concurrency and persistence
+
+- Several members may add expenses at the same time. Keep the group's ledger update atomic — a per-group lock in memory, or one database transaction that inserts the expense and its share rows.
+- In a database, store **expense** and **expense_share** rows; compute balances with `SUM` or maintain a `balances` table updated in the same transaction. Rebuildable-from-history is a good property for auditing.
+- Edits and deletes should be **compensating entries** (reverse, then re-add), so history stays explainable.
+
+## Extensions
+
+- **Multiple currencies** — store each expense's original currency and the exchange rate at the time; compute balances per currency, or convert to a group base currency using the stored rate. Never revalue history with today's rates.
+- **Recurring expenses** — a schedule that creates normal expenses.
+- **Notifications** — Observer on `ExpenseAdded` / `PaymentRecorded`.
+- **Simplify across groups** — net a person's balances with another person across all shared groups (only if users opt in).
+
+<Pitfalls>
+
+- **`double` for money** and epsilon comparisons like `> 0.01` — use integers.
+- **Shares that don't sum to the total** after rounding.
+- **Claiming greedy is always minimal** — it's ≤ n − 1, not always optimal.
+- **Mutating expenses in place** — breaks history and makes balances impossible to audit.
+- **Validating percentages with floating point** (`33.33 * 3 != 100`) — use decimals and an explicit remainder rule.
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- Split rules are strategies; adding a split type touches no existing class.
+- Integer minor units and a deterministic remainder rule keep balances exact.
+- Net balances sum to zero; greedy largest-debtor/largest-creditor matching settles in ≤ n − 1 transfers.
+- The exact minimum is NP-hard — know why.
+
+</KeyTakeaways>

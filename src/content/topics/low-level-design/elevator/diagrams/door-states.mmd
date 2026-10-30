@@ -1,0 +1,8 @@
+stateDiagram-v2
+  direction LR
+  [*] --> Closed
+  Closed --> Opening: open requested
+  Opening --> Open: fully open
+  Open --> Closing: timeout / close button
+  Closing --> Closed: fully closed
+  Closing --> Opening: obstruction / open button

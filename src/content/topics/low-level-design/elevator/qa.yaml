@@ -1,0 +1,41 @@
+questions:
+  - q: 'A 50-floor building has 6 elevators. At 9 am, 200 people arrive at the lobby and a naive design sends all 6 cars to floor 1 repeatedly. How would you do better?'
+    think: Separate the per-car algorithm from the dispatch policy, then think about traffic patterns.
+    answer: |
+      **Per car**: LOOK scheduling on a sorted set of stops, so each car sweeps up delivering everyone before coming back.
+      **Dispatch**: cost-based assignment (distance given direction, plus a load penalty) rather than "all idle cars go to the call".
+      **Traffic pattern**: an up-peak mode that returns idle cars to the lobby, and **destination dispatch** — passengers enter their floor in the lobby and are grouped into cars by destination (e.g. car A: 10–18, car B: 19–27), which drastically reduces stops per trip. Zoning (low-rise/high-rise cars) is the static version.
+      All of these are `DispatchStrategy` implementations selectable by time of day.
+followUps:
+  - q: Why is nearest-floor-first scheduling a bad choice for one car?
+    intuition: What happens to a request at floor 40 while new requests keep arriving around floors 2–6?
+    approach: |
+      Shortest-seek-time-first always picks the nearest pending floor, so a steady stream of nearby requests can starve far floors indefinitely. SCAN/LOOK bound the wait: every request is served within roughly two sweeps. It's the same trade-off as disk-head scheduling.
+  - q: How do you decide whether a hall call is "on the way" for a moving car?
+    intuition: Compare floor positions and the direction the caller wants with the car's direction.
+    approach: |
+      A car moving UP at floor `c` can take a call at floor `f` wanting UP if `f >= c`; moving DOWN, a call wanting DOWN if `f <= c`. Otherwise it must finish its sweep first, so the cost is the distance to its turnaround point plus the distance back. Use this as the dispatch cost; add a penalty for pending stops or load.
+  - q: How would you handle a fire alarm?
+    intuition: It's a state that overrides normal operation for every car.
+    approach: |
+      The alarm system publishes an event; each car (Observer) enters `FIRE_RECALL`: clear stops, ignore hall calls, travel to the designated floor, open doors and stay there. The controller stops dispatching. Firefighters' service mode is another state where only car calls with a key are accepted. Model these as states, not `if (fire)` checks scattered everywhere.
+practice:
+  - task: Implement the door state machine with CLOSED, OPENING, OPEN and CLOSING, where an obstruction or open button during CLOSING re-opens the door.
+    hint: Write it as a switch over (state, event) or a transition table; unknown events leave the state unchanged.
+    solution: |
+      The table in the topic covers every state; CLOSING handles OBSTRUCTION and OPEN_REQUESTED → OPENING, CLOSED_FULLY → CLOSED. Unit-test each transition and assert that the car refuses to move unless the door is CLOSED.
+    solutionCode: elevator-door
+  - task: Build a one-car elevator with LOOK scheduling, then extend it to three cars by changing only the controller.
+    hint: Keep stops in a TreeSet; use `ceiling`/`floor` for the next stop. For multiple cars, add a dispatch strategy.
+    solution: |
+      The single car is self-contained (`addStop`, `tick`). The multi-car controller holds a list of cars and a `DispatchStrategy`; hall calls are routed through the strategy, car calls go straight to the car. No change to `ElevatorCar` is needed — that's the point of the split.
+    solutionCode: elevator-dispatch
+quiz:
+  - q: With LOOK, a car going UP at floor 5 has stops {2, 7, 9}. In what order are they served?
+    options: ['2, 7, 9', '7, 9, 2', '9, 7, 2', '7, 2, 9']
+    correct: 1
+    why: It continues upward through 7 and 9, then reverses and serves 2.
+  - q: Which data structure gives O(log n) "next stop above the current floor"?
+    options: [ArrayList, Sorted set such as TreeSet (ceiling), HashSet, Stack]
+    correct: 1
+    why: A balanced sorted set answers ceiling/floor queries in logarithmic time.

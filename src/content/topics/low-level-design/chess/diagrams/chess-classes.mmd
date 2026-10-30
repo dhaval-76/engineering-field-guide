@@ -1,0 +1,36 @@
+classDiagram
+  direction LR
+  class Game {
+    -turn Color
+    -history Deque~Move~
+    +legalMoves(Square) List~Move~
+    +play(from, to) GameStatus
+    +undo()
+  }
+  class Board {
+    +at(Square) Optional~Piece~
+    +isAttacked(Square, Color) bool
+    +kingOf(Color) Square
+  }
+  class Piece {
+    <<abstract>>
+    color
+    +candidateMoves(Board, Square)
+  }
+  class Move {
+    from
+    to
+    moved
+    captured
+    +apply(Board)
+    +revert(Board)
+  }
+  Game --> Board
+  Game "1" o-- "*" Move : history
+  Board "1" o-- "0..32" Piece
+  Piece <|-- King
+  Piece <|-- Queen
+  Piece <|-- Rook
+  Piece <|-- Bishop
+  Piece <|-- Knight
+  Piece <|-- Pawn

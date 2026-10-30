@@ -1,0 +1,55 @@
+questions:
+  - q: 'Four friends: Alice pays ₹1,200 for dinner (all four), Bob ₹800 for a taxi (Bob, Carol, Dave), Carol ₹600 for the hotel (all four). What are the net balances and a minimal settlement?'
+    think: Net = paid − owed. Be careful with ₹800 ÷ 3.
+    answer: |
+      Shares: dinner 300 each; taxi 266.67/266.67/266.66 (leftover paise to the first two); hotel 150 each.
+      - Alice: paid 1,200, owes 450 → **+750.00**
+      - Bob: paid 800, owes 300 + 266.67 + 150 = 716.67 → **+83.33**
+      - Carol: paid 600, owes 716.67 → **−116.67**
+      - Dave: paid 0, owes 716.66 → **−716.66**
+      They sum to zero. Greedy: Dave → Alice 716.66; Carol → Bob 83.33; Carol → Alice 33.34. Three transfers for four people.
+  - q: A group of 8 has 47 expenses after a trip. How does settle-up avoid dozens of payments?
+    think: Individual expenses don't matter once you know each person's net position.
+    answer: |
+      Compute each person's net balance (paid − owed) across all 47 expenses, then repeatedly match the largest debtor with the largest creditor using two heaps, transferring `min(debt, credit)`. Each transfer zeroes at least one person, so at most 7 transfers are needed, in O(n log n). Use integer paise so there's no residual rounding.
+followUps:
+  - q: Is the greedy settlement always the minimum number of transactions?
+    intuition: Consider a group that is really two separate groups whose debts cancel internally.
+    approach: |
+      No. Greedy guarantees at most n − 1, but if the people can be partitioned into k subsets that each sum to zero, n − k transfers suffice, and greedy may not find that partition. Maximising k is NP-hard (related to subset-sum/partition). For small groups you can search subsets with bitmask DP (O(3^n) or O(2^n · n)); in production the greedy is used because it's fast, simple and nearly optimal.
+  - q: How would you support expenses in multiple currencies?
+    intuition: Exchange rates change; history must not.
+    approach: |
+      Store each expense's original amount and currency plus the exchange rate captured at creation. Either keep balances per currency (and settle per currency) or convert to the group's base currency with the stored rate. Display can convert to the viewer's currency with current rates, clearly marked as approximate. Never recompute historical balances with today's rates.
+  - q: How do you handle two people adding expenses to the same group at the same time?
+    intuition: The ledger update must not lose an increment.
+    approach: |
+      In memory, synchronise per group (not globally). In a database, insert the expense and its share rows and update balance rows in a single transaction; use `UPDATE balances SET amount = amount + ?` (atomic increments) or row locks. Alternatively, derive balances on read from expense rows, which avoids write contention entirely at the cost of a heavier query (cacheable).
+practice:
+  - task: Implement Splitwise with equal and exact splits plus settle-up. Then add percent split without changing `Group` or `Expense`.
+    hint: Put share calculation behind `SplitStrategy`; the group only consumes `Map<person, share>`.
+    solution: |
+      `Group.addExpense` takes a `SplitStrategy` and records the returned shares; adding `PercentSplit` is a new class with its own validation and rounding rule. `DebtSimplifier.simplify(group.netBalances())` produces the plan.
+    solutionCode: splitwise-splits
+  - task: Write `simplify(netBalances)` and test that applying its transfers brings every balance to zero.
+    hint: Two heaps keyed by amount; push back the remainder of whichever side wasn't fully settled.
+    solution: |
+      After applying every transfer (`from += amount`, `to -= amount`), all balances must be zero, and the number of transfers must be ≤ (number of non-zero balances − 1). Property-based tests with random expenses are a great fit here.
+    solutionCode: splitwise-simplify
+quiz:
+  - q: Why are net balances in a closed group guaranteed to sum to zero?
+    options:
+      - Because of rounding
+      - Every expense credits the payer exactly what it debits the participants
+      - Because users settle up
+      - They don't always
+    correct: 1
+    why: Each expense adds +amount to the payer and −shares (summing to amount) to participants.
+  - q: Which statement about greedy debt simplification is true?
+    options:
+      - It always finds the minimum number of transfers
+      - It needs at most n − 1 transfers but may not be minimal
+      - It needs exactly n transfers
+      - It only works for groups of four
+    correct: 1
+    why: Each step zeroes at least one balance; the exact minimum requires solving an NP-hard partitioning problem.

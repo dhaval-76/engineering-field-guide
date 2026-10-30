@@ -1,0 +1,128 @@
+---
+title: How to Approach an LLD Problem
+summary: A repeatable six-step method for low-level design and machine-coding rounds — clarify, find entities, define APIs, design classes, code the core flows, then harden for concurrency and change.
+track: low-level-design
+order: 10
+tags: [lld, object-oriented-design, machine-coding, method]
+aliases: [low level design approach, lld framework, machine coding round, object oriented design interview, ood interview]
+prerequisites: [oop-patterns/oop-pillars, oop-patterns/solid]
+related: [oop-patterns/design-patterns-map, low-level-design/lru-cache]
+quickRef:
+  points:
+    - '**1 Clarify** actors, features, scale and what is out of scope. Write the agreed list down.'
+    - '**2 Entities** — nouns become classes, verbs become methods; draw IS-A vs HAS-A relationships.'
+    - '**3 APIs** — the 3–5 operations that matter, with inputs, outputs and failure cases.'
+    - '**4 Classes & patterns** — responsibilities, interfaces where things vary, the patterns that fit (and why).'
+    - '**5 Code** the core flows end to end; keep it compiling and runnable. **6 Harden** — concurrency, edge cases, extensions.'
+  useWhen: Any "design a parking lot / splitwise / elevator" question, machine-coding rounds, or designing a module at work.
+lastReviewed: 2026-10-30
+---
+
+## Why it matters
+
+Low-level design (LLD) rounds — also called object-oriented design or machine-coding rounds — test whether you can turn a vague requirement into a clean, extensible set of classes and working code. Two candidates can produce similar code; the one who clarified first, explained each decision and handled concurrency and change gets the stronger signal. Interviewers grade the **process** as much as the output.
+
+The same method works outside interviews: it's how you'd design a new module before writing a line of code.
+
+<Diagram id="lld-timeline" caption="How the time typically divides in a 45-minute round. The proportions matter more than the exact minutes." />
+
+## Step 1 — Clarify requirements
+
+Never start designing from the one-line prompt. Ask questions that change the design, then **say back** what you'll build.
+
+- **Actors** — who uses it? (Driver, attendant, admin.)
+- **Core features** — what must work? Pick 3–5. Explicitly park the rest ("payments are out of scope unless you'd like them").
+- **Variations** — vehicle types, pricing models, multiple gates, reservations? These are where interfaces will go.
+- **Scale and concurrency** — one machine or many? Many simultaneous users? This decides whether thread safety is in scope (it usually is).
+- **Non-functional** — persistence needed or in-memory? Latency expectations?
+
+<Callout type="tip" title="Write the agreement down">
+"So: multi-floor lot; bikes, cars and trucks; hourly pricing with a daily cap; multiple entry gates; no reservations for now. I'll keep pricing pluggable." This sentence is your contract with the interviewer and stops scope from drifting.
+</Callout>
+
+## Step 2 — Identify entities and relationships
+
+Underline the **nouns** in the requirements: they're candidate classes. **Verbs** are candidate methods. Then decide relationships:
+
+- **IS-A** (inheritance/interface): a `Car` is a `Vehicle`.
+- **HAS-A** (composition): a `ParkingLot` has `Floor`s; a `Floor` has `Spot`s.
+- **References** (association): a `Ticket` refers to one `Spot` and one `Vehicle`.
+
+Separate **things** (Book) from **instances/copies** (BookCopy), and **records of events** (Loan, Ticket, Payment) from the things they connect — this one distinction fixes many designs.
+
+## Step 3 — Define the operations (APIs)
+
+List the handful of operations that deliver the agreed features, with signatures, return values and failure cases:
+
+| Operation | Returns | Fails when |
+|---|---|---|
+| `park(vehicle, gate)` | `Ticket` | No compatible spot (→ "lot full") |
+| `exit(ticketId, payment)` | `Receipt` | Unknown/used ticket, payment declined |
+| `availability(floor?)` | counts by spot type | — |
+
+This is also where you decide what's **stateful** (spot occupancy) and what's computed (fees).
+
+## Step 4 — Design classes and choose patterns
+
+Assign each responsibility to one class (SRP) and put an interface wherever behaviour **varies** or depends on something external:
+
+- Variants of an algorithm (pricing, spot selection) → **Strategy**.
+- Lifecycle with rules (ticket: ACTIVE → PAID → EXITED) → **State** / transition table.
+- Creating the right subtype from input → **Factory**.
+- Things that react to events (display boards) → **Observer**.
+- Complex objects with optional parts → **Builder**.
+
+Name each pattern **with its reason**: "Pricing is a strategy because weekend and event pricing are likely next." A pattern without a reason looks memorised.
+
+<CodeTabs id="lld-library-skeleton" title="Entities, relationships and the service API for a library system" />
+
+## Step 5 — Code the core flows
+
+Write the code for the 2–3 most important operations end to end — not every getter. Keep it compiling: in machine-coding rounds the code is run against test inputs, and a smaller working solution beats a larger broken one.
+
+- Start from the service method (`park`) and implement downward.
+- Use enums for fixed sets (`SpotType`, `TicketStatus`) and immutable value objects (`record Money`, `record Ticket`).
+- In-memory repositories (`Map<String, Ticket>`) are fine; put them behind an interface so a database version could replace them.
+- Validate inputs and fail with clear exceptions.
+
+## Step 6 — Harden: concurrency, edge cases, extensions
+
+This is where strong answers separate themselves.
+
+- **Concurrency**: what can two threads do at the same time? Two cars grabbing the last spot; two people booking the same seat. Make check-and-claim **atomic** — a lock per spot/floor, a compare-and-set, or a conditional database update.
+- **Edge cases**: lost ticket, payment failure after the gate opened, clock changes across midnight, rounding money.
+- **Extensions**: walk through one new requirement ("add EV charging spots") and show it's a new class, not edits everywhere.
+- **Scale-out**: if it ran on several servers, which in-memory state would have to move to a database or cache?
+
+<Callout type="insight">
+Proactively state trade-offs: "I used a lock per floor rather than one global lock — finer locking means more concurrency at the cost of more complex code; per-spot CAS would be finer still." Interviewers look for you to raise these before being asked.
+</Callout>
+
+## Machine-coding rounds
+
+Some companies run a 60–120 minute **machine-coding** round: build a working, runnable program (often a command-line app or in-memory service) for something like a parking lot, Splitwise or a cab booking system, then extend it live.
+
+- Spend the first 10 minutes on steps 1–4 on paper; then code.
+- Get the happy path running early, then add features one at a time.
+- Use clean package/class structure, meaningful names and small methods — readability is graded.
+- Write a quick `main` or a few tests that exercise each feature.
+- Expect a "now add X" extension at the end; a design with interfaces in the right places makes that a 5-minute change.
+
+<Pitfalls>
+
+- **Coding before clarifying.** You'll build the wrong thing or rebuild it halfway through.
+- **Pattern-stuffing.** Using five patterns where two fit signals memorisation; justify each one.
+- **God service.** One `ParkingLotService` with every method and all state. Push behaviour into the entities that own the data.
+- **Ignoring concurrency.** For anything with shared resources (spots, seats, inventory), not mentioning thread safety is a red flag.
+- **Silent typing.** Narrate decisions; the interviewer can't grade reasoning they can't hear.
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- Clarify → entities → APIs → classes & patterns → code → harden.
+- Put interfaces where behaviour varies; name each pattern with its reason.
+- Make shared-resource claims atomic and say how.
+- In machine coding, working and readable beats large and broken.
+
+</KeyTakeaways>

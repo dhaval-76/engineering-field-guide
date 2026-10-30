@@ -1,0 +1,105 @@
+---
+title: Design a Chess Game
+summary: Polymorphic move generation, the "don't leave your king in check" rule, check/checkmate/stalemate detection, and undo with Command objects — the LLD problem that best shows off polymorphism.
+track: low-level-design
+order: 22
+tags: [lld, chess, polymorphism, command, game]
+aliases: [chess game design, chess lld, board game design, tic tac toe design, move validation]
+prerequisites: [low-level-design/lld-method, oop-patterns/oop-pillars]
+related: [oop-patterns/design-patterns-map]
+quickRef:
+  points:
+    - '`Piece` (abstract) → King, Queen, Rook, Bishop, Knight, Pawn; each implements `candidateMoves(board, from)`. Game code never switches on piece type.'
+    - Sliding pieces (rook, bishop, queen) share one `slide(directions)` helper; knight and king use fixed offsets.
+    - '**Legal move** = candidate move that does not leave your own king attacked — simulate, test, revert.'
+    - '**Checkmate**: in check and no legal moves. **Stalemate**: not in check and no legal moves.'
+    - Each move is a **Command** with `apply`/`revert` → undo, replay and move history for free.
+  useWhen: 'Board games (chess, tic-tac-toe, snake & ladder, checkers) and any rule engine where entity types behave differently.'
+lastReviewed: 2026-10-30
+---
+
+## Why it matters
+
+Chess is the cleanest LLD demonstration of **polymorphism**: six piece types, one call (`candidateMoves`), and the game logic never asks "what kind of piece is this?". It also has a genuinely tricky rule — a move is only legal if it doesn't expose your own king — which tests whether you can separate a piece's movement rules from game-level rules. Other board games (tic-tac-toe, snakes and ladders, checkers) are simpler variations of the same structure.
+
+<Callout type="analogy">
+Each piece is a specialist who knows only how it moves. The referee (the game) asks each one "where could you go?", then applies the rules that involve the whole board — whose turn it is, and whether the move would leave the king in danger.
+</Callout>
+
+## Clarify
+
+- Two human players on one device, or online/AI? (Assume two players, one process; AI is an extension.)
+- Full rules — castling, en passant, promotion? (Core first, then add these.)
+- Clocks/timers, draw rules (threefold repetition, 50-move rule)? (Extensions.)
+- Undo? (Yes — and it shapes the design.)
+
+## Entities
+
+<Diagram id="chess-classes" caption="Game owns the board, the turn and the move history. Pieces know only their own movement." wide />
+
+- **`Square`** — an immutable (file, rank) value.
+- **`Piece`** — colour plus `candidateMoves(board, from)`. Pieces don't store their own position; the board is the single source of truth, so a move can't leave the two out of sync.
+- **`Board`** — 8×8 grid, lookups, "is this square attacked by colour X?".
+- **`Move`** — from, to, moved piece, captured piece; can apply and revert itself.
+- **`Game`** — turn, history, legal-move filtering, status.
+
+## Move generation by polymorphism
+
+<CodeTabs id="chess-model" title="Piece hierarchy with shared sliding logic" />
+
+Notice the structure:
+
+- **Rook, bishop and queen** differ only in their direction vectors, so they share `slide()`: walk each direction until the edge, an own piece (stop before) or an enemy (capture, then stop).
+- **Knight and king** have fixed offsets; the knight jumps, so there's no path check.
+- **Pawn** is the irregular one — direction depends on colour, two steps from the start rank, captures diagonally only.
+
+In JavaScript, a table of move-generator functions does the same job without classes — pieces have no behaviour beyond move generation.
+
+## Game rules: legality, check, mate
+
+A piece's candidate moves aren't necessarily legal: moving a pinned bishop could expose the king. The simplest correct approach is **make the move, test, unmake**:
+
+<CodeTabs id="chess-game" title="Legal moves, game status and undo" />
+
+- **Check** — the side to move has its king attacked.
+- **Checkmate** — in check and no legal move exists.
+- **Stalemate** — not in check but no legal move exists (a draw).
+
+`isAttacked` loops over all enemy pieces and asks for their candidate moves — simple and fast enough for an interview. A faster version scans outward from the king: along ranks/files for rooks/queens, diagonals for bishops/queens, knight offsets and pawn capture squares.
+
+## Undo with the Command pattern
+
+Because each `Move` records what it captured, `revert` restores the board exactly; `Game.undo()` pops the history stack and flips the turn. The same history gives you move lists (PGN), replays, and "takeback" in online play. Special moves need to store a little more state to revert correctly:
+
+| Special move | Extra state the move must remember |
+|---|---|
+| Castling | Rook's from/to squares; castling rights before the move |
+| En passant | The captured pawn's square (not the destination) |
+| Promotion | The original pawn (to restore) and the promoted piece |
+| Any move | Previous castling rights, en-passant target, half-move clock |
+
+## Extensions
+
+- **Online play** — a `GameSession` per match, moves validated on the server, events pushed to both players; store moves, not boards.
+- **Timers** — a `Clock` per player that starts/stops on each move.
+- **AI player** — a `Player` interface with `HumanPlayer` and `EnginePlayer` (minimax with alpha-beta over `legalMoves`).
+- **Other games** — tic-tac-toe is a 3×3 board, one piece type, and a win check over rows, columns and diagonals; the `Game`/`Board`/`Move` skeleton carries over.
+
+<Pitfalls>
+
+- **Switching on piece type** (`if (piece instanceof Knight)`) in the game logic — defeats the design.
+- **Pieces storing their own position** as well as the board storing pieces — two sources of truth drift apart.
+- **Forgetting the king-safety rule** — candidate moves aren't legal moves.
+- **Undo that only moves the piece back** — loses captured pieces and special-move state.
+- **Checking only "in check" for game end** — stalemate is also an end state.
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- Pieces implement their own movement; the game applies board-wide rules.
+- Legal = candidate move that leaves your king safe (simulate, test, revert).
+- Checkmate and stalemate both mean "no legal moves"; check decides which.
+- Moves as Commands give undo, history and replays.
+
+</KeyTakeaways>

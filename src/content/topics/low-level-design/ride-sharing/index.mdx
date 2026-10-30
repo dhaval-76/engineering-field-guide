@@ -1,0 +1,107 @@
+---
+title: Design a Ride-Sharing Service (LLD)
+summary: The object model behind Uber/Ola — a ride state machine, finding nearby drivers with a spatial index, atomic driver reservation, offer/accept with timeouts, and fare and surge as strategies.
+track: low-level-design
+order: 24
+tags: [lld, ride-sharing, state-machine, strategy, geospatial, concurrency]
+aliases: [uber lld, ola design, cab booking system, ride hailing low level design, driver matching]
+prerequisites: [low-level-design/lld-method, oop-patterns/strategy-and-state]
+related: [low-level-design/parking-lot, low-level-design/elevator]
+quickRef:
+  points:
+    - '**Ride** lifecycle: REQUESTED → DRIVER_ASSIGNED → DRIVER_ARRIVED → IN_PROGRESS → COMPLETED, with CANCELLED from early states; driver cancellation sends the ride back to REQUESTED.'
+    - '**Driver** status AVAILABLE → OFFERED → ON_TRIP; reserve with `compareAndSet(AVAILABLE, OFFERED)` so one driver never gets two rides.'
+    - '**Nearby drivers**: grid / geohash cells (or a quadtree) updated on each GPS ping; search the pickup cell and its neighbours, widening the radius.'
+    - '**Matching**, **fare** and **surge** are strategies; offers time out (~15 s) and move to the next candidate.'
+  useWhen: '"Design Uber/Ola/a cab booking system" at class level; food-delivery assignment uses the same shape.'
+lastReviewed: 2026-10-30
+---
+
+## Why it matters
+
+Ride sharing combines most of the ideas in LLD rounds: a **state machine** with real business rules, **strategies** for matching and pricing, a **concurrency** hazard (two riders matched to one driver), and a data-structure question (how do you find nearby drivers fast?). This page is the class-level design; the distributed version (millions of location updates, regional sharding) is a system-design problem.
+
+<Callout type="analogy">
+A taxi stand dispatcher with a city map divided into squares. Drivers radio in their square every few seconds. When a call comes in, the dispatcher looks at that square and the ones around it, picks the best free driver and calls them. If they don't answer in fifteen seconds, the dispatcher tries the next one.
+</Callout>
+
+## Clarify
+
+| Question | Assumption |
+|---|---|
+| Ride types? | Bike, auto, mini, sedan — `VehicleClass` |
+| How are drivers chosen? | System offers to one driver at a time; driver accepts or declines |
+| Cancellations? | Rider can cancel before pickup (fee after a grace period); driver can back out before arrival |
+| Pricing? | Base + per km + per minute, minimum fare, surge by area |
+| Payments, ratings, shared rides? | Ratings stored; payments and pooling are extensions |
+
+## The ride state machine
+
+<Diagram id="ride-states" caption="A ride's lifecycle. Driver cancellation returns the ride to Requested so it can be re-matched instead of failing." />
+
+<CodeTabs id="ride-state" title="Allowed transitions in one place, with an audit trail" />
+
+Keeping transitions in a single table means every rule — "you can't cancel a completed ride", "starting the trip needs the driver to have arrived" — is enforced in one place and easy to test. The history list (who changed what, when) is what support and dispute resolution rely on.
+
+## Finding nearby drivers
+
+Scanning every driver for every request is O(drivers). Instead, index drivers by location:
+
+- **Uniform grid / geohash** — divide the map into cells; each GPS ping moves the driver to the right cell (O(1)). A search checks the pickup cell and its neighbours, then filters by exact distance.
+- **Quadtree** — cells subdivide where drivers are dense, so busy downtown cells stay small.
+- **H3 hexagons** (used by Uber) — hexagonal cells with uniform neighbour distances.
+
+<CodeTabs id="ride-grid-index" title="A simple grid index with O(1) updates" />
+
+## Matching and the double-booking race
+
+Two riders requesting at the same moment can both see the same driver as the best candidate. The fix mirrors the parking lot: make the **reservation** atomic.
+
+<CodeTabs id="ride-matching" title="Rank candidates, reserve atomically, offer with a timeout" />
+
+The flow:
+
+<Steps>
+
+1. Query the index for available drivers of the requested class within 1 km; widen to 2, 4, 8 km if needed.
+2. Rank them with the `MatchingStrategy` (distance, rating, heading, acceptance rate).
+3. For each candidate, try `compareAndSet(AVAILABLE, OFFERED)`. If it fails, someone else has them — skip.
+4. Send the offer and wait up to ~15 seconds. Accept → assign the ride; decline/timeout → release the driver and try the next.
+5. Nobody accepts → tell the rider and cancel the request (or keep searching with a higher fare).
+
+</Steps>
+
+Because one driver is offered at a time, the rider might wait several timeouts. Real systems offer to a small batch or use batched matching (collect requests for a second or two, then solve the assignment for all of them together) to improve global efficiency.
+
+## Fare and surge
+
+<CodeTabs id="ride-fare" title="Fare policy and a simple surge calculation" />
+
+- Fare is a **strategy** per city/vehicle class: new pricing (airport flat rates, time-of-day) is a new class.
+- Surge is computed per area cell from recent demand and supply, smoothed and capped, and **shown to the rider before they confirm** — the quoted fare is locked on the ride.
+
+## Extensions
+
+- **Driver cancels after accepting** — transition back to REQUESTED, release the driver (with a penalty), re-run matching, notify the rider.
+- **Ride OTP** — the trip can only move to IN_PROGRESS when the rider's OTP matches; prevents starting the wrong ride.
+- **Shared rides (pool)** — matching considers a driver already on a trip if the detour is small; much harder optimisation.
+- **Scheduled rides** — a scheduler creates the request a few minutes before pickup time.
+
+<Pitfalls>
+
+- **Checking availability then assigning in two steps** — two rides grab one driver.
+- **Status as free-form strings set from anywhere** — illegal transitions slip in.
+- **Scanning all drivers** for each request instead of using a spatial index.
+- **Recomputing price at the end with current surge** — the rider agreed to a quote; store it on the ride.
+- **No timeout on offers** — a driver who never responds blocks the ride forever.
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- Ride and driver lifecycles are state machines; keep transitions in one table with history.
+- Use a spatial index (grid, geohash, quadtree, H3) for nearby-driver queries.
+- Reserve drivers with an atomic compare-and-set; offer with timeouts and fall through to the next candidate.
+- Matching, fare and surge are strategies — and the quoted fare is locked on the ride.
+
+</KeyTakeaways>

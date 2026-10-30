@@ -1,0 +1,53 @@
+questions:
+  - q: Design a parking lot for 5 floors, 3 vehicle types and hourly billing, and show how 1,000 concurrent arrivals avoid double-booking.
+    think: Two parts — the object model, then the race. Which operation must be atomic?
+    answer: |
+      **Model**: `ParkingSpot(id, floor, size, occupant)`, `Vehicle(plate, type)`, `Ticket(vehicle, spot, entry, status, fee)`, `ParkingLot(spots, SpotSelector, PricingPolicy, listeners)`. Fitting rules map vehicle type → allowed sizes, smallest first.
+      **Concurrency**: only the *claim* must be atomic. Each spot holds `AtomicReference<Vehicle>`; `tryOccupy` is `compareAndSet(null, v)` — exactly one thread wins, losers move to the next candidate. Better at scale: one `ConcurrentSkipListSet` of free spots per size ordered by distance; `pollFirst()` atomically removes and returns the nearest spot in O(log n).
+      **Scale-out**: across several app servers, claim in the database (`UPDATE … WHERE id=? AND vehicle IS NULL`) or Redis (`SET NX`), or partition floors between servers.
+  - q: How would you calculate fees for a car parked from 10 pm to 9 am the next day, with an hourly rate and a daily cap?
+    think: Use durations, not wall-clock arithmetic, and decide rounding explicitly.
+    answer: |
+      Store entry and exit as UTC `Instant`s; compute `Duration.between` in minutes, round **up** to started hours (11 h here). Split into whole days and remaining hours: `days × cap + min(rest × hourly, cap)`. For 11 hours that's `min(11 × rate, cap)`.
+      Keep it in a `PricingPolicy` so time-of-day rates (night discount) are a new policy that walks the stay hour by hour. Compute once at payment and store the fee on the ticket for auditing; use integer paise or `BigDecimal`.
+followUps:
+  - q: How would you add advance reservations?
+    intuition: A spot can be free now but reserved for 3–5 pm. What does a walk-in need to know?
+    approach: |
+      Add `Reservation(id, spotId or size, from, to, holder, status)`. The selector excludes spots with an active reservation overlapping "now + typical stay", or reservations are made against a pool (size + floor) rather than a specific spot and assigned on arrival, which is more flexible. On arrival with a reservation, validate the window and claim the assigned spot. A scheduled job releases reservations after a grace period. Store reservations in a table with an exclusion/overlap check so two bookings can't overlap.
+  - q: How do you find the nearest available spot to a specific entrance quickly?
+    intuition: Scanning all spots per arrival is O(n). What structure keeps free spots ordered?
+    approach: |
+      Give each spot a distance per entrance (or a precomputed rank). Keep, per entrance and size, a sorted concurrent set (`ConcurrentSkipListSet` / priority queue) of free spots by distance. Allocation is `pollFirst()` — O(log n) and atomic. On release, add the spot back to every entrance's set. With few entrances that's cheap; with many, fall back to per-floor sets and choose the floor nearest the entrance.
+  - q: The display board must update within 100 ms of a change, without polling. Design the data flow.
+    intuition: Who knows first that a spot changed?
+    approach: |
+      The lot publishes `SpotChanged(floor, size, nowFree)` on every claim/release (Observer). Board services keep per-floor/per-size counters (`AtomicInteger`s) and push updates to screens over WebSocket/MQTT. Across servers, publish the event to a topic (Kafka/Redis pub-sub) consumed by the board service; periodically reconcile counters from the source of truth in case an event was missed.
+practice:
+  - task: Implement `park`, `pay` and `exit` end to end in 40 minutes, with a pluggable pricing policy and thread-safe spot claiming. Write a test that fast-forwards time.
+    hint: 'Inject a `Clock`. In tests use a mutable test clock (or `Clock.offset`) to move three hours forward between park and pay.'
+    solution: |
+      Use the model and service shown above. The test parks a car with a fixed clock at 10:00, advances the clock to 13:05, asserts the quote is 4 hours × rate (started hours), pays, exits, and asserts the spot is free and the display count went back up. A second test starts 50 threads parking 50 cars into 40 spots and asserts exactly 40 tickets and 10 empty results.
+    solutionCode: parking-service
+  - task: Add a live display board showing free spots per floor and size, updated on every park and exit, without scanning.
+    hint: Observer — the lot notifies listeners on claim and release; the board keeps atomic counters.
+    solution: |
+      `DisplayBoard implements SpotListener` initialises counters once from the spot list, then increments/decrements on each event. Rendering is pushed, not polled.
+    solutionCode: parking-display
+quiz:
+  - q: Two threads both find spot M7 free. What guarantees only one gets it?
+    options:
+      - The selector returning the same list
+      - An atomic claim such as compareAndSet(null, vehicle) on the spot
+      - Making Vehicle immutable
+      - Using a HashMap of tickets
+    correct: 1
+    why: The scan can race harmlessly; the claim must be a single atomic check-and-set.
+  - q: Why store the computed fee on the ticket at payment time?
+    options:
+      - To save CPU
+      - So later rate changes don't alter what was charged, and for auditing
+      - Because Duration can't be recomputed
+      - It's required by the Strategy pattern
+    correct: 1
+    why: The charged amount is a historical fact; recomputing with new rates would change receipts.

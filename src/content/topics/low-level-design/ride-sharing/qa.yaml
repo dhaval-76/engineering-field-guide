@@ -1,0 +1,46 @@
+questions:
+  - q: When a rider requests a trip, how do you choose a driver? What happens if nobody accepts?
+    think: Candidate generation (who is near?), ranking (who is best?), reservation (who is actually free?), and the offer loop.
+    answer: |
+      1. Query a spatial index (grid/geohash/quadtree) for AVAILABLE drivers of the right vehicle class near the pickup.
+      2. Rank with a strategy: ETA/distance first, then rating, acceptance rate, heading.
+      3. Atomically reserve the top candidate (`AVAILABLE → OFFERED` via CAS) so concurrent requests can't take the same driver; send the offer with a ~15 s timeout.
+      4. Decline or timeout → release and offer to the next candidate; when the list is exhausted, widen the radius (1 → 2 → 4 km).
+      5. Still nobody → notify the rider ("no drivers available"), optionally suggest a different class or higher fare. The ride state machine records each step.
+followUps:
+  - q: What prevents two riders from being matched to the same driver?
+    intuition: The race is between "driver looks available" and "driver is assigned".
+    approach: |
+      Make reservation a single atomic step: `AtomicReference<DriverStatus>.compareAndSet(AVAILABLE, OFFERED)` in memory, or `UPDATE drivers SET status='OFFERED', ride_id=? WHERE id=? AND status='AVAILABLE'` (check rows affected) / Redis `SET driver:42 ride:9 NX PX 20000` when matching runs on several servers. The loser simply moves to its next candidate.
+  - q: How do you calculate surge pricing?
+    intuition: It's a supply/demand ratio per area over a short window.
+    approach: |
+      Divide the city into cells (geohash or H3). Every 30–60 s, count open requests and available drivers per cell over the last few minutes, compute a multiplier from the ratio, smooth it (avoid flicker between neighbouring values) and cap it. Store per-cell multipliers in a cache with a short TTL. Price quotes read the pickup cell's multiplier; the confirmed quote is stored on the ride so later changes don't affect it.
+  - q: A driver cancels after accepting. How should the system behave?
+    intuition: The rider shouldn't have to start over.
+    approach: |
+      Transition the ride DRIVER_ASSIGNED → REQUESTED (allowed in the state table), release the driver, record a cancellation against them, and immediately re-run matching excluding that driver. Notify the rider ("finding you another driver"). Track repeated cancellations on a ride and escalate (wider radius, incentive, support).
+practice:
+  - task: Implement the ride state machine with allowed transitions and an audit trail, then trace a full ride from request to completion.
+    hint: An enum with a map from each status to its allowed next statuses; a `transition` method that validates and appends history.
+    solution: |
+      Every change goes through `transition(next, actor, time)`, which throws on illegal moves and records `StatusChange(from, to, actor, at)`. A test walks REQUESTED → DRIVER_ASSIGNED → DRIVER_ARRIVED → IN_PROGRESS → COMPLETED and asserts the history, then asserts that `COMPLETED → CANCELLED` throws.
+    solutionCode: ride-state
+  - task: Implement a grid-based driver index with location updates and a "drivers within R km" query.
+    hint: Map a location to a cell key; keep driver → current cell so moving a driver is remove + add.
+    solution: |
+      Cells are ~1 km squares keyed by (row, col). `update` moves the driver between cell sets in O(1). `near(p, r)` collects drivers from cells within ⌈r⌉ of the pickup cell and filters by exact distance. For dense cities use smaller cells or a quadtree.
+    solutionCode: ride-grid-index
+quiz:
+  - q: Which structure lets you update a driver's location in O(1) and find nearby drivers without scanning everyone?
+    options: [A sorted list by latitude, A grid/geohash index of cells, A HashMap of driver id → location only, A binary search tree of ratings]
+    correct: 1
+    why: Cells bucket drivers by area; a query only inspects nearby cells.
+  - q: Why store the fare quote on the ride when the rider confirms?
+    options:
+      - To save database space
+      - So surge changes during the trip don't change what the rider agreed to pay
+      - Because fares can't be recomputed
+      - It's required for the state machine
+    correct: 1
+    why: The quote is a commitment; later surge or rate changes shouldn't alter it.

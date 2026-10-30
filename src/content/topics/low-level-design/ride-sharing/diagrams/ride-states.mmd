@@ -1,0 +1,13 @@
+stateDiagram-v2
+  direction LR
+  [*] --> Requested
+  Requested --> DriverAssigned: driver accepts
+  DriverAssigned --> Requested: driver cancels (re-match)
+  DriverAssigned --> DriverArrived: arrives at pickup
+  DriverArrived --> InProgress: rider picked up (OTP)
+  InProgress --> Completed: drop-off
+  Requested --> Cancelled: rider cancels / no driver
+  DriverAssigned --> Cancelled: rider cancels (fee may apply)
+  DriverArrived --> Cancelled: no-show
+  Completed --> [*]
+  Cancelled --> [*]

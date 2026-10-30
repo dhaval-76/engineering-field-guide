@@ -1,0 +1,122 @@
+---
+title: Design an Elevator System
+summary: One car's scheduling (FCFS, nearest-first, SCAN and LOOK), the door state machine, and a dispatcher that assigns hall calls across several cars — with a deterministic tick-based design that's easy to test.
+track: low-level-design
+order: 21
+tags: [lld, elevator, state-machine, scheduling, scan, look, strategy]
+aliases: [elevator system design, lift system, elevator lld, scan algorithm, look algorithm, elevator dispatch]
+prerequisites: [low-level-design/lld-method, oop-patterns/strategy-and-state]
+related: [low-level-design/parking-lot]
+quickRef:
+  points:
+    - 'Two layers — **per-car scheduling** (which floor next) and **dispatching** (which car answers a hall call).'
+    - '**LOOK**: keep moving in the current direction while stops remain ahead; reverse when none are left. Avoids starvation and zig-zagging.'
+    - 'Keep stops in a sorted set (`TreeSet`): next stop up = `ceiling(floor)`, down = `floor(floor)` — O(log n).'
+    - 'Door is a **state machine** (CLOSED → OPENING → OPEN → CLOSING); an obstruction while CLOSING always re-opens.'
+    - Dispatch is a **strategy** — nearest suitable car, zoning, or destination dispatch.
+  complexity: 'Next-stop lookup O(log stops); dispatching O(cars) per hall call.'
+  useWhen: '"Design an elevator", and any problem that combines a state machine with a scheduling policy.'
+lastReviewed: 2026-10-30
+---
+
+## Why it matters
+
+The elevator problem tests two things at once: modelling **state** cleanly (a car moving, stopped, doors opening) and choosing a **scheduling algorithm** with clear trade-offs. Candidates often get lost in physics and threads; the clean answer separates *what the car does next* from *which car takes a request*, and makes both pluggable.
+
+<Callout type="analogy">
+A bus on a loop route. It drives in one direction picking up everyone whose stop is ahead, turns around at the last stop that anyone needs, and picks up the other direction on the way back. It never U-turns for one passenger behind it — that would strand everyone else on board.
+</Callout>
+
+## Clarify
+
+| Question | Assumption |
+|---|---|
+| Floors, cars? | N floors, M cars |
+| Requests? | **Hall calls** (floor + direction button) and **car calls** (destination buttons inside) |
+| Capacity, weight sensors? | Car rejects new passengers when full (extension) |
+| Emergency modes? | Fire service mode, power failure — discuss as extensions |
+| Real-time hardware? | Out of scope; we model decisions, driven by a periodic `tick()` |
+
+## Entities
+
+- **`ElevatorCar`** — current floor, direction, set of stops, a `Door`. Decides its own next move.
+- **`Door`** — a small state machine with safety rules.
+- **`HallCall(floor, direction)`** and car calls (just a floor).
+- **`ElevatorController`** — receives calls, uses a **`DispatchStrategy`** to pick a car, ticks all cars.
+
+## Scheduling one car
+
+| Algorithm | Rule | Problem |
+|---|---|---|
+| First come, first served | Serve requests in arrival order | Zig-zags across the building; terrible average wait |
+| Nearest first (SSTF) | Always go to the closest pending floor | Far floors can **starve** under steady traffic |
+| SCAN | Sweep to the top floor, then to the bottom, serving stops on the way | Fair, but travels to the ends even when no one needs them |
+| **LOOK** | Like SCAN, but reverse at the last pending stop | Fair and efficient — what we implement |
+
+<Walkthrough id="elevator-look" />
+
+The data structure makes LOOK straightforward: keep pending stops in a **sorted set**. Moving up, the next stop is the smallest stop at or above the current floor (`ceiling`); moving down, the largest at or below (`floor`). If there's nothing ahead, reverse.
+
+<CodeTabs id="elevator-car" title="A car with LOOK scheduling, driven by tick()" />
+
+<Callout type="tip" title="Why tick() instead of threads?">
+A `tick()` method that advances one step (move one floor, open, or close) makes the system **deterministic**: tests call `tick()` five times and assert the floor. A real controller calls `tick()` from a scheduler every N milliseconds. Interviewers usually prefer this over `while(true)` loops with `wait/notify`, which are hard to reason about and test.
+</Callout>
+
+## The door state machine
+
+<Diagram id="door-states" caption="Door states. Closing can always be interrupted by an obstruction or the open button." />
+
+<CodeTabs id="elevator-door" title="Door transitions as a table-like switch" />
+
+Safety rules live here: the car must not move unless the door is `CLOSED`, and an obstruction during `CLOSING` returns to `OPENING`.
+
+## Dispatching across several cars
+
+When someone presses a hall button, the controller asks a `DispatchStrategy` which car should take it. A good baseline is the **cost to reach the caller** given each car's direction:
+
+- Idle car → distance.
+- Moving towards the caller in the direction they want → distance (it's "on the way").
+- Otherwise → distance to finish its current sweep plus the distance back.
+
+Ties go to the car with fewer pending stops.
+
+<CodeTabs id="elevator-dispatch" title="Controller with a pluggable dispatch strategy" />
+
+Real systems go further:
+
+- **Zoning** — cars serve floor ranges (low-rise/high-rise) in tall buildings.
+- **Rush-hour modes** — park idle cars at the lobby in the morning.
+- **Destination dispatch** — passengers enter their destination in the lobby; the system groups people going to nearby floors into the same car, cutting stops dramatically.
+
+Because dispatch is a strategy, all of these are new classes, not edits to `ElevatorCar`.
+
+## Concurrency
+
+Buttons are pressed from many threads (or event handlers) while the control loop ticks. Keep each car's state behind its own lock (`synchronized` methods above) and never hold two cars' locks at once — the controller reads a snapshot of each car, picks one, then calls `addStop` on that car alone. Requests can also be put on a queue and applied by the single control thread at each tick, which removes locking from the car entirely.
+
+## Extensions
+
+- **Capacity** — a weight sensor marks the car full; the dispatcher skips full cars for hall calls.
+- **Fire service mode** — an emergency event (Observer) clears stops, sends all cars to the lobby and disables hall calls.
+- **Out of service** — a car state the dispatcher ignores; its pending hall calls are reassigned.
+- **Express/odd-even cars** — expressed as which floors a car may stop at, checked in `addStop`.
+
+<Pitfalls>
+
+- **One giant class** that handles buttons, scheduling, doors and multiple cars. Separate car, door, controller and strategy.
+- **Nearest-first scheduling** without noting starvation.
+- **Moving with the door open** — enforce the door state before any move.
+- **Busy-wait threads with `wait/notify`** in an interview — hard to get right; prefer a tick/event loop.
+- **Forgetting reassignment** when a car goes out of service.
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- Separate per-car scheduling (LOOK on a sorted set) from multi-car dispatch (a strategy).
+- Model the door as a state machine with safety transitions.
+- Drive the simulation with `tick()` for determinism and testability.
+- Zoning, rush-hour modes and destination dispatch are just other dispatch strategies.
+
+</KeyTakeaways>

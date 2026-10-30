@@ -1,0 +1,48 @@
+questions:
+  - q: '"Design a library management system." You have 45 minutes. Walk through what you say and draw at each step.'
+    think: Use the six steps. Where do most designs go wrong — usually Book vs BookCopy?
+    answer: |
+      1. **Clarify (0–5)**: actors (members, librarians); features — search, borrow/return, reservations, fines; one branch or many; physical books only. Out of scope: payments, e-books.
+      2. **Entities (5–10)**: `Book` (title, ISBN) **has many** `BookCopy` (barcode, status); `Member`; `Loan` (member, copy, due date, returned date); `Reservation` (member, book, created, status).
+      3. **APIs (10–14)**: `borrow(memberId, barcode)`, `returnCopy(barcode) → fine`, `reserve(memberId, isbn)`, `search(query)`.
+      4. **Classes & patterns (14–21)**: `FinePolicy` strategy (rates by membership), copy status as a small state machine (AVAILABLE → ON_LOAN → AVAILABLE/RESERVED), Observer to notify the next reserver when a copy returns.
+      5. **Code (21–37)**: `borrow` and `returnCopy` end to end with in-memory repositories behind interfaces.
+      6. **Harden (37–45)**: two members borrowing the last copy (atomic status change or optimistic lock), reservation queue fairness (FIFO), overdue detection (scheduled job), multi-branch extension (copy has a branch; search filters by branch).
+followUps:
+  - q: The interviewer asks, "What if there are 1,000 branches and members want the nearest available copy?" How does your design extend?
+    intuition: The core borrow/return logic shouldn't change; you add location and a search capability.
+    approach: |
+      Add `Branch` (with coordinates) and give each `BookCopy` a `branchId`. Availability search becomes "available copies of ISBN X, sorted by distance from the member" — implemented with a geospatial index (PostGIS, Elasticsearch `geo_distance`) or, in memory, per-branch availability maps. Borrowing still operates on one specific copy, so `borrow`/`returnCopy` are unchanged. Inter-branch transfer would be a new workflow (`TransferRequest` with its own states).
+  - q: When should you start writing code instead of drawing diagrams?
+    intuition: What does the interviewer need to have agreed with you before code is worth writing?
+    approach: |
+      Once the entities, their relationships and the 2–3 core operations are agreed — typically 15–20 minutes into a 45-minute round. Code earlier and you risk coding the wrong model; later and you won't have time to show working logic. In machine-coding rounds, start coding after ~10 minutes of design and get the happy path running first.
+  - q: How do you show the interviewer you considered concurrency without over-engineering?
+    intuition: Identify the shared mutable resources, then make each claim atomic at the narrowest scope.
+    approach: |
+      Name the races explicitly ("two drivers can see the same free spot"), pick the narrowest atomic operation that fixes them (CAS on a spot's status, a lock per floor, or `UPDATE … WHERE status='FREE'` in SQL), and mention the trade-off (global lock = simple but serialises everything). Then move on — you don't need lock-free data structures everywhere.
+practice:
+  - task: 'Practise steps 1–4 on paper for three prompts: an ATM, a vending machine and a chess game. For each, list the clarifying questions, entities with relationships, the main operations and where you''d put interfaces.'
+    hint: For each prompt, look for a lifecycle (State), a varying algorithm (Strategy) and a shared resource (concurrency).
+    solution: |
+      - **ATM**: actors (customer, bank, technician); states IDLE → CARD_INSERTED → PIN_VERIFIED → TRANSACTION → DISPENSING; `CashDispenser` with a denomination strategy; concurrency on the account balance lives in the bank, not the ATM.
+      - **Vending machine**: states IDLE/HAS_CREDIT/DISPENSING; inventory per slot; change-making strategy; one user at a time but inventory refills can race.
+      - **Chess**: `Board`, `Square`, `Piece` hierarchy with a polymorphic `legalMoves(board)`; `Game` with turn and status (ACTIVE/CHECK/CHECKMATE/STALEMATE); `Move` objects enable undo (Command).
+    solutionCode: lld-library-skeleton
+quiz:
+  - q: In a library system, why model BookCopy separately from Book?
+    options:
+      - It makes the code longer
+      - A title has many physical copies, each with its own status and location
+      - Java requires it
+      - To use inheritance
+    correct: 1
+    why: Availability, loans and barcodes belong to individual copies; the title-level data belongs to Book.
+  - q: What's the best first move when given "Design a parking lot"?
+    options:
+      - Write the Vehicle class
+      - Ask clarifying questions and state the agreed scope
+      - Draw a microservice diagram
+      - List every design pattern you know
+    correct: 1
+    why: Clarifying scope (vehicle types, pricing, gates, concurrency) determines the whole design.

@@ -1,0 +1,57 @@
+title: Two cars race for the last medium spot
+frames:
+  - caption: Floor 1 has one free **MEDIUM** spot, `F1-M7`. Two gates call `park()` for two cars at the same moment.
+    panels:
+      - kind: array
+        label: Floor 1 medium spots
+        items: [{ v: occ, tone: muted }, { v: occ, tone: muted }, { v: 'M7 free', tone: ok }]
+      - kind: stack
+        label: Gate A
+        items: [{ v: 'park(KA-01)', tone: info }]
+      - kind: stack
+        label: Gate B
+        items: [{ v: 'park(KA-02)', tone: info }]
+  - caption: Both threads run the selector and both see `M7` as a candidate — the scan is not atomic, and it doesn't need to be.
+    panels:
+      - kind: array
+        label: Floor 1 medium spots
+        items: [{ v: occ, tone: muted }, { v: occ, tone: muted }, { v: 'M7 free', tone: warn, tag: 'A & B' }]
+      - kind: stack
+        label: Gate A
+        items: ['candidate: M7']
+      - kind: stack
+        label: Gate B
+        items: ['candidate: M7']
+  - caption: 'Gate A calls `tryOccupy` → `compareAndSet(null, KA-01)`. The occupant was `null`, so the CAS succeeds and A owns the spot.'
+    panels:
+      - kind: array
+        label: Floor 1 medium spots
+        items: [{ v: occ, tone: muted }, { v: occ, tone: muted }, { v: 'M7 KA-01', tone: accent, tag: 'won' }]
+      - kind: stack
+        label: Gate A
+        items: [{ v: 'CAS ✓ → ticket', tone: ok }]
+      - kind: stack
+        label: Gate B
+        items: ['candidate: M7']
+  - caption: Gate B's CAS expects `null` but finds `KA-01`, so it fails **without** overwriting anything. B simply moves to its next candidate.
+    panels:
+      - kind: array
+        label: Floor 1 medium spots
+        items: [{ v: occ, tone: muted }, { v: occ, tone: muted }, { v: 'M7 KA-01', tone: accent }]
+      - kind: stack
+        label: Gate A
+        items: [{ v: ticket issued, tone: ok }]
+      - kind: stack
+        label: Gate B
+        items: [{ v: 'CAS ✗ → next', tone: warn }]
+  - caption: B's next candidate is a **LARGE** spot (cars may use large ones). It claims `F1-L2`. No locks were held, no spot was double-booked, and no thread waited.
+    panels:
+      - kind: array
+        label: Floor 1 large spots
+        items: [{ v: 'L1 truck', tone: muted }, { v: 'L2 KA-02', tone: accent, tag: 'B' }]
+      - kind: stack
+        label: Gate A
+        items: [{ v: ticket issued, tone: ok }]
+      - kind: stack
+        label: Gate B
+        items: [{ v: 'CAS ✓ → ticket', tone: ok }]

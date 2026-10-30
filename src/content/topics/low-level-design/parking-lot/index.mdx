@@ -1,0 +1,125 @@
+---
+title: Design a Parking Lot
+summary: The most-asked LLD problem, end to end — requirements, entities, pluggable spot selection and pricing, lock-free spot claiming, display boards, and the extensions interviewers ask next.
+track: low-level-design
+order: 20
+tags: [lld, parking-lot, strategy, observer, concurrency, cas]
+aliases: [parking lot system design, parking garage, multi level parking, parking lot lld, parking lot machine coding]
+prerequisites: [low-level-design/lld-method, oop-patterns/strategy-and-state]
+related: [oop-patterns/observer, low-level-design/lru-cache]
+quickRef:
+  points:
+    - 'Entities: `ParkingLot` → floors/`ParkingSpot`s (size SMALL/MEDIUM/LARGE), `Vehicle` (type), `Ticket` (ACTIVE → PAID → CLOSED).'
+    - '**Strategies**: `SpotSelector` (nearest, smallest fit) and `PricingPolicy` (hourly with daily cap). **Observer**: display boards.'
+    - '**Concurrency**: claim a spot atomically — `AtomicReference.compareAndSet(null, vehicle)`, or `pollFirst()` from a concurrent free-spot set. Losers retry the next spot.'
+    - Free-spot index per size (sorted by distance) gives O(log n) allocation instead of scanning.
+    - 'Store `entry` as UTC `Instant`; compute fees with `Duration`; inject a `Clock` for testability.'
+  complexity: 'Allocation: O(spots) with a scan, O(log n) with a sorted concurrent set per size.'
+  useWhen: '"Design a parking lot / garage" — and as a template for any resource-allocation LLD (seats, rooms, lockers).'
+lastReviewed: 2026-10-30
+---
+
+## Why it matters
+
+Parking Lot is the single most frequently reported LLD question. It looks simple, which is the point: it tests whether you clarify scope, model entities cleanly, put interfaces where things vary, and — the part many candidates skip — make allocation safe when many cars arrive at once. The same shape (typed resources, allocation, a ticket with a lifecycle, pricing) reappears in seat booking, meeting rooms, lockers and car rentals.
+
+<Callout type="analogy">
+A multi-storey car park with an attendant at each gate. Each attendant looks at the board, picks a free space for your vehicle size, hands you a ticket and marks the space taken. The hard part isn't the board — it's making sure two attendants never send two cars to the same space.
+</Callout>
+
+## Step 1 — Clarify
+
+Questions worth asking, with the answers this design assumes:
+
+| Question | Assumed answer |
+|---|---|
+| Floors? Entry/exit gates? | Several floors, several gates operating concurrently |
+| Vehicle types? | Motorcycle, car, truck |
+| Spot sizes and fitting rules? | SMALL, MEDIUM, LARGE; a vehicle can use its size or larger |
+| Pricing? | Hourly by vehicle type, with a daily cap; pluggable |
+| Payment? | Pay before exit; payment gateway out of scope |
+| Reservations, EV charging, valet? | Out of scope initially — good extensions to discuss |
+| Availability display? | Yes, per floor and size, updated live |
+
+## Step 2 — Entities and relationships
+
+<Diagram id="parking-classes" caption="Core classes. The lot owns spots and tracks active tickets; spot selection, pricing and display updates are behind interfaces." wide />
+
+- **`ParkingSpot`** owns its occupancy and the atomic claim. Spots know their floor and size.
+- **`Ticket`** is the record of one stay: vehicle, spot, entry time, status and fee. Its status moves `ACTIVE → PAID → CLOSED` and rejects anything else.
+- **`ParkingLot`** coordinates: selects candidates, claims, issues tickets, and notifies listeners. It holds no pricing or selection logic itself.
+
+<CodeTabs id="parking-model" title="Vehicles, spots and tickets" />
+
+<Callout type="tip" title="Size rules as data, not subclasses">
+A `Car`/`Bike`/`Truck` class hierarchy adds little here — vehicles have no different *behaviour*. An enum plus a small fitting table (`SpotRules.fitsIn`) is clearer and easier to extend. Use subclasses when types genuinely behave differently.
+</Callout>
+
+## Steps 3–5 — Operations and the core flow
+
+`park(vehicle)` → `Ticket` (or "full"), `quote(ticket)`, `pay(ticket, amount)`, `exit(ticket)`.
+
+<CodeTabs id="parking-service" title="ParkingLot with pluggable selection, pricing and listeners" />
+
+Things worth pointing out as you code:
+
+- **Selection is a strategy.** "Nearest to the entrance", "smallest fitting spot first", "spread load across floors" and "reserved-first for members" are all just different `SpotSelector`s.
+- **Pricing is a strategy.** Weekend rates, event rates or flat fees are new `PricingPolicy` classes. The fee is computed once at payment and stored on the ticket, so a rate change later doesn't alter past receipts.
+- **Time is injected** through a `Clock`, so tests can fast-forward three hours without sleeping.
+- **Money** is a value type (integers in the smallest unit, or `BigDecimal`), never `double`.
+
+## Step 6 — Concurrency: the last free spot
+
+Several gates call `park()` at the same moment. If "find a free spot" and "mark it occupied" are separate steps, two threads can find the same spot and both mark it. The fix is to make the **claim** atomic; finding candidates doesn't have to be.
+
+<Walkthrough id="parking-last-spot" />
+
+Options, from coarse to fine:
+
+| Approach | How | Trade-off |
+|---|---|---|
+| One global lock | `synchronized park()` | Correct and simple; all gates queue behind each other |
+| Lock per floor | `ReentrantLock` per floor around find+claim | Gates on different floors proceed in parallel |
+| CAS per spot | `occupant.compareAndSet(null, v)` (shown above) | No blocking; a loser just tries the next candidate |
+| Concurrent free-spot set | `ConcurrentSkipListSet.pollFirst()` per size | Atomic removal **and** O(log n) nearest-spot lookup |
+
+The last option also fixes performance: instead of scanning thousands of spots per arrival, keep one sorted set of free spots per size.
+
+<CodeTabs id="parking-free-index" title="O(log n) allocation with a sorted concurrent set per size" />
+
+<Callout type="warning" title="When the lot runs on more than one server">
+Atomic variables only protect memory inside one process. With gates served by several application instances, the claim must happen in shared storage: `UPDATE spots SET vehicle=? WHERE id=? AND vehicle IS NULL` (check the affected-row count), a Redis `SET spot:F1-M7 KA-01 NX`, or by partitioning floors between instances so each owns its spots.
+</Callout>
+
+## Live availability with Observer
+
+Display boards shouldn't poll every spot. The lot notifies `SpotListener`s on each claim and release, and the board keeps counters per floor and size.
+
+<CodeTabs id="parking-display" title="Event-driven display board" />
+
+## Extensions interviewers ask for
+
+- **Reservations** — add `RESERVED` to spot state and a `Reservation(spot, window, holder)`; walk-ins skip spots with an active reservation; a scheduled job releases no-shows after a grace period.
+- **EV charging spots** — a spot *feature* (`chargerKw`) the selector can require, plus a charging fee component in pricing. No changes to `ParkingLot`.
+- **Lost ticket** — look up the active ticket by plate (keep a `plate → ticketId` index) and charge a lost-ticket fee policy.
+- **Multiple exits with payment kiosks** — `pay()` and `exit()` are already separate; exit gates only verify `PAID`.
+- **Monthly passes** — a `PricingPolicy` that returns zero for valid pass holders, chosen per vehicle.
+
+<Pitfalls>
+
+- **Find-then-mark without atomicity** — the classic double-booking bug.
+- **`double` for money** and `toHours()` truncation (`61 minutes → 1 hour`): use integer minutes, round up explicitly, and a money type.
+- **Singleton `ParkingLot` with static access** — makes tests share state. Construct it once and inject it.
+- **A god `ParkingLot`** containing pricing tables, display rendering and payment calls. Keep those behind interfaces.
+- **Recomputing fees at exit** after a rate change — store the fee on the ticket when paid.
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- Model spots, vehicles and tickets; make ticket status a small state machine.
+- Spot selection and pricing are strategies; display boards are observers.
+- Make the spot claim atomic (CAS or a concurrent free-spot set); across servers, move the claim into the database or Redis.
+- The same design generalises to any "allocate a typed resource and bill for it" problem.
+
+</KeyTakeaways>

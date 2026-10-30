@@ -1,0 +1,48 @@
+questions:
+  - q: Design a chess game with a focus on move validation and the piece hierarchy. Which classes would you have, and why?
+    think: Separate a piece's own movement from rules that need the whole board and the game's history.
+    answer: |
+      `Square` (value), `Piece` (abstract; colour; `candidateMoves(board, from)`) with six subclasses, `Board` (grid, `at`, `isAttacked`, `kingOf`), `Move` (command with apply/revert), `Game` (turn, history, legal-move filtering, status), and `Player` if AI/online matters.
+      Pieces handle geometry only — sliding pieces share a helper, knights/kings use offsets, pawns have special cases. `Game` filters candidates by simulating each move and rejecting those that leave the mover's king attacked, and detects check/checkmate/stalemate. Castling, en passant and promotion live in `Game` because they depend on history.
+followUps:
+  - q: How do you check whether a king is in check? Can you make it faster?
+    intuition: Being in check means some enemy piece attacks the king's square.
+    approach: |
+      Simple: for every enemy piece, see whether the king's square is among its candidate moves — O(pieces × moves), fine for an interview.
+      Faster: look outward from the king — along ranks/files for an enemy rook/queen (first piece hit), diagonals for bishop/queen, the eight knight offsets, the two pawn-capture squares and adjacent squares for the enemy king. That's a constant number of rays.
+  - q: How would you implement undo, including captures and special moves?
+    intuition: Undo needs everything the move changed, not just the squares.
+    approach: |
+      Command pattern: each `Move` stores from, to, moved piece, captured piece, and the previous castling rights, en-passant target and half-move clock. `apply` updates the board and game state; `revert` restores all of it. `Game` keeps a stack of moves; `undo()` pops, reverts and flips the turn. Castling also stores the rook move; en passant stores the captured pawn's real square; promotion stores the original pawn.
+  - q: How would you adapt the design for tic-tac-toe or snakes and ladders?
+    intuition: Which parts are generic to turn-based board games?
+    approach: |
+      Keep `Game` (players, turn, status, history) and `Board`, change the rules. Tic-tac-toe: a 3×3 grid, a move is placing a mark on an empty cell, the win check scans rows/columns/diagonals (or keeps counters per line for O(1)). Snakes and ladders: a 1D board with jump maps for snakes/ladders, a `Dice` strategy (injectable for tests), and a win when a player reaches the last square exactly (or overshoot rules).
+practice:
+  - task: Implement core chess without castling or en passant in 35 minutes, then add undo.
+    hint: Start with `Square`, `Piece.candidateMoves` for each type, then legal-move filtering with simulate/revert, then the history stack.
+    solution: |
+      The model and game code above are a complete core: sliding helper for rook/bishop/queen, offsets for knight/king, pawn rules, simulation-based legality, status detection and undo via `Move.revert`.
+    solutionCode: chess-game
+  - task: Implement rook movement that stops at the first blocking piece and can capture an enemy there.
+    hint: Walk outward in each of four directions; stop when off the board or when you hit a piece.
+    solution: |
+      For each direction, step one square at a time: empty → add and continue; enemy → add and stop; own piece → stop without adding. The shared `slide` helper does exactly this and is reused by bishop and queen.
+    solutionCode: chess-model
+quiz:
+  - q: What distinguishes stalemate from checkmate?
+    options:
+      - Stalemate means the king can still move
+      - In both, the side to move has no legal moves; in checkmate the king is in check, in stalemate it is not
+      - Stalemate happens only with kings left
+      - There is no difference
+    correct: 1
+    why: Both are "no legal moves"; whether the king is attacked decides mate (loss) vs stalemate (draw).
+  - q: Why shouldn't pieces store their own position if the board already does?
+    options:
+      - It wastes memory
+      - Two sources of truth can drift apart after moves and undos
+      - Java doesn't allow it
+      - Pieces must be immutable records
+    correct: 1
+    why: Keeping position only on the board avoids inconsistency bugs.
