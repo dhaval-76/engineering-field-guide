@@ -1,0 +1,34 @@
+title: A bounded buffer of capacity 3 with one producer and one consumer
+frames:
+  - caption: 'The producer puts items while there is space. The consumer takes from the front.'
+    panels:
+      - kind: queue
+        label: Buffer (capacity 3)
+        items: [{ v: A, tone: accent }, B]
+      - kind: kv
+        label: Threads
+        pairs: [[producer, { v: 'put(C)', tone: accent }], [consumer, { v: busy processing, tone: muted }]]
+  - caption: 'Buffer **full**. The producer''s next `put` waits on "not full" and releases the lock — it uses no CPU while it waits.'
+    panels:
+      - kind: queue
+        label: Buffer (capacity 3)
+        items: [A, B, C]
+      - kind: kv
+        label: Threads
+        pairs: [[producer, { v: 'waiting: notFull', tone: warn }], [consumer, { v: busy processing, tone: muted }]]
+  - caption: 'The consumer takes **A** and signals "not full". The producer wakes, re-checks the condition (there is space) and adds **D**.'
+    panels:
+      - kind: queue
+        label: Buffer (capacity 3)
+        items: [B, C, { v: D, tone: accent }]
+      - kind: kv
+        label: Threads
+        pairs: [[producer, { v: 'put(D) ✓', tone: ok }], [consumer, { v: processing A, tone: info }]]
+  - caption: 'If the consumer is faster, the buffer drains and the **consumer** waits on "not empty" until the producer adds something. The bound keeps memory flat whichever side is slower.'
+    panels:
+      - kind: queue
+        label: Buffer (capacity 3)
+        items: []
+      - kind: kv
+        label: Threads
+        pairs: [[producer, { v: fetching next item, tone: muted }], [consumer, { v: 'waiting: notEmpty', tone: warn }]]

@@ -1,0 +1,93 @@
+---
+title: Producer–Consumer and Coordination Tools
+summary: Decoupling work producers from workers with a bounded queue — BlockingQueue, how it's built from a lock and two conditions, backpressure when the queue fills, and the other coordination tools (Semaphore, CountDownLatch, CyclicBarrier).
+track: concurrency
+order: 70
+tags: [concurrency, producer-consumer, blockingqueue, backpressure, semaphore]
+aliases: [bounded buffer, blocking queue, arrayblockingqueue vs linkedblockingqueue, countdownlatch, cyclicbarrier, semaphore java, condition variable]
+prerequisites: [concurrency/wait-sleep-join]
+related: [concurrency/executors-thread-pools, low-level-design/task-scheduler]
+quickRef:
+  points:
+    - 'Producers `put`/`offer`, consumers `take`/`poll`; the queue does all the locking and waiting.'
+    - '**Bound the queue.** When it fills, `put` blocks and `offer(timeout)` fails — that is your backpressure signal.'
+    - 'Inside: one lock, two conditions (`notFull`, `notEmpty`), `while` loops around `await`.'
+    - '`Semaphore` = limit concurrency; `CountDownLatch` = wait for N one-off events; `CyclicBarrier` = N threads meet repeatedly.'
+    - Across processes or machines the same pattern becomes a message broker (Kafka, SQS, RabbitMQ).
+  useWhen: Work arrives at a different rate than it can be processed, or a fixed number of workers should drain shared work.
+lastReviewed: 2026-10-30
+---
+
+## Why it matters
+
+Requests, events or file chunks often arrive faster or more unevenly than they can be processed. The producer–consumer pattern puts a **queue** between the two sides: producers hand off work and move on, a fixed number of consumers process it at their own pace. A **bounded** queue keeps memory flat and tells producers when the system is overloaded. Every thread pool is this pattern, and so is every message broker.
+
+<Callout type="analogy">
+A bakery counter with room for three trays. Bakers (producers) slide trays on; shop staff (consumers) take them off to the shelves. When the counter is full, bakers wait instead of stacking trays on the floor; when it's empty, staff wait instead of pacing.
+</Callout>
+
+## How a bounded buffer behaves
+
+<Walkthrough id="bounded-buffer" />
+
+## Using BlockingQueue
+
+<CodeTabs id="pc-blocking-queue" title="Producers, consumers and backpressure — Java, Node and Python" />
+
+| Method | When full / empty |
+|---|---|
+| `put` / `take` | Block until possible |
+| `offer(e, timeout)` / `poll(timeout)` | Wait up to the timeout, then return `false` / `null` |
+| `offer(e)` / `poll()` | Return immediately |
+| `add` / `remove` | Throw |
+
+Which queue:
+
+- `ArrayBlockingQueue` — fixed capacity, one lock, predictable memory. A good default.
+- `LinkedBlockingQueue` — optionally bounded (**unbounded by default** — always pass a capacity), separate put/take locks for higher throughput.
+- `SynchronousQueue` — capacity zero: each `put` waits for a `take` (a direct hand-off).
+- `PriorityBlockingQueue` / `DelayQueue` — ordered by priority or by due time (unbounded; see the [task scheduler](../../low-level-design/task-scheduler/)).
+- `LinkedTransferQueue` — producers can wait until a consumer actually receives the item.
+
+## What's inside
+
+<CodeTabs id="pc-condition" title="A bounded queue built from a ReentrantLock and two Conditions" />
+
+Compared with the `wait`/`notifyAll` version in [wait, sleep and join](../wait-sleep-join/), two `Condition`s let producers and consumers wait separately, so `signal` wakes exactly the kind of thread that can make progress.
+
+## Other coordination tools
+
+<CodeTabs id="pc-coordination" title="Semaphore, CountDownLatch and CyclicBarrier" />
+
+| Tool | Question it answers | Reusable? |
+|---|---|---|
+| `Semaphore(n)` | "At most n at a time?" | Yes |
+| `CountDownLatch(n)` | "Have these n things happened?" | No (one-shot) |
+| `CyclicBarrier(n)` | "Have all n threads reached this point?" | Yes |
+| `Phaser` | Barrier with a changing number of parties | Yes |
+| `Exchanger` | Two threads swap objects | Yes |
+
+## In production
+
+- **Shutdown:** stop producers first, let consumers drain, then interrupt (or send a "poison pill" sentinel per consumer).
+- **Failures:** catch exceptions per item so one bad message doesn't kill a consumer thread; route repeated failures to a dead-letter store.
+- **Durability:** an in-memory queue loses everything on a crash. If work must survive restarts or be shared across instances, use a broker or a database-backed queue (outbox, `SELECT … FOR UPDATE SKIP LOCKED`).
+- **Monitoring:** queue depth and age of the oldest item are the best early-warning signals.
+
+<Pitfalls>
+
+- **Unbounded queues** (`LinkedBlockingQueue()` with no capacity, `newFixedThreadPool`) — memory grows until the process dies.
+- **Consumers that die on the first exception**.
+- **Hand-rolled wait/notify with `if`** instead of `while`.
+- **Assuming FIFO across many consumers** means processing order — items are taken in order but finish in any order.
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- A bounded queue decouples rates and gives backpressure.
+- `BlockingQueue` = one lock + two conditions + loops; use it instead of writing your own.
+- Pick the coordination tool by the question: limit (Semaphore), wait for events (Latch), meet up (Barrier).
+- Need durability or multiple machines? Use a broker.
+
+</KeyTakeaways>

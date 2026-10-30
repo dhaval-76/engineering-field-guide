@@ -1,0 +1,36 @@
+questions:
+  - q: Implement a thread-safe bounded blocking queue with put and take.
+    think: What should each side wait for, and what must it re-check after waking?
+    answer: |
+      Use one lock and two conditions. `put`: lock; `while (count == capacity) notFull.await()`; insert into a circular array; `notEmpty.signal()`; unlock in `finally`. `take`: lock; `while (count == 0) notEmpty.await()`; remove; `notFull.signal()`. Loops (not `if`) handle spurious wakeups; separate conditions mean a signal wakes a thread that can actually proceed. Mention that in real code you'd use `ArrayBlockingQueue`, and discuss timeouts (`offer`/`poll` with a deadline) and interruptibility (`lockInterruptibly`).
+  - q: Order requests arrive in bursts of 5,000 per second, but fulfilment can only handle 1,000 per second. What happens with an unbounded in-memory queue, and how would you design it instead?
+    answer: |
+      The queue grows by about 4,000 items per second during bursts, so latency rises without limit and eventually the JVM runs out of memory — losing every queued order. Instead: bound the queue and turn "full" into backpressure (`offer` with a short timeout → 503 with `Retry-After`, or slow the upstream); size consumers to the downstream's real capacity; and, because orders must not be lost, put them in a durable broker or an outbox table rather than memory. Monitor queue depth and oldest-item age.
+followUps:
+  - q: Why use two Condition objects instead of wait/notifyAll?
+    intuition: Who wakes up when you call notifyAll on a shared monitor?
+    approach: |
+      With one monitor, producers and consumers wait in the same set, so `notify` might wake the wrong kind of thread (another producer when only a consumer can proceed) and `notifyAll` wakes everyone to re-check. Two conditions keep the waiters separate, so `signal` wakes one thread of the right kind.
+  - q: CountDownLatch vs CyclicBarrier vs Semaphore?
+    intuition: Waiting for events, meeting up, or limiting entry?
+    approach: |
+      `CountDownLatch`: one or more threads wait until a count reaches zero; one-shot (e.g. wait for services to start). `CyclicBarrier`: a fixed group of threads wait for each other at a point, then all continue; reusable for phases. `Semaphore`: limits how many threads use something at once (connection slots, rate-limited API).
+  - q: How do you shut down a producer–consumer pipeline cleanly?
+    intuition: What happens to items already in the queue?
+    approach: |
+      Stop accepting new work, let consumers drain the queue (or persist what remains), then stop consumers — either by interrupting them (`shutdownNow`, which makes `take()` throw `InterruptedException`) or by enqueuing one poison-pill sentinel per consumer. Wait with a timeout, then force.
+practice:
+  - task: Build a bounded queue from a ReentrantLock and two Conditions, supporting blocking put and take.
+    hint: Circular array, a count, notFull and notEmpty, while loops around await, signal the other condition after each change.
+    solution: |
+      See the code: `put` waits on `notFull` while full and signals `notEmpty`; `take` waits on `notEmpty` while empty, clears the slot (to avoid holding garbage) and signals `notFull`.
+    solutionCode: pc-condition
+quiz:
+  - q: '`new LinkedBlockingQueue<>()` with no argument is…'
+    options: [Bounded at 16, Bounded at 1024, 'Effectively unbounded (Integer.MAX_VALUE)', A synchronous hand-off]
+    correct: 2
+    why: Always pass a capacity unless you've decided memory growth is acceptable.
+  - q: You want a service to wait at startup until three caches are warm. Which tool?
+    options: [Semaphore(3), CountDownLatch(3), CyclicBarrier(3), Exchanger]
+    correct: 1
+    why: Three one-off events counted down, with one waiter.

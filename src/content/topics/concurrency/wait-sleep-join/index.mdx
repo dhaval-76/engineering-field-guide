@@ -1,0 +1,83 @@
+---
+title: wait, sleep, join and Interrupts
+summary: The three ways a Java thread pauses — sleep for time, wait for a condition, join for another thread — which ones release locks, how wait/notify must be written, and how to stop a thread safely with interrupts instead of stop().
+track: concurrency
+order: 60
+tags: [concurrency, threads, wait-notify, interrupts, thread-states]
+aliases: [wait vs sleep, wait vs sleep vs join, notify vs notifyall, spurious wakeup, thread states, interruptedexception, thread.stop]
+prerequisites: [concurrency/volatile-and-synchronized]
+related: [concurrency/producer-consumer, concurrency/threads-and-race-conditions]
+quickRef:
+  points:
+    - '**sleep** = pause for a time, **keeps** locks. **wait** = wait for a condition, **releases** the monitor, must be inside `synchronized`. **join** = wait for a thread to finish.'
+    - 'Always `while (!condition) wait();` — never `if`. Spurious wakeups happen, and another thread may consume the condition first.'
+    - Prefer `notifyAll` unless every waiter waits for the same thing and any one of them can proceed.
+    - 'Stop threads by **interrupting** them; on `InterruptedException`, clean up and restore the flag with `Thread.currentThread().interrupt()`.'
+    - In new code, reach for `BlockingQueue`, `CountDownLatch`, `Semaphore` or `CompletableFuture` before raw wait/notify.
+  useWhen: Reading thread dumps, coordinating threads, or answering the classic "wait vs sleep" question.
+lastReviewed: 2026-10-30
+---
+
+## Why it matters
+
+Threads constantly have to pause: to back off, to wait until data is ready, or to wait for a helper to finish. Java has three different mechanisms for this, and confusing them causes real bugs — holding a lock while sleeping blocks every other thread; `wait` with an `if` instead of a `while` occasionally proceeds with an empty queue; swallowing `InterruptedException` makes a service impossible to shut down. Thread dumps also report these states, so knowing them is how you read a dump.
+
+<Callout type="analogy">
+`sleep` is setting an alarm and napping at your desk — you still occupy the desk. `wait` is leaving the meeting room and asking to be called back when the projector is fixed — someone else can use the room meanwhile. `join` is waiting at the door for a colleague to finish before you both leave.
+</Callout>
+
+## Thread states
+
+<Diagram id="thread-states" caption="The states you'll see in a thread dump and what moves a thread between them." />
+
+## The three pauses side by side
+
+| | `Thread.sleep(ms)` | `obj.wait()` | `t.join()` |
+|---|---|---|---|
+| Defined on | `Thread` (static, current thread) | `Object` | `Thread` (instance) |
+| Releases locks? | **No** | **Yes** — the monitor of `obj` | It calls `wait` on the thread object internally; your other locks stay held |
+| Woken by | Time, interrupt | `notify`/`notifyAll`, interrupt, timeout, spuriously | Target thread ending, timeout, interrupt |
+| Must hold the monitor? | No | **Yes**, else `IllegalMonitorStateException` | No |
+| Thread state | `TIMED_WAITING` | `WAITING` / `TIMED_WAITING` | `WAITING` / `TIMED_WAITING` |
+
+<CodeTabs id="pause-methods" title="sleep, join and wait/notify — and the JavaScript and Python equivalents" />
+
+## Writing wait/notify correctly
+
+The rules: hold the monitor, wait in a loop, change the state and notify while holding the same monitor.
+
+<CodeTabs id="bounded-buffer-wait" title="A bounded buffer with wait/notifyAll" />
+
+Why `while` and not `if`:
+
+1. **Spurious wakeups** — the JVM (and the OS condition variables under it) may wake a waiting thread with no notify.
+2. **Stolen conditions** — between being notified and re-acquiring the lock, another thread can take the item you were woken for.
+
+The loop re-checks the condition after every wakeup and waits again if it doesn't hold. The higher-level tools in [producer-consumer](../producer-consumer/) do this for you.
+
+## Stopping a thread: interrupts
+
+<CodeTabs id="interrupt-stop" title="Cooperative cancellation instead of stop()" />
+
+- `interrupt()` sets a flag; blocking methods (`sleep`, `wait`, `join`, `BlockingQueue.take`, …) respond by throwing `InterruptedException` and clearing it.
+- Either propagate `InterruptedException` or restore the flag — never catch and ignore it. Executors rely on interrupts for `shutdownNow` and `Future.cancel(true)`.
+- `Thread.stop()` was deprecated in Java 1.2 and throws `UnsupportedOperationException` since Java 20.
+
+<Pitfalls>
+
+- **Sleeping while holding a lock** — every thread that needs the lock waits too.
+- **`if` around `wait()`** — rare, load-dependent bugs.
+- **`notify()` when different waiters wait for different conditions** — the wrong one wakes and everyone sleeps.
+- **Swallowing `InterruptedException`** — threads that never stop, hanging shutdowns.
+- **Using `sleep` to "wait until ready"** — slow when the event is early, wrong when it's late; wait for the event instead.
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- sleep keeps locks; wait releases the monitor and needs it; join waits for a thread to end.
+- wait in a `while` loop, prefer `notifyAll`.
+- Cancel with interrupts and handle `InterruptedException` properly.
+- Prefer `java.util.concurrent` utilities over hand-written wait/notify.
+
+</KeyTakeaways>

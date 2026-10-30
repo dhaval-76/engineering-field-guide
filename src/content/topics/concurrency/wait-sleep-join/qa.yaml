@@ -1,0 +1,33 @@
+questions:
+  - q: A background thread is stuck. One colleague suggests thread.stop(), another suggests adding Thread.sleep() and polling. What do you do instead, and why are those suggestions wrong?
+    think: What happens to locks and shared objects when a thread is killed mid-operation? What does polling with sleep cost?
+    answer: |
+      `stop()` killed the thread at an arbitrary instruction, releasing its locks while objects were half-updated, so other threads saw broken invariants; it's deprecated and since Java 20 just throws. Polling with `sleep` either reacts late or burns CPU, and doesn't express *what* you're waiting for. The right tools: to coordinate, wait for the condition (`wait`/`notifyAll` in a loop, or better a `BlockingQueue`, `CountDownLatch` or `CompletableFuture`); to stop, `interrupt()` the thread and have it exit cleanly when it sees the flag or an `InterruptedException`. First, take a thread dump to see *why* it's stuck (BLOCKED on a lock? WAITING on a condition nobody signals?).
+followUps:
+  - q: Why does wait() release the lock but sleep() doesn't?
+    intuition: Who needs the lock to make the waited-for condition true?
+    approach: |
+      `wait` exists for condition waiting: the thread that will make the condition true needs the same monitor to change the state and call `notify`. If `wait` kept the lock, nobody could ever notify — a guaranteed deadlock. `sleep` is just a delay with no partner thread, so it doesn't touch locks. The consequence: never `sleep` inside a `synchronized` block that other threads need.
+  - q: What is a spurious wakeup and how do you protect against it?
+    intuition: Can a thread return from wait() without being notified?
+    approach: |
+      Yes — the specification allows it, because the underlying OS condition variables allow it. Protect by always waiting in a loop that re-checks the condition (`while (!cond) wait();`). The same loop also handles a condition that another thread consumed before you re-acquired the lock.
+  - q: What should you do when you catch InterruptedException?
+    intuition: Someone asked this thread to stop.
+    approach: |
+      Either let it propagate (declare `throws InterruptedException`), or, if you can't, restore the interrupt status with `Thread.currentThread().interrupt()` and return or exit promptly. Catching and ignoring it hides the cancellation request, which breaks `shutdownNow`, `Future.cancel(true)` and graceful shutdown.
+practice:
+  - task: Implement a semaphore using only synchronized, wait and notifyAll that lets at most N threads use a resource at once.
+    hint: Count available permits. acquire() waits while there are none; release() adds one and notifies.
+    solution: |
+      Keep an `int permits`. `synchronized acquire()`: `while (permits == 0) wait(); permits--;`. `synchronized release()`: `permits++; notifyAll();`. In production code use `java.util.concurrent.Semaphore`.
+    solutionCode: simple-semaphore
+quiz:
+  - q: Thread A calls Thread.sleep(1000) inside synchronized(lock). Thread B tries to enter synchronized(lock). What happens?
+    options: [B enters immediately, B is BLOCKED until A wakes and leaves the block, A's sleep is interrupted, IllegalMonitorStateException]
+    correct: 1
+    why: sleep keeps every lock the thread holds.
+  - q: Calling obj.wait() without holding obj's monitor…
+    options: [Works but is slower, Throws IllegalMonitorStateException, Deadlocks, Waits forever]
+    correct: 1
+    why: wait, notify and notifyAll require the caller to own the object's monitor.

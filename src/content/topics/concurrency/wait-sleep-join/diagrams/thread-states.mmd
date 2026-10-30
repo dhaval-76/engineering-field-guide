@@ -1,0 +1,12 @@
+stateDiagram-v2
+  direction LR
+  [*] --> NEW
+  NEW --> RUNNABLE: start()
+  RUNNABLE --> BLOCKED: waiting to enter synchronized
+  BLOCKED --> RUNNABLE: got the monitor
+  RUNNABLE --> WAITING: wait() / join() / park()
+  WAITING --> RUNNABLE: notify / target ends / unpark
+  RUNNABLE --> TIMED_WAITING: sleep(ms) / wait(ms) / join(ms)
+  TIMED_WAITING --> RUNNABLE: time up / notify / interrupt
+  RUNNABLE --> TERMINATED: run() returns or throws
+  TERMINATED --> [*]
