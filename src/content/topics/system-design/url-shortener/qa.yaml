@@ -1,0 +1,33 @@
+questions:
+  - q: 'Design a URL shortener for 100 M new links and 10 B redirects per day, with redirects under 50 ms.'
+    think: Which path dominates, and where can you answer it without touching the database?
+    answer: |
+      Clarify features (custom aliases, expiry, analytics, deletion) and estimate: ~1,200 writes/s and ~115,000 reads/s; ~90 TB over five years; hot set ~10 GB. **Codes**: unique ids from per-server ranges (one database update per 10,000 links), scrambled with a bijection and base62-encoded into 7 characters (3.5 trillion codes) — no collision checks, not enumerable. **Storage**: a key-value-shaped table keyed by code (DynamoDB/Cassandra, or partitioned PostgreSQL) with a unique constraint for aliases. **Redirects**: CDN for very popular links, Redis cache-aside (with negative caching), then the store; respond 302 so every visit is counted; publish click events to Kafka asynchronously for aggregation. **Operations**: rate limits and safe-browsing checks on creation; expiry checked on read with TTL-based cleanup; multi-region read replicas/caches since redirects must be highly available.
+followUps:
+  - q: Counter, hash or random codes?
+    intuition: Collisions, coordination and predictability.
+    approach: |
+      Counters (with ranges) give collision-free codes with minimal coordination but are sequential unless scrambled. Hashes give the same code for the same URL but need collision handling when truncated. Random codes need no coordination but require a uniqueness check and retry, which becomes more frequent as the space fills. A scrambled ranged counter combines the best properties.
+  - q: 301 or 302?
+    intuition: Who caches the redirect?
+    approach: |
+      301 is permanent: browsers and proxies cache it, so repeat visits don't reach the service — less load, but you lose analytics and can't change or delete the target effectively. 302 (or 307) is temporary: each visit reaches the service or CDN, so you can count and change it. Use 302 when analytics or editability matter.
+  - q: How do you handle two users requesting the same custom alias at the same time?
+    intuition: Check-then-insert races.
+    approach: |
+      Don't rely on "check availability, then insert". Insert directly with a unique constraint on `code`; one insert succeeds, the other gets a constraint violation mapped to 409 Conflict. Reserve alias formats that can't collide with generated codes (e.g. allow hyphens, different length) and rate-limit alias creation to discourage squatting.
+practice:
+  - task: Implement base62 encoding/decoding with fixed 7-character codes, per-server id ranges, and the redirect endpoint with cache-aside and asynchronous click events.
+    hint: Encode by repeated mod/div 62 into a 7-char array; reserve id blocks with UPDATE … RETURNING; cache "not found" briefly; send click events without waiting.
+    solution: |
+      `encode` fills a 7-char array from the right with `n % 62` digits; `decode` multiplies and adds. An `IdRange` reserves 10,000 ids per database round trip under a lock. Optionally scramble ids with a multiplication by a constant coprime with 62⁷ modulo 62⁷ before encoding. The redirect checks Redis, falls back to the store, handles 404/410, refills the cache with a TTL bounded by expiry, sends the click event asynchronously, and returns 302.
+    solutionCode: short-codes
+quiz:
+  - q: How many distinct 7-character base62 codes are there?
+    options: ['About 78 billion', 'About 3.5 trillion', 'About 62 million', 'About 10¹⁸']
+    correct: 1
+    why: 62⁷ ≈ 3.52 × 10¹².
+  - q: Why record clicks asynchronously?
+    options: [Kafka is required, To keep the redirect fast and independent of analytics, Browsers require it, To save storage]
+    correct: 1
+    why: The redirect path is the hot path; analytics can lag by seconds without harm.

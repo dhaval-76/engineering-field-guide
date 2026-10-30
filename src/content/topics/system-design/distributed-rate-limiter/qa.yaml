@@ -1,0 +1,33 @@
+questions:
+  - q: 'One misbehaving client sends 50,000 requests per second through 12 gateway instances and takes down downstream services. Design rate limiting enforced consistently across the gateways.'
+    think: Why don't per-instance limits work, and what must be atomic?
+    answer: |
+      Per-instance limits multiply by 12 and depend on load-balancer distribution, so the counter must be shared. Each gateway identifies the caller (API key/tenant, IP for anonymous traffic), finds the rule for its plan and route, and calls Redis with a **Lua script** that atomically computes a sliding-window (or token-bucket) decision using Redis's clock, increments, sets expiry and returns allowed/remaining/retry-after. Redis Cluster shards keys; the call has a ~5 ms timeout and a circuit breaker; on failure the gateway **fails open** with a conservative local limit (or closed for fragile dependencies). Denied requests get 429 with `Retry-After`. For a single extremely hot key, gateways take tokens in batches to cut Redis round trips. Monitor 429s per key and limiter latency.
+followUps:
+  - q: Fail-open or fail-closed when Redis is unavailable?
+    intuition: Which is worse for this system — no protection or no service?
+    approach: |
+      Fail-open keeps the API available but temporarily unprotected — usually right for customer-facing APIs, ideally with an in-memory per-instance fallback limit. Fail-closed protects downstream systems or strict quotas (e.g. a paid partner API) at the cost of availability. Whichever you choose, make it explicit, time-box limiter calls, and alert.
+  - q: How do you avoid the limiter itself becoming a bottleneck?
+    intuition: Every request makes a call to it.
+    approach: |
+      Keep the check to one round trip (a single Lua script via EVALSHA), co-locate Redis with gateways, shard keys across a cluster, use pipelining/connection pools, and for hot keys take tokens in local batches or apply approximate local limits with periodic sync. Cache rules locally rather than fetching them per request.
+  - q: How do you rate-limit across multiple regions?
+    intuition: Coordination across oceans costs ~100 ms.
+    approach: |
+      Usually split the quota per region and enforce locally, or keep regional counters and share usage asynchronously (accepting brief over-admission). Exact global limits are reserved for billing and computed from usage events after the fact rather than on the request path.
+practice:
+  - task: Implement a sliding-window-counter limiter as a single Redis Lua script and a filter that applies per-plan rules and returns proper headers.
+    hint: Two keys per window (current, previous), weight the previous by the remaining overlap, INCR and EXPIRE inside the script, use redis.call('TIME').
+    solution: |
+      The script reads the server time, derives the current window index, reads the previous and current counters, computes `prev × (1 − elapsed) + cur`, rejects with a retry-after if it reaches the limit, otherwise increments the current counter and sets its expiry (twice the window) — all atomically. The filter identifies the caller, matches the most specific rule, calls the script with a short timeout (fail-open on error), sets `X-RateLimit-*` headers and returns 429 with `Retry-After` when denied.
+    solutionCode: sliding-window-lua
+quiz:
+  - q: Why run the rate-limit check as a Lua script in Redis?
+    options: [Lua is faster than Java, To make read-check-increment atomic across all instances, Redis requires it, To encrypt counters]
+    correct: 1
+    why: Separate GET and INCR from different instances can interleave and over-admit.
+  - q: Why use redis.call('TIME') instead of passing the caller's timestamp?
+    options: [It's more precise, Callers' clocks can disagree, shifting window boundaries, TIME is free, To support Lua 5.4]
+    correct: 1
+    why: One clock (the server's) gives every gateway the same window.

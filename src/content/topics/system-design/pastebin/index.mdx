@@ -1,0 +1,78 @@
+---
+title: 'Design: Pastebin'
+summary: A write-once, read-many content store with expiry — metadata in a database and content in object storage, short ids, CDN-first reads that survive viral spikes, private and burn-after-reading pastes, size limits and abuse controls.
+track: system-design
+order: 80
+tags: [system-design, case-study, object-storage, cdn, caching]
+aliases: [pastebin, design pastebin, code sharing, github gist, text sharing, object storage, s3, presigned url, content addressed storage, deduplication, expiry, burn after reading, private paste, cdn caching, viral content]
+prerequisites: [system-design/url-shortener]
+related: [databases/caching-strategies, system-design/distributed-rate-limiter, system-design/scaling-to-millions]
+quickRef:
+  points:
+    - 'Pastes are **immutable** once created: cache aggressively, never invalidate except on delete/expiry.'
+    - 'Split **metadata** (database: id, owner, size, visibility, expiry) from **content** (object storage, or inline only when tiny).'
+    - 'Reads go **CDN → cache → object store**; a viral paste costs the origin almost nothing.'
+    - 'Expiry: check on read; delete with lifecycle rules/TTL jobs; cache TTL ≤ time left.'
+    - 'Private pastes: `Cache-Control: private, no-store` or short-lived **signed URLs**.'
+    - 'Limit size and rate; scan content for secrets and malware.'
+  useWhen: The Pastebin/Gist interview question, or any "store blobs, share links, expire them" feature.
+lastReviewed: 2026-10-30
+---
+
+## Requirements
+
+**Functional**: create a paste (text up to e.g. 10 MB, optional language, expiry, visibility public/unlisted/private, optional password or burn-after-reading); view by link; raw download; delete by owner.
+**Non-functional**: ~10 M new pastes/day, ~100 M reads/day with sharp spikes on viral pastes; durable until expiry; reads in tens of milliseconds worldwide.
+
+## Estimates
+
+Writes ≈ 120/s; reads ≈ 1,200/s average but a single viral paste can add thousands per second. Average paste ~10 KB → 100 GB/day of content → ~36 TB/year — object storage territory; metadata rows (~300 B) → ~1 TB/year, fine for a relational store.
+
+## API
+
+```http
+POST   /api/pastes            { "content": "...", "language": "java", "expiresIn": "P7D", "visibility": "unlisted" }
+→ 201  { "id": "Xk29fQa", "url": "https://paste.example/Xk29fQa" }
+GET    /{id}                  → HTML view (syntax highlighting in the browser)
+GET    /raw/{id}              → text/plain, cacheable
+DELETE /api/pastes/{id}
+```
+
+Large uploads can go straight to object storage with a **presigned URL** limited in size and time, so app servers never stream megabytes.
+
+## High-level design
+
+<Diagram id="pastebin-architecture" caption="Metadata in a database, content in object storage, reads served from the CDN wherever possible." />
+
+<CodeTabs id="paste-service" title="Create and read: metadata row, content object, cache headers" />
+
+## Deep dives
+
+**Viral pastes.** Because content never changes, public responses carry `Cache-Control: public, max-age=…` (capped at the time to expiry) and the CDN absorbs the spike: the origin sees roughly one request per edge per TTL. Behind it, a Redis cache keeps hot pastes' content (size-capped — megabyte values belong in the object store, not Redis).
+
+**Expiry.** The read path checks `expires_at` and returns 404/410 even if cleanup hasn't run; object-store lifecycle rules or a batch job delete expired content; metadata TTL (DynamoDB TTL) or a periodic `DELETE … WHERE expires_at < now()` in batches; cache TTLs never exceed the remaining lifetime.
+
+**Private and protected pastes.** Never cache them publicly: `Cache-Control: private, no-store`, authorisation on every read, content served through short-lived signed URLs. Passwords are hashed (bcrypt/argon2) and checked server-side; burn-after-reading uses an atomic "mark as read" (conditional update) so two concurrent readers can't both see it.
+
+**Deduplication (optional).** Store content under its SHA-256 hash; many identical pastes share one object. Saves storage for repeated content; deletion then needs reference counting.
+
+**Abuse.** Per-IP and per-account rate limits on creation ([Rate limiting](../distributed-rate-limiter/)), size limits enforced at the edge and in presigned policies, scanning for leaked credentials and malware, and a takedown path.
+
+<Pitfalls>
+
+- **Large blobs in the database or Redis** — bloats backups and memory; use object storage.
+- **Public caching of private pastes.**
+- **Cache TTLs longer than the paste's lifetime** — expired pastes keep being served.
+- **Burn-after-reading with a read-then-delete race.**
+- **Unbounded uploads through app servers.**
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- Immutable content + CDN = cheap reads even for viral pastes.
+- Metadata in a database, bytes in object storage, presigned uploads for large content.
+- Expiry enforced on read; cleanup is lazy and batched.
+- Private content: no shared caching, signed URLs, server-side checks.
+
+</KeyTakeaways>

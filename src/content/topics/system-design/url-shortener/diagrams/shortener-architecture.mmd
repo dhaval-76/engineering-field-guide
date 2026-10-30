@@ -1,0 +1,11 @@
+flowchart TD
+  U[Browser] --> CDN[CDN<br/>popular redirects]
+  CDN -- miss --> LB[Load balancer]
+  LB --> R[Redirect service]
+  LB --> W[Link service<br/>create · alias · delete]
+  R --> C[(Redis<br/>code → url)]
+  R -. miss .-> DB[(Links store<br/>partitioned by code)]
+  W --> DB
+  W --> IDS[ID ranges<br/>allocator]
+  R -- click event --> K{{Kafka}}
+  K --> A[Analytics aggregator] --> AS[(Analytics store)]

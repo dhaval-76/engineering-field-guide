@@ -1,0 +1,6 @@
+flowchart TD
+  C[Clients] --> G[Gateway instances × N<br/>identify caller · match rule]
+  CFG[(Rules<br/>plan · endpoint · limit)] -. cached locally .-> G
+  G -- "one Lua call ≈1 ms<br/>timeout 5 ms" --> R[(Redis Cluster<br/>counters by key)]
+  G -- allowed --> S[Services]
+  G -- "denied: 429 + Retry-After" --> X[Response to client]

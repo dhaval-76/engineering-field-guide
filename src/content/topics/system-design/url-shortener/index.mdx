@@ -1,0 +1,97 @@
+---
+title: 'Design: URL Shortener'
+summary: A read-heavy classic — collision-free short codes (counters, ranges, hashing), storing billions of mappings, millisecond redirects through CDN and cache, custom aliases, expiry, abuse, and async click analytics.
+track: system-design
+order: 70
+tags: [system-design, case-study, caching, ids, read-heavy]
+aliases: [url shortener, tinyurl, bitly, short link, base62, short code generation, custom alias, redirect, 301 vs 302, click analytics, link expiry, design tinyurl]
+prerequisites: [system-design/approach-and-estimation, system-design/id-generator]
+related: [databases/caching-strategies, system-design/pastebin, system-design/distributed-rate-limiter]
+quickRef:
+  points:
+    - 'Reads dominate (~100:1): optimise the **redirect path** — CDN, Redis, then the database.'
+    - 'Codes: **base62 of a unique id** (ranges per server, no collisions) — scramble it so codes aren''t sequential; or random codes with a uniqueness check.'
+    - '7 base62 characters ≈ **3.5 trillion** codes.'
+    - 'Store `code → long_url` in a key-value-friendly store; the code is the partition key.'
+    - '**302** if you need click analytics on every visit; **301** lets browsers cache (fewer requests, less data).'
+    - 'Analytics are **asynchronous** — publish a click event; never slow the redirect.'
+  useWhen: The URL shortener interview question, or any "map a short key to a value, read it constantly" system.
+lastReviewed: 2026-10-30
+---
+
+## Requirements
+
+**Functional**: create a short link for a long URL (optionally with a custom alias and expiry); redirect `GET /{code}` to the long URL; basic click analytics; users can list and delete their links.
+**Non-functional**: 100 M new links/day, 10 B redirects/day; redirect p99 under ~50 ms; very high availability for redirects (a broken link is a broken page for someone else); links last years; codes shouldn't be guessable in sequence.
+
+## Estimates
+
+Writes ≈ 1,200/s (peak ~3,000); reads ≈ 115,000/s (peak ~350,000). Storage ≈ 100 M × ~500 B = 50 GB/day → ~90 TB over five years. A day's hot links (~20%) ≈ 10 GB → fits in Redis. ([Worked through in the estimation topic](../approach-and-estimation/).)
+
+## API
+
+```http
+POST /api/links          { "url": "https://…", "alias": "spring-sale", "expiresAt": "2026-12-31T00:00:00Z" }
+→ 201 { "code": "aZ3kP9q", "shortUrl": "https://sho.rt/aZ3kP9q" }
+
+GET  /{code}             → 302 Location: https://… | 404 | 410 (expired)
+GET  /api/links/{code}/stats
+DELETE /api/links/{code}
+```
+
+## High-level design
+
+<Diagram id="shortener-architecture" caption="Redirects are served from the CDN or Redis in most cases; creation and analytics take separate paths." />
+
+<Walkthrough id="redirect-path" />
+
+## Generating short codes
+
+| Approach | How | Collisions | Notes |
+|---|---|---|---|
+| **Counter + base62** | unique 64-bit id → base62 string | none by construction | needs a distributed counter: ranges per server ([ID generation](../id-generator/)); raw counters are sequential |
+| Scrambled counter | apply a reversible bijection (e.g. multiply by a large odd constant mod 62⁷, or a Feistel cipher) to the id first | none | unpredictable codes, still collision-free |
+| Hash of the URL | first 7 chars of base62(SHA-256(url + salt)) | possible → check and retry | same URL can map to the same code (dedup); retries add a read per write |
+| Random | 7 random base62 chars | rare, but grows with volume → insert with a uniqueness constraint, retry on conflict | simple; no coordination |
+
+<CodeTabs id="short-codes" title="Base62, range allocation and a scrambled code" />
+
+## Storage
+
+- Access is a pure key lookup by `code`, so any store that partitions by key works: DynamoDB/Cassandra (scale writes and storage automatically) or PostgreSQL with a unique index, partitioned by code hash as it grows ([Sharding](../../databases/sharding/)).
+- Row: `code, long_url, owner_id, created_at, expires_at, is_custom`. Index `owner_id` for "my links".
+- Custom aliases share the same table; the **unique constraint** settles races between two users requesting the same alias.
+
+<CodeTabs id="redirect-endpoint" title="The redirect endpoint and link creation" />
+
+## Deep dives
+
+**Caching**: cache-aside in Redis keyed by code with a TTL; negative-cache unknown codes briefly to stop scans from hitting the database; CDN caching of redirects (`Cache-Control: public, max-age=…`) for very popular links, accepting that analytics then undercount and deletions take effect after the TTL.
+
+**301 vs 302**: a 301 (permanent) is cached by browsers, so repeat visits never reach you — cheap but invisible. A 302/307 makes every visit hit you (or your CDN) — accurate analytics, more load. Most commercial shorteners use 302 for that reason.
+
+**Analytics**: after responding, publish `{code, time, referrer, user-agent, country}` to Kafka; stream processors aggregate per link per hour into an analytics store. The redirect never waits on it.
+
+**Expiry**: check `expires_at` on read (return 410); delete expired rows lazily or with a TTL feature of the store (DynamoDB TTL); cache TTL = min(default, time to expiry).
+
+**Abuse**: shorteners are used to hide phishing and malware. Check URLs against safe-browsing lists at creation and periodically; rate-limit creation per user/IP ([Rate limiting](../distributed-rate-limiter/)); allow reports and disabling of codes.
+
+<Pitfalls>
+
+- **Synchronous analytics writes** in the redirect path.
+- **Sequential codes** — anyone can enumerate every link.
+- **Truncated hashes without collision handling.**
+- **301 redirects when analytics are a requirement.**
+- **Caching deleted or expired links** with long TTLs and no invalidation.
+- **One global counter** as a single point of failure.
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- Optimise for reads: CDN → Redis → key-value store.
+- Codes from ranged, scrambled counters avoid collisions and enumeration.
+- Unique constraints handle custom-alias races.
+- 302 + asynchronous analytics; abuse checks at creation.
+
+</KeyTakeaways>

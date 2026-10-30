@@ -1,0 +1,22 @@
+title: Sliding window counter, 100 requests per minute
+frames:
+  - caption: 'Keep one counter per key per fixed minute. At 12:01:15, the previous minute (12:00) had **84** requests and the current minute (12:01) has **30** so far.'
+    panels:
+      - kind: kv
+        label: Counters
+        pairs: [['rl:key42:12:00', '84'], ['rl:key42:12:01', '30']]
+  - caption: 'We''re 15 s (25%) into the current minute, so the sliding 60-second window still covers **75%** of the previous minute. Estimate = 84 × 0.75 + 30 = **93**.'
+    panels:
+      - kind: kv
+        label: Estimate
+        pairs: [[previous × overlap, '84 × 0.75 = 63'], [current, '30'], [total, { v: '93 < 100 → allow', tone: ok }]]
+  - caption: 'A burst arrives. Each allowed request increments the current counter; at 12:01:20 the estimate reaches 100 and further requests are rejected with 429.'
+    panels:
+      - kind: kv
+        label: Estimate at 12:01:20
+        pairs: [[previous × overlap, '84 × 0.67 = 56'], [current, '44'], [total, { v: '100 → reject', tone: bad }]]
+  - caption: 'As time passes, the previous minute''s weight shrinks, so capacity returns gradually — no "double burst" at the minute boundary, which a fixed window would allow. Memory: two integers per key.'
+    panels:
+      - kind: kv
+        label: At 12:01:45
+        pairs: [[previous × overlap, '84 × 0.25 = 21'], [current, '44'], [total, { v: '65 → allow', tone: ok }]]

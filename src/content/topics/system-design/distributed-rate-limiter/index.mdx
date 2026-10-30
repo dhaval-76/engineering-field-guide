@@ -1,0 +1,94 @@
+---
+title: 'Design: Distributed Rate Limiter'
+summary: Enforcing request limits across many instances — where the limiter sits, shared Redis counters with atomic scripts, sliding windows, batching for hot keys, fail-open vs fail-closed, tiers, headers and multi-region limits.
+track: system-design
+order: 90
+tags: [system-design, case-study, rate-limiting, redis, api-gateway]
+aliases: [distributed rate limiter, rate limiting at scale, throttling, api quota, redis rate limiter, lua script, sliding window counter, token bucket redis, fail open, fail closed, 429 too many requests, retry-after, ratelimit headers, per tenant limits, global rate limit, envoy rate limit, spring cloud gateway rate limiter]
+prerequisites: [low-level-design/rate-limiter, databases/sql-vs-nosql]
+related: [architecture/resilience-patterns, databases/caching-strategies]
+quickRef:
+  points:
+    - 'Per-instance counters multiply the limit by the number of instances — **shared state** (Redis) or a dedicated limit service makes it global.'
+    - 'Check-and-update must be **atomic**: one Lua script per request; use the Redis server''s clock, not each caller''s.'
+    - '**Sliding window counter** (two counters, weighted) or **token bucket**: O(1) memory per key, no boundary bursts.'
+    - 'Decide **fail-open** (availability) vs **fail-closed** (protection) when the limiter store is down — usually open with local fallback limits.'
+    - 'Hot keys and latency: **local token batches** or approximate local limits synchronised periodically.'
+    - 'Return **429** with `Retry-After` and remaining-quota headers.'
+  useWhen: Designing API protection, quotas per plan, or "design a rate limiter" at scale.
+lastReviewed: 2026-10-30
+---
+
+## Requirements
+
+**Functional**: limit requests per key (API key, user, tenant, IP, endpoint) by rules such as "100 per minute" or "10 per second with bursts of 20"; different limits per plan; tell clients when to retry.
+**Non-functional**: decisions in about a millisecond (it's on every request); consistent across dozens of instances; highly available — the limiter must not become the outage; 100,000+ decisions per second.
+
+The algorithms themselves (token bucket, windows, leaky bucket) are covered in the [LLD rate limiter](../../low-level-design/rate-limiter/); here the question is how to run one across a fleet.
+
+## Where it sits
+
+| Placement | Pros | Cons |
+|---|---|---|
+| API gateway / edge (Envoy, NGINX, Spring Cloud Gateway, cloud WAF) | one place, stops abuse before it reaches services | coarse: doesn't know business costs |
+| Sidecar / service mesh | per-service policies without code | infrastructure complexity |
+| In the service (library + shared store) | business-aware limits (e.g. per tenant per expensive operation) | each service implements it |
+| Before calling a partner API (client side) | stay within *their* quota | coordination across your instances |
+
+Most systems combine a coarse edge limit (per IP/API key) with finer in-service limits.
+
+<Diagram id="limiter-architecture" caption="Gateways ask a shared store on each request; rules come from configuration; decisions are returned as headers." />
+
+## Shared state and atomicity
+
+With 12 gateway instances each allowing "100/min" locally, a client spread across them gets 1,200/min. The counter must be shared — typically Redis (sub-millisecond, atomic operations, TTLs). The read-check-write must be one atomic step, or two instances both see "99" and both allow. A **Lua script** runs atomically inside Redis; using `redis.call('TIME')` inside it avoids errors from callers' clocks disagreeing.
+
+<Walkthrough id="sliding-window" />
+
+<CodeTabs id="sliding-window-lua" title="Sliding window counter as one atomic Redis script — Java, Node, Python" />
+
+## Scaling and hot keys
+
+- **Shard by key** across a Redis Cluster; one key's counter lives on one shard.
+- A single very hot key (a big tenant's API key) can saturate a shard. Options: **local token batches** — each instance takes, say, 50 tokens at a time from Redis and spends them locally (fewer round trips, slight over-admission); or **approximate local limiting** — each instance enforces `limit ÷ instances` and periodically reconciles.
+- Pipelines and connection pooling keep per-request latency low; place Redis in the same zone as the gateways.
+
+## When the limiter's store fails
+
+| Policy | Behaviour | When |
+|---|---|---|
+| **Fail-open** | allow requests (optionally with a generous local limit) | user-facing APIs where availability matters most |
+| **Fail-closed** | reject requests | protecting a fragile, expensive dependency or a strict paid quota |
+
+Either way: tight timeouts (a few milliseconds) on the limiter call, a circuit breaker around it, and alerts.
+
+## Rules, tiers and responses
+
+<CodeTabs id="limiter-rules" title="Rules per plan and endpoint, and the filter that applies them" />
+
+Respond with **429 Too Many Requests**, a `Retry-After` header, and the remaining quota (`X-RateLimit-Limit`/`Remaining`/`Reset`, or the IETF `RateLimit`/`RateLimit-Policy` fields). Clients should back off with jitter.
+
+## Multi-region
+
+A truly global limit needs coordination across regions (expensive, slow). Usual compromises: enforce limits **per region** (divide the quota), or keep regional counters and **asynchronously** share usage, accepting brief over-admission. Strict global quotas (billing) are better computed from usage events afterwards than on the request path.
+
+<Pitfalls>
+
+- **Per-instance in-memory counters** behind a load balancer.
+- **Non-atomic check-then-increment** (GET then INCR, or INCR then EXPIRE as separate commands — a crash leaves a key that never expires).
+- **Trusting each server's clock** for window boundaries.
+- **Limiting only by IP** — NAT and mobile carriers share IPs; attackers rotate them.
+- **A slow limiter** without timeouts, adding latency to every request.
+- **No visibility** — log and graph 429s per key so legitimate customers hitting limits are noticed.
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- Global limits need shared, atomic state — Redis + Lua is the common answer.
+- Sliding window counter or token bucket: accurate, O(1) per key.
+- Choose fail-open or fail-closed deliberately, with millisecond timeouts.
+- Handle hot keys with local batching; split quotas per region.
+- 429 with Retry-After and quota headers.
+
+</KeyTakeaways>

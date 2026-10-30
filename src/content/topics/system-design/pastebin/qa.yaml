@@ -1,0 +1,33 @@
+questions:
+  - q: 'A paste goes viral: 500,000 reads in 10 minutes. How does your design cope?'
+    think: The content never changes. Where can the same bytes be served from?
+    answer: |
+      Public pastes are immutable, so responses carry `Cache-Control: public, max-age=…` (bounded by the time to expiry) and an ETag. The CDN serves almost all of the 830 reads/s from its edges; the origin sees about one request per edge location per TTL. Behind the CDN, Redis holds hot small pastes and object storage serves the rest — the metadata database is touched once per cache miss. If the owner deletes it, the service deletes metadata and content, removes the Redis key and issues a CDN purge; until the purge propagates, edges may serve it briefly — use shorter max-age for content where that matters.
+  - q: Where do you store paste content, and why?
+    think: Size distribution, durability, cost and the access pattern.
+    answer: |
+      Metadata (id, owner, size, language, visibility, expiry) in a database — small rows, queried by id and by owner. Content in object storage (S3/GCS): cheap, durable, effectively unlimited, served efficiently to CDNs, and lifecycle rules can expire it. Very small pastes could be inlined in the metadata row to save a request, but storing megabytes in the database bloats it and its backups. Large uploads go directly to object storage via size-limited presigned URLs.
+followUps:
+  - q: How do you implement burn-after-reading?
+    intuition: Two people open the link at the same moment.
+    approach: |
+      Make the first read claim the paste atomically: `UPDATE pastes SET burned_at = now() WHERE id = ? AND burned_at IS NULL` — only the request that updates one row may return the content; others get 404. Never cache it (no CDN, no Redis), and delete the content immediately after serving.
+  - q: How do you handle private pastes with caching?
+    intuition: Shared caches must never see them.
+    approach: |
+      Mark responses `Cache-Control: private, no-store`, require authorisation on every request, and serve content via short-lived signed URLs if it comes from object storage. Cache only metadata needed for authorisation, keyed per paste, never the content in shared caches.
+practice:
+  - task: Implement paste creation and raw retrieval with size limits, expiry, visibility rules and correct cache headers.
+    hint: Content to object storage first, metadata second; Cache-Control public with max-age ≤ remaining lifetime for public pastes, no-store for private ones; 410 when expired.
+    solution: |
+      `create` validates size, allocates an id, writes content to object storage then the metadata row (orphans cleaned by lifecycle rules). `raw` loads metadata, returns 410 if expired, hides private pastes from non-owners (404), and sets `Cache-Control: public, max-age=min(1h, time left)` with an ETag for public pastes or `private, no-store` for private ones, streaming bytes from object storage.
+    solutionCode: paste-service
+quiz:
+  - q: Why can public pastes be cached so aggressively?
+    options: [They're small, They never change after creation, CDNs are free, Browsers require it]
+    correct: 1
+    why: Immutable content never needs invalidation except deletion or expiry.
+  - q: Where should 5 MB pastes live?
+    options: [In a Redis string, In a database text column, In object storage, In application memory]
+    correct: 2
+    why: Object storage is built for durable, cheap blob storage and CDN delivery.

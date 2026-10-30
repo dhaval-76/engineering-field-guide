@@ -1,0 +1,9 @@
+flowchart TD
+  U[Users] --> CDN[CDN<br/>public pastes cached ≤ time to expiry]
+  CDN -- miss --> API[Paste service]
+  U -. large upload via presigned URL .-> OS
+  API --> M[(Metadata DB<br/>id · owner · size · visibility · expires_at)]
+  API --> RC[(Redis<br/>hot small pastes)]
+  API --> OS[(Object storage<br/>content by id or hash)]
+  J[Cleanup jobs + lifecycle rules] --> M
+  J --> OS
