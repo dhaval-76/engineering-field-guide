@@ -1,0 +1,95 @@
+---
+title: String Immutability, the String Pool and StringBuilder
+summary: Why Java strings can't change, what that buys (pooling, thread safety, security, cacheable hashes), the quadratic += trap and how StringBuilder avoids it, plus compact strings and intern().
+track: java-runtime
+order: 16
+tags: [java, string, immutability, string-pool, stringbuilder, performance]
+aliases: [string immutable why, string pool, string constant pool, stringbuilder vs stringbuffer, string intern, compact strings]
+prerequisites: [java-runtime/equals-and-hashcode]
+related: [java-runtime/hashmap-internals]
+quickRef:
+  points:
+    - A `String` never changes; "modifying" methods (`concat`, `replace`, `toUpperCase`) return **new** strings.
+    - 'Immutability enables the **string pool** (literals shared safely), **thread safety**, **cached hash codes** and safe validation.'
+    - '`s += x` in a loop is **O(n²)**; use `StringBuilder` (single-threaded) — `StringBuffer` is the synchronized legacy version.'
+    - 'Since Java 9 strings are a `byte[]` + coder (**compact strings**: Latin-1 text uses 1 byte/char).'
+    - '`intern()` returns the pooled instance; useful only for many duplicates of a small set of values.'
+  complexity: 'Loop of n += appends: O(n²) characters copied; StringBuilder: O(n) amortised.'
+  useWhen: Building text in loops, reasoning about memory of string-heavy apps, or explaining immutable design.
+lastReviewed: 2026-10-30
+---
+
+## Why it matters
+
+Strings are everywhere — keys, identifiers, JSON, SQL, log lines — so their design choices have outsized effects. Immutability is why string keys in `HashMap` are safe, why strings can be shared between threads without locks, and also why a careless `+=` in a loop can turn a 3-second report into a 30-second one.
+
+<Callout type="analogy">
+A printed photograph. You can't change the people in it; you can only take a new photo. Because a photo never changes, everyone can safely share the same print — nobody can scribble on it behind your back.
+</Callout>
+
+## What immutability buys
+
+<Diagram id="string-pool" caption="Literals with the same text share one pooled object; new String(…) always creates a separate one." />
+
+- **The string pool.** The JVM keeps one instance of each literal (in the heap since Java 7). Sharing is only safe because nobody can modify a shared string.
+- **Thread safety.** Strings can be passed between threads with no synchronization.
+- **Cached hash code.** `hashCode()` is computed once and stored, which makes strings fast map keys — and safe ones, since the hash can't change.
+- **Security.** A path, URL or class name validated once stays valid; another thread can't change it between check and use.
+
+<CodeTabs id="str-security" title="Safe check-then-use — and why passwords use char[]" />
+
+## The += trap
+
+Because every concatenation creates a new string, appending in a loop copies everything built so far, every time.
+
+<Chart
+  type="line"
+  title="Characters copied to build a report (25 characters per row)"
+  log
+  x={['1k', '5k', '10k', '50k']}
+  series={[
+    { name: 's += row', values: [12512500, 312562500, 1250125000, 31250625000], tone: 'bad' },
+    { name: 'StringBuilder', values: [50000, 250000, 500000, 2500000], tone: 'ok' },
+  ]}
+  yLabel="chars"
+  caption="+= copies 25 × n(n+1)/2 characters; a builder copies roughly 2 × 25 × n (amortised growth). At 50,000 rows that's 31 billion vs 2.5 million."
+/>
+
+<CodeTabs id="str-concat" title="Building large strings efficiently" />
+
+`StringBuilder` grows an internal buffer (doubling when full), so total copying is linear. `StringBuffer` is identical but synchronises every method — almost never needed, since you rarely build one string from several threads.
+
+## Inside a String (Java 9+)
+
+Older JVMs stored strings as `char[]` (2 bytes per character). **Compact strings** store a `byte[]` plus a coder flag: text that fits in Latin-1 uses one byte per character, everything else UTF-16. For typical English/ASCII-heavy data this roughly halves string memory with no API change.
+
+## intern() and deduplication
+
+`s.intern()` returns the pooled instance equal to `s`, adding it if absent. It can save memory when you hold millions of copies of a few values (country codes, status names parsed from files), but interning many *distinct* strings just grows the pool. G1's **string deduplication** (`-XX:+UseStringDeduplication`) shares identical backing arrays automatically during GC — often a better option.
+
+## Same idea in other languages
+
+JavaScript and Python strings are immutable too, with the same consequences: concatenation creates new strings, and the efficient pattern is to collect pieces and join once (`Array.join`, `str.join`, `io.StringIO`).
+
+## Practice: building a CSV row correctly
+
+<CodeTabs id="str-csv" title="Escaping per RFC 4180 with a StringBuilder" />
+
+<Pitfalls>
+
+- **`+=` inside loops** over large inputs — quadratic time and garbage.
+- **Comparing strings with `==`** — works for literals, fails for strings from input or concatenation.
+- **Calling `toUpperCase()` and ignoring the result** — the original is unchanged.
+- **Default-locale case conversion** — `"TITLE".toLowerCase()` in a Turkish locale gives a dotless ı; pass `Locale.ROOT` for identifiers.
+- **Keeping secrets in `String`** — they linger in memory until GC; use `char[]` and clear it.
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- Strings are immutable; every change makes a new string.
+- That enables pooling, thread safety, cached hashes and safe validation.
+- Use `StringBuilder` (or join/collectors) to build strings in loops.
+- Java 9+ compact strings use one byte per Latin-1 character.
+
+</KeyTakeaways>

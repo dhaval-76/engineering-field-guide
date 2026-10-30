@@ -1,0 +1,94 @@
+---
+title: equals(), hashCode() and ==
+summary: Identity vs equality, the contract that ties equals() to hashCode(), how to implement both correctly (or let records do it), and the bugs that appear in HashMap and HashSet when you don't.
+track: java-runtime
+order: 15
+tags: [java, equals, hashcode, records, collections]
+aliases: [equals vs ==, hashcode contract, override equals and hashcode, integer cache, object equality]
+related: [java-runtime/hashmap-internals, java-runtime/string-immutability]
+quickRef:
+  points:
+    - '`==` compares **references** (same object?); `equals()` compares **meaning** (same value?).'
+    - '**Contract**: if `a.equals(b)` then `a.hashCode() == b.hashCode()`. Equal hash codes do *not* imply equality.'
+    - 'equals must be reflexive, symmetric, transitive, consistent, and return false for null.'
+    - Use the same fields in both methods; prefer `Objects.equals`/`Objects.hash` — or a **record**, which generates both.
+    - 'Never compare wrapper types (`Integer`, `Long`) with `==`: values in −128..127 are cached and accidentally work.'
+  useWhen: Defining value objects, using custom keys in maps/sets, or debugging "duplicates" and "missing" entries.
+lastReviewed: 2026-10-30
+---
+
+## Why it matters
+
+Hash-based collections find things in two steps: `hashCode()` picks the bucket, `equals()` confirms the match. If the two methods disagree, `HashSet` holds duplicates and `HashMap.get` returns `null` for keys that are "obviously" there. These are some of the most common bugs in Java codebases, and a staple interview question.
+
+<Callout type="analogy">
+Two copies of the same book are *equal* (same title, same edition) but they are not the *same* physical book. `==` asks "is this the very same copy?"; `equals` asks "is this the same book?". A library index must file both copies under the same shelf label — that's what consistent `hashCode` guarantees.
+</Callout>
+
+## Identity vs equality
+
+<CodeTabs id="eq-identity" title="== on strings and boxed integers" />
+
+- `==` on objects is **reference** comparison. On primitives (`int`, `double`) it compares values.
+- `String` literals are interned, so two literals are often the same object — which makes `==` *seem* to work until a string comes from input or concatenation.
+- `Integer.valueOf` caches −128 to 127, so `==` on small boxed numbers works by accident and fails at 128. Always use `equals` (or unbox) for wrappers.
+
+## The contract
+
+`equals` must be:
+
+| Property | Meaning |
+|---|---|
+| Reflexive | `a.equals(a)` |
+| Symmetric | `a.equals(b)` ⇔ `b.equals(a)` |
+| Transitive | `a.equals(b)` and `b.equals(c)` ⇒ `a.equals(c)` |
+| Consistent | Same answer on repeated calls if nothing changed |
+| Non-null | `a.equals(null)` is `false` (never throws) |
+
+and `hashCode` must return equal values for equal objects. The reverse isn't required — collisions are normal.
+
+## Implementing them
+
+<CodeTabs id="eq-correct" title="A value class by hand, as a record, and in JS/Python" />
+
+- Use exactly the fields that define identity, in **both** methods.
+- `instanceof` with a pattern variable handles the null check and cast in one step.
+- Records (Java 16+) and frozen dataclasses (Python) generate correct, consistent equality from their fields — prefer them for value objects.
+- JavaScript has no equality hooks: `Map`/`Set` compare objects by identity, so you use a primitive key (an id or a composite string) instead.
+
+## Subclasses and symmetry
+
+Adding a field in a subclass and including it in `equals` breaks symmetry if the parent uses `instanceof`:
+
+<CodeTabs id="eq-symmetry" title="How inheritance breaks equals symmetry" />
+
+There's no way to extend an instantiable class with a new value field and keep the contract while using `instanceof`. Make value classes `final` (records are), compare `getClass()` if subclasses must not equal their parent, or use composition.
+
+## Choosing what "equal" means
+
+Equality is a **domain decision**. Two `User` objects with the same email might be the same user even if their names differ; two `Order` entities are the same if their ids match, regardless of status. Decide, document, and normalise inputs once (e.g. lower-case emails in the constructor) so the methods stay simple.
+
+<CodeTabs id="eq-dedupe" title="Deduplicating users by normalised email" />
+
+<Callout type="warning" title="JPA entities">
+For database entities, field-by-field equality on mutable fields is dangerous (hash codes change as entities are loaded or updated). Common practice: equality by a stable business key, or by id with a constant `hashCode` per class. Never include lazy-loaded collections.
+</Callout>
+
+<Pitfalls>
+
+- **Overriding only `equals`** — hash collections break.
+- **Using mutable fields** in `hashCode` for objects stored in sets or as map keys.
+- **`==` on strings or wrappers** — works in tests with literals and small numbers, fails in production.
+- **`equals(Object)` vs `equals(MyType)`** — an overload, not an override, silently ignored by collections (use `@Override`).
+- **Including derived or lazy fields** in equality — expensive and unstable.
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- `==` is identity; `equals` is value equality defined by you.
+- Equal objects must have equal hash codes; use the same fields in both.
+- Prefer records/dataclasses for value objects; keep them immutable.
+- Equality is a domain decision — normalise once, document it.
+
+</KeyTakeaways>

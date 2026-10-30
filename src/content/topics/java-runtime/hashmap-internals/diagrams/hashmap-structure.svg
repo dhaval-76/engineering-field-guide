@@ -1,0 +1,35 @@
+<svg viewBox="0 0 680 240" xmlns="http://www.w3.org/2000/svg">
+  <defs><marker id="how-hashmap-works-internally-d1-hm-a" markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto"><path d="M0,0 L0,6 L7,3 z" fill="var(--d-info)"></path></marker></defs>
+  <text x="8" y="18" font-family="var(--font-mono)" font-size="10" fill="var(--d-info)" font-weight="600">Step 1: hash("apple") → spread bits → index = hash &amp; (capacity-1)</text>
+  <rect x="8" y="26" width="80" height="28" rx="4" fill="var(--d-info-soft)" stroke="var(--d-info)" stroke-width="1.5"></rect>
+  <text x="48" y="44" text-anchor="middle" font-family="var(--font-mono)" font-size="10" fill="var(--d-info)">"apple"</text>
+  <path d="M88,40 L130,40" stroke="var(--d-info)" stroke-width="1.5" marker-end="url(#how-hashmap-works-internally-d1-hm-a)"></path>
+  <text x="109" y="32" text-anchor="middle" font-family="var(--font-mono)" font-size="8" fill="var(--d-muted)">hashCode()</text>
+  <rect x="132" y="26" width="80" height="28" rx="4" fill="var(--d-plum-soft)" stroke="var(--d-plum)" stroke-width="1.5"></rect>
+  <text x="172" y="44" text-anchor="middle" font-family="var(--font-mono)" font-size="10" fill="var(--d-plum)">-860654854</text>
+  <path d="M212,40 L254,40" stroke="var(--d-info)" stroke-width="1.5" marker-end="url(#how-hashmap-works-internally-d1-hm-a)"></path>
+  <text x="233" y="32" text-anchor="middle" font-family="var(--font-mono)" font-size="8" fill="var(--d-muted)">spread</text>
+  <rect x="256" y="26" width="80" height="28" rx="4" fill="var(--d-warn-soft)" stroke="var(--d-warn)" stroke-width="1.5"></rect>
+  <text x="296" y="44" text-anchor="middle" font-family="var(--font-mono)" font-size="10" fill="var(--d-warn)">h^(h&gt;&gt;&gt;16)</text>
+  <path d="M336,40 L378,40" stroke="var(--d-info)" stroke-width="1.5" marker-end="url(#how-hashmap-works-internally-d1-hm-a)"></path>
+  <text x="357" y="32" text-anchor="middle" font-family="var(--font-mono)" font-size="8" fill="var(--d-muted)">&amp;(n-1)</text>
+  <rect x="380" y="26" width="60" height="28" rx="4" fill="var(--d-ok-soft)" stroke="var(--d-ok)" stroke-width="1.5"></rect>
+  <text x="410" y="44" text-anchor="middle" font-family="var(--font-mono)" font-size="11" fill="var(--d-ok)">idx=3</text>
+
+  <text x="8" y="84" font-family="var(--font-mono)" font-size="10" fill="var(--d-text)" font-weight="600">Step 2: Bucket array — each bucket is head of linked list (or a tree when a chain grows past 8)</text>
+  <g font-family="var(--font-mono)" font-size="9">
+    <rect x="8" y="94" width="60" height="30" fill="var(--d-bg)" stroke="var(--d-line)"></rect><text x="38" y="113" text-anchor="middle" fill="var(--d-muted)">[0] null</text>
+    <rect x="68" y="94" width="60" height="30" fill="var(--d-bg)" stroke="var(--d-line)"></rect><text x="98" y="113" text-anchor="middle" fill="var(--d-muted)">[1] null</text>
+    <rect x="128" y="94" width="60" height="30" fill="var(--d-bg)" stroke="var(--d-line)"></rect><text x="158" y="113" text-anchor="middle" fill="var(--d-muted)">[2] null</text>
+    <rect x="188" y="94" width="90" height="30" fill="var(--d-ok-soft)" stroke="var(--d-ok)" stroke-width="1.5"></rect>
+    <text x="233" y="113" text-anchor="middle" fill="var(--d-ok)">[3] → Node</text>
+    <rect x="278" y="94" width="60" height="30" fill="var(--d-bg)" stroke="var(--d-line)"></rect><text x="308" y="113" text-anchor="middle" fill="var(--d-muted)">[4] null</text>
+    <text x="360" y="113" fill="var(--d-muted)">... [15]</text>
+  </g>
+  <path d="M233,124 L233,148" stroke="var(--d-ok)" stroke-width="1.5" marker-end="url(#how-hashmap-works-internally-d1-hm-a)"></path>
+  <rect x="170" y="150" width="200" height="44" rx="6" fill="var(--d-ok-soft)" stroke="var(--d-ok)" stroke-width="1.5"></rect>
+  <text x="270" y="168" text-anchor="middle" font-family="var(--font-mono)" font-size="9" fill="var(--d-ok)">Node { key="apple", value=10,</text>
+  <text x="270" y="183" text-anchor="middle" font-family="var(--font-mono)" font-size="9" fill="var(--d-ok)">       hash=-860..., next=null }</text>
+
+  <text x="8" y="220" font-family="var(--font-sans)" font-size="10" fill="var(--d-text)">Java 8+: a chain longer than 8 (in a table of ≥ 64 buckets) becomes a red-black tree → O(log n) worst case</text>
+</svg>

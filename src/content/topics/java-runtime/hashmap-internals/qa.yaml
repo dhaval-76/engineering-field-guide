@@ -1,0 +1,50 @@
+questions:
+  - q: Explain how HashMap's put() works internally.
+    think: Hash → spread → index → walk chain → insert or replace → maybe resize.
+    answer: |
+      `hash = key.hashCode() ^ (h >>> 16)` (null key → 0); `index = hash & (table.length − 1)`. Walk that bucket's chain: if a node has the same hash and `equals` the key, replace its value and return the old one. Otherwise append a new node; if the chain exceeds 8 nodes and the table has ≥ 64 buckets, convert it to a red-black tree (smaller tables resize instead). Finally, if size exceeds capacity × 0.75, double the table and split each chain between index `i` and `i + oldCapacity`.
+  - q: Requests for one particular customer are consistently slower than for everyone else. Could a HashMap be involved?
+    think: What would make lookups for one key slow when others are fast?
+    answer: |
+      If data is keyed by an object with a poor `hashCode` (constant, or derived from a field that's the same for this customer's records), all of those keys collide into one bucket. Lookups then walk a long chain or tree — O(n) or O(log n) instead of O(1). Confirm by timing the lookup or inspecting the key's hash distribution; fix by implementing `hashCode` over the same fields as `equals` (e.g. `Objects.hash(...)` or a record). If the key is a `String`, look instead at what else that request path does.
+followUps:
+  - q: Why is the capacity always a power of two?
+    intuition: Division is slow; masking is fast.
+    approach: |
+      With capacity `2^k`, `capacity − 1` is k one-bits, so `hash & (capacity − 1)` equals `hash mod capacity` in a single AND. Doubling keeps the power of two, and makes resizing cheap: the new index differs from the old only in one bit, so each entry stays or moves by `oldCapacity`.
+  - q: What is hash spreading (`h ^ (h >>> 16)`) for?
+    intuition: Which bits of the hash does the index actually use?
+    approach: |
+      In a small table the index uses only the lowest few bits. If a `hashCode` puts its variation in the high bits (e.g. some floating-point or composite hashes), many keys would collide. XOR-ing the upper 16 bits into the lower 16 lets high bits influence the bucket at almost no cost.
+  - q: When does a bucket become a tree, and why not always use trees?
+    intuition: Trees cost more memory and work per node; when do they pay off?
+    approach: |
+      A chain becomes a red-black tree when it exceeds 8 nodes and the table has at least 64 buckets (otherwise the map resizes). With a decent hash function and a 0.75 load factor, chains of 8 are vanishingly rare, so trees exist as protection against bad or adversarial hashes. Tree nodes are about twice the size of list nodes, so using them everywhere would waste memory for no benefit. They revert to lists at 6 nodes.
+  - q: Walk through what happens during a resize.
+    intuition: Every entry has to end up in a bucket of the new, larger table.
+    approach: |
+      Triggered when size > capacity × loadFactor. A new array of twice the capacity is allocated. Each bucket's chain is split into a "low" list (entries whose hash has 0 in the new bit — same index) and a "high" list (1 in the new bit — index + old capacity), preserving order, without calling `hashCode` again. It's O(n), which is why pre-sizing matters for large maps.
+practice:
+  - task: Count word frequencies across 10 threads, 100,000 words each, with zero lost updates.
+    hint: '`HashMap` isn''t thread-safe, and `get` + `put` isn''t atomic even on a concurrent map.'
+    solution: |
+      Use `ConcurrentHashMap<String, Long>` and `counts.merge(word, 1L, Long::sum)` — an atomic read-modify-write per key that locks only that bin. Alternatives: `computeIfAbsent(word, k -> new LongAdder()).increment()` for very hot keys, or per-thread `HashMap`s merged at the end (no contention at all).
+    solutionCode: hashmap-presize
+  - task: Write a minimal hash map with chaining and resizing, then demonstrate the mutable-key bug.
+    hint: Store the hash in each node; resize at 0.75 load.
+    solution: |
+      See `MiniHashMap`: `put` walks the chain comparing hash then `equals`, inserts at the head, and resizes by redistributing nodes. Mutating a key after insertion makes `get` return null and leaves the entry stranded.
+    solutionCode: hashmap-mini
+quiz:
+  - q: A HashMap has capacity 16. After how many entries does it resize (default load factor)?
+    options: ['8', '12 — it resizes when the 13th entry is added', '16', '24']
+    correct: 1
+    why: Threshold = 16 × 0.75 = 12; exceeding it triggers the resize.
+  - q: You override equals() but not hashCode(). What happens with HashSet?
+    options:
+      - It works, just slower
+      - Equal objects usually get different identity hashes, land in different buckets, and the set holds duplicates
+      - It throws an exception
+      - The compiler refuses
+    correct: 1
+    why: The bucket is chosen by hashCode before equals ever runs.

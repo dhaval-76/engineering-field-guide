@@ -1,0 +1,36 @@
+questions:
+  - q: Our user-deduplication set keyed by email contains duplicates. equals() is overridden; nothing else is. What's wrong?
+    think: Which method does HashSet call first?
+    answer: |
+      `hashCode()` wasn't overridden, so it falls back to identity-based hashes. Two users with the same email usually get different hash codes, land in different buckets, and `equals` never runs. Override `hashCode` using the same field(s) as `equals` (e.g. `email.hashCode()` after normalising case), or make `User` a record if all components define identity. Add a test: two users with the same email → set size 1.
+  - q: What is the difference between == and equals() in Java?
+    answer: |
+      `==` compares references for objects (same instance?) and values for primitives. `equals` is a method whose default (in `Object`) is also reference comparison, but classes override it to compare meaningful state — `String`, wrappers, collections, records. Use `equals` for value comparison; `==` for identity checks, primitives, enums, or `null`.
+followUps:
+  - q: Why does `Integer a = 127, b = 127; a == b` print true but 128 prints false?
+    intuition: How are boxed integers created from literals?
+    approach: |
+      Autoboxing calls `Integer.valueOf`, which returns cached instances for −128..127 (the upper bound is configurable). Two 127s are the same cached object; two 128s are different objects, so reference comparison fails. Compare with `equals`, or unbox to `int`.
+  - q: Why should map keys be immutable?
+    intuition: What happens to the bucket after the key's hash changes?
+    approach: |
+      The entry stays in the bucket computed from the original hash. After mutation, lookups compute a different bucket and miss, and `equals` against the old value fails too. The entry is unreachable but still referenced — a silent leak. Use immutable keys (`String`, numbers, enums, records with immutable fields).
+  - q: What are the properties equals() must satisfy?
+    intuition: It's an equivalence relation, plus two practical rules.
+    approach: |
+      Reflexive, symmetric, transitive (an equivalence relation), consistent across calls if nothing changed, and `x.equals(null)` must return false. Symmetry is the one most often broken — by subclasses adding fields, or by comparing against a different type (e.g. a case-insensitive string wrapper equal to a plain String one way but not the other).
+practice:
+  - task: Write a `Point(x, y)` class, put `new Point(1,1)` in a HashMap, then look it up with another `new Point(1,1)` — first without hashCode, then with it.
+    hint: Without hashCode the two instances almost certainly hash to different buckets.
+    solution: |
+      Without `hashCode`: `get` returns `null` (different buckets). With `Objects.hash(x, y)` (or `record Point(int x, int y)`): `get` returns the value. Records generate both methods automatically.
+    solutionCode: eq-correct
+quiz:
+  - q: If a.hashCode() == b.hashCode(), what can you conclude?
+    options: [a.equals(b) is true, Nothing certain — it may be a collision, a == b, They are the same class]
+    correct: 1
+    why: Different objects can share a hash code; only the reverse implication is guaranteed.
+  - q: Which declaration is a correct override used by HashMap?
+    options: ['public boolean equals(Point p)', 'public boolean equals(Object o)', 'public int equals(Object o)', 'public boolean equal(Object o)']
+    correct: 1
+    why: Collections call equals(Object); equals(Point) is an overload they never invoke.

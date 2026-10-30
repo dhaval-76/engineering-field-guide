@@ -1,0 +1,36 @@
+questions:
+  - q: Report generation time grows much faster than report size — 5,000 rows take 3 seconds, 50,000 take 5 minutes. Where do you look first?
+    think: Ten times the input, a hundred times the time — that's quadratic.
+    answer: |
+      Look for string concatenation inside a loop (`report += row + "\n"`). Each iteration copies everything built so far, so total work is O(n²). Confirm with a profiler (hot `Arrays.copyOf` / string concat frames). Replace with a pre-sized `StringBuilder` or `Collectors.joining`, and for very large reports stream rows straight to the output `Writer` instead of building one huge string.
+  - q: Why are strings immutable in Java?
+    answer: |
+      So they can be shared safely: the JVM pools literals, strings move between threads without locks, their hash code can be cached (making them efficient, stable map keys), and security-sensitive values (paths, class names, URLs) can't change after validation. The cost is that every modification creates a new object, which is why `StringBuilder` exists.
+followUps:
+  - q: StringBuilder vs StringBuffer — when would you use each?
+    intuition: What's the only difference?
+    approach: |
+      Same API; `StringBuffer` synchronises every method, `StringBuilder` doesn't. Building a string almost always happens within one thread, so `StringBuilder` is the default. `StringBuffer` remains for legacy APIs; if several threads really contribute text, collect parts and join, or synchronise at a higher level.
+  - q: What does `String.intern()` do, and when is it worth using?
+    intuition: How do you get a runtime string into the pool?
+    approach: |
+      It returns the canonical pooled instance equal to the string, adding it if absent, so equal interned strings are `==`. It saves memory only when there are many duplicates of a limited set of values. Interning millions of distinct strings bloats the pool. G1 string deduplication is often a simpler, automatic alternative.
+  - q: What changed about String's internal storage in Java 9?
+    intuition: Most text in many apps is ASCII.
+    approach: |
+      Compact strings: the backing array became `byte[]` with a coder flag. Latin-1 text uses one byte per character instead of two (UTF-16 is used only when needed), roughly halving memory for typical string-heavy heaps, transparently.
+practice:
+  - task: Write a method that turns a list of fields into a CSV row — null fields become empty, fields with commas, quotes or newlines are quoted, and embedded quotes are doubled.
+    hint: One StringBuilder; decide per field whether quoting is needed.
+    solution: |
+      Append a comma between fields; for each non-null field, quote it if it contains `,`, `"`, `\n` or `\r`, doubling any `"` inside. Pre-size the builder roughly by field count.
+    solutionCode: str-csv
+quiz:
+  - q: What does this print? `String s = "java"; s.toUpperCase(); System.out.println(s);`
+    options: [JAVA, java, Nothing, It doesn't compile]
+    correct: 1
+    why: toUpperCase returns a new string; s still refers to the original.
+  - q: Which is the right tool for appending 100,000 lines in one thread?
+    options: [String +=, StringBuffer, StringBuilder, String.intern()]
+    correct: 2
+    why: StringBuilder grows one buffer with amortised O(1) appends and no synchronisation overhead.

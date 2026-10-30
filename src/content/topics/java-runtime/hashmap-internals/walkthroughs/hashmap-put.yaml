@@ -1,0 +1,26 @@
+title: put() into a HashMap with 4 buckets (to keep it small)
+frames:
+  - caption: 'Index = `hash & (capacity − 1)`. With capacity 4 that keeps the lowest **2 bits** of the (spread) hash: a single AND instead of a modulo.'
+    panels:
+      - kind: array
+        label: Buckets
+        items: ['[0] —', '[1] —', '[2] —', '[3] —']
+      - kind: note
+        text: capacity 4 → threshold = 4 × 0.75 = 3 entries before resizing
+  - caption: '`put("cat")`: hash ends in …01 → bucket **1**. `put("dog")`: …11 → bucket **3**.'
+    panels:
+      - kind: array
+        label: Buckets
+        items: ['[0] —', { v: '[1] cat', tone: accent }, '[2] —', { v: '[3] dog', tone: accent }]
+  - caption: '`put("owl")`: hash ends in …01 too → **collision** in bucket 1. The new node is chained to the existing one. `get("owl")` compares hashes first, then `equals()`, along that chain.'
+    panels:
+      - kind: array
+        label: Buckets
+        items: ['[0] —', { v: '[1] owl → cat', tone: warn }, '[2] —', '[3] dog']
+  - caption: 'Adding a 4th key, fox (…110), makes size 4 > threshold 3, so the table **doubles to 8**. Each entry now uses one more bit of its hash: cat (…101) moves to **5**; owl (…001) and dog (…011) stay; fox lands in **6**.'
+    panels:
+      - kind: array
+        label: Buckets after resize
+        items: ['[0]', { v: '[1] owl', tone: ok }, '[2]', '[3] dog', '[4]', { v: '[5] cat', tone: ok, tag: moved +4 }, { v: '[6] fox', tone: accent, tag: new }, '[7]']
+      - kind: note
+        text: 'An entry either stays at i or moves to i + oldCapacity — no need to call hashCode() again.'

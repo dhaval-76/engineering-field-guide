@@ -1,0 +1,107 @@
+---
+title: How HashMap Works Internally
+summary: Buckets, hash spreading, collisions, treeification and resizing in Java's HashMap — why lookups are O(1) on average, what makes them O(n), and the mutable-key bug that strands entries.
+track: java-runtime
+order: 20
+tags: [java, hashmap, hashing, collections, data-structures]
+aliases: [hashmap internal working, hash table, load factor, rehashing, hash collision, treeify, java hashmap interview]
+prerequisites: [java-runtime/equals-and-hashcode]
+related: [low-level-design/lru-cache]
+quickRef:
+  points:
+    - An array of **buckets**; index = `spread(hashCode) & (capacity − 1)`; capacity is always a power of two.
+    - Collisions chain in a linked list; since Java 8 a chain longer than **8** (in a table of ≥ **64** buckets) becomes a **red-black tree** → O(log n) worst case.
+    - '**Load factor 0.75**: when size > capacity × 0.75 the table doubles and entries move to `i` or `i + oldCapacity`.'
+    - Lookup compares the stored hash first, then `equals()` — so `equals` and `hashCode` must agree.
+    - '**Never mutate a key** after inserting it; pre-size with `HashMap.newHashMap(n)` when you know n.'
+  complexity: 'get/put O(1) average, O(log n) worst case per bucket (treeified), resize O(n) amortised to O(1).'
+  useWhen: Explaining hash tables, choosing initial capacity, debugging slow lookups or "missing" map entries.
+lastReviewed: 2026-10-30
+---
+
+## Why it matters
+
+`HashMap` is the most used data structure in Java code and the most asked Java internals question. Knowing how it works explains real bugs — a lookup that's slow for one customer, an entry that's "in the map" but can't be found, a memory leak from keys nobody can reach — and it's the foundation for `HashSet`, `LinkedHashMap`, `ConcurrentHashMap` and caches.
+
+<Callout type="analogy">
+A wall of numbered lockers. To store a coat you don't search for an empty locker: you compute the locker number from the coat's tag and go straight there. Two tags occasionally map to the same locker, so each locker can hold a short chain of coats — but as long as the numbers are spread well, every chain stays short.
+</Callout>
+
+## The structure
+
+<Diagram id="hashmap-structure" caption="A key's hashCode is spread and masked to pick a bucket; each bucket holds a chain of nodes (or a tree when a chain gets long)." />
+
+Each entry is a node holding `hash`, `key`, `value` and `next`. The table is an array of those chains.
+
+## put and get, step by step
+
+<Walkthrough id="hashmap-put" />
+
+<Steps>
+
+1. **Hash** — call `key.hashCode()`, then **spread** it: `h ^ (h >>> 16)`. The index uses only the low bits, so spreading folds the high bits in; otherwise keys whose hashes differ only in high bits would all collide.
+2. **Index** — `hash & (capacity − 1)`. Because capacity is a power of two, this equals `hash % capacity` with one cheap AND.
+3. **Find** — walk the bucket's chain comparing the stored hash (cheap) and then `equals()` (possibly expensive). Match → replace the value (put) or return it (get).
+4. **Insert** — no match → add a node to the chain.
+5. **Resize** — if size exceeds `capacity × loadFactor`, double the table and redistribute.
+
+</Steps>
+
+<CodeTabs id="hashmap-mini" title="A minimal hash map with chaining and doubling" />
+
+## Collisions and treeification
+
+Two different keys can land in the same bucket — by sharing the same low bits, or by having equal hash codes. Chains keep that correct; good hash functions keep chains short (on average under one entry per bucket at a 0.75 load factor).
+
+If a chain grows past **8** nodes, Java 8+ converts it to a **red-black tree** ordered by hash (and by `compareTo` when keys are `Comparable`), so a pathological or malicious set of keys degrades to O(log n), not O(n). Two details:
+
+- Treeification only happens if the table has at least **64** buckets; in a smaller table a long chain triggers a **resize** instead, since the real problem is probably a small table.
+- A tree shrinks back to a list when it drops to **6** nodes — the gap avoids flipping back and forth.
+
+## Resizing
+
+When `size > capacity × 0.75`, the table doubles. Because the new index uses exactly one extra bit of the hash, each entry either **stays** at `i` or moves to **`i + oldCapacity`** — Java splits each chain in two without recomputing hash codes.
+
+Resizing is O(n) but happens rarely (amortised O(1) per insert). If you know the final size, pre-size the map and skip every intermediate resize:
+
+<CodeTabs id="hashmap-presize" title="Pre-sizing and merge() for counting" />
+
+## The mutable-key bug
+
+<CodeTabs id="hashmap-mutable-key" title="Changing a key's fields strands its entry" />
+
+The entry was placed in the bucket for the **old** hash. After mutation, lookups compute the new hash and search the wrong bucket; even searching with an equal "old" key fails `equals`. The entry can't be found or removed but still occupies memory. Use immutable keys — `String`, boxed numbers, enums, or records with immutable fields.
+
+## HashMap vs its relatives
+
+| Map | Ordering | Thread-safe | Nulls | Notes |
+|---|---|---|---|---|
+| `HashMap` | None | No | One null key, null values | General purpose |
+| `LinkedHashMap` | Insertion (or access) order | No | Yes | LRU caches via access order |
+| `TreeMap` | Sorted by key | No | No null keys | O(log n); range queries |
+| `ConcurrentHashMap` | None | **Yes** | **No nulls** | Fine-grained locking/CAS |
+| `Hashtable` | None | Yes (one lock) | No nulls | Legacy; use ConcurrentHashMap |
+
+## Same idea in other languages
+
+- **JavaScript** `Map` is a hash table that also remembers insertion order; object keys compare by identity, so there's no `equals`/`hashCode` to override.
+- **Python** `dict` uses **open addressing** (probing other slots instead of chaining) and keeps insertion order since 3.7; keys must be hashable, and the `__eq__`/`__hash__` contract is the same as Java's.
+
+<Pitfalls>
+
+- **Overriding `equals` without `hashCode`** — equal keys land in different buckets and lookups fail.
+- **Mutable keys** — entries stranded after mutation.
+- **Bad `hashCode`** (constant, or using only one low-variety field) — every key collides; lookups slow to O(log n) or O(n).
+- **Concurrent writes to a plain `HashMap`** — lost updates and corrupted structure; use `ConcurrentHashMap`.
+- **`get(k) == null` as "absent"** — the key might map to `null`; use `containsKey` or `getOrDefault`.
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- Bucket index = spread hash & (capacity − 1); capacity is a power of two.
+- Chains handle collisions; long chains become red-black trees (≥ 64 buckets).
+- Resize doubles the table when size > 0.75 × capacity; entries stay or move by exactly old capacity.
+- `equals`/`hashCode` must agree, and keys must not change while in the map.
+
+</KeyTakeaways>
