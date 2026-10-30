@@ -53,6 +53,24 @@
 .wt-stack {
   flex-direction: column;
 }
+/* rows: a vertical list of lines (result sets, logs, steps) — left-aligned and allowed to wrap */
+.wt-rows {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 4px;
+}
+.wt-rows .wt-cell-wrap {
+  align-items: stretch;
+}
+.wt-rows .wt-cell {
+  height: auto;
+  min-height: 32px;
+  padding: 5px 10px;
+  place-items: center start;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  font-size: 0.8125rem;
+}
 .wt-item {
   display: flex;
   align-items: center;

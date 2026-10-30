@@ -1,0 +1,34 @@
+title: Evaluating a grouped query, clause by clause
+frames:
+  - caption: '**FROM orders** — the starting set is every row of the table. (With joins, this step builds the joined rows.)'
+    panels:
+      - kind: rows
+        label: Rows
+        items: ['#1 · Asha · PAID · 120', '#2 · Asha · PAID · 80', '#3 · Ben · CANCELLED · 50', '#4 · Ben · PAID · 200', '#5 · Chen · PAID · 30']
+  - caption: '**WHERE status = ''PAID''** keeps individual rows. Aggregates don''t exist yet, which is why `WHERE SUM(total) > 100` is an error.'
+    panels:
+      - kind: rows
+        label: Rows
+        items: ['#1 · Asha · PAID · 120', '#2 · Asha · PAID · 80', { v: '#3 · Ben · CANCELLED · 50', tone: bad }, '#4 · Ben · PAID · 200', '#5 · Chen · PAID · 30']
+  - caption: '**GROUP BY customer** collapses rows into one group per customer. From now on, only grouped columns and aggregates can be used.'
+    panels:
+      - kind: kv
+        label: Groups
+        pairs: [[Asha, '#1 120 · #2 80'], [Ben, '#4 200'], [Chen, '#5 30']]
+  - caption: '**HAVING SUM(total) > 100** filters whole groups using aggregates.'
+    panels:
+      - kind: kv
+        label: Groups
+        pairs: [[Asha, { v: 'sum 200 ✓', tone: ok }], [Ben, { v: 'sum 200 ✓', tone: ok }], [Chen, { v: 'sum 30 ✗', tone: bad }]]
+  - caption: '**SELECT customer, SUM(total) AS spent** computes the output columns. The alias `spent` is born here — too late for `WHERE`, in time for `ORDER BY`.'
+    panels:
+      - kind: kv
+        label: Result
+        pairs: [[Asha, { v: 'spent 200', tone: info }], [Ben, { v: 'spent 200', tone: info }]]
+  - caption: '**ORDER BY spent DESC LIMIT 2** sorts, then cuts. Asha and Ben tie at 200: without a tiebreaker (`, customer`) their order may differ between runs — and a `LIMIT 1` would return either.'
+    panels:
+      - kind: rows
+        label: Final result
+        items: [{ v: 'Asha · 200', tone: accent }, { v: 'Ben · 200', tone: accent }]
+      - kind: note
+        text: 'Tie on spent → add a unique column to ORDER BY for a stable result.'

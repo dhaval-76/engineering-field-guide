@@ -1,0 +1,53 @@
+questions:
+  - q: 'Leaderboard(user_id, game_id, score): return each game''s top 3 players. Players with equal scores must share a position. Which ranking function, and why?'
+    think: What should happen to the player after two tied players — position 2 or 3?
+    answer: |
+      Rank inside each game with a window function in a subquery, then filter outside (window functions can't be used in `WHERE`):
+
+      `SELECT * FROM (SELECT l.*, DENSE_RANK() OVER (PARTITION BY game_id ORDER BY score DESC) AS pos FROM leaderboard l) t WHERE pos <= 3`
+
+      `ROW_NUMBER` breaks ties arbitrarily (two equal scores get 1 and 2, and which is which can change between runs). `RANK` gives ties the same position but skips the next (1, 1, 3) — what sports tables usually do. `DENSE_RANK` doesn't skip (1, 1, 2). Clarify which the product wants; "top 3 positions" with `DENSE_RANK` can return more than 3 players. For performance, an index on `(game_id, score DESC)` lets the database read each partition already sorted.
+  - q: A dashboard shows each order's item total and amount paid, and finance says the paid amounts are sometimes doubled or tripled. The query joins orders, order_items and payments and groups by order. What's wrong?
+    think: How many rows does one order become after both joins?
+    answer: |
+      **Fan-out**: an order with 3 items and 2 payments produces 3 × 2 = 6 joined rows, so `SUM(payments.amount)` counts each payment 3 times and the item total counts each item twice. Orders with one payment look fine, which is why it's intermittent. Fix by aggregating each child table separately (CTEs or subqueries grouped by `order_id`) and joining the per-order results, using a LEFT JOIN for payments so unpaid orders stay. `DISTINCT` inside the sum is not a fix — two genuine payments of the same amount would be collapsed.
+followUps:
+  - q: Explain 1NF, 2NF and 3NF with one example.
+    intuition: '"The key, the whole key, and nothing but the key."'
+    approach: |
+      Start from an order table with `item1/item2/item3` columns. **1NF**: one value per cell, no repeating groups — one row per order line, key `(order_id, product_id)`. **2NF**: no non-key column depends on only part of a composite key — `product_name` depends on `product_id` alone, so it moves to `products`. **3NF**: no non-key column depends on another non-key column — `customer_city` depends on `customer_id`, so it moves to `customers`. Result: each fact lives in exactly one row, so an update can't leave contradictions.
+  - q: When would you denormalize?
+    intuition: What is the read path, and who keeps the copy correct?
+    approach: |
+      When a measured, hot read path is dominated by joins or aggregation and the copied data changes rarely: counters (`order_count`), a name shown in a list, precomputed reporting tables, search documents. Each copy needs a sync mechanism — same transaction, trigger, or events with eventual consistency — and someone who owns it. Don't confuse it with recording historical facts such as the price at purchase time, which is correct modelling.
+  - q: Nested loop, hash join or merge join — when does the planner pick each?
+    intuition: How many rows are on each side, and is there an index or sort order to use?
+    approach: |
+      **Nested loop** with an index lookup when one side is small — great for "this customer's orders". **Hash join** for large equality joins with no useful ordering: it hashes the smaller side in memory (spills to disk if `work_mem` is too small). **Merge join** when both sides are sorted on the key already. If the planner chooses badly, it's usually a wrong row estimate: check estimated vs actual rows in `EXPLAIN ANALYZE`, run `ANALYZE`, and look for functions or type mismatches on the join keys.
+  - q: How does a window function differ from GROUP BY?
+    intuition: How many rows come out?
+    approach: |
+      `GROUP BY` collapses each group into one output row. A window function computes an aggregate or ranking over a window of related rows but returns **every** input row, so you can show an order next to its customer's total or rank, or compare each row with the previous one (`LAG`). Windows are evaluated after `WHERE`/`GROUP BY`/`HAVING`, so you filter on them in an outer query.
+practice:
+  - task: 'Write queries for: (1) the second-highest salary per department, (2) top 3 per game with ties, (3) orders above their customer''s average, (4) month-over-month revenue change, (5) users with login streaks of at least 3 consecutive days.'
+    hint: DENSE_RANK in a subquery for (1) and (2); AVG() OVER (PARTITION BY …) for (3); GROUP BY month then LAG for (4); for (5), subtract ROW_NUMBER from the date — consecutive days share the result.
+    solution: |
+      Ranking questions: compute `DENSE_RANK() OVER (PARTITION BY dept ORDER BY salary DESC)` in a subquery and filter `= 2` or `<= 3` outside. Above-average: `AVG(total) OVER (PARTITION BY customer_id)` keeps every order next to its customer's average. Month-over-month: aggregate per month in a CTE, then `revenue - LAG(revenue) OVER (ORDER BY month)`, using `NULLIF` to avoid dividing by zero for percentages. Streaks (gaps and islands): for distinct login days, `day - ROW_NUMBER()` is constant within a run of consecutive days, so group by that anchor and keep groups with `COUNT(*) >= 3`.
+    solutionCode: sql-interview-patterns
+quiz:
+  - q: 'Scores 100, 90, 90, 80. What does RANK() give the 80?'
+    options: ['3', '4', '2', '1']
+    correct: 1
+    why: RANK skips positions after ties (1, 2, 2, 4). DENSE_RANK would give 3.
+  - q: '`customers LEFT JOIN orders o ON … WHERE o.status = ''PAID''` — what happens to customers with no orders?'
+    options: [They appear with NULLs, They are removed, The query errors, They appear with status PAID]
+    correct: 1
+    why: Their o.status is NULL, which fails the WHERE condition. Move it into ON to keep them.
+  - q: Which question needs an anti join?
+    options: [Customers with at least one order, Customers who never ordered, Orders with their customer, Every customer–product combination]
+    correct: 1
+    why: '"Rows with no match" — NOT EXISTS (or LEFT JOIN … IS NULL).'
+  - q: A table has repeating columns phone1, phone2, phone3. Which normal form does it violate?
+    options: [1NF, 2NF, 3NF, BCNF]
+    correct: 0
+    why: Repeating groups violate first normal form; phones belong in their own rows.

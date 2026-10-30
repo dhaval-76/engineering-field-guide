@@ -5,7 +5,7 @@ frames:
       - kind: kv
         label: Persistence context
         pairs: [[entities, { v: '(empty)', tone: muted }]]
-      - kind: list
+      - kind: rows
         label: SQL sent
         items: []
   - caption: '`find(Order, 7)` misses the context, so Hibernate runs a `SELECT`, stores the entity **and a snapshot** of its field values.'
@@ -13,7 +13,7 @@ frames:
       - kind: kv
         label: Persistence context
         pairs: [['Order#7', { v: 'status=NEW', tone: info }], ['snapshot#7', { v: 'status=NEW', tone: muted }]]
-      - kind: list
+      - kind: rows
         label: SQL sent
         items: [{ v: 'SELECT … FROM orders WHERE id=7', tone: accent }]
   - caption: 'A second `find(Order, 7)` — maybe from another service method — returns the **same object** without touching the database.'
@@ -21,7 +21,7 @@ frames:
       - kind: kv
         label: Persistence context
         pairs: [['Order#7', { v: 'status=NEW', tone: ok }], ['snapshot#7', { v: 'status=NEW', tone: muted }]]
-      - kind: list
+      - kind: rows
         label: SQL sent
         items: ['SELECT … FROM orders WHERE id=7']
   - caption: '`order.setStatus(PAID)` is an ordinary field write. No SQL runs; the entity now differs from its snapshot — it is **dirty**.'
@@ -29,7 +29,7 @@ frames:
       - kind: kv
         label: Persistence context
         pairs: [['Order#7', { v: 'status=PAID', tone: warn }], ['snapshot#7', { v: 'status=NEW', tone: muted }]]
-      - kind: list
+      - kind: rows
         label: SQL sent
         items: ['SELECT … FROM orders WHERE id=7']
   - caption: 'A JPQL query on `orders` comes next. With flush mode AUTO, Hibernate **flushes first** so the query sees the change: it compares entity to snapshot and sends the `UPDATE`.'
@@ -37,7 +37,7 @@ frames:
       - kind: kv
         label: Persistence context
         pairs: [['Order#7', { v: 'status=PAID', tone: info }], ['snapshot#7', { v: 'status=PAID', tone: muted }]]
-      - kind: list
+      - kind: rows
         label: SQL sent
         items: ['SELECT … FROM orders WHERE id=7', { v: 'UPDATE orders SET status=''PAID'' … WHERE id=7', tone: accent }, { v: 'SELECT … FROM orders WHERE …', tone: accent }]
   - caption: 'The method returns; Spring commits. Flush finds nothing new, the transaction commits, the context closes and `Order#7` is now **detached** — touching an unloaded lazy field from here throws `LazyInitializationException`.'
@@ -45,6 +45,6 @@ frames:
       - kind: kv
         label: Persistence context
         pairs: [[entities, { v: '(closed)', tone: muted }], ['Order#7', { v: 'detached', tone: bad }]]
-      - kind: list
+      - kind: rows
         label: SQL sent
         items: ['SELECT … FROM orders WHERE id=7', 'UPDATE orders SET status=''PAID'' … WHERE id=7', 'SELECT … FROM orders WHERE …', { v: COMMIT, tone: ok }]

@@ -12,7 +12,7 @@ frames:
       - kind: kv
         label: Net balance
         pairs: [[Alice, { v: '+33.34', tone: ok }], [Bob, { v: '+83.33', tone: ok }], [Carol, { v: '−116.67', tone: bad }], [Dave, { v: '0', tone: muted }]]
-      - kind: list
+      - kind: rows
         label: Transfers
         items: [{ v: 'Dave → Alice 716.66', tone: accent }]
   - caption: Now the largest creditor is Bob (83.33) and the only debtor is Carol (116.67). Carol pays Bob 83.33 — Bob is settled.
@@ -20,7 +20,7 @@ frames:
       - kind: kv
         label: Net balance
         pairs: [[Alice, { v: '+33.34', tone: ok }], [Bob, { v: '0', tone: muted }], [Carol, { v: '−33.34', tone: bad }], [Dave, { v: '0', tone: muted }]]
-      - kind: list
+      - kind: rows
         label: Transfers
         items: ['Dave → Alice 716.66', { v: 'Carol → Bob 83.33', tone: accent }]
   - caption: Carol pays Alice 33.34 and everyone is at zero. **3 transfers for 4 people** — the greedy never needs more than n − 1.
@@ -28,6 +28,6 @@ frames:
       - kind: kv
         label: Net balance
         pairs: [[Alice, { v: '0', tone: muted }], [Bob, { v: '0', tone: muted }], [Carol, { v: '0', tone: muted }], [Dave, { v: '0', tone: muted }]]
-      - kind: list
+      - kind: rows
         label: Transfers
         items: ['Dave → Alice 716.66', 'Carol → Bob 83.33', { v: 'Carol → Alice 33.34', tone: accent }]

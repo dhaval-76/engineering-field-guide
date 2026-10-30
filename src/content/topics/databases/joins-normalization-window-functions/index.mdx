@@ -1,0 +1,126 @@
+---
+title: Joins, Normalization and Window Functions
+summary: Combining tables correctly (inner, outer, semi and anti joins, and how the database executes them), designing tables without redundancy and when to break that rule, and window functions for rankings, running totals and gaps-and-islands.
+track: databases
+order: 20
+tags: [databases, sql, joins, normalization, window-functions, interview]
+aliases: [inner join, left join, right join, full outer join, cross join, self join, semi join, anti join, exists, nested loop, hash join, merge join, 1nf, 2nf, 3nf, bcnf, denormalization, row_number, rank, dense_rank, lag, lead, running total, top n per group, nth highest salary, gaps and islands]
+prerequisites: [databases/sql-fundamentals]
+related: [backend/jpa-hibernate, backend/pagination]
+quickRef:
+  points:
+    - '**INNER** keeps matches; **LEFT** keeps every left row (NULLs where nothing matched); **FULL** keeps both sides. Anti-join = `NOT EXISTS`.'
+    - 'A condition on the right table in `WHERE` turns a LEFT JOIN back into an INNER JOIN — put it in `ON`.'
+    - 'Joining two one-to-many children multiplies rows: aggregate each first.'
+    - 'Normalize to 3NF: every non-key column depends on **the key, the whole key, and nothing but the key**. Denormalize deliberately, for measured read paths.'
+    - 'Window functions compute across related rows **without collapsing them**: `fn() OVER (PARTITION BY … ORDER BY …)`.'
+    - '`ROW_NUMBER` 1,2,3,4 · `RANK` 1,2,2,4 · `DENSE_RANK` 1,2,2,3. Top-N per group = rank in a subquery, filter outside.'
+  useWhen: Writing reporting or multi-table queries, designing a schema, or practising SQL interview questions.
+lastReviewed: 2026-10-30
+---
+
+## Why it matters
+
+Joins are where most wrong SQL hides: a missing match silently drops rows, an extra one silently doubles a total. Normalization decides whether a fact lives in one place or ten — and therefore whether an update can leave the data contradicting itself. Window functions turn questions that once needed self-joins and application loops ("each customer's latest order", "month-over-month growth") into one readable query; they're also the most common topic in SQL interview rounds.
+
+## Joins
+
+<Walkthrough id="join-results" />
+
+<CodeTabs id="join-types" title="Every join type, with the question it answers" />
+
+| Join | Keeps | Typical question |
+|---|---|---|
+| `INNER JOIN` | rows with a match on both sides | orders with their customer |
+| `LEFT JOIN` | all left rows; right columns `NULL` when unmatched | customers with their order count, including 0 |
+| `RIGHT JOIN` | mirror of LEFT — rewrite as LEFT for readability | rarely needed |
+| `FULL OUTER JOIN` | everything from both sides | reconciling two sources |
+| `CROSS JOIN` | every combination | generating a calendar × store grid |
+| Self join | a table joined to itself | employee and manager |
+| Semi join (`EXISTS`) | left rows that have *at least one* match, each once | customers who ever ordered |
+| Anti join (`NOT EXISTS`) | left rows with *no* match | customers who never ordered |
+
+<CodeTabs id="semi-anti-joins" title="Semi and anti joins, and the two classic join bugs" />
+
+<Callout type="warning">
+**The fan-out trap.** Joining `orders` to both `order_items` *and* `payments` multiplies rows: an order with 3 items and 2 payments becomes 6 rows, so `SUM(payments.amount)` is tripled. Aggregate each child table in its own subquery or CTE, then join the results.
+</Callout>
+
+### How the database executes a join
+
+| Algorithm | How | Wins when |
+|---|---|---|
+| Nested loop | for each outer row, look up matches — ideally through an index | few outer rows and an index on the inner join column |
+| Hash join | build a hash table on the smaller input, probe it with the larger | large unsorted inputs, equality joins; needs memory (`work_mem`) |
+| Merge join | walk two inputs sorted on the join key | both inputs already sorted (indexes) or very large |
+
+`EXPLAIN ANALYZE` shows which one the planner chose and how many rows it *expected* versus got. A bad choice almost always comes from a bad row estimate: run `ANALYZE` to refresh statistics, add an index on the join column, and check for functions or type casts on join keys. A hash join reporting `Batches: 8` spilled to disk. More in [Indexing](../indexing/).
+
+## Normalization
+
+Normalization removes **redundancy**, because redundancy creates anomalies: change a customer's city in one row and miss another (*update anomaly*); can't record a product until someone orders it (*insert anomaly*); delete the last order and lose the customer's details (*delete anomaly*).
+
+<CodeTabs id="normalization" title="From one wide table to third normal form" />
+
+<Diagram id="normalized-schema" caption="The shop schema in third normal form: each fact stored once." />
+
+| Form | Rule | Violation in the example |
+|---|---|---|
+| 1NF | atomic values, no repeating groups | `item1`, `item2`, `item3` columns; comma-separated tags |
+| 2NF | no column depends on only *part* of a composite key | in `(order_id, product_id)`, `product_name` depends on `product_id` alone |
+| 3NF | no column depends on another non-key column | `customer_city` depends on `customer_id`, not on the order |
+| BCNF | every determinant is a candidate key | rare in practice once you're in 3NF |
+
+### Denormalizing on purpose
+
+Read-heavy paths sometimes copy data to avoid joins or expensive aggregation: an `order_count` on `customers`, a `customer_name` on `orders` for a list screen, a reporting table rebuilt nightly. Each copy is a promise to keep it in sync — in the same transaction, with a trigger, or eventually through events. Some copies aren't denormalization at all: `order_items.unit_price` records the price **at the time of purchase**, a different fact from the product's current price.
+
+## Window functions
+
+A window function computes a value for each row from a *window* of related rows, while keeping every row — unlike `GROUP BY`, which collapses them.
+
+```sql
+function(...) OVER (
+  PARTITION BY customer_id     -- separate windows per customer (optional)
+  ORDER BY created_at          -- order inside each window
+  ROWS BETWEEN 6 PRECEDING AND CURRENT ROW   -- the frame (optional)
+)
+```
+
+<CodeTabs id="window-functions" title="Ranking, offsets, running totals and moving averages" />
+
+| Scores | 100 | 90 | 90 | 80 |
+|---|---|---|---|---|
+| `ROW_NUMBER()` | 1 | 2 | 3 | 4 |
+| `RANK()` | 1 | 2 | 2 | 4 |
+| `DENSE_RANK()` | 1 | 2 | 2 | 3 |
+
+- **Window functions can't go in `WHERE`** — they're computed in the `SELECT` step. Rank in a subquery or CTE and filter outside.
+- With `ORDER BY` in `OVER`, the default frame is `RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW`, which includes **all ties** of the current row. For a running total over rows with equal dates, say `ROWS` explicitly.
+- `LAG`/`LEAD` read the previous/next row in the window — month-over-month changes, time between events.
+- An index on `(partition columns, order columns)` lets the database read rows already sorted instead of sorting them.
+
+## Interview patterns
+
+<CodeTabs id="sql-interview-patterns" title="Nth highest, top-N per group, above-average, month-over-month, consecutive days" />
+
+<Pitfalls>
+
+- **Filtering the right table of a LEFT JOIN in `WHERE`** — the `NULL` rows fail the condition, so it becomes an inner join.
+- **Joining several one-to-many tables, then aggregating** — inflated sums and counts.
+- **`COUNT(*)` after a LEFT JOIN** — counts 1 for customers with no orders; use `COUNT(o.id)`.
+- **`DISTINCT` to "fix" duplicates** — it hides a wrong join instead of fixing it.
+- **`ROW_NUMBER` for a leaderboard with ties** — tied players get different positions.
+- **Running totals with the default `RANGE` frame** over non-unique order keys.
+- **Normalizing a reporting warehouse like an OLTP schema** — analytics schemas (star schemas) are denormalized on purpose.
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- Pick the join by what should happen to unmatched rows; use `EXISTS`/`NOT EXISTS` for "has any" / "has none".
+- Conditions on an outer-joined table go in `ON`; aggregate children before joining them together.
+- 3NF by default; every denormalized copy needs a sync plan.
+- `OVER (PARTITION BY … ORDER BY …)` keeps rows; choose `ROW_NUMBER`, `RANK` or `DENSE_RANK` by how ties should behave.
+
+</KeyTakeaways>

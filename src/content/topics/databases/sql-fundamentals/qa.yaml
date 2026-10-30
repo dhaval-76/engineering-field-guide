@@ -1,0 +1,58 @@
+questions:
+  - q: 'Find customers who ordered in January but not in February, with their January order count.'
+    think: Which rows do you count, and how do you express "has no row in another set" without multiplying rows?
+    answer: |
+      Join customers to their **January** orders with a half-open range (`>= '2026-01-01' AND < '2026-02-01'`, so all of 31 January counts), exclude customers with any February order using `NOT EXISTS`, then `GROUP BY` the customer and `COUNT(*)`. Mention the alternatives: `LEFT JOIN` February + `WHERE feb.id IS NULL` works; `NOT IN (SELECT customer_id …)` breaks if that column can be `NULL`. Add an `ORDER BY` with a tiebreaker if the result is shown to users.
+  - q: 'A report says the average order value is £0 for some days, and the "customers without a phone" query returns nothing even though some phones are missing. What''s going on?'
+    think: How do aggregates and comparisons treat NULL?
+    answer: |
+      Both are `NULL` handling. `AVG`/`SUM` over zero rows return `NULL`, which the report code turns into 0 — the days with no orders should probably be shown as "no orders", not £0 (or the report should `COALESCE` deliberately). The phone query almost certainly uses `phone = NULL`, which is never true — it must be `phone IS NULL`. Related traps: `phone <> 'x'` excludes `NULL`s; `NOT IN` with a `NULL` in the list returns nothing; `COUNT(col)` skips `NULL`s while `COUNT(*)` doesn't.
+followUps:
+  - q: What's the difference between WHERE and HAVING?
+    intuition: Rows or groups?
+    approach: |
+      `WHERE` filters rows before `GROUP BY`, so it can't use aggregates. `HAVING` filters groups after aggregation. Push every condition that doesn't need an aggregate into `WHERE`: grouping fewer rows is cheaper, and indexes can help with `WHERE` conditions.
+  - q: DELETE vs TRUNCATE vs DROP?
+    intuition: Rows, all rows quickly, or the table itself?
+    approach: |
+      `DELETE` removes chosen rows one by one, fires triggers, can be filtered with `WHERE`, and is fully transactional. `TRUNCATE` empties the whole table quickly by discarding its storage — no per-row work or row triggers; in PostgreSQL it's transactional, in MySQL it commits implicitly. `DROP` removes the table definition and its data. Production code almost never needs the last two.
+  - q: UNION vs UNION ALL?
+    intuition: Who pays for removing duplicates?
+    approach: |
+      `UNION` removes duplicate rows, which needs a sort or hash over the combined result. `UNION ALL` just appends. Use `UNION ALL` unless you need de-duplication — it's faster and doesn't silently drop legitimately repeated rows.
+  - q: Why are prepared statements safe from SQL injection?
+    intuition: When does the database decide what's code and what's data?
+    approach: |
+      The SQL text with placeholders is parsed first; values are sent separately and are only ever treated as values, so `' OR 1=1 --` is just a strange string. Concatenation lets input change the parse itself. Identifiers (table/column names, `ASC`/`DESC`) can't be parameters — validate them against an allow-list.
+  - q: What do the letters in ACID mean in practice?
+    intuition: What would go wrong without each one?
+    approach: |
+      **Atomicity** — all statements in a transaction take effect or none do (no half-placed order). **Consistency** — constraints hold before and after (no order for a missing customer). **Isolation** — concurrent transactions don't see each other's uncommitted work; the isolation level decides which anomalies remain possible. **Durability** — once `COMMIT` returns, the change survives a crash (write-ahead log flushed to disk).
+practice:
+  - task: Write the January-but-not-February query, and explain why `BETWEEN '2026-01-01' AND '2026-01-31'` is wrong for a `timestamptz` column.
+    hint: What timestamp does the date '2026-01-31' become?
+    solution: |
+      `'2026-01-31'` is midnight at the *start* of 31 January, so `BETWEEN` excludes almost the whole last day. Use `created_at >= '2026-01-01' AND created_at < '2026-02-01'` — half-open ranges also chain without gaps or overlaps and work for any month length. Then exclude February with `NOT EXISTS` and group by customer.
+    solutionCode: sql-jan-not-feb
+  - task: 'Products whose stock is reserved must never go negative, even with concurrent orders. Write the reservation SQL and the code that calls it in a transaction.'
+    hint: Put the check and the decrement in one statement, and look at the affected-row count.
+    solution: |
+      `UPDATE products SET stock = stock - :qty WHERE id = :id AND stock >= :qty` — the database checks and decrements under the row lock, so two concurrent orders can't both take the last item. `0` rows updated means not enough stock. Do it in the same transaction as the order insert so both commit or roll back together, and keep `CHECK (stock >= 0)` as a safety net.
+    solutionCode: sql-from-code
+quiz:
+  - q: In which clause can you first use an alias defined in the SELECT list (in standard SQL / PostgreSQL)?
+    options: [WHERE, GROUP BY, HAVING, ORDER BY]
+    correct: 3
+    why: ORDER BY is evaluated after SELECT. (PostgreSQL also accepts output-column names in GROUP BY as an extension, but not in WHERE or HAVING.)
+  - q: 'What does `SELECT COUNT(phone) FROM customers` count?'
+    options: [All rows, Rows where phone is not NULL, Distinct phones, Rows where phone is NULL]
+    correct: 1
+    why: Aggregates over a column skip NULLs; COUNT(*) counts rows.
+  - q: '`WHERE id NOT IN (SELECT product_id FROM wishlist)` returns no rows. The most likely cause?'
+    options: [Missing index, A NULL in wishlist.product_id, NOT IN only works with literals, The subquery is too large]
+    correct: 1
+    why: x NOT IN (…, NULL) is never true. Use NOT EXISTS.
+  - q: Which upsert works in PostgreSQL?
+    options: ['INSERT … ON CONFLICT (sku) DO UPDATE …', 'INSERT OR UPDATE …', 'UPSERT INTO …', 'MERGE IGNORE …']
+    correct: 0
+    why: ON CONFLICT needs a unique column or constraint as its target. (PostgreSQL 15+ also has standard MERGE.)

@@ -13,7 +13,7 @@ frames:
       - kind: kv
         label: Asks
         pairs: [[{ v: '₹103', tone: bad }, { v: '0 — removed', tone: bad }], [{ v: '₹104', tone: accent }, '100 (S2)']]
-      - kind: list
+      - kind: rows
         label: Trades
         items: [{ v: '150 @ ₹103', tone: ok }]
   - caption: '50 shares still to buy. Next best ask is ₹104: buy 50 from S2, which keeps 50 resting.'
@@ -21,7 +21,7 @@ frames:
       - kind: kv
         label: Asks
         pairs: [[{ v: '₹104', tone: accent }, { v: '50 (S2)', tone: warn }]]
-      - kind: list
+      - kind: rows
         label: Trades
         items: ['150 @ ₹103', { v: '50 @ ₹104', tone: ok }]
   - caption: 'Filled. Average price (150×103 + 50×104) / 200 = **₹103.25**. Bids are untouched. Had the asks run out, the leftover market quantity would be cancelled, not rested.'

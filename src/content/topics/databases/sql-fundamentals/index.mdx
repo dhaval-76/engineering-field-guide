@@ -1,0 +1,119 @@
+---
+title: SQL Fundamentals
+summary: The relational model and the SQL you write every day — tables and constraints, inserts, upserts and safe updates, the order a query is really evaluated in, NULL logic, aggregation, CTEs, and calling SQL safely from code.
+track: databases
+order: 10
+tags: [databases, sql, postgresql, mysql, ddl, dml]
+aliases: [sql, ddl, dml, create table, constraints, foreign key, upsert, on conflict, returning, group by, having, where vs having, "null", three-valued logic, coalesce, cte, with recursive, sql injection, prepared statement, jdbc]
+prerequisites: []
+related: [backend/jpa-hibernate, backend/pagination, backend/idempotency]
+quickRef:
+  points:
+    - 'Let the database enforce rules: `NOT NULL`, `UNIQUE`, `CHECK`, foreign keys. Money in `numeric`, instants in `timestamptz`.'
+    - 'Logical order: **FROM → WHERE → GROUP BY → HAVING → SELECT → ORDER BY → LIMIT**. That''s why `WHERE` can''t use a `SELECT` alias or an aggregate.'
+    - '`NULL` means unknown: `= NULL` is never true — use `IS NULL`. `NOT IN (… NULL …)` returns nothing; use `NOT EXISTS`.'
+    - 'Upsert with `INSERT … ON CONFLICT (unique_col) DO UPDATE`; `RETURNING` gives back generated values in the same round trip.'
+    - 'Without `ORDER BY` there is no guaranteed order — and add a unique tiebreaker for stable pages.'
+    - 'From code, always bind parameters (`?`, `$1`, `%s`) — never concatenate input into SQL.'
+  useWhen: Writing or reviewing any SQL, or preparing for a SQL round.
+lastReviewed: 2026-10-30
+---
+
+## Why it matters
+
+Every backend talks to a relational database, and ORMs only hide SQL until something is slow or wrong. Interviewers use SQL questions because they reveal whether you think in sets and know the edge cases — `NULL`s, ties, duplicates — that separate a query that works on the sample data from one that works in production.
+
+<Callout type="analogy">
+A table is a spreadsheet with rules: every column has a type, some cells may not be empty, some values must be unique, and a column can be required to point at a row in another sheet. SQL describes *what* rows you want — the database works out *how* to fetch them.
+</Callout>
+
+**Terms.** *DDL* (data definition) creates and changes structure: `CREATE`, `ALTER`, `DROP`. *DML* (data manipulation) works with rows: `SELECT`, `INSERT`, `UPDATE`, `DELETE`. Examples use PostgreSQL; differences in MySQL are noted where they matter.
+
+## Tables and constraints
+
+<CodeTabs id="sql-schema" title="A small shop schema, with the database enforcing the rules" />
+
+| Choice | Prefer | Why |
+|---|---|---|
+| Surrogate key | `bigint GENERATED ALWAYS AS IDENTITY` (or a UUID, ideally time-ordered v7) | stable, never reused; `SERIAL` is the older form |
+| Money | `numeric(12,2)` or integer minor units (cents) | `float`/`double` can't represent 0.10 exactly |
+| Points in time | `timestamptz` | stored as UTC, converted on display; plain `timestamp` loses the zone |
+| Short codes / states | `text` + `CHECK`, or a lookup table | easier to change than a native enum |
+| Optional vs required | `NOT NULL` by default | every nullable column is a three-valued-logic trap |
+
+<Callout type="tip">
+Constraints are the last line of defence against application bugs and race conditions. A `UNIQUE (email)` constraint stops two concurrent sign-ups that an "if not exists, insert" check in Java would let through — see [Idempotency](../../backend/idempotency/).
+</Callout>
+
+## Changing data
+
+<CodeTabs id="sql-dml" title="Insert, upsert, conditional update and delete" />
+
+- **Upsert** needs a *unique* target: `ON CONFLICT (sku)`. Conflicting on a generated `id` never fires. MySQL's form is `INSERT … ON DUPLICATE KEY UPDATE`.
+- **`UPDATE … WHERE id = ? AND status = 'PLACED'`** makes the state transition atomic: check the affected-row count, and `0` means someone else changed it first.
+- **`RETURNING`** (PostgreSQL, SQLite, MariaDB) returns generated ids and new values without a second query.
+- An `UPDATE` or `DELETE` without `WHERE` changes every row. Run risky statements inside a transaction and check the count before `COMMIT`.
+
+## How a query is evaluated
+
+You write `SELECT` first, but the database evaluates the clauses in a different *logical* order. Knowing it explains most "why is this an error?" moments.
+
+<Walkthrough id="query-order" />
+
+<CodeTabs id="sql-query-order" title="The query from the walkthrough, and the errors the order explains" />
+
+- `WHERE` filters **rows** before grouping, so it can't use aggregates; `HAVING` filters **groups** after. Filter in `WHERE` whenever you can — fewer rows to group.
+- Aliases defined in `SELECT` don't exist yet in `WHERE` (PostgreSQL allows them in `ORDER BY`, which runs later).
+- Every non-aggregated column in `SELECT` must be in `GROUP BY` (or functionally dependent on its primary key).
+- The planner is free to execute in any physical order that gives the same result — this is the *meaning*, not the execution plan.
+
+## NULL: unknown, not empty
+
+<CodeTabs id="sql-nulls" title="Three-valued logic and its traps" />
+
+| Expression | Result |
+|---|---|
+| `NULL = NULL` | `NULL` (not true) |
+| `NULL <> 5` | `NULL` |
+| `WHERE x <> 'A'` | silently skips rows where `x` is `NULL` |
+| `COUNT(*)` vs `COUNT(col)` | all rows vs non-null values |
+| `SUM`, `AVG` of no rows | `NULL`, not 0 — wrap in `COALESCE(…, 0)` |
+| `x NOT IN (1, NULL)` | never true → no rows |
+| `IS DISTINCT FROM` | null-safe comparison |
+
+## Subqueries and CTEs
+
+<CodeTabs id="sql-ctes" title="Subquery, CTE and a recursive CTE for a hierarchy" />
+
+A **CTE** (`WITH name AS (…)`) names a step so a long query reads top to bottom. Since PostgreSQL 12, CTEs are inlined into the main query unless referenced twice or marked `MATERIALIZED`, so they cost nothing extra. **Recursive** CTEs walk trees and graphs — org charts, category trees, bill of materials. For joins, semi-joins and window functions, see [Joins, normalization and window functions](../joins-normalization-window-functions/).
+
+## SQL from application code
+
+<CodeTabs id="sql-from-code" title="Parameters and a transaction — JDBC, node-postgres, psycopg" />
+
+- **Bind parameters, always.** Concatenating input (`"… WHERE email = '" + email + "'"`) is SQL injection. Placeholders send values separately from the SQL text, so they can never become code — and the database can reuse the plan.
+- Identifiers (table or column names, sort direction) can't be parameters: map user input onto an allow-list.
+- A transaction groups statements so they all commit or all roll back (**A**tomicity), leave constraints satisfied (**C**onsistency), don't see each other's partial work (**I**solation, with levels that trade safety for concurrency), and survive a crash once committed (**D**urability).
+- Keep transactions short and never wait on users or slow HTTP calls inside one; locks and pooled connections are held until it ends ([Connection pooling](../../backend/connection-pooling/)).
+
+<Pitfalls>
+
+- **`BETWEEN '2026-01-01' AND '2026-01-31'` on a timestamp** misses everything after midnight on the 31st. Use half-open ranges: `>= '2026-01-01' AND < '2026-02-01'`.
+- **`SELECT *` in application queries** — breaks when columns are added, fetches more than needed, prevents index-only scans.
+- **`LIMIT` without `ORDER BY`** — "the first 10" is whatever the plan returns today.
+- **Floating-point money.**
+- **`NOT IN` with a nullable subquery.**
+- **Relying on the application for uniqueness** instead of a `UNIQUE` constraint.
+- **Functions on indexed columns in `WHERE`** (`WHERE lower(email) = …`, `WHERE date(created_at) = …`) — the plain index can't be used; see [Indexing](../indexing/).
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- Model with types and constraints; let the database guard invariants.
+- FROM → WHERE → GROUP BY → HAVING → SELECT → ORDER BY → LIMIT.
+- `NULL` is unknown: `IS NULL`, `COALESCE`, `NOT EXISTS`.
+- Upserts need a unique key; conditional updates make state changes atomic.
+- Parameters, short transactions, half-open time ranges, explicit ordering.
+
+</KeyTakeaways>

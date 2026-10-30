@@ -10,7 +10,7 @@ frames:
       - kind: list
         label: Path walked
         items: [root, { v: j, tone: info }, { v: a, tone: accent, tag: read cache }]
-      - kind: list
+      - kind: rows
         label: Suggestions
         items: [{ v: javascript, tone: ok }, java, jar]
   - caption: 'Someone searches **"java"** 40 more times (score 90). Only nodes on the path j → a → v → a are updated: java moves above javascript.'

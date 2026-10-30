@@ -6,7 +6,7 @@ type Cell =
   string | number | { v: string | number; tone?: Tone | undefined; tag?: string | undefined };
 
 interface Panel {
-  kind: 'array' | 'list' | 'kv' | 'stack' | 'queue' | 'note';
+  kind: 'array' | 'list' | 'rows' | 'kv' | 'stack' | 'queue' | 'note';
   label?: string | undefined;
   items: Cell[];
   pairs: [Cell, Cell][];

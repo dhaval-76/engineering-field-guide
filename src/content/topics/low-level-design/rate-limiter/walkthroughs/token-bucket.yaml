@@ -12,7 +12,7 @@ frames:
       - kind: array
         label: Tokens
         items: [{ v: ●, tone: ok }, { v: ○, tone: muted }, { v: ○, tone: muted }, { v: ○, tone: muted }]
-      - kind: list
+      - kind: rows
         label: Requests
         items: [{ v: '✓', tone: ok }, { v: '✓', tone: ok }, { v: '✓', tone: ok }]
   - caption: Two more requests 0.2 s later. One token left → the first passes, the second is **rejected (429)**.
@@ -20,7 +20,7 @@ frames:
       - kind: array
         label: Tokens
         items: [{ v: ○, tone: muted }, { v: ○, tone: muted }, { v: ○, tone: muted }, { v: ○, tone: muted }]
-      - kind: list
+      - kind: rows
         label: Requests
         items: [{ v: '✓', tone: ok }, { v: '✗ 429', tone: bad }]
   - caption: At t = 1.2 s, about one token has refilled. Refill is computed **lazily** on the next request from the elapsed time — no timer thread needed.

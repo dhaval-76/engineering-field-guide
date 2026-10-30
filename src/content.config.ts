@@ -145,7 +145,7 @@ const walkthroughs = defineCollection({
           caption: markdown,
           panels: z.array(
             z.object({
-              kind: z.enum(['array', 'list', 'kv', 'stack', 'queue', 'note']),
+              kind: z.enum(['array', 'list', 'rows', 'kv', 'stack', 'queue', 'note']),
               label: z.string().optional(),
               items: z.array(cell).default([]),
               /** for kv panels: pairs */

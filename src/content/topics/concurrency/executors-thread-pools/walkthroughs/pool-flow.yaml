@@ -29,7 +29,7 @@ frames:
       - kind: array
         label: Threads
         items: [{ v: 'T1', tone: info }, { v: 'T2', tone: info }, { v: 'T3', tone: warn }, { v: 'T4', tone: warn }]
-      - kind: list
+      - kind: rows
         label: Task 8
         items: [{ v: 'rejected → 503 / caller runs', tone: bad }]
   - caption: 'When load drops, the extra threads (T3, T4) exit after `keepAliveTime` idle; the core threads stay.'

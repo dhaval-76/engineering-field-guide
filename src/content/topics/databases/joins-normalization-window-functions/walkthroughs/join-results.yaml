@@ -1,0 +1,45 @@
+title: What each join keeps
+frames:
+  - caption: 'Two small tables. Asha has two orders, Ben has one, Chen has none — and order #9 points at customer 4, who doesn''t exist (say, data imported without a foreign key).'
+    panels:
+      - kind: kv
+        label: customers
+        pairs: [['1', Asha], ['2', Ben], ['3', Chen]]
+      - kind: kv
+        label: orders (id → customer_id)
+        pairs: [['#7', '1'], ['#8', '1'], ['#5', '2'], ['#9', { v: '4 ?', tone: warn }]]
+  - caption: '**INNER JOIN** keeps only pairs that match. Chen (no orders) and order #9 (no customer) both vanish — silently.'
+    panels:
+      - kind: rows
+        label: customers JOIN orders
+        items: [{ v: 'Asha · #7', tone: ok }, { v: 'Asha · #8', tone: ok }, { v: 'Ben · #5', tone: ok }]
+      - kind: note
+        text: 'Dropped: Chen, #9'
+  - caption: '**LEFT JOIN** keeps every customer. Chen appears once with `NULL` order columns. Asha appears twice — joins repeat a row for each match.'
+    panels:
+      - kind: rows
+        label: customers LEFT JOIN orders
+        items: ['Asha · #7', 'Asha · #8', 'Ben · #5', { v: 'Chen · NULL', tone: muted }]
+      - kind: note
+        text: 'COUNT(o.id) per customer → 2, 1, 0. COUNT(*) would wrongly give Chen 1.'
+  - caption: '**FULL OUTER JOIN** keeps unmatched rows from both sides — the tool for reconciliation. Order #9 shows up with no customer.'
+    panels:
+      - kind: rows
+        label: customers FULL JOIN orders
+        items: ['Asha · #7', 'Asha · #8', 'Ben · #5', { v: 'Chen · NULL', tone: muted }, { v: 'NULL · #9', tone: warn }]
+  - caption: '**Semi join** (`EXISTS`) answers "who has any order?" — one row per customer, however many orders. **Anti join** (`NOT EXISTS`) answers "who has none?"'
+    panels:
+      - kind: rows
+        label: EXISTS
+        items: [{ v: Asha, tone: info }, { v: Ben, tone: info }]
+      - kind: rows
+        label: NOT EXISTS
+        items: [{ v: Chen, tone: plum }]
+  - caption: 'A trap: **LEFT JOIN … WHERE o.status = ''PAID''**. Chen''s row has `status = NULL`, which fails the `WHERE`, so Chen disappears and the LEFT JOIN behaves like an INNER JOIN. Put the condition in `ON` instead.'
+    panels:
+      - kind: rows
+        label: 'condition in WHERE'
+        items: ['Asha · #7', 'Ben · #5', { v: 'Chen — gone', tone: bad }]
+      - kind: rows
+        label: 'condition in ON'
+        items: ['Asha · #7', 'Ben · #5', { v: 'Chen · NULL', tone: ok }]
