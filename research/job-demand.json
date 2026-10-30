@@ -1,0 +1,39 @@
+{
+  "fetchedAt": "2026-10-30",
+  "notes": "Skill demand signals from job-posting aggregators. Counts are open postings mentioning the skill, not hires.",
+  "sources": [
+    {
+      "name": "freehire — Most In-Demand Backend Skills",
+      "url": "https://freehire.me/insights/skills/backend",
+      "scope": "294,453 open backend postings, updated 2026-10-30",
+      "ranking": [
+        ["api", 22011], ["java", 15705], ["cloud", 14679], ["aws", 12772], ["python", 12283], ["ai", 12168],
+        ["ci-cd", 12132], ["rest", 11645], ["microservices", 10369], ["docker", 10268], ["sql", 9945],
+        ["kubernetes", 9519], ["postgresql", 9252], ["spring", 8237], ["git", 7390], ["distributed-systems", 6447],
+        ["agile", 6311], ["kafka", 6166], ["azure", 6137], ["devops", 6074], ["nodejs", 5952], ["observability", 5686],
+        ["gcp", 5530], ["typescript", 5512], ["mysql", 5166], ["redis", 5164], ["nosql", 5159],
+        ["event-driven-architecture", 4831], ["mongodb", 4070], ["github", 3952], ["automation", 3924], ["rdbms", 3872],
+        ["react", 3646], ["csharp", 3639], ["dotnet", 3420], ["cloud-native", 3299], ["javascript", 3239], ["llm", 3028],
+        ["php", 2996], ["test-automation", 2858]
+      ],
+      "fastestGrowing30d": ["python (+1980)", "rest (+1646)", "api (+1004)", "microservices (+832)", "mysql (+825)", "redis (+805)", "aws (+796)", "docker (+768)", "ai (+766)", "nodejs (+656)"]
+    },
+    {
+      "name": "Skillenai — Software Engineer (Backend), 90 days",
+      "url": "https://skillenai.com/data/role/software-engineer-backend",
+      "scope": "62 postings, 90 days ending 2026-10-30",
+      "ranking": [["Java", "41.9%"], ["AWS", "35.5%"], ["Python", "33.9%"], ["SQL", "25.8%"], ["Go", "25.8%"], ["Distributed systems", "25.8%"], ["microservices", "22.6%"], ["Kubernetes", "21.0%"], ["MySQL", "19.4%"], ["PostgreSQL", "17.7%"], ["Docker", "16.1%"], ["MongoDB", "16.1%"], ["NoSQL", "14.5%"], ["Git", "14.5%"], ["gRPC", "14.5%"]]
+    },
+    {
+      "name": "Skillenai — Java Backend Engineer, 90 days",
+      "url": "https://skillenai.com/data/role/java-backend-engineer",
+      "scope": "28 postings, 90 days ending 2026-10-27",
+      "topSkills": ["Java", "Spring Boot", "PostgreSQL", "unit testing", "microservices"]
+    },
+    {
+      "name": "Interview Kickstart — backend skills 2026 (aggregated)",
+      "url": "https://interviewkickstart.com/skills/backend-developer",
+      "claim": "Highest-paying backend skills in US postings include OpenAI API integration, LLMs and Prometheus."
+    }
+  ]
+}

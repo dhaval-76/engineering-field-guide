@@ -5,3 +5,4 @@ drafts/
 .DS_Store
 *.log
 .env*
+.cache/

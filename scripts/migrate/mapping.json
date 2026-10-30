@@ -1,0 +1,1051 @@
+[
+  {
+    "draft": "drafts/interview-guide/01-interview-guide-introduction-project-discussion-scenario-que",
+    "panelId": "iw-p0",
+    "title": "Interview Guide — Introduction · Project Discussion · Scenario Questions",
+    "targets": ["interviews/how-interviews-work", "interviews/project-deep-dive"],
+    "questions": 1,
+    "followUps": 2,
+    "practice": 1
+  },
+  {
+    "draft": "drafts/w1/01-oop-4-pillars",
+    "panelId": "w1-p0",
+    "title": "OOP — 4 Pillars",
+    "targets": ["oop-patterns/oop-pillars"],
+    "questions": 1,
+    "followUps": 2,
+    "practice": 1
+  },
+  {
+    "draft": "drafts/w1/02-solid-principles",
+    "panelId": "w1-p1",
+    "title": "SOLID Principles",
+    "targets": ["oop-patterns/solid"],
+    "questions": 2,
+    "followUps": 4,
+    "practice": 2
+  },
+  {
+    "draft": "drafts/w1/03-5-step-interview-framework",
+    "panelId": "w1-p2",
+    "title": "5-Step Interview Framework",
+    "targets": ["low-level-design/lld-method"],
+    "questions": 1,
+    "followUps": 2,
+    "practice": 1
+  },
+  {
+    "draft": "drafts/w2/01-singleton-pattern",
+    "panelId": "w2-p0",
+    "title": "Singleton Pattern",
+    "targets": ["oop-patterns/singleton"],
+    "questions": 1,
+    "followUps": 2,
+    "practice": 2
+  },
+  {
+    "draft": "drafts/w2/02-factory-and-abstract-factory",
+    "panelId": "w2-p1",
+    "title": "Factory & Abstract Factory",
+    "targets": ["oop-patterns/factory"],
+    "questions": 1,
+    "followUps": 2,
+    "practice": 2
+  },
+  {
+    "draft": "drafts/w2/03-builder-pattern",
+    "panelId": "w2-p2",
+    "title": "Builder Pattern",
+    "targets": ["oop-patterns/builder"],
+    "questions": 1,
+    "followUps": 2,
+    "practice": 2
+  },
+  {
+    "draft": "drafts/w3/01-observer-pattern",
+    "panelId": "w3-p0",
+    "title": "Observer Pattern",
+    "targets": ["oop-patterns/observer"],
+    "questions": 1,
+    "followUps": 2,
+    "practice": 2
+  },
+  {
+    "draft": "drafts/w3/02-strategy-state-patterns",
+    "panelId": "w3-p1",
+    "title": "Strategy + State Patterns",
+    "targets": ["oop-patterns/strategy-and-state"],
+    "questions": 1,
+    "followUps": 2,
+    "practice": 2
+  },
+  {
+    "draft": "drafts/w3/03-decorator-facade-adapter",
+    "panelId": "w3-p2",
+    "title": "Decorator + Facade + Adapter",
+    "targets": ["oop-patterns/decorator-facade-adapter"],
+    "questions": 1,
+    "followUps": 2,
+    "practice": 2
+  },
+  {
+    "draft": "drafts/w4/01-threads-locks-and-race-conditions",
+    "panelId": "w4-p0",
+    "title": "Threads, Locks & Race Conditions",
+    "targets": ["concurrency/threads-and-race-conditions"],
+    "questions": 1,
+    "followUps": 2,
+    "practice": 2
+  },
+  {
+    "draft": "drafts/w5/01-parking-lot-full-design",
+    "panelId": "w5-p0",
+    "title": "Parking Lot — Full Design",
+    "targets": ["low-level-design/parking-lot"],
+    "questions": 1,
+    "followUps": 2,
+    "practice": 2
+  },
+  {
+    "draft": "drafts/w5/02-chess-and-elevator-pattern-recognition",
+    "panelId": "w5-p1",
+    "title": "Chess & Elevator — Pattern Recognition",
+    "targets": ["low-level-design/chess", "low-level-design/elevator"],
+    "questions": 1,
+    "followUps": 2,
+    "practice": 2
+  },
+  {
+    "draft": "drafts/w6/01-splitwise-debt-simplification",
+    "panelId": "w6-p0",
+    "title": "Splitwise — Debt Simplification",
+    "targets": ["low-level-design/splitwise"],
+    "questions": 1,
+    "followUps": 2,
+    "practice": 2
+  },
+  {
+    "draft": "drafts/w6/02-ride-sharing-matching-state-machine",
+    "panelId": "w6-p1",
+    "title": "Ride Sharing — Matching + State Machine",
+    "targets": ["low-level-design/ride-sharing"],
+    "questions": 1,
+    "followUps": 2,
+    "practice": 2
+  },
+  {
+    "draft": "drafts/w7/01-lru-cache-o-1-get-and-put",
+    "panelId": "w7-p0",
+    "title": "LRU Cache — O(1) Get and Put",
+    "targets": ["low-level-design/lru-cache"],
+    "questions": 1,
+    "followUps": 2,
+    "practice": 2
+  },
+  {
+    "draft": "drafts/w7/02-rate-limiter-3-algorithms",
+    "panelId": "w7-p1",
+    "title": "Rate Limiter — 3 Algorithms",
+    "targets": ["low-level-design/rate-limiter"],
+    "questions": 1,
+    "followUps": 2,
+    "practice": 2
+  },
+  {
+    "draft": "drafts/w7/03-task-scheduler-and-notification-system",
+    "panelId": "w7-p2",
+    "title": "Task Scheduler & Notification System",
+    "targets": ["low-level-design/task-scheduler"],
+    "questions": 1,
+    "followUps": 2,
+    "practice": 2
+  },
+  {
+    "draft": "drafts/w8/01-mock-interview-strategy",
+    "panelId": "w8-p0",
+    "title": "Mock Interview Strategy",
+    "targets": ["interviews/mock-practice"],
+    "questions": 1,
+    "followUps": 2,
+    "practice": 1
+  },
+  {
+    "draft": "drafts/w8/02-trade-off-vocabulary",
+    "panelId": "w8-p1",
+    "title": "Trade-off Vocabulary",
+    "targets": ["interviews/trade-off-vocabulary"],
+    "questions": 1,
+    "followUps": 2,
+    "practice": 1
+  },
+  {
+    "draft": "drafts/w8/03-interview-day-checklist",
+    "panelId": "w8-p2",
+    "title": "Interview Day Checklist",
+    "targets": ["interviews/interview-day-checklist"],
+    "questions": 1,
+    "followUps": 2,
+    "practice": 2
+  },
+  {
+    "draft": "drafts/java/01-how-hashmap-works-internally",
+    "panelId": "java1-p0",
+    "title": "How HashMap Works Internally",
+    "targets": ["java-runtime/hashmap-internals"],
+    "questions": 1,
+    "followUps": 4,
+    "practice": 1
+  },
+  {
+    "draft": "drafts/java/02-concurrenthashmap-vs-hashmap",
+    "panelId": "java1-p1",
+    "title": "ConcurrentHashMap vs HashMap",
+    "targets": ["concurrency/concurrenthashmap"],
+    "questions": 2,
+    "followUps": 5,
+    "practice": 1
+  },
+  {
+    "draft": "drafts/java/03-string-immutability-in-java",
+    "panelId": "java1-p2",
+    "title": "String Immutability in Java",
+    "targets": ["java-runtime/string-immutability"],
+    "questions": 1,
+    "followUps": 4,
+    "practice": 1
+  },
+  {
+    "draft": "drafts/java/04-arraylist-vs-linkedlist",
+    "panelId": "java1-p3",
+    "title": "ArrayList vs LinkedList",
+    "targets": ["java-runtime/collections"],
+    "questions": 1,
+    "followUps": 3,
+    "practice": 1
+  },
+  {
+    "draft": "drafts/java/05-garbage-collection-in-java",
+    "panelId": "java1-p4",
+    "title": "Garbage Collection in Java",
+    "targets": ["java-runtime/garbage-collection"],
+    "questions": 2,
+    "followUps": 3,
+    "practice": 1
+  },
+  {
+    "draft": "drafts/java/06-jvm-vs-jre-vs-jdk",
+    "panelId": "java1-p5",
+    "title": "JVM vs JRE vs JDK",
+    "targets": ["java-runtime/jvm-architecture"],
+    "questions": 1,
+    "followUps": 2,
+    "practice": 2
+  },
+  {
+    "draft": "drafts/java/07-checked-vs-unchecked-exceptions-and-try-catch-finally",
+    "panelId": "java1-p6",
+    "title": "Checked vs Unchecked Exceptions & try-catch-finally",
+    "targets": ["java-runtime/exceptions"],
+    "questions": 1,
+    "followUps": 2,
+    "practice": 2
+  },
+  {
+    "draft": "drafts/java2/01-multithreading-and-race-conditions",
+    "panelId": "java2-p0",
+    "title": "Multithreading & Race Conditions",
+    "targets": ["concurrency/threads-and-race-conditions"],
+    "questions": 1,
+    "followUps": 2,
+    "practice": 1
+  },
+  {
+    "draft": "drafts/java2/02-executor-framework-and-thread-pools",
+    "panelId": "java2-p1",
+    "title": "Executor Framework & Thread Pools",
+    "targets": ["concurrency/executors-thread-pools"],
+    "questions": 1,
+    "followUps": 3,
+    "practice": 1
+  },
+  {
+    "draft": "drafts/java2/03-deadlock-starvation-and-livelock",
+    "panelId": "java2-p2",
+    "title": "Deadlock, Starvation & Livelock",
+    "targets": ["concurrency/deadlock-livelock-starvation"],
+    "questions": 1,
+    "followUps": 3,
+    "practice": 1
+  },
+  {
+    "draft": "drafts/java2/04-volatile-vs-synchronized",
+    "panelId": "java2-p3",
+    "title": "volatile vs synchronized",
+    "targets": ["concurrency/volatile-and-synchronized"],
+    "questions": 1,
+    "followUps": 2,
+    "practice": 1
+  },
+  {
+    "draft": "drafts/java2/05-volatile-vs-synchronized",
+    "panelId": "java2-p4",
+    "title": "volatile vs synchronized",
+    "targets": ["concurrency/volatile-and-synchronized"],
+    "questions": 1,
+    "followUps": 2,
+    "practice": 2
+  },
+  {
+    "draft": "drafts/java3/01-java-8-streams",
+    "panelId": "java3-p0",
+    "title": "Java 8 Streams",
+    "targets": ["java-runtime/streams-and-lambdas"],
+    "questions": 1,
+    "followUps": 3,
+    "practice": 1
+  },
+  {
+    "draft": "drafts/java3/02-optional-in-java",
+    "panelId": "java3-p1",
+    "title": "Optional in Java",
+    "targets": ["java-runtime/optional"],
+    "questions": 1,
+    "followUps": 2,
+    "practice": 2
+  },
+  {
+    "draft": "drafts/java3/03-lru-cache-design-in-java",
+    "panelId": "java3-p2",
+    "title": "LRU Cache Design in Java",
+    "targets": ["low-level-design/lru-cache"],
+    "questions": 1,
+    "followUps": 2,
+    "practice": 2
+  },
+  {
+    "draft": "drafts/java3/04-microservices-architecture-deep-dive",
+    "panelId": "java3-p3",
+    "title": "Microservices Architecture — Deep Dive",
+    "targets": ["architecture/microservices"],
+    "questions": 2,
+    "followUps": 3,
+    "practice": 1
+  },
+  {
+    "draft": "drafts/java3/05-java-8-streams",
+    "panelId": "java3-p4",
+    "title": "Java 8 Streams",
+    "targets": ["java-runtime/streams-and-lambdas"],
+    "questions": 1,
+    "followUps": 0,
+    "practice": 0
+  },
+  {
+    "draft": "drafts/java3/06-idempotent-apis",
+    "panelId": "java3-p4",
+    "title": "Idempotent APIs",
+    "targets": ["backend/idempotency"],
+    "questions": 1,
+    "followUps": 2,
+    "practice": 2
+  },
+  {
+    "draft": "drafts/java3/07-sql-vs-nosql",
+    "panelId": "java3-p5",
+    "title": "SQL vs NoSQL",
+    "targets": ["databases/sql-vs-nosql"],
+    "questions": 1,
+    "followUps": 2,
+    "practice": 2
+  },
+  {
+    "draft": "drafts/java3/08-database-indexing",
+    "panelId": "java3-p6",
+    "title": "Database Indexing",
+    "targets": ["databases/indexing"],
+    "questions": 1,
+    "followUps": 2,
+    "practice": 2
+  },
+  {
+    "draft": "drafts/java4/01-redis-caching-strategies",
+    "panelId": "java4-p0",
+    "title": "Redis Caching Strategies",
+    "targets": ["databases/caching-strategies"],
+    "questions": 1,
+    "followUps": 2,
+    "practice": 2
+  },
+  {
+    "draft": "drafts/java4/02-pagination-for-large-datasets",
+    "panelId": "java4-p1",
+    "title": "Pagination for Large Datasets",
+    "targets": ["backend/pagination"],
+    "questions": 1,
+    "followUps": 2,
+    "practice": 2
+  },
+  {
+    "draft": "drafts/java4/03-rest-api-design-best-practices",
+    "panelId": "java4-p2",
+    "title": "REST API Design Best Practices",
+    "targets": ["backend/rest-api-design"],
+    "questions": 1,
+    "followUps": 2,
+    "practice": 2
+  },
+  {
+    "draft": "drafts/java4/04-authentication-vs-authorization",
+    "panelId": "java4-p3",
+    "title": "Authentication vs Authorization",
+    "targets": ["backend/authn-authz"],
+    "questions": 1,
+    "followUps": 2,
+    "practice": 2
+  },
+  {
+    "draft": "drafts/java4/05-connection-pooling",
+    "panelId": "java4-p4",
+    "title": "Connection Pooling",
+    "targets": ["backend/connection-pooling"],
+    "questions": 1,
+    "followUps": 2,
+    "practice": 2
+  },
+  {
+    "draft": "drafts/java4/06-debugging-a-slow-spring-boot-api",
+    "panelId": "java4-p5",
+    "title": "Debugging a Slow Spring Boot API",
+    "targets": ["backend/debugging-slow-api"],
+    "questions": 2,
+    "followUps": 2,
+    "practice": 1
+  },
+  {
+    "draft": "drafts/java4/07-dependency-injection-in-spring",
+    "panelId": "java4-p6",
+    "title": "Dependency Injection in Spring",
+    "targets": ["backend/spring-di-ioc"],
+    "questions": 1,
+    "followUps": 2,
+    "practice": 2
+  },
+  {
+    "draft": "drafts/java4/08-handling-millions-of-requests-practical-design",
+    "panelId": "java4-p7",
+    "title": "Handling Millions of Requests — Practical Design",
+    "targets": ["system-design/scaling-to-millions"],
+    "questions": 2,
+    "followUps": 2,
+    "practice": 1
+  },
+  {
+    "draft": "drafts/sysdesign/01-design-a-project-management-tool-like-jira",
+    "panelId": "sd1-p0",
+    "title": "Design a Project Management Tool like Jira",
+    "targets": ["system-design/project-management-tool"],
+    "questions": 1,
+    "followUps": 2,
+    "practice": 2
+  },
+  {
+    "draft": "drafts/sysdesign/02-design-a-real-time-collaboration-platform",
+    "panelId": "sd1-p1",
+    "title": "Design a Real-Time Collaboration Platform",
+    "targets": ["system-design/realtime-collaboration"],
+    "questions": 1,
+    "followUps": 2,
+    "practice": 2
+  },
+  {
+    "draft": "drafts/sysdesign/03-design-a-workflow-automation-platform",
+    "panelId": "sd1-p2",
+    "title": "Design a Workflow Automation Platform",
+    "targets": ["system-design/workflow-engine"],
+    "questions": 1,
+    "followUps": 2,
+    "practice": 2
+  },
+  {
+    "draft": "drafts/sysdesign/04-design-a-version-control-system-for-documentation",
+    "panelId": "sd1-p3",
+    "title": "Design a Version Control System for Documentation",
+    "targets": ["system-design/document-versioning"],
+    "questions": 1,
+    "followUps": 2,
+    "practice": 2
+  },
+  {
+    "draft": "drafts/sysdesign2/01-design-an-api-gateway-for-atlassian-services",
+    "panelId": "sd2-p0",
+    "title": "Design an API Gateway for Atlassian Services",
+    "targets": ["system-design/api-gateway"],
+    "questions": 1,
+    "followUps": 2,
+    "practice": 2
+  },
+  {
+    "draft": "drafts/sysdesign2/02-database-design",
+    "panelId": "sd2-p1",
+    "title": "Database Design",
+    "targets": ["databases/multi-tenant-schema"],
+    "questions": 1,
+    "followUps": 2,
+    "practice": 2
+  },
+  {
+    "draft": "drafts/sysdesign2/03-design-a-logging-and-monitoring-system",
+    "panelId": "sd2-p2",
+    "title": "Design a Logging & Monitoring System",
+    "targets": ["system-design/logging-monitoring"],
+    "questions": 1,
+    "followUps": 2,
+    "practice": 2
+  },
+  {
+    "draft": "drafts/sysdesign2/04-design-a-distributed-messaging-system",
+    "panelId": "sd2-p3",
+    "title": "Design a Distributed Messaging System",
+    "targets": ["system-design/messaging-system"],
+    "questions": 1,
+    "followUps": 2,
+    "practice": 2
+  },
+  {
+    "draft": "drafts/sysdesign2/05-kafka-vs-rabbitmq-when-to-use-each",
+    "panelId": "sd2-p4",
+    "title": "Kafka vs RabbitMQ — When to Use Each",
+    "targets": ["system-design/kafka-vs-rabbitmq"],
+    "questions": 1,
+    "followUps": 2,
+    "practice": 1
+  },
+  {
+    "draft": "drafts/sysdesign2/06-kafka-deep-dive-consumer-groups-offsets-performance-tuning",
+    "panelId": "sd2-p5",
+    "title": "Kafka Deep Dive — Consumer Groups · Offsets · Performance Tuning",
+    "targets": ["system-design/kafka-deep-dive"],
+    "questions": 1,
+    "followUps": 2,
+    "practice": 1
+  },
+  {
+    "draft": "drafts/sysdesign3/01-design-a-search-engine-for-knowledge-base-articles",
+    "panelId": "sd3-p0",
+    "title": "Design a Search Engine for Knowledge Base Articles",
+    "targets": ["system-design/search-engine"],
+    "questions": 1,
+    "followUps": 2,
+    "practice": 2
+  },
+  {
+    "draft": "drafts/sysdesign3/02-design-a-real-time-analytics-platform",
+    "panelId": "sd3-p1",
+    "title": "Design a Real-Time Analytics Platform",
+    "targets": ["system-design/realtime-analytics"],
+    "questions": 1,
+    "followUps": 2,
+    "practice": 2
+  },
+  {
+    "draft": "drafts/sysdesign3/03-design-a-scalable-authentication-and-authorization-system",
+    "panelId": "sd3-p2",
+    "title": "Design a Scalable Authentication & Authorization System",
+    "targets": ["system-design/auth-at-scale"],
+    "questions": 1,
+    "followUps": 2,
+    "practice": 2
+  },
+  {
+    "draft": "drafts/sysdesign4/01-design-the-snake-game",
+    "panelId": "sd4-p0",
+    "title": "Design the Snake Game",
+    "targets": ["low-level-design/snake-game"],
+    "questions": 1,
+    "followUps": 2,
+    "practice": 2
+  },
+  {
+    "draft": "drafts/sysdesign4/02-design-a-url-shortening-service",
+    "panelId": "sd4-p1",
+    "title": "Design a URL Shortening Service",
+    "targets": ["system-design/url-shortener"],
+    "questions": 1,
+    "followUps": 2,
+    "practice": 2
+  },
+  {
+    "draft": "drafts/sysdesign4/03-design-a-scalable-chat-application",
+    "panelId": "sd4-p2",
+    "title": "Design a Scalable Chat Application",
+    "targets": ["system-design/chat"],
+    "questions": 1,
+    "followUps": 2,
+    "practice": 2
+  },
+  {
+    "draft": "drafts/sysdesign4/04-design-a-job-scheduler-system-scale",
+    "panelId": "sd4-p3",
+    "title": "Design a Job Scheduler (System Scale)",
+    "targets": ["system-design/job-scheduler"],
+    "questions": 1,
+    "followUps": 2,
+    "practice": 2
+  },
+  {
+    "draft": "drafts/lld-resource/01-design-a-parking-lot",
+    "panelId": "lld-rb-p0",
+    "title": "Design a Parking Lot",
+    "targets": ["low-level-design/parking-lot"],
+    "questions": 1,
+    "followUps": 3,
+    "practice": 1
+  },
+  {
+    "draft": "drafts/lld-resource/02-design-an-elevator-system",
+    "panelId": "lld-rb-p1",
+    "title": "Design an Elevator System",
+    "targets": ["low-level-design/elevator"],
+    "questions": 1,
+    "followUps": 2,
+    "practice": 1
+  },
+  {
+    "draft": "drafts/lld-resource/03-meeting-room-reservation-system",
+    "panelId": "lld-rb-p2",
+    "title": "Meeting Room Reservation System",
+    "targets": ["low-level-design/meeting-room"],
+    "questions": 1,
+    "followUps": 2,
+    "practice": 1
+  },
+  {
+    "draft": "drafts/lld-resource/04-movie-ticket-booking-system-bookmyshow",
+    "panelId": "lld-rb-p3",
+    "title": "Movie Ticket Booking System (BookMyShow)",
+    "targets": ["low-level-design/movie-booking"],
+    "questions": 1,
+    "followUps": 2,
+    "practice": 1
+  },
+  {
+    "draft": "drafts/lld-money/01-design-expense-sharing-app-splitwise",
+    "panelId": "lld-mo-p0",
+    "title": "Design Expense Sharing App (Splitwise)",
+    "targets": ["low-level-design/splitwise"],
+    "questions": 1,
+    "followUps": 2,
+    "practice": 1
+  },
+  {
+    "draft": "drafts/lld-money/02-design-a-stock-trading-platform-zerodha-groww",
+    "panelId": "lld-mo-p1",
+    "title": "Design a Stock Trading Platform (Zerodha/Groww)",
+    "targets": ["low-level-design/stock-trading"],
+    "questions": 1,
+    "followUps": 2,
+    "practice": 1
+  },
+  {
+    "draft": "drafts/lld-money/03-design-a-shopping-cart",
+    "panelId": "lld-mo-p2",
+    "title": "Design a Shopping Cart",
+    "targets": ["low-level-design/shopping-cart"],
+    "questions": 1,
+    "followUps": 2,
+    "practice": 2
+  },
+  {
+    "draft": "drafts/lld-editors/01-design-a-text-editor-with-undo-redo",
+    "panelId": "lld-ed-p0",
+    "title": "Design a Text Editor with Undo/Redo",
+    "targets": ["low-level-design/text-editor"],
+    "questions": 1,
+    "followUps": 2,
+    "practice": 1
+  },
+  {
+    "draft": "drafts/lld-editors/02-design-a-spreadsheet-excel",
+    "panelId": "lld-ed-p1",
+    "title": "Design a Spreadsheet (Excel)",
+    "targets": ["low-level-design/spreadsheet"],
+    "questions": 1,
+    "followUps": 2,
+    "practice": 1
+  },
+  {
+    "draft": "drafts/lld-filesearch/01-design-a-file-system-unix-find-command",
+    "panelId": "lld-fs-p0",
+    "title": "Design a File System + Unix find Command",
+    "targets": ["low-level-design/file-system"],
+    "questions": 1,
+    "followUps": 2,
+    "practice": 2
+  },
+  {
+    "draft": "drafts/lld-filesearch/02-search-autocomplete-and-phone-directory",
+    "panelId": "lld-fs-p1",
+    "title": "Search, Autocomplete & Phone Directory",
+    "targets": ["low-level-design/autocomplete"],
+    "questions": 1,
+    "followUps": 2,
+    "practice": 1
+  },
+  {
+    "draft": "drafts/core-java/01-java-data-types-and-memory-model",
+    "panelId": "cj-p0",
+    "title": "Java Data Types & Memory Model",
+    "targets": ["java-runtime/data-types-and-memory"],
+    "questions": 1,
+    "followUps": 2,
+    "practice": 1
+  },
+  {
+    "draft": "drafts/core-java/02-equals-vs-hashcode-contract",
+    "panelId": "cj-p1",
+    "title": "equals() vs == · hashCode() Contract",
+    "targets": ["java-runtime/equals-and-hashcode"],
+    "questions": 1,
+    "followUps": 2,
+    "practice": 1
+  },
+  {
+    "draft": "drafts/core-java/03-checked-vs-unchecked-exceptions",
+    "panelId": "cj-p2",
+    "title": "Checked vs Unchecked Exceptions",
+    "targets": ["java-runtime/exceptions"],
+    "questions": 1,
+    "followUps": 2,
+    "practice": 1
+  },
+  {
+    "draft": "drafts/core-java/04-collections-framework",
+    "panelId": "cj-p3",
+    "title": "Collections Framework",
+    "targets": ["java-runtime/collections"],
+    "questions": 1,
+    "followUps": 2,
+    "practice": 1
+  },
+  {
+    "draft": "drafts/core-java/05-threadlocal-per-thread-state",
+    "panelId": "cj-p4",
+    "title": "ThreadLocal — Per-Thread State",
+    "targets": ["concurrency/threadlocal"],
+    "questions": 1,
+    "followUps": 2,
+    "practice": 1
+  },
+  {
+    "draft": "drafts/core-java/06-wait-vs-sleep-vs-join",
+    "panelId": "cj-p5",
+    "title": "wait() vs sleep() vs join()",
+    "targets": ["concurrency/wait-sleep-join"],
+    "questions": 1,
+    "followUps": 2,
+    "practice": 1
+  },
+  {
+    "draft": "drafts/core-java/07-class-loading-mechanism",
+    "panelId": "cj-p6",
+    "title": "Class Loading Mechanism",
+    "targets": ["java-runtime/jvm-architecture"],
+    "questions": 1,
+    "followUps": 2,
+    "practice": 1
+  },
+  {
+    "draft": "drafts/core-java/08-scenario-payment-gateway-thread-safety",
+    "panelId": "cj-p7",
+    "title": "Scenario: Payment Gateway Thread Safety",
+    "targets": ["concurrency/case-payment-thread-safety"],
+    "questions": 1,
+    "followUps": 2,
+    "practice": 2
+  },
+  {
+    "draft": "drafts/core-java/09-java-8-features",
+    "panelId": "cj-p8",
+    "title": "Java 8+ Features",
+    "targets": ["java-runtime/streams-and-lambdas"],
+    "questions": 1,
+    "followUps": 2,
+    "practice": 1
+  },
+  {
+    "draft": "drafts/core-java/10-object-creation-internals-immutable-classes-completablefutur",
+    "panelId": "cj-p9",
+    "title": "Object Creation Internals · Immutable Classes · CompletableFuture",
+    "targets": ["java-runtime/immutability", "concurrency/completablefuture"],
+    "questions": 1,
+    "followUps": 2,
+    "practice": 1
+  },
+  {
+    "draft": "drafts/adv-java/01-concurrenthashmap-and-volatile-vs-synchronized",
+    "panelId": "aj-p0",
+    "title": "ConcurrentHashMap & volatile vs synchronized",
+    "targets": ["concurrency/concurrenthashmap", "concurrency/volatile-and-synchronized"],
+    "questions": 1,
+    "followUps": 2,
+    "practice": 1
+  },
+  {
+    "draft": "drafts/adv-java/02-jvm-architecture-and-garbage-collection",
+    "panelId": "aj-p1",
+    "title": "JVM Architecture & Garbage Collection",
+    "targets": ["java-runtime/jvm-architecture", "java-runtime/garbage-collection"],
+    "questions": 1,
+    "followUps": 2,
+    "practice": 1
+  },
+  {
+    "draft": "drafts/adv-java/03-design-patterns-singleton-factory-builder-observer",
+    "panelId": "aj-p2",
+    "title": "Design Patterns — Singleton · Factory · Builder · Observer",
+    "targets": [
+      "oop-patterns/singleton",
+      "oop-patterns/factory",
+      "oop-patterns/builder",
+      "oop-patterns/observer"
+    ],
+    "questions": 1,
+    "followUps": 2,
+    "practice": 2
+  },
+  {
+    "draft": "drafts/spring/01-bean-vs-component-ioc-and-di-deep-dive",
+    "panelId": "sp-p0",
+    "title": "@Bean vs @Component · IoC & DI Deep Dive",
+    "targets": ["backend/spring-di-ioc"],
+    "questions": 1,
+    "followUps": 3,
+    "practice": 1
+  },
+  {
+    "draft": "drafts/spring/02-aspect-oriented-programming-aop",
+    "panelId": "sp-p1",
+    "title": "Aspect-Oriented Programming (AOP)",
+    "targets": ["backend/spring-aop"],
+    "questions": 1,
+    "followUps": 2,
+    "practice": 1
+  },
+  {
+    "draft": "drafts/spring/03-securing-rest-apis-jwt-and-oauth2",
+    "panelId": "sp-p2",
+    "title": "Securing REST APIs — JWT & OAuth2",
+    "targets": ["backend/authn-authz"],
+    "questions": 1,
+    "followUps": 2,
+    "practice": 1
+  },
+  {
+    "draft": "drafts/spring/04-oauth2-vs-jwt-complete-comparison",
+    "panelId": "sp-p3",
+    "title": "OAuth2 vs JWT — Complete Comparison",
+    "targets": ["backend/authn-authz"],
+    "questions": 1,
+    "followUps": 2,
+    "practice": 1
+  },
+  {
+    "draft": "drafts/spring/05-global-exception-handling-rest-api-best-practices",
+    "panelId": "sp-p4",
+    "title": "Global Exception Handling + REST API Best Practices",
+    "targets": ["backend/exception-handling"],
+    "questions": 1,
+    "followUps": 2,
+    "practice": 1
+  },
+  {
+    "draft": "drafts/jpa/01-jpa-hibernate-deep-dive",
+    "panelId": "jpa-p0",
+    "title": "JPA/Hibernate Deep Dive",
+    "targets": ["backend/jpa-hibernate"],
+    "questions": 1,
+    "followUps": 2,
+    "practice": 1
+  },
+  {
+    "draft": "drafts/sysdesign-v7/01-hld-interview-approach-back-of-envelope-estimation",
+    "panelId": "sd-p0-boe",
+    "title": "HLD Interview Approach + Back-of-Envelope Estimation",
+    "targets": ["system-design/approach-and-estimation"],
+    "questions": 1,
+    "followUps": 2,
+    "practice": 1
+  },
+  {
+    "draft": "drafts/sysdesign-v7/02-design-an-e-commerce-order-tracking-system",
+    "panelId": "sd-p0",
+    "title": "Design an E-Commerce Order Tracking System",
+    "targets": ["system-design/order-tracking"],
+    "questions": 1,
+    "followUps": 2,
+    "practice": 1
+  },
+  {
+    "draft": "drafts/sysdesign-v7/03-design-a-rate-limiter",
+    "panelId": "sd-p1",
+    "title": "Design a Rate Limiter",
+    "targets": ["system-design/distributed-rate-limiter"],
+    "questions": 1,
+    "followUps": 2,
+    "practice": 1
+  },
+  {
+    "draft": "drafts/sysdesign-v7/04-design-a-url-shortener",
+    "panelId": "sd-p2",
+    "title": "Design a URL Shortener",
+    "targets": ["system-design/url-shortener"],
+    "questions": 1,
+    "followUps": 2,
+    "practice": 2
+  },
+  {
+    "draft": "drafts/sysdesign-v7/05-design-a-pastebin-code-sharing-app",
+    "panelId": "sd-p6",
+    "title": "Design a Pastebin / Code Sharing App",
+    "targets": ["system-design/pastebin"],
+    "questions": 1,
+    "followUps": 2,
+    "practice": 1
+  },
+  {
+    "draft": "drafts/sysdesign-v7/06-design-instagram-twitter-news-feed",
+    "panelId": "sd-p7",
+    "title": "Design Instagram / Twitter News Feed",
+    "targets": ["system-design/news-feed"],
+    "questions": 1,
+    "followUps": 2,
+    "practice": 1
+  },
+  {
+    "draft": "drafts/sysdesign-v7/07-design-a-unique-id-generator-service",
+    "panelId": "sd-p8",
+    "title": "Design a Unique ID Generator Service",
+    "targets": ["system-design/id-generator"],
+    "questions": 1,
+    "followUps": 2,
+    "practice": 1
+  },
+  {
+    "draft": "drafts/sysdesign-v7/08-design-google-maps-navigation-system",
+    "panelId": "sd-p9",
+    "title": "Design Google Maps / Navigation System",
+    "targets": ["system-design/maps-navigation"],
+    "questions": 1,
+    "followUps": 2,
+    "practice": 1
+  },
+  {
+    "draft": "drafts/sysdesign-v7/09-design-a-distributed-key-value-store-redis-like",
+    "panelId": "sd-p3",
+    "title": "Design a Distributed Key-Value Store (Redis-like)",
+    "targets": ["system-design/kv-store"],
+    "questions": 1,
+    "followUps": 2,
+    "practice": 1
+  },
+  {
+    "draft": "drafts/sysdesign-v7/10-design-a-user-authentication-system",
+    "panelId": "sd-p4",
+    "title": "Design a User Authentication System",
+    "targets": ["system-design/auth-at-scale"],
+    "questions": 1,
+    "followUps": 2,
+    "practice": 2
+  },
+  {
+    "draft": "drafts/sysdesign-v7/11-payment-system-design-1m-transactions-daily",
+    "panelId": "sd-p5",
+    "title": "Payment System Design — 1M+ Transactions Daily",
+    "targets": ["system-design/payment-system"],
+    "questions": 1,
+    "followUps": 2,
+    "practice": 1
+  },
+  {
+    "draft": "drafts/db/01-sql-ddl-dml-joins-indexes-transactions",
+    "panelId": "db-p0",
+    "title": "SQL — DDL · DML · Joins · Indexes · Transactions",
+    "targets": ["databases/sql-fundamentals"],
+    "questions": 1,
+    "followUps": 2,
+    "practice": 1
+  },
+  {
+    "draft": "drafts/db/02-nosql-mongodb-redis-when-to-use-each",
+    "panelId": "db-p1",
+    "title": "NoSQL — MongoDB · Redis · When to Use Each",
+    "targets": ["databases/sql-vs-nosql"],
+    "questions": 1,
+    "followUps": 2,
+    "practice": 2
+  },
+  {
+    "draft": "drafts/db/03-sql-joins-normalization-window-functions",
+    "panelId": "db-p2",
+    "title": "SQL Joins · Normalization · Window Functions",
+    "targets": ["databases/joins-normalization-window-functions"],
+    "questions": 1,
+    "followUps": 2,
+    "practice": 1
+  },
+  {
+    "draft": "drafts/db/04-data-replication-models",
+    "panelId": "db-p3",
+    "title": "Data Replication Models",
+    "targets": ["databases/replication"],
+    "questions": 1,
+    "followUps": 2,
+    "practice": 1
+  },
+  {
+    "draft": "drafts/testing/01-junit-5-and-mockito-complete-testing",
+    "panelId": "te-p0",
+    "title": "JUnit 5 & Mockito — Complete Testing",
+    "targets": ["backend/testing"],
+    "questions": 1,
+    "followUps": 2,
+    "practice": 1
+  },
+  {
+    "draft": "drafts/devops/01-git-and-github-branching-pr-workflow-rebase",
+    "panelId": "do-p0",
+    "title": "Git & GitHub — Branching · PR Workflow · Rebase",
+    "targets": ["devops/git-workflow"],
+    "questions": 1,
+    "followUps": 2,
+    "practice": 2
+  },
+  {
+    "draft": "drafts/devops/02-docker-and-kubernetes",
+    "panelId": "do-p1",
+    "title": "Docker & Kubernetes",
+    "targets": ["devops/docker-kubernetes"],
+    "questions": 1,
+    "followUps": 2,
+    "practice": 1
+  },
+  {
+    "draft": "drafts/devops/03-ci-cd-jenkins-github-actions-aws-fundamentals",
+    "panelId": "do-p2",
+    "title": "CI/CD — Jenkins · GitHub Actions · AWS Fundamentals",
+    "targets": ["devops/ci-cd-and-cloud"],
+    "questions": 1,
+    "followUps": 2,
+    "practice": 2
+  },
+  {
+    "draft": "drafts/devops/04-circuit-breaker-production-resilience",
+    "panelId": "do-p3",
+    "title": "Circuit Breaker + Production Resilience",
+    "targets": ["architecture/resilience-patterns"],
+    "questions": 1,
+    "followUps": 2,
+    "practice": 1
+  }
+]

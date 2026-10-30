@@ -16,7 +16,10 @@
     "new:topic": "tsx scripts/new-topic.ts",
     "check:content": "tsx scripts/check-content.ts",
     "diagrams": "tsx scripts/render-diagrams.ts",
-    "report:migration": "tsx scripts/migration-report.ts"
+    "report:migration": "tsx scripts/migration-report.ts",
+    "research:fetch": "tsx scripts/research/leetcode-discuss.ts",
+    "research:analyze": "tsx scripts/research/analyze.ts",
+    "migrate:extract": "tsx scripts/migrate/extract.ts"
   },
   "dependencies": {
     "@astrojs/mdx": "^8.0.3",
@@ -48,6 +51,7 @@
     "prettier-plugin-astro": "^1.1.2",
     "tsx": "^4.23.15",
     "turndown": "^7.2.4",
+    "turndown-plugin-gfm": "^1.0.2",
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.72.1",
     "yaml": "^2.9.1"
