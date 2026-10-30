@@ -1,0 +1,155 @@
+---
+title: 'Testing: JUnit, Mockito and Testcontainers'
+summary: What to test and at which level, JUnit's model, mocks done right with Mockito, Spring test slices, real databases with Testcontainers, and how to keep a suite fast and free of flaky tests.
+track: backend
+order: 110
+tags: [backend, testing, junit, mockito, spring, testcontainers]
+aliases: [junit 5, junit 6, jupiter, mockito, mock vs spy, injectmocks, argumentcaptor, mockitobean, mockbean, webmvctest, datajpatest, springboottest, testcontainers, test pyramid, flaky tests, jest, vitest, pytest]
+prerequisites: [backend/spring-di-ioc]
+related: [backend/exception-handling, backend/jpa-hibernate, backend/rest-api-design]
+quickRef:
+  points:
+    - 'Test **behaviour through public APIs**, not private methods or call sequences.'
+    - 'Many fast **unit tests** for logic; **integration tests** against a real database (Testcontainers) for queries, mappings and transactions; few **end-to-end** tests.'
+    - 'Mock what you **don''t own or can''t control** (payment gateway, clock, email) — not your own repositories.'
+    - '`@Mock` fake, `@Spy` real-with-overrides, `@InjectMocks` the class under test; `ArgumentCaptor` to inspect what was sent.'
+    - 'Spring: `@WebMvcTest` for the web layer, `@DataJpaTest` for repositories, `@SpringBootTest` sparingly. `@MockitoBean` replaces `@MockBean`.'
+    - 'Flaky? Usually time, ordering, shared state or async — inject a `Clock`, isolate data, await conditions.'
+  useWhen: Writing tests for a Java/Spring service, reviewing a test suite, or speeding up a slow or flaky one.
+lastReviewed: 2026-10-30
+---
+
+## Why it matters
+
+Tests are what let a team change code on a Friday. A good suite catches regressions in seconds and points at the cause; a bad one is slow, breaks on every refactor, and passes while production is broken. The difference is mostly in *what* you test and *with what* — the framework syntax is the easy part.
+
+<Callout type="analogy">
+Testing a car. You bench-test the engine on its own (unit tests — fast, precise, but it's not in a car), you assemble the engine with the real gearbox and fuel system and run it (integration tests), and you take a few full test drives (end-to-end). Only doing test drives is slow and tells you little about *why* it failed; only bench tests never notice the gearbox doesn't fit.
+</Callout>
+
+## What to test at which level
+
+<Diagram id="test-pyramid" caption="More tests where they're cheap; each level catches bugs the one below can't." />
+
+| Level | Scope | Real dependencies | Catches | Speed |
+|---|---|---|---|---|
+| Unit | one class or small cluster | none — collaborators replaced | logic, edge cases, error paths | ~ms |
+| Slice / integration | one layer or the whole app in-process | database, broker, serialization (Testcontainers) | SQL, mappings, transactions, JSON, validation, security config | ~100 ms – s |
+| End-to-end | deployed system | everything | wiring between services, config, infrastructure | s – min |
+
+- **Mock at the boundary you don't control** — third-party APIs, email, payments, the clock, randomness. They're slow, cost money or are non-deterministic.
+- **Don't mock your own repositories in tests of persistence behaviour.** A mocked repository can't tell you the query is wrong, the mapping is broken or there's an N+1. Test the repository against a real database.
+- **Don't test private methods or interaction trivia.** Asserting that `save` was called before `publish` locks in the implementation; asserting on the outcome survives refactoring.
+
+<Callout type="tip">
+Some teams prefer a "testing trophy" with integration tests as the largest layer. With Testcontainers starting a database once per suite, integration tests are cheap enough that this is often the better balance for CRUD-heavy services; keep unit tests for code with real logic.
+</Callout>
+
+## JUnit essentials
+
+<CodeTabs id="junit-basics" title="Lifecycle, assertions, parameterized and nested tests" />
+
+| Annotation | Purpose |
+|---|---|
+| `@Test` | a test method; a **new instance** of the class per test, so fields don't leak between tests |
+| `@BeforeEach` / `@AfterEach` | set up / clean up around every test |
+| `@BeforeAll` / `@AfterAll` | once per class; `static` unless the class uses `@TestInstance(PER_CLASS)` |
+| `@ParameterizedTest` + `@ValueSource` / `@CsvSource` / `@MethodSource` | one test, many inputs |
+| `@Nested` | group tests sharing a scenario ("when the cart is empty") |
+| `@DisplayName` | readable names in reports |
+| `@Timeout` | fail a test that hangs |
+| `@Disabled` | skip, with a reason |
+| `@ExtendWith` | plug in extensions such as `MockitoExtension` or `SpringExtension` |
+
+<Callout type="note">
+JUnit 6 (September 2025) keeps the Jupiter API used here unchanged — it mainly raised the baseline to Java 17 and removed long-deprecated APIs. Everything on this page applies to JUnit 5 and 6. Assertions use AssertJ (`assertThat(…)`), which ships with Spring Boot's test starter.
+</Callout>
+
+A test reads best as **Arrange – Act – Assert** (given / when / then), with a name that states the behaviour: `placeOrder_whenPaymentDeclined_doesNotSaveOrder`.
+
+## Unit tests with Mockito
+
+<CodeTabs id="unit-test-mocks" title="A service test with mocks — JUnit + Mockito, Vitest, pytest" />
+
+| | Creates | Real code runs? | Use for |
+|---|---|---|---|
+| `@Mock` | a fake; unstubbed methods return `null`, `0`, `false`, empty collections | no | collaborators you replace |
+| `@Spy` | a wrapper around a real object | yes, unless stubbed with `doReturn(…).when(spy)` | rarely — partial mocks usually mean the class does too much |
+| `@InjectMocks` | the class under test, with mocks injected by constructor | yes | the subject |
+| `@Captor` / `ArgumentCaptor` | a recorder for arguments | — | asserting on an object the code built internally |
+
+- **Stub queries, verify commands.** Stub what a collaborator *returns* (`when(repo.findById(…)).thenReturn(…)`); verify only calls that are the point of the behaviour (a payment was charged, an event published) — not every call.
+- `MockitoExtension` uses **strict stubs**: a stub the test never uses fails with `UnnecessaryStubbingException`. That's a feature — it keeps tests honest.
+- `verify(x, never())` proves something *didn't* happen — vital for failure paths (no order saved when payment fails).
+- Prefer **constructor injection** in production code; it's what makes `new OrderService(fakeRepo, …)` or `@InjectMocks` trivial (see [Spring IoC](../spring-di-ioc/)).
+
+<Callout type="warning">
+On Java 21+, Mockito's inline mock maker attaches an agent at runtime and the JVM prints a warning that future releases will block this. Configure Mockito as a `-javaagent` in your Maven Surefire or Gradle test task, as Mockito's documentation describes.
+</Callout>
+
+## Spring test slices
+
+Starting the whole application for every test is the main reason Spring suites get slow. Slices start only the beans one layer needs:
+
+| Annotation | Starts | Use for |
+|---|---|---|
+| `@WebMvcTest(OrderController.class)` | MVC infrastructure, the controller, advice, filters, security; **no** services or repositories | request mapping, validation, JSON, status codes, error responses |
+| `@DataJpaTest` | JPA, repositories, a transaction rolled back after each test | queries, mappings, constraints |
+| `@JsonTest`, `@RestClientTest`, … | one concern each | serialization, outbound HTTP clients |
+| `@SpringBootTest` | the whole application context | a few end-to-end-in-process flows |
+
+<CodeTabs id="web-slice-test" title="@WebMvcTest with MockMvc and @MockitoBean" />
+
+<Callout type="note">
+Spring Framework 6.2 introduced `@MockitoBean` and `@MockitoSpyBean`; Spring Boot's `@MockBean` and `@SpyBean` were deprecated in Boot 3.4 and removed in Boot 4. Boot 4 also adds `RestTestClient` as the successor to `TestRestTemplate`, and splits `spring-boot-starter-test` into per-technology test starters.
+</Callout>
+
+## Real databases with Testcontainers
+
+An in-memory H2 database speaks a different SQL dialect from PostgreSQL or MySQL: JSON columns, `ON CONFLICT`, window functions, locking and some index behaviour differ, so tests pass while production fails. Testcontainers starts the real database in Docker for the test run.
+
+<CodeTabs id="repository-test" title="@DataJpaTest against PostgreSQL" />
+
+<CodeTabs id="integration-test" title="A full in-process flow with @SpringBootTest" />
+
+- `@ServiceConnection` (Spring Boot 3.1+) wires the container's URL and credentials into the application — no `@DynamicPropertySource` boilerplate.
+- Declare containers as `static` so they start **once per class** — or once per suite from a shared configuration class — not once per test.
+- Testcontainers 2.0 moved modules to new packages (`org.testcontainers.postgresql.PostgreSQLContainer`); older examples use `org.testcontainers.containers`.
+- Spring **caches application contexts** between test classes with identical configuration. Every distinct set of `@MockitoBean`s or properties creates a new context — keep them consistent, or a 300-test suite starts Spring 40 times.
+
+## Flaky tests
+
+A test that sometimes fails is worse than no test: people learn to ignore red builds. The usual causes and fixes:
+
+<CodeTabs id="flaky-fixes" title="Time, async and shared state — made deterministic" />
+
+| Cause | Fix |
+|---|---|
+| `LocalDateTime.now()` / `Instant.now()` in code | inject a `Clock`; use `Clock.fixed(…)` in tests |
+| `Thread.sleep(500)` waiting for async work | Awaitility: wait *until* a condition, with a timeout |
+| tests depend on each other's data or order | each test creates its own data; transactions roll back; unique ids |
+| random values | fixed seeds, or assert on properties rather than exact values |
+| real network calls | WireMock / MockWebServer, or a container |
+| time zones and locales | set them explicitly in the test |
+
+<Pitfalls>
+
+- **Mocking everything** — tests that pass while the SQL, JSON or wiring is broken.
+- **Asserting on implementation** (call order, private state) — every refactor breaks tests that found no bugs.
+- **No assertion at all** — a test that can't fail; or catching the exception the test should be about.
+- **H2 in place of the production database** for persistence tests.
+- **`@SpringBootTest` everywhere** — minutes of context startup for logic that needed no Spring.
+- **Shared mutable fixtures** (static lists, a shared database without cleanup) — order-dependent failures.
+- **Testing only the happy path** — the failure branches (payment declined, not found, timeout) are where the bugs are.
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- Test behaviour through public APIs; test each concern at the cheapest level that can catch it.
+- Mock external, slow or non-deterministic things; use real databases via Testcontainers.
+- Mockito: stub queries, verify commands, `never()` for failure paths, captors for built objects.
+- Slices over full contexts; `@MockitoBean` in current Spring; keep contexts cacheable.
+- Kill flakiness at the source: inject the clock, await conditions, isolate data.
+
+</KeyTakeaways>

@@ -1,0 +1,74 @@
+questions:
+  - q: In a product catalogue, many users buy the same item at once and stock sometimes goes negative. How do you prevent overselling with JPA?
+    think: Two transactions both read stock = 1, both pass the `stock > 0` check, both write 0. Where can the check and the write be made indivisible?
+    answer: |
+      The bug is a **check-then-act race**: the check happens in Java on a value that may already be stale. Three fixes, from simplest:
+
+      1. **Atomic conditional update** — `UPDATE product SET stock = stock - :qty WHERE id = :id AND stock >= :qty`, then treat `0` rows updated as out of stock. The database does the check and the write under its row lock; nothing is held across Java code. Best for a counter like stock. (Remember a bulk `@Modifying` query bypasses the persistence context.)
+      2. **Pessimistic lock** — `@Lock(PESSIMISTIC_WRITE)` on the read (`SELECT … FOR UPDATE`); the second buyer waits until the first commits and then sees the new stock. Keep the transaction short and set a lock timeout. Good when the rule is too complex for one `UPDATE`.
+      3. **Optimistic lock** — `@Version`; the losing transaction gets `OptimisticLockException` and retries from a fresh read. Fine at low contention, but a flash sale on one product turns into a retry storm.
+
+      Back it with a `CHECK (stock >= 0)` constraint so a bug can't drive it negative, and for flash sales consider reserving stock in Redis or a queue in front of the database.
+  - q: A page listing 20 orders takes 2 seconds and the SQL log shows 61 queries. What's happening and how do you fix it?
+    think: 61 = 1 + 20 + 20+ … what is being loaded per row?
+    answer: |
+      Classic **N+1**: one query for the orders, then a lazy load per order for `customer` and another for `lines` (1 + 20 + 20 + …). Fix per use case:
+
+      - Since it's a paginated list, don't `JOIN FETCH` the `lines` collection (Hibernate would page in memory). Either page the **ids** first and then load those orders with an `@EntityGraph`, or enable `hibernate.default_batch_fetch_size` so lazy collections load for the whole page with `IN (…)`.
+      - `customer` is a to-one: a fetch join or entity graph for it is safe with pagination.
+      - If the page is read-only, a **DTO projection** query returning exactly the columns shown is fastest of all.
+
+      Then prevent regressions: log or count statements in tests (Hibernate statistics, datasource-proxy, or a query-count assertion) and keep associations `LAZY`.
+followUps:
+  - q: Optimistic or pessimistic locking — how do you choose?
+    intuition: How often do conflicts really happen, and what does a conflict cost?
+    approach: |
+      **Optimistic** (`@Version`) costs nothing when there's no conflict and detects one at write time. Use it by default, and for anything with user "think time" (a form open for minutes — you can't hold a DB lock that long). The client gets a 409/412 and reloads.
+
+      **Pessimistic** (`SELECT … FOR UPDATE`) makes others wait instead of fail. Use it for short transactions on rows with frequent conflicts (a hot account balance, a seat being booked), always with a lock timeout and a consistent lock order to avoid deadlocks.
+
+      When the whole rule fits in one statement, an **atomic `UPDATE … WHERE`** beats both.
+  - q: What's the difference between `persist()` and `merge()`?
+    intuition: Which one makes *this* object managed?
+    approach: |
+      `persist(entity)` makes **that instance** managed and schedules an INSERT; it's for new entities and throws if given a detached one. `merge(entity)` copies the state of a (usually detached) object onto a managed instance — loading it first if necessary — and **returns the managed instance**; the argument stays detached. Spring Data's `save()` calls `persist` for new entities and `merge` otherwise, deciding "new" from a null id or `@Version`.
+  - q: Why is open-in-view considered harmful?
+    intuition: When does the lazy loading actually happen, and on which connection?
+    approach: |
+      It keeps the persistence context open until the response is rendered so lazy loading "just works" in controllers and serializers. The cost: lazy loads (often N+1) run outside the service's transaction during JSON serialization, a database connection can be held for the whole request, and data access leaks into the web layer where nobody looks for it. Turn it off and return DTOs built inside a `@Transactional` service method.
+  - q: When does Hibernate actually send SQL?
+    intuition: Write-behind.
+    approach: |
+      Reads run immediately (unless the entity is already in the persistence context). Writes are queued and sent at **flush**: before commit, before a query whose results could be affected (flush mode AUTO), or on an explicit `flush()`. A side effect: constraint violations surface at flush/commit, not at the line that caused them — call `flush()` inside a try block if you need to catch them there.
+  - q: What does the second-level cache cache, and when would you not use it?
+    intuition: Who else writes to that table?
+    approach: |
+      It caches entity data by id (and, with the query cache, lists of ids per query) across transactions within one JVM. Use it for small, read-mostly reference data. Avoid it when rows change often, when other systems write to the same tables, or when you run several instances without a clustered provider — each will serve stale data. An explicit application cache (cache-aside with Redis) is usually easier to reason about.
+practice:
+  - task: A client sends back an edited product it fetched earlier. Explain what `merge()` does with it, what happens if someone else updated the product meanwhile, and how you'd design the update instead.
+    hint: merge copies every field — including ones the client didn't intend to change — and the version it carries.
+    solution: |
+      `merge()` loads the current row (or reuses the managed instance), copies **all** fields from the detached object onto it, and returns the managed copy; dirty checking issues the UPDATE at flush. With a `@Version` field, the copied version is checked in `WHERE version = ?`, so a concurrent change causes `OptimisticLockException` (→ 409). Without `@Version`, the other user's change is silently overwritten — a lost update — and any field the client left empty is overwritten with null. For APIs, prefer loading the entity, checking the expected version (from `If-Match`) and copying only the fields being changed.
+    solutionCode: jpa-merge-detached
+  - task: Import 1 million product rows from a CSV with JPA without running out of memory or taking an hour.
+    hint: Think about id generation, the JDBC batch size, and what the persistence context holds after 100,000 persists.
+    solution: |
+      Use `SEQUENCE` ids with an allocation size (not `IDENTITY`, which disables insert batching), set `hibernate.jdbc.batch_size` (e.g. 50) and `order_inserts`, enable `reWriteBatchedInserts` on the PostgreSQL driver, and `flush()` + `clear()` every batch so the persistence context doesn't keep a million entities and snapshots. Commit in chunks (e.g. every 10,000 rows) so a failure doesn't roll back everything, and record progress to resume. For pure bulk loads, `COPY` or `JdbcTemplate.batchUpdate` skips the ORM entirely and is faster still.
+    solutionCode: jpa-batching
+quiz:
+  - q: What is the default fetch type of `@ManyToOne`?
+    options: [LAZY, EAGER, It depends on the provider, None — it must be specified]
+    correct: 1
+    why: To-one associations are EAGER by default in JPA; declare them `LAZY` explicitly.
+  - q: Inside a `@Transactional` method you load an entity and call a setter, but never call `save()`. What happens at commit?
+    options: [Nothing — the change is lost, An UPDATE is issued by dirty checking, An exception is thrown, A new row is inserted]
+    correct: 1
+    why: Managed entities are compared with their snapshot at flush; changed ones are updated automatically.
+  - q: Which id strategy prevents Hibernate from batching INSERT statements?
+    options: [SEQUENCE, TABLE, IDENTITY, UUID assigned in Java]
+    correct: 2
+    why: IDENTITY needs the database to generate each id on insert, so rows must be inserted one at a time.
+  - q: You `JOIN FETCH` a collection and request page 1 of size 20. What does Hibernate do?
+    options: [Adds LIMIT 20 to the SQL, Loads all matching rows and pages in memory, Throws at startup, Ignores the fetch]
+    correct: 1
+    why: A LIMIT on joined rows would cut collections in half, so Hibernate pages in memory and warns (HHH90003004).

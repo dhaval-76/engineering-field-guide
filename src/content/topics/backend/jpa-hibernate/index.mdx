@@ -1,0 +1,174 @@
+---
+title: JPA and Hibernate
+summary: How an ORM really talks to the database — the persistence context and dirty checking, entity states, relationship mapping, lazy loading and N+1, flushing, batching, locking and the second-level cache.
+track: backend
+order: 100
+tags: [backend, jpa, hibernate, orm, database, spring-data]
+aliases: [jpa, hibernate, orm, entitymanager, persistence context, dirty checking, n+1, lazyinitializationexception, join fetch, entitygraph, getreference, session.load, second level cache, optimistic locking, version, sqlalchemy, prisma]
+prerequisites: [backend/spring-aop, backend/connection-pooling]
+related: [backend/debugging-slow-api, backend/pagination, concurrency/case-payment-thread-safety]
+quickRef:
+  points:
+    - 'The **persistence context** (one per transaction) is an identity map + unit of work: each row is loaded once, and changes to managed entities are **flushed automatically** — no `save()` needed.'
+    - 'States: **transient → managed → detached / removed**. `merge()` returns a *new* managed copy.'
+    - '`find()` hits the DB now (or returns null); `getReference()` returns a lazy proxy — enough to set a foreign key.'
+    - 'Make every association **LAZY** (`@ManyToOne` is eager by default) and fetch what each use case needs: `JOIN FETCH`, `@EntityGraph`, batch fetching, or DTO projections.'
+    - '`@Version` for optimistic locking; `PESSIMISTIC_WRITE` (`SELECT … FOR UPDATE`) or an atomic `UPDATE … WHERE` for hot rows.'
+    - 'Turn off **open-in-view**; use `SEQUENCE` ids with JDBC batching for bulk inserts.'
+  useWhen: Writing or reviewing any Spring Data JPA / Hibernate code, or diagnosing slow or surprising SQL from an ORM.
+lastReviewed: 2026-10-30
+---
+
+## Why it matters
+
+An ORM lets you work with objects instead of rows, but it doesn't remove the database — it decides *when* and *how many* SQL statements run on your behalf. Most JPA production incidents come from not knowing those decisions: a page that fires 300 queries (N+1), a `LazyInitializationException` in a JSON serializer, an update nobody "saved" that still hit the database, or a lost update because two requests read the same row. Once you understand the persistence context, every one of these becomes predictable.
+
+<Callout type="analogy">
+The persistence context is a waiter's notepad. The first time you ask for a dish, the waiter goes to the kitchen (a `SELECT`) and writes it down; ask again and they read from the notepad. Change your order and they just amend the note — the kitchen hears about every amendment in one trip when the waiter next goes back (the **flush**), at the latest when you pay (the **commit**).
+</Callout>
+
+**Terms used here.** *JPA* (Jakarta Persistence) is the specification and its annotations (`@Entity`, `EntityManager`). *Hibernate* is the most common implementation. *Spring Data JPA* adds repository interfaces on top. In Spring, one transaction = one `EntityManager` = one persistence context.
+
+## The persistence context
+
+<Walkthrough id="persistence-context" />
+
+Three behaviours follow from it:
+
+- **Identity map.** Within one persistence context, a given row is one Java object. Loading `Order#7` twice returns the same instance and runs one `SELECT`. (This is the "first-level cache" — it lives only as long as the transaction.)
+- **Dirty checking.** When an entity is loaded, Hibernate keeps a snapshot of its fields. At flush time it compares each managed entity with its snapshot and issues `UPDATE`s for the ones that changed. Calling `repository.save(entity)` on an already managed entity does nothing useful.
+- **Write-behind.** `persist()` and setters don't run SQL immediately; statements are queued and sent at **flush**: before commit, before a query whose results could be affected (flush mode `AUTO`), or when you call `flush()` explicitly.
+
+<Callout type="tip">
+`@Transactional(readOnly = true)` on read-only service methods lets Hibernate skip snapshots and dirty checking entirely, and lets Spring route the connection to a read replica if you've set that up.
+</Callout>
+
+## Entity states
+
+<Diagram id="entity-lifecycle" caption="The four states of an entity. merge() doesn't reattach its argument — it returns a managed copy." />
+
+<CodeTabs id="jpa-entity-states" title="The lifecycle in code — JPA and SQLAlchemy have the same model" />
+
+| State | Tracked? | In the database? | How you get there |
+|---|---|---|---|
+| Transient (new) | No | No | `new Order()` |
+| Managed (persistent) | Yes — changes flush automatically | Yes, or will be at flush | `persist()`, `find()`, query results, `merge()`'s return value |
+| Detached | No | Yes | the transaction ended, `detach()`, `clear()`, serialized to another tier |
+| Removed | Yes, until flush | Deleted at flush | `remove()` |
+
+### `find()` vs `getReference()`
+
+<CodeTabs id="jpa-find-vs-reference" title="Load the row, or just a handle to it" />
+
+| | `find()` | `getReference()` |
+|---|---|---|
+| SQL | `SELECT` now (unless already in the context) | none until you read a non-id field |
+| Missing row | returns `null` | `EntityNotFoundException` when the proxy is first used |
+| Use when | you need the data | you only need it as a foreign key |
+
+<Callout type="note">
+Older material calls these Hibernate's `session.get()` and `session.load()`. Hibernate 7 removed `load()` (along with `save()`, `update()`, `saveOrUpdate()` and `delete()`) in favour of the JPA names `getReference()`, `persist()`, `merge()` and `remove()`, and deprecated `get()` in favour of `find()`.
+</Callout>
+
+## Mapping relationships
+
+<CodeTabs id="jpa-mapping" title="A bidirectional one-to-many, mapped the safe way" />
+
+- **The owning side holds the foreign key.** In a one-to-many, that's the `@ManyToOne` side (`OrderLine.order`). The `@OneToMany(mappedBy = "order")` side is a read-only mirror: adding to the list without setting `line.order` saves nothing. Use helper methods (`addLine`) that set both sides.
+- **Fetch type defaults are a trap.** `@ManyToOne` and `@OneToOne` are **EAGER** by default; `@OneToMany` and `@ManyToMany` are LAZY. Declare every association `LAZY` and decide per query what to load.
+- **Cascade from parent to child only.** `cascade = ALL` + `orphanRemoval = true` on an aggregate's children (order → lines) is right. Cascading from a child to its parent, or across aggregates (order → customer), deletes or overwrites things you didn't mean to.
+- **`equals`/`hashCode` on entities** must stay stable while the entity moves from transient to managed — use a natural key, or the id with a constant `hashCode()`. Avoid Lombok `@Data` on entities: its `hashCode` uses mutable fields and its `toString` walks lazy associations.
+- Prefer `Set` for collections you'll fetch together; fetching two `List` (bag) collections in one query throws `MultipleBagFetchException`.
+
+## N+1 queries and how to fetch
+
+Loading 100 orders and then touching `order.getLines()` on each runs 1 query for the orders and 100 more for the lines — the **N+1 problem**. It's invisible in code review and in tests with three rows, and it dominates response time in production. (For spotting it in a live system, see [Debugging a slow API](../debugging-slow-api/).)
+
+<Chart
+  type="bar"
+  title="SQL statements to show 100 orders with their lines"
+  bars={[
+    ['Lazy access in a loop (N+1)', 101, 'bad'],
+    ['Batch fetching, batch size 25', 5, 'warn'],
+    ['Batch fetching, batch size 100', 2, 'info'],
+    ['JOIN FETCH / @EntityGraph', 1, 'ok'],
+  ]}
+  caption="Batch fetching loads lazy collections for many parents at once (WHERE order_id IN (…)); a fetch join gets everything in one statement."
+/>
+
+<CodeTabs id="jpa-fetching" title="Fixing N+1 — JPA, Prisma and SQLAlchemy" />
+
+| Technique | Statements | Best for | Watch out for |
+|---|---|---|---|
+| `JOIN FETCH` / `@EntityGraph` | 1 | one collection, bounded result | duplicates parent rows in the result set; can't paginate (below) |
+| Batch fetching (`default_batch_fetch_size`) | 1 + N/size | pages of parents, several collections | a global setting — set it once (16–100) |
+| DTO projection | 1 | read-only screens and APIs | no dirty checking (that's the point) |
+| Two queries: page of ids, then fetch by ids | 2 | paginated lists with collections | slightly more code |
+
+<Callout type="warning">
+**`JOIN FETCH` + pagination** doesn't paginate in SQL: Hibernate loads *every* matching row and pages in memory, logging warning `HHH90003004` ("firstResult/maxResults specified with collection fetch; applying in memory"). Set `hibernate.query.fail_on_pagination_over_collection_fetch=true` to make it an error, and use the two-query approach instead. See [Pagination](../pagination/).
+</Callout>
+
+### `LazyInitializationException` and open-in-view
+
+A lazy association can only be loaded while its persistence context is open. Touch it after the transaction ends — typically while Jackson serializes the entity in the controller — and you get `LazyInitializationException`.
+
+Spring Boot "fixes" this by default with **open-in-view** (`spring.jpa.open-in-view=true`, which logs a warning at startup): the persistence context stays open until the HTTP response is written. The exception disappears, but lazy loads now run from the view layer, outside any transaction, each one borrowing a pooled connection — N+1 queries hidden in JSON serialization and connections held for the whole request ([Connection pooling](../connection-pooling/)).
+
+<CodeTabs id="jpa-lazy-init" title="Fetch what the use case needs inside the transaction, return DTOs" />
+
+## Writing efficiently
+
+<CodeTabs id="jpa-batching" title="Batch inserts and bulk updates" />
+
+- **Id generation decides batching.** `GenerationType.IDENTITY` (auto-increment) needs the database to return each id, so Hibernate must insert rows one at a time and **disables JDBC insert batching**. `SEQUENCE` with an `allocationSize` (Hibernate's pooled optimizer) hands out ids from memory and batches freely.
+- For large imports, `flush()` and `clear()` every batch so the persistence context (and its snapshots) doesn't grow without bound.
+- **Bulk `UPDATE`/`DELETE` queries bypass the persistence context**: managed entities keep stale values and `@Version` isn't incremented. Run them in their own transaction or with `@Modifying(clearAutomatically = true)`.
+- **Spring Data `save()` on an entity with an assigned id** (not generated) can't tell new from existing, so it calls `merge()` — an extra `SELECT` before every `INSERT`. Use generated ids, a `@Version` field, or implement `Persistable`.
+
+## Concurrency and locking
+
+Two requests that read the same row and both write back produce a **lost update** — see the [payment thread-safety case](../../concurrency/case-payment-thread-safety/) for the full story. JPA offers three tools:
+
+<CodeTabs id="jpa-locking" title="Optimistic, pessimistic and atomic updates" />
+
+| Approach | How | Conflict shows up as | Use when |
+|---|---|---|---|
+| Optimistic (`@Version`) | `UPDATE … WHERE id = ? AND version = ?` | `OptimisticLockException` → retry or 409 | conflicts are rare; user edits; long "think time" |
+| Pessimistic (`PESSIMISTIC_WRITE`) | `SELECT … FOR UPDATE` | waiting (set a lock timeout) | hot rows, short transactions, conflicts are common |
+| Atomic `UPDATE … WHERE` | one conditional statement | `0` rows updated | counters and stock where the rule fits in SQL |
+
+## The second-level cache
+
+| Cache | Scope | Default | Holds |
+|---|---|---|---|
+| First-level (persistence context) | one transaction | always on | managed entities |
+| Second-level (L2) | the `EntityManagerFactory`, shared by all transactions in one JVM | off | entity field data by id |
+| Query cache | same | off | ids returned by a query; invalidated whenever any table it reads changes |
+
+<CodeTabs id="jpa-l2-cache" title="Enabling the L2 cache for reference data" />
+
+The L2 cache pays off for small, read-mostly reference data looked up by id (countries, currencies, plans). It is the wrong tool for frequently-updated rows, and it has two traps: with several app instances, each JVM has its own copy unless you use a clustered provider (Infinispan, Hazelcast), and any write that bypasses Hibernate — another service, a migration, a bulk query — leaves it stale. For most caching needs an explicit cache in front of the service (see [Idempotency](../idempotency/)'s Redis usage, or a cache-aside layer) is easier to reason about.
+
+<Pitfalls>
+
+- **Calling `save()` after modifying a managed entity** "to be safe" — harmless but shows the model isn't understood; with detached entities it hides `merge()` semantics.
+- **Using the detached object after `merge()`** — `merge()` returns the managed copy; further changes to the argument are ignored.
+- **EAGER associations** — each one is loaded on every query for the parent, often with its own N+1.
+- **Returning entities from controllers** — lazy loading during serialization, infinite recursion on bidirectional links, and leaking internal fields. Return DTOs.
+- **`JOIN FETCH` with pagination** — in-memory paging of the whole table.
+- **Long transactions** that include HTTP calls — they hold a connection and row locks the whole time.
+- **`IDENTITY` ids for bulk inserts** — no batching.
+- **Trusting `ddl-auto=update` in production** — use Flyway or Liquibase migrations.
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- One transaction = one persistence context: identity map, dirty checking and write-behind.
+- Know the four entity states; use the value `merge()` returns.
+- Make associations lazy; choose the fetch strategy per use case; watch the SQL log.
+- Open-in-view off, DTOs out, `SEQUENCE` ids for batching.
+- `@Version` by default, pessimistic or atomic updates for hot rows.
+
+</KeyTakeaways>

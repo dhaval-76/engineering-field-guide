@@ -1,0 +1,10 @@
+stateDiagram-v2
+  direction TB
+  [*] --> Transient: new
+  Transient --> Managed: persist()
+  [*] --> Managed: find() / query
+  Managed --> Removed: remove()
+  Removed --> Managed: persist()
+  Managed --> Detached: commit · detach()
+  Detached --> Managed: merge()
+  Removed --> [*]: flush → DELETE

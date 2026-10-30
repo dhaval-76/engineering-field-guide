@@ -1,0 +1,73 @@
+questions:
+  - q: Your suite takes 45 minutes. One engineer wants to mock every dependency to make it fast; the tech lead says that makes the tests useless. Where's the right balance?
+    think: What can a mocked repository never tell you? And what is actually making the suite slow?
+    answer: |
+      Both are partly right. Mocks make tests fast, but a test that mocks the repository can't catch a wrong query, a broken mapping, a missing transaction or an N+1 — the bugs that actually reach production in a CRUD service.
+
+      **Balance:** unit tests (mocks allowed) for code with real logic — pricing, state machines, validation rules. Repository and API behaviour tested against **real** infrastructure with Testcontainers: `@DataJpaTest` for queries, `@WebMvcTest` for the HTTP contract, a few `@SpringBootTest` flows. Mock only what you don't own or can't control: payment gateways, email, third-party APIs, the clock. Keep a handful of end-to-end tests for critical journeys.
+
+      **Then fix the 45 minutes** — it's rarely the database:
+      - Measure first: which classes are slowest?
+      - **Context caching**: every distinct combination of `@MockitoBean`s or properties starts a new Spring context. Standardise them so contexts are reused.
+      - Start containers **once per suite** (shared static containers or a `@TestConfiguration` with `@ServiceConnection`), not per class.
+      - Replace `Thread.sleep` with Awaitility; use slices instead of `@SpringBootTest` where possible.
+      - Run in parallel (Surefire forks / Gradle `maxParallelForks`) once tests don't share state.
+  - q: How would you test a service method that charges a card, saves an order and publishes an event?
+    think: Which collaborators are external, which outcomes matter, and what must *not* happen when something fails?
+    answer: |
+      A unit test with the payment gateway, repository and event publisher mocked (they're the boundaries of this unit):
+
+      - **Happy path:** stub the gateway to succeed; assert on the returned order; capture the saved `Order` with an `ArgumentCaptor` and check the fields the service set itself (customer, status, timestamp from an injected fixed `Clock`); verify the event published.
+      - **Payment declined:** stub the gateway to throw; `assertThrows`; `verify(repo, never()).save(any())`; `verifyNoInteractions(events)`.
+      - **Gateway timeout:** what's the expected behaviour — retry, mark pending? Test that decision explicitly.
+
+      Then add an integration test that the order and its lines really persist and that the transaction rolls back on failure — which the unit test can't prove.
+followUps:
+  - q: What's the difference between @Mock, @Spy and @InjectMocks?
+    intuition: Fake, real-with-overrides, or the thing being tested?
+    approach: |
+      `@Mock` creates a full fake — no real code runs; unstubbed methods return defaults (`null`, `0`, `false`, empty collections). `@Spy` wraps a real object — real methods run unless you stub them (`doReturn(x).when(spy).method()`; `when(spy.method())` would call the real method while stubbing). `@InjectMocks` creates the class under test and injects the mocks and spies into it, preferring the constructor. Needing a spy on your own class is often a sign it should be split.
+  - q: When do you use an ArgumentCaptor?
+    intuition: Sometimes you need to inspect what was passed, not just that something was.
+    approach: |
+      When the code under test **builds an object internally** and hands it to a collaborator — an `Order` with a generated id and timestamp, an email with a rendered body — and you need to assert on several of its fields. For a simple match, `verify(mock).send(argThat(m -> m.to().equals("a@b.com")))` or `eq(...)` is enough. Capture in `verify`, not in `when`: stubbing with captors makes failures confusing.
+  - q: Why not use H2 for repository tests?
+    intuition: Same SQL, different database?
+    approach: |
+      H2 emulates other databases only partly. JSON/JSONB columns, `ON CONFLICT`/upserts, window functions, sequences, locking (`FOR UPDATE SKIP LOCKED`), case sensitivity, and index and constraint behaviour can all differ, so tests pass on H2 and fail in production — or the reverse, leading people to avoid real features. Testcontainers runs the real engine and version; with containers reused across the suite, the cost is a few seconds.
+  - q: What makes a test flaky, and how do you fix it?
+    intuition: What differs between two runs of the same test?
+    approach: |
+      Anything non-deterministic: the current time (inject a `Clock`), async work timed with `sleep` (Awaitility), test order and shared data (each test creates its own data with unique keys; rollback), randomness (fixed seeds), real network calls (WireMock or containers), time zones and locales, and concurrency in the code itself. Quarantine a flaky test with a ticket rather than retrying it silently — retries hide real race conditions.
+  - q: What's the difference between a stub, a mock and a fake?
+    intuition: Canned answers, recorded expectations, or a working simplified implementation?
+    approach: |
+      A **stub** returns canned answers to calls (`when(repo.findById(1)).thenReturn(...)`). A **mock** additionally records calls so you can verify interactions. A **fake** is a working lightweight implementation — an in-memory repository, a fake payment gateway with a test card that always declines. A **spy** wraps a real object. Fakes are often the most readable choice for collaborators used across many tests.
+practice:
+  - task: 'Write tests for `UserService.deleteUser(userId)`: it deletes the user and publishes a `UserDeleted` event, and throws `UserNotFoundException` (changing nothing) when the user doesn''t exist.'
+    hint: Two tests. In the failure case, prove that nothing was deleted and nothing was published. In the success case, consider whether the order of delete and publish matters.
+    solution: |
+      **Existing user:** stub `findById` to return the user; call the method; verify `delete(user)` and then `publishEvent(new UserDeleted("U1"))` using `InOrder` (publishing before the delete would announce something that might roll back). **Missing user:** stub `findById` to return `Optional.empty()`; `assertThrows(UserNotFoundException.class, …)` and check the message names the id; `verify(users, never()).delete(any())`; `verifyNoInteractions(events)`. An integration test could additionally confirm that a transactional event listener sees the event only after commit.
+    solutionCode: delete-user-test
+  - task: A test for trial expiry passes locally and fails on CI around midnight UTC. Find the cause and make the test deterministic.
+    hint: Where does "now" come from?
+    solution: |
+      The code calls `Instant.now()` (or `LocalDate.now()` in the machine's time zone), so the result depends on when and where the test runs. Inject a `java.time.Clock` into the service (a `Clock.systemUTC()` bean in production) and use `Clock.fixed(...)` in tests — including tests exactly at the boundary (end time, one second after). Use explicit time zones rather than the system default.
+    solutionCode: flaky-fixes
+quiz:
+  - q: Which Spring test annotation starts only the web layer (controllers, advice, filters) without services or repositories?
+    options: ['@SpringBootTest', '@WebMvcTest', '@DataJpaTest', '@ContextConfiguration']
+    correct: 1
+    why: '`@WebMvcTest` is a slice; collaborators are supplied with `@MockitoBean`.'
+  - q: With `MockitoExtension`, a test stubs a method that the code never calls. What happens?
+    options: [Nothing, A warning is logged, The test fails with UnnecessaryStubbingException, The stub is applied to the next test]
+    correct: 2
+    why: Strict stubs flag unused stubbing, which usually means the test no longer tests what it claims.
+  - q: In Spring Boot 4, what replaces `@MockBean`?
+    options: ['@MockitoBean', '@Mock', '@TestBean only', '@ReplaceBean']
+    correct: 0
+    why: '`@MockitoBean` (from Spring Framework 6.2) replaces Boot''s `@MockBean`, which was removed in Boot 4.'
+  - q: A test waits for an async email with `Thread.sleep(500)`. What's the better approach?
+    options: [Increase to 5000 ms, Retry the test three times, Await the condition with a timeout (Awaitility), Disable it on CI]
+    correct: 2
+    why: Waiting for the condition is both faster on average and reliable on slow machines.
