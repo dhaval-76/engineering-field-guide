@@ -1,0 +1,32 @@
+title: How a delay queue releases tasks
+frames:
+  - caption: Tasks are kept in a **min-heap ordered by run time**. The dispatcher only ever looks at the head — the earliest task.
+    panels:
+      - kind: array
+        label: Heap (by run time)
+        items: [{ v: 'A @10:00:05', tone: accent, tag: head }, 'B @10:00:30', 'C @10:01:00']
+      - kind: note
+        text: now = 10:00:00 — head not due; dispatcher sleeps until 10:00:05 (no polling)
+  - caption: A new task **D @10:00:02** is added. It becomes the new head, so the sleeping dispatcher is woken to re-check its deadline.
+    panels:
+      - kind: array
+        label: Heap (by run time)
+        items: [{ v: 'D @10:00:02', tone: accent, tag: head }, 'A @10:00:05', 'B @10:00:30', 'C @10:01:00']
+  - caption: At 10:00:02 `take()` returns D. The dispatcher hands it to the **worker pool** and immediately goes back to waiting — slow tasks never delay others.
+    panels:
+      - kind: array
+        label: Heap (by run time)
+        items: [{ v: 'A @10:00:05', tone: accent, tag: head }, 'B @10:00:30', 'C @10:01:00']
+      - kind: stack
+        label: Workers
+        items: [{ v: 'running D', tone: ok }]
+  - caption: 'A runs and **fails**. The retry policy returns a jittered backoff, so A is re-queued for ~10:00:06.4 with attempt = 2.'
+    panels:
+      - kind: array
+        label: Heap (by run time)
+        items: [{ v: 'A @10:00:06.4 (try 2)', tone: warn, tag: head }, 'B @10:00:30', 'C @10:01:00']
+  - caption: B is a **repeating** task (every 30 s). After it runs, its next occurrence is pushed back onto the heap — the same mechanism serves one-shot, retry and recurring work.
+    panels:
+      - kind: array
+        label: Heap (by run time)
+        items: [{ v: 'C @10:01:00', tone: accent, tag: head }, 'B @10:01:00']

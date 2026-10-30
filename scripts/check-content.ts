@@ -55,6 +55,11 @@ for (const f of mdxFiles) {
   } catch (e) {
     errors.push(`${f}: invalid frontmatter YAML — ${(e as Error).message.split('\n')[0]}`);
   }
+  const seen = new Set<string>();
+  for (const m of src.matchAll(/<(?:CodeTabs|Diagram|Walkthrough)\s+id="([^"]+)"/g)) {
+    if (seen.has(m[0])) errors.push(`${f}: ${m[0]}> is used twice on one page (duplicate HTML ids)`);
+    seen.add(m[0]);
+  }
   for (const m of src.matchAll(/<CodeTabs\s+id="([^"]+)"/g)) {
     used.code.add(m[1]!);
     if (!snippetIds.has(m[1]!)) errors.push(`${f}: <CodeTabs id="${m[1]}"> has no code files`);

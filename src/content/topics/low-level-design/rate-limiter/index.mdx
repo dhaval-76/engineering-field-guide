@@ -1,0 +1,117 @@
+---
+title: Design a Rate Limiter (LLD)
+summary: Token bucket, leaky bucket, fixed window, sliding log and sliding window counter — how each works, what it costs, which to pick, and how to implement them thread-safely in one process (with a pointer to the distributed version).
+track: low-level-design
+order: 25
+tags: [lld, rate-limiting, token-bucket, sliding-window, concurrency]
+aliases: [rate limiter lld, token bucket, leaky bucket, sliding window counter, fixed window counter, throttling, api rate limit]
+prerequisites: [low-level-design/lld-method]
+related: [low-level-design/lru-cache, oop-patterns/strategy-and-state]
+quickRef:
+  points:
+    - '**Token bucket** — capacity = burst size, refill rate = sustained rate. Lazy refill on each request. The default choice.'
+    - '**Leaky bucket** — queue drained at a constant rate; perfectly smooth output, adds latency.'
+    - '**Fixed window** — one counter per minute; cheap but allows **2× the limit** across a window boundary.'
+    - '**Sliding log** — exact, stores a timestamp per request (memory heavy). **Sliding window counter** — two counters, weighted; near-exact in O(1).'
+    - 'Per key (user/API key/IP), lock per key not globally, evict idle keys; across servers keep state in Redis with an atomic Lua script.'
+  complexity: 'Token bucket, fixed and sliding-window counters: O(1) time and memory per key. Sliding log: O(limit) memory per key.'
+  useWhen: Protecting an API or downstream dependency from overload and abuse, or enforcing plan quotas.
+lastReviewed: 2026-10-30
+---
+
+## Why it matters
+
+A rate limiter decides whether a request may proceed based on how many requests that client has made recently. It protects services from overload and abuse, enforces fair use and paid-plan quotas, and controls cost when you call metered third-party APIs. It's a favourite interview question because each algorithm has a crisp trade-off, and the implementation exercises time, concurrency and memory management.
+
+This page covers the **in-process** design. When many servers must share one limit, the same algorithms move into Redis — see the note at the end.
+
+<Callout type="analogy">
+A nightclub bouncer with a stack of entry wristbands. A new wristband is added to the stack every few seconds, up to a maximum. A group can rush in at once if there are enough wristbands; once they're gone, people wait for the next one. That's a token bucket.
+</Callout>
+
+## Requirements to clarify
+
+- **Identity**: per user, API key, IP, or endpoint? (Usually a combination: per API key per endpoint.)
+- **Limits**: e.g. 100 requests/minute with bursts up to 20 — two numbers, not one.
+- **Behaviour on limit**: reject with HTTP **429** and a `Retry-After` header, or queue/delay?
+- **Scope**: one server or a fleet? (Determines where the state lives.)
+- **Accuracy vs cost**: is an approximate limit acceptable?
+
+Model a common interface so algorithms are interchangeable (Strategy):
+
+<CodeTabs id="rl-interface" title="One interface, injectable time" />
+
+## Token bucket
+
+Each key has a bucket of up to `capacity` tokens that refills at `rate` tokens/second. A request takes a token or is rejected. Refill doesn't need a timer: on each request, add `elapsed × rate` tokens (capped) — a **lazy refill**.
+
+<Walkthrough id="token-bucket" />
+
+<CodeTabs id="rl-token-bucket" title="Token bucket per key, with lazy refill and idle-key eviction" />
+
+## Fixed window counter
+
+Count requests per key per calendar window (`12:00:00–12:00:59`). Simple and O(1) — but the counter resets at each boundary, so a client can send a full quota at the end of one window and another at the start of the next.
+
+<Diagram id="fixed-window-burst" caption="The boundary burst: 200 requests within two seconds, all allowed under a 100-per-minute fixed window." />
+
+## Sliding log and sliding window counter
+
+<CodeTabs id="rl-windows" title="Fixed window, sliding log and sliding window counter" />
+
+- **Sliding log** keeps the timestamp of every allowed request in the last window and counts them. Exact, but memory grows with the limit (a 10,000/hour limit stores up to 10,000 timestamps per key).
+- **Sliding window counter** keeps just the current and previous window counts and estimates the rolling count: `previous × (1 − elapsed fraction) + current`. It assumes requests in the previous window were evenly spread; in practice it's within a few percent of exact and costs O(1).
+
+## Leaky bucket
+
+Requests enter a bounded queue that drains at a fixed rate. Output is perfectly smooth, which suits a downstream that can only accept N calls per second (a payment gateway, an SMS provider). The cost is **latency** — requests wait in the queue — and a full queue still has to reject.
+
+<CodeTabs id="rl-leaky-bucket" title="Leaky bucket as a bounded queue with a constant-rate drain" />
+
+## Choosing an algorithm
+
+| Algorithm | Bursts | Accuracy | Memory per key | Typical use |
+|---|---|---|---|---|
+| Token bucket | Allowed up to capacity | Good | O(1) | General API limits (AWS, Stripe and most gateways) |
+| Leaky bucket | Smoothed away (queued) | Exact output rate | O(queue) | Protecting a fixed-rate downstream |
+| Fixed window | 2× at boundaries | Weak at edges | O(1) | Coarse quotas ("1,000/day") where edges don't matter |
+| Sliding log | None | Exact | O(limit) | Low limits needing exactness (login attempts) |
+| Sliding window counter | Mostly smoothed | Approximate | O(1) | High-volume per-user limits |
+
+<Callout type="insight">
+Say which one you'd pick and why: "Token bucket — it separates burst size from sustained rate, it's O(1) per key and easy to make atomic in Redis. If a downstream needs perfectly smooth traffic, I'd put a leaky-bucket queue in front of that specific call."
+</Callout>
+
+## Concurrency and memory
+
+- **Lock per key, not globally** — a global `synchronized` serialises every request in the service. Per-bucket locks or `ConcurrentHashMap.compute` keep keys independent.
+- **Evict idle keys** — a map keyed by IP grows forever under a scan. Use an expiring cache (Caffeine `expireAfterAccess`) or periodic cleanup.
+- **Monotonic time** — use `System.nanoTime()` (or `performance.now()`, `time.monotonic()`), not wall-clock time, which can jump backwards.
+- **Respond helpfully** — return `429 Too Many Requests` with `Retry-After` and optionally `RateLimit-Limit` / `RateLimit-Remaining` headers.
+
+## When there's more than one server
+
+An in-memory limiter on each of N servers lets a client make N × limit requests in total (with a load balancer spreading their traffic). Shared limits move the bucket into **Redis**, with the read-refill-decrement done in one **Lua script** so it's atomic across servers:
+
+<CodeTabs id="rl-redis-lua" title="Token bucket in Redis with an atomic Lua script" />
+
+The system-design view — where to place the limiter (gateway vs service), multi-region limits, failure modes when Redis is down (fail open vs closed) — is a system-design topic of its own.
+
+<Pitfalls>
+
+- **One global lock** around all keys — becomes the bottleneck you were trying to prevent.
+- **Unbounded per-key maps** — memory leak under many distinct IPs.
+- **Wall-clock time** — NTP adjustments can refill buckets instantly or freeze them.
+- **Counting rejected requests** against the limit — usually only allowed requests should consume quota.
+- **Per-instance limits presented as global limits** — with N instances the effective limit is N times higher.
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- Token bucket = burst capacity + refill rate, lazy refill, O(1): the default.
+- Fixed windows leak 2× at boundaries; sliding counters fix that cheaply; sliding logs are exact but memory-heavy.
+- Leaky bucket smooths output at the cost of latency.
+- Lock per key, evict idle keys, use monotonic time; share state in Redis with Lua across servers.
+
+</KeyTakeaways>

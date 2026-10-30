@@ -1,0 +1,104 @@
+---
+title: Design a Task Scheduler and Notification Service
+summary: An in-process scheduler built on a delay queue — one-shot, recurring and retried tasks with backoff and jitter — plus a notification service that broadcasts or falls back across channels, idempotently.
+track: low-level-design
+order: 26
+tags: [lld, scheduler, delay-queue, heap, retry, backoff, notifications]
+aliases: [task scheduler lld, job scheduler low level design, cron design, notification system lld, delayqueue, exponential backoff]
+prerequisites: [low-level-design/lld-method]
+related: [oop-patterns/observer, oop-patterns/design-patterns-map, low-level-design/rate-limiter]
+quickRef:
+  points:
+    - Keep tasks in a **min-heap by run time** (`DelayQueue`/`PriorityQueue`); a dispatcher sleeps until the head is due — no polling.
+    - The dispatcher only **hands tasks to a worker pool**, so a slow task never delays others.
+    - Recurring tasks and retries are just **re-enqueueing** with a new run time.
+    - 'Retries use **exponential backoff with jitter** and a max attempt count, then a dead-letter record.'
+    - 'Notifications: **broadcast** to all preferred channels, or a **fallback chain** (push → SMS → email); dedupe with a per-(notification, channel) delivery log.'
+  complexity: 'Schedule O(log n), dispatch O(log n) per task; the dispatcher wakes only when the earliest task is due.'
+  useWhen: Reminders, delayed jobs, retries and recurring maintenance inside one service; LLD rounds on schedulers and notification systems.
+lastReviewed: 2026-10-30
+---
+
+## Why it matters
+
+"Run this later", "run this every hour" and "retry this until it works" appear in every backend: reminder notifications, retrying failed webhooks, expiring reservations, nightly reports. The LLD version tests whether you pick the right data structure (a heap ordered by time), separate **when** from **how** a task runs (dispatcher vs workers), and handle failure properly. A notification service is the natural consumer of such a scheduler and adds channel choice and idempotency.
+
+<Callout type="analogy">
+A to-do list sorted by due time, pinned to the fridge. You only look at the top item and set an alarm for it. When it rings, you hand the job to whoever is free and set the alarm for the next item. If someone adds an earlier item, you reset the alarm.
+</Callout>
+
+## Clarify
+
+- One process or many? (One here; durable distributed scheduling is a system-design topic.)
+- One-shot, fixed-rate recurring, cron expressions? (One-shot and fixed-rate; cron is parsing on top.)
+- Delivery guarantee — at-most-once or at-least-once? (At-least-once with idempotent tasks.)
+- Cancellation? Retries? Ordering guarantees? (Yes, yes, no.)
+- Survive restarts? (In-memory timers don't — call this out.)
+
+## The core: a delay queue
+
+<Walkthrough id="delay-queue" />
+
+<CodeTabs id="sched-core" title="Dispatcher thread + worker pool on a DelayQueue" />
+
+Design points:
+
+- **Min-heap by time** gives O(log n) insert and "what's next" in O(1). `DelayQueue.take()` blocks until the head's delay reaches zero, and wakes early if an earlier task is inserted.
+- **Dispatcher vs workers**: the dispatcher thread does nothing but take due tasks and submit them. Running task code on the dispatcher would let one slow task delay every other task.
+- **Recurring tasks** re-enqueue themselves after running. Fixed-rate (`previousRunAt + period`) keeps a steady cadence; fixed-delay (`finishedAt + period`) guarantees a gap between runs.
+- **Cancellation** is lazy: mark the id cancelled and skip it when it comes due — cheaper than removing from the middle of a heap.
+- **Injected time** (`Ticker`) makes the whole thing testable without sleeping.
+
+In Java, `ScheduledThreadPoolExecutor` already implements this pattern; building it yourself is about understanding what's inside. In Node (the JavaScript tab above), the event loop's timer queue is the heap — the scheduler just adds ids, retries and repeats.
+
+## Retries: backoff and jitter
+
+<CodeTabs id="sched-retry" title="Exponential backoff with full jitter" />
+
+- **Exponential**: 200 ms, 400 ms, 800 ms… gives a struggling dependency room to recover.
+- **Cap** the delay and the number of attempts; after that, write a **dead-letter** record and alert.
+- **Jitter**: if 10,000 tasks fail together, un-jittered retries all fire at the same moments and knock the dependency over again. Randomising the delay spreads them out.
+- Retry only **retryable** errors (timeouts, 503s), not validation errors.
+- Retries mean a task can run more than once — tasks must be **idempotent** (dedupe by a task/notification id).
+
+## Notification service
+
+<CodeTabs id="notify-service" title="Broadcast vs fallback delivery with an idempotency log" />
+
+Two delivery modes, chosen per notification type:
+
+| Mode | Behaviour | Example | Pattern |
+|---|---|---|---|
+| Broadcast | Send on every preferred channel independently | Order shipped → in-app + push | Observer / fan-out |
+| Fallback | Try channels in order until one succeeds | Login OTP → push, else SMS, else email | Chain of Responsibility |
+
+Other things a real notification service handles:
+
+- **User preferences and quiet hours** — store per user/channel; hold non-urgent notifications until quiet hours end (another scheduled task).
+- **Templates and localisation** — render per channel and language.
+- **Rate limits and digests** — don't send 30 pushes in a minute; batch into "5 tasks due today".
+- **Provider failures** — channel senders wrap providers (FCM, APNs, SES, an SMS vendor) as adapters; retry with backoff; switch provider if one is down.
+- **Invalid tokens** — when a push provider reports an unregistered device token, delete it.
+
+## Making it durable
+
+An in-memory scheduler loses everything on restart. When that matters, persist tasks in a database table (`run_at`, `status`, `attempts`, `locked_by`) and have workers claim due rows with `SELECT … WHERE run_at <= now() AND status='PENDING' FOR UPDATE SKIP LOCKED`, or use a sorted set in Redis, or a managed queue with delayed delivery. That's the distributed job scheduler covered in system design.
+
+<Pitfalls>
+
+- **Polling** every N ms instead of sleeping until the next due time — wastes CPU and adds latency.
+- **Running tasks on the dispatcher thread** — one slow task blocks the schedule.
+- **Retries without jitter or a cap** — thundering herds and infinite loops.
+- **Non-idempotent tasks with at-least-once delivery** — duplicate charges, duplicate emails.
+- **Assuming in-memory timers survive deploys** — they don't.
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- Heap/delay queue by run time + a dispatcher that sleeps until the head is due + a worker pool.
+- Recurring and retried tasks are re-enqueued with a new run time; cancellation can be lazy.
+- Exponential backoff with jitter and a cap; dead-letter after the last attempt; make tasks idempotent.
+- Notifications: broadcast vs fallback chain, preferences, and a delivery log for dedupe.
+
+</KeyTakeaways>

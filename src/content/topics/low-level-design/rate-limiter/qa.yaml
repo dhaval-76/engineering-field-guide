@@ -1,0 +1,55 @@
+questions:
+  - q: Your public API gets 10,000 requests/second from 50 clients; one scraper sends 9,500/s. Design a rate limiter.
+    think: Per-client limits, bursts allowed for normal use, and a fleet of servers sharing the limit.
+    answer: |
+      - **Key**: API key (fall back to IP for anonymous traffic), optionally per endpoint.
+      - **Algorithm**: token bucket — e.g. capacity 50, refill 100/s for the standard plan; plans map to different parameters.
+      - **Where**: state in Redis so all servers share it; one Lua script reads tokens + timestamp, refills, decrements and writes back atomically, with a TTL to clean up idle keys.
+      - **Response**: 429 with `Retry-After`; `RateLimit-Remaining` headers for well-behaved clients.
+      - **Layers**: coarse IP-based flood protection at the gateway/CDN, plan-aware limits in the application.
+      - **Failure mode**: decide fail-open (availability) vs fail-closed (protection) if Redis is unreachable; a small local token bucket can act as a fallback.
+  - q: Implement a thread-safe in-memory rate limiter for 100 requests per minute per user.
+    think: Which algorithm, how is time handled, and what does the per-user map look like under concurrency?
+    answer: |
+      Token bucket with capacity 100 and refill 100/60 per second (or a sliding window counter if bursts must be limited). Store `ConcurrentHashMap<user, Bucket>` (better: an expiring cache) and synchronise on each bucket, not the whole map. Refill lazily from `System.nanoTime()` on each call. Unit-test with an injected ticker: exhaust the bucket, assert rejection, advance the ticker 600 ms, assert exactly one more request passes.
+followUps:
+  - q: Explain the boundary problem with a fixed window counter.
+    intuition: When does the counter reset, and what does a client see at that instant?
+    approach: |
+      With 100/minute, a client can send 100 requests at 12:00:59 and 100 more at 12:01:00 — 200 in two seconds, all allowed, because each window counts separately. Sliding window log/counter or token bucket avoid it. The sliding counter estimates `prev × (1 − elapsed) + current`, so at 12:01:00 it still counts nearly all of the previous minute's 100.
+  - q: Rate limiting at the API gateway or in the application — which?
+    intuition: Think about what each layer knows.
+    approach: |
+      The gateway (NGINX, Envoy, Kong, cloud API gateways) rejects floods before they reach your services and needs no app code, but only knows coarse identity (IP, API key). The application knows plans, user roles and per-endpoint cost, so it can enforce business quotas. Use both: coarse protection at the edge, fine-grained limits in the app, both backed by shared state where needed.
+  - q: What happens to your limiter if Redis goes down?
+    intuition: The limiter is now in the request path. Is it better to let traffic through or block it?
+    approach: |
+      Choose explicitly. **Fail open** keeps the API available but unprotected — fine for fairness limits. **Fail closed** protects critical/expensive endpoints but causes an outage. A middle ground: fall back to a local in-memory limiter with the limit divided by the number of instances, and alert. Also set tight timeouts on Redis calls so a slow Redis doesn't slow every request.
+practice:
+  - task: Implement token bucket and sliding window counter behind one `RateLimiter` interface, and write tests that use a fake clock.
+    hint: Inject a `Ticker`; tests advance it manually instead of sleeping.
+    solution: |
+      Both implementations take `(limit/capacity, window or rate, ticker)`. Tests: send capacity requests (all allowed), one more (rejected), advance by one refill interval (one allowed). For the sliding counter, put 100 requests at the end of one window and check that requests just after the boundary are mostly rejected — proving it fixes the fixed-window burst.
+    solutionCode: rl-windows
+  - task: Implement a sliding-window-log limiter in Redis using a sorted set, atomically.
+    hint: 'In Lua: ZREMRANGEBYSCORE to drop old entries, ZCARD to count, ZADD the new timestamp if under the limit, then PEXPIRE.'
+    solution: |
+      `ZREMRANGEBYSCORE key 0 (now - window)`, `ZCARD key`; if below the limit, `ZADD key now <unique member>` and `PEXPIRE key window`, return 1; else return 0 — all inside one `EVAL` so concurrent servers can't interleave. Use a unique member (timestamp + random/sequence) so two requests in the same millisecond aren't merged. Memory is O(limit) per key, so prefer the token-bucket script for high limits.
+    solutionCode: rl-redis-lua
+quiz:
+  - q: Which algorithm lets a client send a burst of up to N requests and then a steady R per second?
+    options: [Fixed window, Token bucket, Leaky bucket, Sliding log]
+    correct: 1
+    why: Capacity controls the burst; refill rate controls the sustained throughput.
+  - q: Why use System.nanoTime() rather than System.currentTimeMillis() for refill calculations?
+    options:
+      - It's faster to type
+      - nanoTime is monotonic; wall-clock time can jump when the system clock is adjusted
+      - currentTimeMillis is deprecated
+      - nanoTime is in UTC
+    correct: 1
+    why: Elapsed-time calculations need a clock that never goes backwards.
+  - q: Ten app servers each run an in-memory limiter of 100/min per user. What is the effective limit for a user whose requests are spread evenly?
+    options: ['100/min', 'About 1,000/min', '10/min', 'Unlimited']
+    correct: 1
+    why: Each server counts independently; a shared store is needed for a true global limit.

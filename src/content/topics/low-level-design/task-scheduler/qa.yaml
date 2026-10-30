@@ -1,0 +1,46 @@
+questions:
+  - q: Design a task scheduler that supports one-time delayed tasks, recurring tasks, cancellation and retries.
+    think: What data structure answers "what runs next?" quickly? How do you avoid a slow task blocking others?
+    answer: |
+      A min-heap (`DelayQueue`) of tasks ordered by run time. A single dispatcher thread blocks on `take()` until the head is due, then submits it to a fixed worker pool. Recurring tasks re-enqueue at `runAt + period` after running; failures re-enqueue with exponential backoff + jitter until a max attempt count, then go to a dead-letter store. Cancellation marks the id and the dispatcher skips it. Inject a clock for tests. For durability across restarts, persist tasks and claim due rows with `FOR UPDATE SKIP LOCKED`.
+  - q: Users create tasks with due dates; when a task is due, send a push notification within 30 seconds. There are 100 million tasks. How do you find due tasks efficiently?
+    think: Scanning every task every 30 seconds is the trap.
+    answer: |
+      Index by due time. In a database: an index on `(due_at)` for pending tasks and a worker that fetches `due_at <= now()` in batches with `SKIP LOCKED`. In Redis: a sorted set `due_tasks` scored by due time; every few seconds a Lua script atomically pops members with score ≤ now and publishes them to a queue. Both are O(due tasks), not O(all tasks). Delivery workers consume the queue, send pushes with retries, and record deliveries for idempotency.
+followUps:
+  - q: Why add jitter to exponential backoff?
+    intuition: Think of 10,000 requests that all failed during the same outage.
+    approach: |
+      Without jitter they all retry at exactly 200 ms, 400 ms, 800 ms… — synchronised waves that hit the recovering dependency at once and can knock it over again. Full jitter (random delay between 0 and the exponential ceiling) spreads retries evenly and dramatically reduces peak load. Always cap the delay and the number of attempts.
+  - q: A user has five devices. How do you send a notification to all of them, and clean up dead tokens?
+    intuition: One user, many push tokens; providers tell you when a token is invalid.
+    approach: |
+      Store `user_devices(user_id, device_id, platform, push_token, last_seen_at)`. Fan out one delivery per active device (seen in the last N days), each tracked independently. When FCM/APNs returns "unregistered/invalid token", delete that row asynchronously. Use per-device idempotency keys so retries don't double-notify.
+  - q: How would you turn many per-task reminders into one daily digest?
+    intuition: Collect first, send later.
+    approach: |
+      Instead of sending immediately, append due items to a per-user buffer (a table or a Redis list) and schedule one "flush" task per user per window (e.g. 8 am local time, or every 30 minutes). The flush renders "You have 5 tasks due today" with deep links and clears the buffer. Stream processors (Kafka Streams/Flink) can do the same with windowed aggregation at large scale. Pair it with per-user notification rate limits.
+practice:
+  - task: Build a TaskScheduler supporting delayed and repeating tasks, with a worker pool and retries. Test it with a fake clock.
+    hint: Separate the dispatcher (take due tasks) from workers (run them). Make the clock injectable so tests can advance time.
+    solution: |
+      The `DelayQueue`-based scheduler above: tasks implement `Delayed`, the dispatcher takes and submits, failures re-enqueue via a `RetryPolicy`. With an injected ticker you can test that a task scheduled for +5 s doesn't run at +4 s and does at +5 s, that a failing task runs exactly `maxAttempts` times, and that cancelling a repeating task stops it.
+    solutionCode: sched-core
+  - task: Implement a notification service that can either broadcast to all preferred channels or fall back through channels until one succeeds, without sending duplicates on retries.
+    hint: Channel senders behind an interface; a delivery log keyed by (notificationId, channel).
+    solution: |
+      `broadcast` iterates preferred channels; `deliverWithFallback` stops at the first success. `deliverOnce` claims `(notificationId, channel)` in the delivery log before sending (insert-if-absent), so a retried job won't send the same notification on the same channel twice.
+    solutionCode: notify-service
+quiz:
+  - q: Why shouldn't the dispatcher thread run the task code itself?
+    options:
+      - Threads can't run Runnables
+      - A slow or blocking task would delay every other due task
+      - It would use too much memory
+      - DelayQueue forbids it
+    correct: 1
+    why: The dispatcher's only job is timing; work goes to a pool so timing stays accurate.
+  - q: What makes a retried task safe to run more than once?
+    options: [Running it on a single thread, Making it idempotent (e.g. dedupe by task id), Using a PriorityQueue, Increasing the timeout]
+    correct: 1
+    why: At-least-once execution is only safe if repeating the task has the same effect as running it once.
