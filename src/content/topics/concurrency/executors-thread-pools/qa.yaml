@@ -1,0 +1,36 @@
+questions:
+  - q: Why is `Executors.newCachedThreadPool()` (or `newFixedThreadPool`) dangerous in production?
+    think: Look at what each factory leaves unbounded.
+    answer: |
+      `newCachedThreadPool` has no limit on threads and a zero-capacity hand-off queue: under sustained load every task can create a new thread until the JVM runs out of memory or the OS refuses threads. `newFixedThreadPool` bounds threads but uses an unbounded queue: tasks accumulate, memory grows and latency explodes before anything fails visibly. Build a `ThreadPoolExecutor` with a bounded queue, named threads and an explicit rejection policy (fail fast with 503, or `CallerRunsPolicy` for backpressure).
+  - q: How do you size a thread pool for a web service?
+    answer: |
+      Distinguish CPU-bound from I/O-bound work. CPU-bound: about the number of cores. I/O-bound: `cores × (1 + wait/compute)` — e.g. 8 cores, 50 ms waiting per 5 ms CPU → ~88 threads — or Little's law from target throughput and latency. Then cap by downstream capacity (database pool size, API rate limits), split unrelated work into separate pools, and tune from metrics (queue depth, active count, rejections, p99 latency). For heavy I/O concurrency, prefer virtual threads with a semaphore protecting each downstream.
+followUps:
+  - q: What is the difference between execute() and submit()?
+    intuition: What happens to an exception thrown inside the task?
+    approach: |
+      `execute(Runnable)` returns nothing; an exception goes to the worker thread's uncaught-exception handler (often only printed). `submit` returns a `Future`; the exception is captured and re-thrown from `get()` as `ExecutionException`, and you can cancel or time out the wait. If you `submit` and never call `get`, the exception is silently swallowed — another reason to handle results or use `afterExecute` hooks.
+  - q: When does ThreadPoolExecutor create threads beyond the core size?
+    intuition: Only after something else is full.
+    approach: |
+      Only when the queue rejects the task (it's full). With an unbounded queue that never happens, so `maximumPoolSize` is effectively ignored. That's why bounded queues matter, and why some teams use a `SynchronousQueue` (hand-off) or set core = max.
+  - q: What is thread-starvation deadlock?
+    intuition: A task waits on a result that needs a thread from the same pool.
+    approach: |
+      If every pool thread runs a task that blocks waiting for another task submitted to the same bounded pool, no thread is free to run the awaited tasks — everything stops. Avoid blocking on futures from inside pool tasks, use separate pools for dependent stages, or compose asynchronously (`thenCompose`) instead of blocking.
+practice:
+  - task: Build an executor that allows at most 10 concurrent tasks, rejects with a custom exception when overloaded, and logs a warning when its queue is 80% full.
+    hint: A fixed-size ThreadPoolExecutor with an ArrayBlockingQueue; a custom rejection handler; override execute() to inspect the queue.
+    solution: |
+      `new ThreadPoolExecutor(10, 10, 0, MILLISECONDS, new ArrayBlockingQueue<>(cap), (t, e) -> { throw new ServiceOverloadedException(); })`, subclassed to warn in `execute` when `getQueue().size() >= 0.8 * cap` and to log failures in `afterExecute`. Expose the numbers as metrics.
+    solutionCode: pool-monitored
+quiz:
+  - q: 'Core 4, max 8, unbounded queue. 100 slow tasks arrive. How many threads run?'
+    options: ['8', '4 — the queue never fills, so extra threads are never created', '100', '0']
+    correct: 1
+    why: Threads beyond core are created only when the queue is full.
+  - q: Which rejection policy applies backpressure by slowing the submitter?
+    options: [AbortPolicy, CallerRunsPolicy, DiscardPolicy, DiscardOldestPolicy]
+    correct: 1
+    why: The submitting thread runs the task itself, so it can't submit more until it finishes.

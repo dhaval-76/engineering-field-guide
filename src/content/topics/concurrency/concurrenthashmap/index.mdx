@@ -1,0 +1,92 @@
+---
+title: ConcurrentHashMap
+summary: How ConcurrentHashMap stays fast under many threads — lock-free reads, CAS into empty bins, per-bin locks and cooperative resizing — and the atomic operations (merge, compute, computeIfAbsent) you must use instead of get-then-put.
+track: concurrency
+order: 30
+tags: [concurrency, concurrenthashmap, collections, cas, atomic-operations]
+aliases: [concurrenthashmap vs hashmap, concurrenthashmap internals, computeifabsent, synchronizedmap vs concurrenthashmap, thread safe map]
+prerequisites: [java-runtime/hashmap-internals, concurrency/threads-and-race-conditions]
+related: [concurrency/volatile-and-synchronized, low-level-design/rate-limiter]
+quickRef:
+  points:
+    - '**Reads don''t lock** (volatile loads). **Empty-bin inserts** use a CAS. **Updates to an occupied bin** lock only that bin. Resizes are shared among threads.'
+    - 'Each call is atomic, but **sequences aren''t**: replace `get` + `put` with `merge`, `compute`, `computeIfAbsent`, `putIfAbsent`, `replace(k, old, new)`.'
+    - 'No `null` keys or values — `get` returning `null` must unambiguously mean "absent".'
+    - Iterators are **weakly consistent** (never throw CME, may or may not see concurrent changes); `size()` is an estimate.
+    - Keep `compute*` lambdas short and never modify the same map inside them.
+  complexity: 'get/put O(1) average with near-linear scaling across threads touching different bins.'
+  useWhen: Shared caches, registries, per-key counters and in-memory indexes accessed by many threads.
+lastReviewed: 2026-10-30
+---
+
+## Why it matters
+
+A plain `HashMap` shared between threads silently loses entries, returns `null` for keys that are present, or corrupts its internal structure during a resize — without throwing. Wrapping it in `Collections.synchronizedMap` fixes correctness but forces every thread through one lock. `ConcurrentHashMap` is the standard answer: correct and scalable. But it's commonly misused with get-then-put sequences that reintroduce the race.
+
+<Callout type="analogy">
+A supermarket with one checkout lane versus one with a lane per aisle. In the first, everyone queues behind whoever is paying. In the second, people only wait if they're in the same lane — and anyone who just wants to look at prices doesn't queue at all.
+</Callout>
+
+## How it works (Java 8+)
+
+<Diagram id="chm-bins" caption="A synchronized map serialises everything; ConcurrentHashMap lets readers and writers on different bins proceed together." />
+
+- **Reads** (`get`, iteration) use volatile reads of the table and nodes — no locking.
+- **Insert into an empty bin**: one compare-and-swap of the bin slot.
+- **Update a non-empty bin**: `synchronized` on that bin's first node; other bins are unaffected. Long chains become trees, as in `HashMap`.
+- **Resize**: when the table grows, threads that write during the resize **help** move bins, so no single thread stalls everyone.
+- **Counting**: `size()` sums striped counters (like `LongAdder`), so it's fast but only an estimate while writes are happening.
+
+(Java 7 used 16 lock "segments"; the per-bin design replaced it and removed the fixed concurrency limit.)
+
+## Use the atomic operations
+
+<CodeTabs id="chm-atomic-ops" title="Per-key atomic updates — and the equivalents in Node and Python" />
+
+| Instead of | Use |
+|---|---|
+| `if (!m.containsKey(k)) m.put(k, v)` | `m.putIfAbsent(k, v)` or `m.computeIfAbsent(k, f)` |
+| `m.put(k, m.getOrDefault(k, 0) + 1)` | `m.merge(k, 1, Integer::sum)` |
+| `if (m.get(k).equals(old)) m.put(k, nw)` | `m.replace(k, old, nw)` |
+| get → modify a mutable value → put | `m.compute(k, (key, v) -> …)` returning a new value |
+
+`computeIfAbsent` is also the simplest **"load once per key"** cache: concurrent callers for the same missing key wait for one loader instead of all hitting the database. Keep the loader fast — it holds that bin's lock — or use a real cache (Caffeine) that loads outside the lock.
+
+## Iteration, size and bulk operations
+
+<CodeTabs id="chm-snapshot" title="Weakly consistent iteration, snapshots and parallel bulk operations" />
+
+## Why no nulls?
+
+In a concurrent map, `get(k) == null` must mean "absent". If `null` values were allowed, you'd need `containsKey` to disambiguate — and another thread could change the map between the two calls. Banning nulls removes the ambiguity. Use `Optional`, a sentinel, or simply don't store absent values.
+
+## Choosing a map
+
+| Situation | Choice |
+|---|---|
+| One thread only | `HashMap` |
+| Built once, then read by many threads | `Map.copyOf(...)` published via a final/volatile field |
+| Read-mostly, rare full replacement | volatile reference to an immutable map, swapped on update |
+| Many readers and writers | `ConcurrentHashMap` |
+| Sorted + concurrent | `ConcurrentSkipListMap` |
+| Several keys must change together atomically | An explicit lock around a plain map (or redesign) |
+| Bounded cache with eviction/TTL | Caffeine (built on similar techniques) |
+
+<Pitfalls>
+
+- **get-then-put sequences** — each call is safe, the sequence isn't.
+- **Slow or blocking work inside `compute`/`computeIfAbsent`** — blocks other writers of that bin.
+- **Recursive updates** — calling `computeIfAbsent` on the same map from inside its own function can deadlock or throw.
+- **Mutating objects stored as values** without synchronisation — the map protects the entry, not the object's fields.
+- **Relying on `size()`** for exact logic under concurrent writes.
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- Lock-free reads, CAS for empty bins, per-bin locks for updates, cooperative resizing.
+- Single calls are atomic; use `merge`/`compute*`/`putIfAbsent`/`replace` for compound updates.
+- No nulls, weakly consistent iteration, approximate size.
+- Pick the map by access pattern; use Caffeine when you need eviction.
+
+</KeyTakeaways>

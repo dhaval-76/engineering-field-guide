@@ -1,0 +1,36 @@
+questions:
+  - q: Sessions cached in a HashMap inside a singleton randomly disappear or get corrupted under 50 concurrent users, with no exceptions. Diagnose and fix.
+    think: Which operations on HashMap are unsafe concurrently, and what happens during a resize?
+    answer: |
+      `HashMap` isn't thread-safe: concurrent `put`s can overwrite each other's bucket links, and a resize running while other threads read or write can lose entries or return `null` for present keys (and historically loop forever). It fails silently. Replace it with `ConcurrentHashMap` and use atomic operations for compound updates (`computeIfAbsent`, `merge`). For sessions specifically, add expiry (Caffeine) and remember a per-JVM map isn't shared across instances — use Redis for sessions in a scaled-out service.
+  - q: Design a per-endpoint request counter updated by 500 threads and read by a monitoring thread every second.
+    answer: |
+      `ConcurrentHashMap<String, LongAdder>`: writers call `counters.computeIfAbsent(endpoint, k -> new LongAdder()).increment()`, which avoids contention on hot endpoints; the monitor reads `sum()` (or `sumThenReset()` for per-interval rates). Exactness at a single instant isn't needed for metrics, which is the trade-off LongAdder makes. In production, a metrics library (Micrometer) does this for you.
+followUps:
+  - q: Will ConcurrentHashMap eliminate all concurrency bugs in a cache?
+    intuition: Which operations are atomic — single calls or sequences?
+    approach: |
+      No. Each method is atomic, but sequences like `if (get(k) == null) put(k, v)` still race — use `computeIfAbsent`. Values that are mutable objects need their own synchronisation. Iteration is weakly consistent and `size()` is approximate. And a cache usually needs eviction and expiry, which ConcurrentHashMap doesn't provide.
+  - q: Why doesn't ConcurrentHashMap allow null keys or values?
+    intuition: What does get() returning null mean if nulls are allowed?
+    approach: |
+      It would be ambiguous between "absent" and "mapped to null", and checking `containsKey` afterwards isn't reliable because another thread can change the map in between. Disallowing nulls keeps `null` meaning "absent" in every concurrent operation.
+  - q: How did ConcurrentHashMap change between Java 7 and Java 8?
+    intuition: Segments vs bins.
+    approach: |
+      Java 7 split the map into a fixed number of segments (default 16), each a small hash table with its own lock, capping write concurrency at the segment count. Java 8 removed segments: lock-free reads, CAS for empty bins, `synchronized` on individual bin heads for updates, tree bins for long chains, striped size counting and multi-threaded resizing.
+practice:
+  - task: Implement a thread-safe word-frequency counter using only ConcurrentHashMap operations (no synchronized blocks), with a method returning the most frequent word.
+    hint: merge for increments; stream the entries for the max.
+    solution: |
+      `freq.merge(word, 1, Integer::sum)` per word; `getOrDefault(word, 0)` for reads; the top word via `freq.entrySet().stream().max(Map.Entry.comparingByValue())` — a weakly consistent view, fine for reporting.
+    solutionCode: chm-atomic-ops
+quiz:
+  - q: Which update is atomic on ConcurrentHashMap?
+    options: ['map.put(k, map.get(k) + 1)', 'map.merge(k, 1, Integer::sum)', 'if (!map.containsKey(k)) map.put(k, 1)', 'map.get(k).increment() on a mutable Integer holder without synchronisation']
+    correct: 1
+    why: merge performs the read-modify-write while holding the bin's lock (or via CAS).
+  - q: Iterating a ConcurrentHashMap while other threads write…
+    options: [Throws ConcurrentModificationException, Never throws and may or may not show concurrent changes, Blocks all writers, Returns a frozen snapshot]
+    correct: 1
+    why: Iterators are weakly consistent by design.

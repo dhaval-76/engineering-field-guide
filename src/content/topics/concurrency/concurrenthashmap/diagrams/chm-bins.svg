@@ -1,0 +1,31 @@
+<svg viewBox="0 0 720 230" xmlns="http://www.w3.org/2000/svg" font-family="var(--font-sans)" font-size="12">
+  <text x="20" y="18" fill="var(--d-muted)" font-weight="600" letter-spacing=".05em">SYNCHRONIZED MAP — ONE LOCK</text>
+  <rect x="20" y="30" width="300" height="40" rx="6" fill="var(--d-bad-soft)" stroke="var(--d-bad)"/>
+  <g font-family="var(--font-mono)" font-size="11" fill="var(--d-text)">
+    <text x="40" y="55">[0]</text><text x="80" y="55">[1]</text><text x="120" y="55">[2]</text><text x="160" y="55">[3]</text><text x="200" y="55">[4]</text><text x="240" y="55">[5]</text><text x="280" y="55">…</text>
+  </g>
+  <text x="20" y="92" fill="var(--d-text)">Thread A writes bin 1 → threads B, C, D wait,</text>
+  <text x="20" y="108" fill="var(--d-text)">even for reads of other bins.</text>
+  <g fill="var(--d-muted)" font-size="11"><text x="20" y="138">A ● writing</text><text x="110" y="138">B ⏸ waiting</text><text x="200" y="138">C ⏸ waiting</text></g>
+
+  <line x1="360" y1="14" x2="360" y2="216" stroke="var(--d-line)" stroke-dasharray="3 4"/>
+
+  <text x="390" y="18" fill="var(--d-muted)" font-weight="600" letter-spacing=".05em">CONCURRENTHASHMAP — PER-BIN</text>
+  <g font-family="var(--font-mono)" font-size="11">
+    <rect x="390" y="30" width="44" height="40" rx="5" fill="var(--d-fill)" stroke="var(--d-stroke)"/><text x="400" y="55" fill="var(--d-text)">[0]</text>
+    <rect x="440" y="30" width="44" height="40" rx="5" fill="var(--d-accent-soft)" stroke="var(--d-accent)"/><text x="450" y="55" fill="var(--d-text)">[1]</text>
+    <rect x="490" y="30" width="44" height="40" rx="5" fill="var(--d-fill)" stroke="var(--d-stroke)"/><text x="500" y="55" fill="var(--d-text)">[2]</text>
+    <rect x="540" y="30" width="44" height="40" rx="5" fill="var(--d-ok-soft)" stroke="var(--d-ok)"/><text x="550" y="55" fill="var(--d-text)">[3]</text>
+    <rect x="590" y="30" width="44" height="40" rx="5" fill="var(--d-info-soft)" stroke="var(--d-info)"/><text x="600" y="55" fill="var(--d-text)">[4]</text>
+    <rect x="640" y="30" width="44" height="40" rx="5" fill="var(--d-fill)" stroke="var(--d-stroke)"/><text x="654" y="55" fill="var(--d-text)">…</text>
+  </g>
+  <g font-size="11">
+    <text x="440" y="90" fill="var(--d-accent)">A: lock bin 1</text>
+    <text x="540" y="90" fill="var(--d-ok)">B: CAS into empty bin 3</text>
+    <text x="590" y="106" fill="var(--d-info)">C: read bin 4 (no lock)</text>
+  </g>
+  <text x="390" y="138" fill="var(--d-text)">All three proceed at once. Only writers to the</text>
+  <text x="390" y="154" fill="var(--d-text)">SAME non-empty bin wait for each other.</text>
+  <text x="20" y="196" fill="var(--d-text)">Reads use volatile loads (no locking). Inserting into an empty bin is a single CAS. Updating a non-empty bin locks just that</text>
+  <text x="20" y="212" fill="var(--d-text)">bin's first node. Resizing is shared: threads that touch the map during a resize help move bins.</text>
+</svg>

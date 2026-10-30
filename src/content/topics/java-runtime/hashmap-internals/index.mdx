@@ -6,7 +6,7 @@ order: 20
 tags: [java, hashmap, hashing, collections, data-structures]
 aliases: [hashmap internal working, hash table, load factor, rehashing, hash collision, treeify, java hashmap interview]
 prerequisites: [java-runtime/equals-and-hashcode]
-related: [low-level-design/lru-cache]
+related: [low-level-design/lru-cache, concurrency/concurrenthashmap]
 quickRef:
   points:
     - An array of **buckets**; index = `spread(hashCode) & (capacity − 1)`; capacity is always a power of two.

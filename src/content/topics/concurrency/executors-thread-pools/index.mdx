@@ -1,0 +1,94 @@
+---
+title: Executors and Thread Pools
+summary: How ThreadPoolExecutor actually decides between new threads, queuing and rejection, why the convenience factories are dangerous in production, how to size pools for CPU- vs I/O-bound work, and how to submit, time out and shut down cleanly.
+track: concurrency
+order: 40
+tags: [concurrency, thread-pool, executor, backpressure, virtual-threads]
+aliases: [threadpoolexecutor, executor service, thread pool size, newfixedthreadpool vs newcachedthreadpool, rejection policy, execute vs submit]
+prerequisites: [concurrency/threads-and-race-conditions]
+related: [concurrency/concurrenthashmap, low-level-design/task-scheduler]
+quickRef:
+  points:
+    - 'Task flow: **< core** → new thread; **at core** → queue; **queue full** → extra threads up to **max**; **still full** → rejection policy.'
+    - Always use a **bounded queue** and an explicit rejection policy. `newFixedThreadPool` has an unbounded queue; `newCachedThreadPool` has unbounded threads.
+    - 'Sizing: CPU-bound ≈ **cores**; I/O-bound ≈ **cores × (1 + wait/compute)** — then measure. For heavy I/O fan-out, use virtual threads.'
+    - '`submit` + `Future.get(timeout)` to see failures and bound waits; `execute` swallows exceptions into the uncaught handler.'
+    - Shut down with `shutdown` → `awaitTermination` → `shutdownNow`; name your threads.
+  useWhen: Running background work, parallel calls, or any time you're tempted to write `new Thread(...)`.
+lastReviewed: 2026-10-30
+---
+
+## Why it matters
+
+Creating a platform thread is expensive (an OS thread and about a megabyte of stack), and unbounded concurrency is how services fall over: every slow request ties up a thread, threads pile up, memory runs out. A thread pool reuses a fixed set of threads and — configured properly — gives you **backpressure**: when you're overloaded you reject or slow down instead of collapsing. Most production incidents involving executors come from the defaults.
+
+<Callout type="analogy">
+A restaurant kitchen with a set number of cooks and an order rail. Orders wait on the rail when the cooks are busy; when the rail is full the manager calls in extra cooks; when even they're busy, the host stops seating people. A kitchen that hires a new cook for every order — or lets the rail grow down the street — isn't a working kitchen.
+</Callout>
+
+## How tasks flow through ThreadPoolExecutor
+
+<Walkthrough id="pool-flow" />
+
+<CodeTabs id="pool-config" title="An explicitly configured pool — and limiting concurrency in Node and Python" />
+
+The counter-intuitive part: extra threads above core are created **only when the queue is full**. With an unbounded queue (`newFixedThreadPool`), the pool never grows beyond core and the queue grows until memory runs out.
+
+| Factory | Hidden configuration | Risk |
+|---|---|---|
+| `newFixedThreadPool(n)` | n threads, **unbounded** `LinkedBlockingQueue` | Memory exhaustion and huge latency under overload |
+| `newCachedThreadPool()` | 0 core, **unbounded** max, no queue | Thousands of threads, OOM |
+| `newSingleThreadExecutor()` | 1 thread, unbounded queue | Same as fixed |
+| `newVirtualThreadPerTaskExecutor()` | One virtual thread per task | Fine for I/O; protect downstreams with semaphores |
+
+## Sizing a pool
+
+<Chart
+  type="bar"
+  title="Suggested pool size on 8 cores by wait/compute ratio — threads ≈ cores × (1 + wait/compute)"
+  bars={[
+    ['CPU-bound (ratio 0)', 8, 'info'],
+    ['ratio 1 (half waiting)', 16, 'info'],
+    ['ratio 5', 48, 'accent'],
+    ['ratio 10 (e.g. 50 ms DB, 5 ms CPU)', 88, 'accent'],
+    ['ratio 50', 408, 'warn'],
+  ]}
+  caption="Starting points, not answers: the real limit is often a downstream (database connections, an API's rate limit). At the high end, virtual threads are the better tool."
+/>
+
+- **CPU-bound** work: about one thread per core; more just adds context switching.
+- **I/O-bound** work: threads mostly wait, so more threads keep the CPU busy — the formula above, or **Little's law** (`concurrency = throughput × latency`).
+- **Downstream limits** usually matter more: a pool of 200 threads hitting a database pool of 20 connections just queues 180 threads inside the connection pool.
+- Use **separate pools** (bulkheads) for different kinds of work, so slow reports can't starve checkout.
+- Then **measure**: queue depth, active threads, rejections and latency under load.
+
+## Submitting work
+
+<CodeTabs id="pool-submit" title="execute vs submit, timeouts and cancellation" />
+
+## Shutting down
+
+<CodeTabs id="pool-shutdown" title="Graceful shutdown" />
+
+## Observability
+
+<CodeTabs id="pool-monitored" title="A pool that rejects with a domain error, warns early and logs task failures" />
+
+<Pitfalls>
+
+- **Unbounded queues and thread counts** from the `Executors` factories.
+- **Blocking I/O on the common ForkJoinPool** (parallel streams, default `CompletableFuture.supplyAsync`).
+- **Tasks that wait for other tasks in the same bounded pool** — thread-starvation deadlock.
+- **Never shutting down** custom pools — non-daemon threads keep the JVM alive; leaked pools in redeploys.
+- **Silent failures** with `execute` and no uncaught-exception handling.
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- Core → queue → max → reject: bound the queue so max and rejection actually happen.
+- Size by CPU vs I/O, then by downstream limits; measure under load.
+- `submit` with timeouts to see failures; shut down gracefully.
+- Virtual threads for high-concurrency I/O; bounded platform pools for CPU work.
+
+</KeyTakeaways>

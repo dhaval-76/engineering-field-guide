@@ -1,0 +1,39 @@
+title: What ThreadPoolExecutor does with each new task (core 2, max 4, queue 3)
+frames:
+  - caption: 'Fewer than **core** threads are running → start a **new thread** for the task, even if others are idle.'
+    panels:
+      - kind: array
+        label: Threads
+        items: [{ v: 'T1 task 1', tone: accent }]
+      - kind: queue
+        label: Queue (capacity 3)
+        items: []
+  - caption: 'At core size (2 threads busy) → new tasks go into the **queue**. Notice that no extra threads start yet.'
+    panels:
+      - kind: array
+        label: Threads
+        items: [{ v: 'T1 busy', tone: info }, { v: 'T2 busy', tone: info }]
+      - kind: queue
+        label: Queue (capacity 3)
+        items: [{ v: task 3, tone: accent }, task 4, task 5]
+  - caption: 'Queue **full** → only now does the pool start threads beyond core, up to **max**. (This surprises people: with an unbounded queue, max is never reached.)'
+    panels:
+      - kind: array
+        label: Threads
+        items: [{ v: 'T1 busy', tone: info }, { v: 'T2 busy', tone: info }, { v: 'T3 task 6', tone: warn, tag: extra }, { v: 'T4 task 7', tone: warn, tag: extra }]
+      - kind: queue
+        label: Queue (capacity 3)
+        items: [task 3, task 4, task 5]
+  - caption: 'Queue full **and** at max threads → the **rejection policy** runs: throw (AbortPolicy), or make the caller run it (CallerRunsPolicy) so the producer slows down.'
+    panels:
+      - kind: array
+        label: Threads
+        items: [{ v: 'T1', tone: info }, { v: 'T2', tone: info }, { v: 'T3', tone: warn }, { v: 'T4', tone: warn }]
+      - kind: list
+        label: Task 8
+        items: [{ v: 'rejected → 503 / caller runs', tone: bad }]
+  - caption: 'When load drops, the extra threads (T3, T4) exit after `keepAliveTime` idle; the core threads stay.'
+    panels:
+      - kind: array
+        label: Threads
+        items: [{ v: 'T1 idle', tone: muted }, { v: 'T2 idle', tone: muted }]
