@@ -1,4 +1,8 @@
 title: Single sign-on across two products
+legend:
+  info: 'redirect'
+  ok: 'session established'
+  warn: 'ended or revoked'
 frames:
   - caption: 'Asha opens **Docs**. It has no session for her, so it redirects her browser to the **identity provider** (authorization code + PKCE).'
     panels:

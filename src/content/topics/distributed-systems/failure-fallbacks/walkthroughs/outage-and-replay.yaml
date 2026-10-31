@@ -1,4 +1,10 @@
 title: A Kafka outage, from first failure to full replay
+legend:
+  ok: 'healthy / delivered'
+  warn: 'failing, sent to the spool'
+  bad: 'breaker open'
+  info: 'queued behind its key''s backlog'
+  accent: 'replayed to Kafka'
 frames:
   - caption: 'Healthy. The order service publishes `OrderPlaced` events straight to Kafka; each send is acknowledged in a few milliseconds. The spool is empty.'
     panels:
@@ -31,7 +37,7 @@ frames:
         pairs: [[breaker, { v: CLOSED, tone: ok }], [keys with a backlog, 'A, B, C']]
       - kind: queue
         label: Spool (oldest first)
-        items: [A2, B2, C1, A3, B3, C2, A4, { v: A5, tone: accent }]
+        items: [A2, B2, C1, A3, B3, C2, A4, { v: A5, tone: info }]
       - kind: array
         label: Kafka orders topic (by offset)
         items: ['A1', 'B1', { v: Z1, tone: ok }]
@@ -39,7 +45,7 @@ frames:
     panels:
       - kind: queue
         label: Spool (oldest first)
-        items: [{ v: C2, tone: muted }, A4, A5]
+        items: [C2, A4, A5]
       - kind: array
         label: Kafka orders topic (by offset)
         items: ['A1', 'B1', 'Z1', { v: A2, tone: accent }, { v: B2, tone: accent }, { v: C1, tone: accent }, { v: A3, tone: accent }, { v: B3, tone: accent }]

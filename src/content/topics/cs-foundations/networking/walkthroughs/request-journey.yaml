@@ -1,4 +1,7 @@
 title: What happens when a browser opens https://shop.example.com/cart
+legend:
+  accent: 'round trip in this step'
+  ok: 'cost with connection reuse'
 frames:
   - caption: '**DNS**: the browser asks its resolver for shop.example.com. If not cached, the resolver asks root → .com → example.com''s name servers and gets an IP (cached for the record''s TTL).'
     panels:

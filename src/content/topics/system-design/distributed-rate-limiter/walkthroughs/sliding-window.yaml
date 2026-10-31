@@ -1,4 +1,7 @@
 title: Sliding window counter, 100 requests per minute
+legend:
+  ok: 'allowed'
+  bad: 'rejected (429)'
 frames:
   - caption: 'Keep one counter per key per fixed minute. At 12:01:15, the previous minute (12:00) had **84** requests and the current minute (12:01) has **30** so far.'
     panels:

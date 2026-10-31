@@ -1,4 +1,9 @@
 title: One day's reconciliation run
+legend:
+  ok: 'matched'
+  warn: 'matched on amount only (weaker)'
+  bad: 'break: needs investigation'
+  info: 'in transit: wait'
 frames:
   - caption: 'Run for 15 October. Our ledger has six card payments; the provider''s settlement file has six lines. Amounts are in paise.'
     panels:
@@ -27,4 +32,4 @@ frames:
     panels:
       - kind: rows
         label: Break queue
-        items: [{ v: 'L6 · 1200 · unknown payer', tone: bad }, { v: 'p2/L2 · 50 short · fee?', tone: warn }, { v: 'p3/L4 · duplicate 500', tone: warn }, { v: 'p6 · 300 · 10 days', tone: warn }]
+        items: [{ v: 'L6 · 1200 · unknown payer', tone: bad }, { v: 'p2/L2 · 50 short · fee?', tone: bad }, { v: 'p3/L4 · duplicate 500', tone: bad }, { v: 'p6 · 300 · 10 days', tone: bad }]

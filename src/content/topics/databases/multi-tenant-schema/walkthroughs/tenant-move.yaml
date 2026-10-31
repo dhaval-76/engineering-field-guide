@@ -1,4 +1,9 @@
 title: Moving a large tenant to its own database, online
+legend:
+  warn: 'the problem'
+  info: 'copying in progress'
+  ok: 'verified / moved'
+  muted: 'old copy being removed'
 frames:
   - caption: 'Tenant 7 has grown to 1 TB in the shared database and slows its neighbours. The registry says it lives in `shared-1`.'
     panels:

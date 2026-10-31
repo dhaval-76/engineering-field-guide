@@ -1,4 +1,11 @@
 title: One transaction, one persistence context
+legend:
+  info: 'managed entity'
+  muted: 'snapshot / empty'
+  accent: 'SQL sent in this step'
+  ok: 'no SQL needed / committed'
+  warn: 'dirty: changed, not yet written'
+  bad: 'detached'
 frames:
   - caption: '`@Transactional` starts: Spring opens an `EntityManager` with an empty persistence context and borrows a connection.'
     panels:

@@ -1,4 +1,7 @@
 title: From ten million items to twenty on screen
+legend:
+  info: 'added by re-ranking'
+  ok: 'logged outcome'
 frames:
   - caption: 'Asha opens the app. The catalogue has 10 million items; scoring all of them with a heavy model would take seconds. Recommendation is a **funnel**: cheap stages narrow the field, expensive stages order it.'
     panels:

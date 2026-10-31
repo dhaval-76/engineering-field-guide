@@ -1,4 +1,10 @@
 title: LRU cache with capacity 3
+legend:
+  accent: 'added or moved to the front'
+  warn: 'being unlinked'
+  info: 'found in the map'
+  bad: 'evicted / miss'
+  muted: 'not in the map'
 frames:
   - caption: Start empty. The list runs from **most recent** (left, after HEAD) to **least recent** (right, before TAIL).
     panels:

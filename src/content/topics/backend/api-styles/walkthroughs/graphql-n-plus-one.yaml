@@ -1,4 +1,9 @@
 title: GraphQL N+1 and the DataLoader fix
+legend:
+  warn: 'one extra query per order'
+  bad: 'the same query again'
+  muted: 'answered from the loader cache'
+  ok: 'one batched query'
 frames:
   - caption: 'A client asks for 3 orders, each with its customer''s name, in one query. GraphQL resolves fields independently: one resolver for `orders`, one for `Order.customer`.'
     panels:

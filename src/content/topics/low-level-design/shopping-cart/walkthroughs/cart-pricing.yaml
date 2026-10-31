@@ -1,4 +1,7 @@
 title: Pricing a cart step by step (₹)
+legend:
+  accent: 'running total'
+  ok: 'discount applied'
 frames:
   - caption: Lines are priced from the **catalogue** at checkout time — not from whatever price was shown when the item was added.
     panels:

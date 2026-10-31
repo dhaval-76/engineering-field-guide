@@ -1,4 +1,10 @@
 title: How the naive getInstance() creates two objects
+legend:
+  info: 'call'
+  muted: 'empty / paused'
+  accent: 'step running now'
+  warn: 'unsafe: passes the check too / stale result'
+  bad: 'second object'
 frames:
   - caption: Two request threads call `getInstance()` at almost the same moment. The static field is still `null`.
     panels:

@@ -1,4 +1,9 @@
 title: Evaluating a grouped query, clause by clause
+legend:
+  bad: 'filtered out'
+  ok: 'kept'
+  info: 'computed in this clause'
+  accent: 'final result'
 frames:
   - caption: '**FROM orders** — the starting set is every row of the table. (With joins, this step builds the joined rows.)'
     panels:

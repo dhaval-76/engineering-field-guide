@@ -1,5 +1,9 @@
 title: Why OFFSET pages skip or repeat rows when data changes
 legend:
+  accent: 'rows on this page'
+  bad: 'shown twice'
+  muted: 'the cursor: last row seen'
+  ok: 'correct next page'
   plum: 'newly inserted row'
 frames:
   - caption: 'Page 1 (`LIMIT 3 OFFSET 0`, newest first) shows **F, E, D**.'

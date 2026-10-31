@@ -1,4 +1,6 @@
 title: From documents to an inverted index to a ranked answer
+legend:
+  ok: 'top result'
 frames:
   - caption: 'Three documents. Analysis lowercases, splits on non-letters, drops stop words ("the", "on", "a") and stems ("deploying" → "deploy").'
     panels:

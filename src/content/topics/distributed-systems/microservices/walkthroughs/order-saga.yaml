@@ -1,4 +1,10 @@
 title: An order saga with a compensation
+legend:
+  info: 'waiting on the saga'
+  accent: 'event published'
+  ok: 'step done'
+  bad: 'step failed'
+  warn: 'undone by a compensation'
 frames:
   - caption: '**Order service** saves the order as `PENDING` and, in the same transaction, writes `OrderPlaced` to its outbox. The customer immediately sees "order received".'
     panels:
@@ -23,12 +29,12 @@ frames:
         pairs: [[order, PENDING], [payment, CAPTURED], [stock, { v: 'FAILED', tone: bad }]]
       - kind: rows
         label: Events
-        items: [OrderPlaced, PaymentCaptured, { v: StockReservationFailed, tone: warn }]
+        items: [OrderPlaced, PaymentCaptured, { v: StockReservationFailed, tone: accent }]
   - caption: 'There''s no rollback across services, so earlier steps are undone by **compensating actions**: payment refunds the charge (`PaymentRefunded`), and order marks itself `CANCELLED` and tells the customer.'
     panels:
       - kind: kv
         label: State
-        pairs: [[order, { v: CANCELLED, tone: warn }], [payment, { v: REFUNDED, tone: info }], [stock, FAILED]]
+        pairs: [[order, { v: CANCELLED, tone: warn }], [payment, { v: REFUNDED, tone: warn }], [stock, FAILED]]
       - kind: rows
         label: Events
         items: [OrderPlaced, PaymentCaptured, StockReservationFailed, { v: PaymentRefunded, tone: accent }, { v: OrderCancelled, tone: accent }]

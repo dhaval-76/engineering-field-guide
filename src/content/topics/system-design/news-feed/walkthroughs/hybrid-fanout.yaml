@@ -1,5 +1,7 @@
 title: Hybrid fan-out in action
 legend:
+  accent: 'pushed into follower feeds'
+  ok: 'on Bob''s first page'
   plum: 'celebrity post, read on demand'
 frames:
   - caption: '**Ana** (900 followers) posts. A `PostCreated` event reaches the fan-out workers, which add the post id to each active follower''s feed cache — 900 small writes, done in well under a second.'

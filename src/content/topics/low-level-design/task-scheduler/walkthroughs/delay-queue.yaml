@@ -1,4 +1,8 @@
 title: How a delay queue releases tasks
+legend:
+  accent: 'heap head: earliest task'
+  ok: 'running'
+  warn: 're-queued for a retry'
 frames:
   - caption: Tasks are kept in a **min-heap ordered by run time**. The dispatcher only ever looks at the head — the earliest task.
     panels:

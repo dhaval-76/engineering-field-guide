@@ -1,4 +1,9 @@
 title: Adding a node to a consistent hash ring
+legend:
+  accent: 'new node and the range it takes'
+  warn: 'keys that move'
+  bad: 'most keys move'
+  ok: 'balanced'
 frames:
   - caption: 'Three nodes, each owning the arc of the ring that ends at its token. Keys hash onto the ring and belong to the next node clockwise.'
     panels:

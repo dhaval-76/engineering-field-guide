@@ -1,5 +1,10 @@
 title: One turn of the JavaScript event loop
 legend:
+  accent: 'running on the call stack'
+  info: 'microtask'
+  muted: 'waiting its turn'
+  bad: 'blocks the loop'
+  warn: 'delayed'
   plum: 'timer task'
 frames:
   - caption: 'The script runs top to bottom on the **call stack**. `setTimeout` hands its callback to the timer system; `.then` schedules a **microtask**.'

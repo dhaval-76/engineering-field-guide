@@ -1,4 +1,10 @@
 title: Write skew — both doctors go off call
+legend:
+  ok: 'rule holds / committed'
+  info: 'check passes'
+  accent: 'write'
+  bad: 'rule broken'
+  warn: 'aborted, retried, refused'
 frames:
   - caption: 'Rule: **at least one** doctor on call for shift 1. Alice and Bob are both on call, and both feel unwell.'
     panels:

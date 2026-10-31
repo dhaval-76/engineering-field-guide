@@ -1,4 +1,9 @@
 title: Why a HashSet needs both equals and hashCode
+legend:
+  accent: 'stored point'
+  bad: 'wrong result'
+  ok: 'correct'
+  warn: 'stale entry'
 frames:
   - caption: '`Point` overrides `equals` (same x and y) but **not** `hashCode`, so each object gets an identity-based hash. `set.add(new Point(1, 2))` lands in bucket 3.'
     panels:

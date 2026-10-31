@@ -1,4 +1,8 @@
 title: From a page to the root cause
+legend:
+  bad: 'failing signal'
+  warn: 'clue'
+  ok: 'recovered'
 frames:
   - caption: 'A **burn-rate alert** fires: checkout''s SLO (99.9% of requests OK and < 500 ms) is consuming error budget 14× faster than sustainable over the last 5 minutes and the last hour.'
     panels:

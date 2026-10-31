@@ -1,4 +1,8 @@
 title: From a virtual address to RAM
+legend:
+  warn: 'slow path'
+  ok: 'mapped'
+  bad: 'very slow or fatal'
 frames:
   - caption: 'A process reads address 0x7f3a…1040. Addresses are virtual: the top bits name a **page** (4 KB), the low bits an offset in it.'
     panels:

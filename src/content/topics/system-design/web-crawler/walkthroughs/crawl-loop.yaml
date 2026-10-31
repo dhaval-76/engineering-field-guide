@@ -1,4 +1,7 @@
 title: One URL through the crawler
+legend:
+  ok: 'passes this step'
+  muted: 'dropped'
 frames:
   - caption: 'The frontier holds URLs grouped **by host**, each host with a "may fetch again at" time. `news.example.com` is ready (its 1 s delay has passed), so its next URL is handed to a fetcher.'
     panels:

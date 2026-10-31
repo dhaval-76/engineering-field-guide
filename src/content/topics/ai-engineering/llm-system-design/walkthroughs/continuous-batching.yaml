@@ -1,4 +1,8 @@
 title: Static vs continuous batching on one GPU
+legend:
+  warn: 'the bottleneck'
+  muted: 'finished, slot left idle'
+  ok: 'new request in a freed slot'
 frames:
   - caption: 'A GPU generates tokens for several requests at once — one forward pass produces one token for every request in the batch. Batching is how self-hosted serving gets its throughput.'
     panels:

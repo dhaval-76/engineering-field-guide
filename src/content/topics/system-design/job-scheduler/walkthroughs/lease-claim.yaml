@@ -1,4 +1,9 @@
 title: Leases keep jobs from being lost
+legend:
+  info: 'running under a lease'
+  warn: 'lease expired'
+  bad: 'stale worker rejected'
+  ok: 'completed'
 frames:
   - caption: 'Job **j-17** (send invoices) is due at 10:00. Two workers poll. Worker A''s `SELECT … FOR UPDATE SKIP LOCKED` locks j-17; worker B''s identical query skips it and takes j-18 instead.'
     panels:

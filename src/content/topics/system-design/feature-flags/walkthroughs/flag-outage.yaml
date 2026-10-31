@@ -1,10 +1,14 @@
 title: A flag change, then the flag service goes down
+legend:
+  ok: 'current / working'
+  warn: 'stale but still serving'
+  bad: 'down'
 frames:
   - caption: 'The checkout service starts. Its SDK loads the full ruleset (version 41) from the relay and opens a **server-sent events** stream. Every `isEnabled` call is now a local, in-memory lookup.'
     panels:
       - kind: kv
         label: SDK state
-        pairs: [[ruleset, { v: 'v41 · in memory', tone: info }], [stream, { v: connected, tone: ok }], [new-checkout, '10% rollout']]
+        pairs: [[ruleset, { v: 'v41 · in memory', tone: ok }], [stream, { v: connected, tone: ok }], [new-checkout, '10% rollout']]
   - caption: 'An engineer ramps `new-checkout` to 20%. The flag service writes version 42 and an audit entry, then publishes the change. Within about a second every SDK has v42. Users already in the 10% stay in, because their bucket hasn''t moved.'
     panels:
       - kind: kv

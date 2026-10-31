@@ -1,4 +1,10 @@
 title: The order that disappeared
+legend:
+  ok: 'has the order'
+  muted: 'not replicated yet'
+  bad: 'order missing'
+  info: 'read from the primary'
+  warn: 'replica behind'
 frames:
   - caption: 'Asha places an order. The write goes to the **primary**, which commits and replies. The replica has not received it yet (async replication, ~2 s behind under load).'
     panels:

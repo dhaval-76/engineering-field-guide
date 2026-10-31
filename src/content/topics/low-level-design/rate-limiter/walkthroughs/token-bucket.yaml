@@ -1,4 +1,8 @@
 title: Token bucket — capacity 4, refill 1 token per second
+legend:
+  ok: 'token available / allowed'
+  muted: 'token used'
+  bad: 'rejected'
 frames:
   - caption: The bucket starts **full** with 4 tokens. Each request takes one token; refills add one per second up to the capacity.
     panels:

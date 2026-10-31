@@ -1,4 +1,9 @@
 title: Delivering one event to a flaky endpoint
+legend:
+  ok: 'delivered'
+  bad: 'attempt failed'
+  muted: 'duplicate, ignored by the receiver'
+  warn: 'given up, kept for replay'
 frames:
   - caption: '`payment.succeeded` evt_1 is created. Two customers subscribe to it, so two **delivery jobs** are enqueued — each with its own retries, so one slow customer never delays the other.'
     panels:

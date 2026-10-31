@@ -1,4 +1,8 @@
 title: How a shared list breaks an "immutable" object
+legend:
+  warn: 'shared with the caller'
+  bad: 'changed from outside'
+  ok: 'private, unmodifiable copy'
 frames:
   - caption: 'A caller builds a list and passes it to `new Order(id, items)`. The constructor stores the **same** list object — now two variables point to it.'
     panels:

@@ -1,4 +1,10 @@
 title: A bounded buffer of capacity 3 with one producer and one consumer
+legend:
+  accent: 'item just added'
+  warn: 'waiting (blocked)'
+  ok: 'woke up and succeeded'
+  info: 'working on an item'
+  muted: 'busy elsewhere'
 frames:
   - caption: 'The producer puts items while there is space. The consumer takes from the front.'
     panels:

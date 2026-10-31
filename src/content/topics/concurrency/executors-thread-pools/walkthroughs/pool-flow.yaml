@@ -1,4 +1,10 @@
 title: What ThreadPoolExecutor does with each new task (core 2, max 4, queue 3)
+legend:
+  accent: 'where the new task goes'
+  info: 'core thread, busy'
+  warn: 'extra thread beyond core'
+  bad: 'rejected'
+  muted: 'idle'
 frames:
   - caption: 'Fewer than **core** threads are running → start a **new thread** for the task, even if others are idle.'
     panels:

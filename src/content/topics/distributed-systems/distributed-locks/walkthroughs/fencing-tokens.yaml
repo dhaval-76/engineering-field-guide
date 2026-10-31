@@ -1,4 +1,9 @@
 title: Why a lease alone isn't safe — and how fencing fixes it
+legend:
+  accent: 'A''s token'
+  warn: 'paused, unaware time passed'
+  ok: 'current holder / safe outcome'
+  bad: 'corrupted data'
 frames:
   - caption: 'Client A acquires a lock with a 10 s lease and starts writing a file in shared storage. The lock service also returns a **fencing token**: 33.'
     panels:

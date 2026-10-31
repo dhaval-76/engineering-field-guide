@@ -1,4 +1,7 @@
 title: What happens on log.debug("…") in com.shop.db
+legend:
+  accent: 'the logger called'
+  ok: 'enabled / receives the event'
 frames:
   - caption: 'Loggers form a tree by dotted name. Only `com.shop` and `root` have explicit levels; `com.shop.db` has none.'
     panels:

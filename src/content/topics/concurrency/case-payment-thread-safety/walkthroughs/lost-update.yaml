@@ -1,4 +1,11 @@
 title: Two debits of 900 against a balance of 1000
+legend:
+  info: 'stored balance'
+  accent: 'read'
+  ok: 'check passed / correct'
+  bad: 'wrong result'
+  warn: 'locked or safely refused'
+  muted: 'waiting'
 frames:
   - caption: 'Read-check-write in application code. Request A reads the balance: **1000**.'
     panels:

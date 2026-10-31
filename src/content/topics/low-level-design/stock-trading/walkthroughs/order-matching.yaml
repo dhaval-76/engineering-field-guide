@@ -1,4 +1,10 @@
 title: A market BUY of 200 shares hits the order book
+legend:
+  accent: 'best ask'
+  info: 'best bid'
+  bad: 'price level used up'
+  ok: 'fill'
+  warn: 'partly filled, still resting'
 frames:
   - caption: 'Book before the order. Best **bid** ₹102 (highest buyer), best **ask** ₹103 (lowest seller). The ₹1 gap is the spread — nothing trades.'
     panels:

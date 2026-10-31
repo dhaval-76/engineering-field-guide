@@ -1,4 +1,9 @@
 title: A backend dies — and a deploy drains one
+legend:
+  bad: 'failing'
+  muted: 'ejected'
+  warn: 'draining'
+  info: 'warming up'
 frames:
   - caption: 'Three healthy backends behind an L7 balancer using least-connections. Active health checks probe `/health/ready` every 2 s.'
     panels:

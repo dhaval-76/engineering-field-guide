@@ -1,4 +1,9 @@
 title: Finding cafés within 2 km with geohashes
+legend:
+  bad: 'the problem'
+  accent: 'user''s cell'
+  ok: 'within 2 km'
+  muted: 'filtered out'
 frames:
   - caption: 'Geohash recursively halves longitude and latitude and spells the result in base 32. Each extra character is a smaller cell; places sharing a prefix are in the same cell.'
     panels:

@@ -1,4 +1,9 @@
 title: Settling the trip (amounts in ₹)
+legend:
+  ok: 'is owed'
+  bad: 'owes'
+  muted: 'settled'
+  accent: 'transfer'
 frames:
   - caption: 'Expenses: Alice paid ₹1,200 dinner (all 4), Bob ₹800 taxi (Bob, Carol, Dave), Carol ₹600 hotel (all 4). Net balance = paid − share owed. The balances always sum to **zero**.'
     panels:

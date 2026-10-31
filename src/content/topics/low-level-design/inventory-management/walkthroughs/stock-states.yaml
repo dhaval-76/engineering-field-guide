@@ -1,4 +1,8 @@
 title: On hand, reserved and available
+legend:
+  ok: 'available'
+  warn: 'reserved, or running low'
+  bad: 'refused'
 frames:
   - caption: 'Two warehouses stock SKU-1. **Available = on hand − reserved**; customers can only take available units.'
     panels:

@@ -1,4 +1,6 @@
 title: Score updates, ties and ranks
+legend:
+  accent: 'entry re-inserted at its new position'
 frames:
   - caption: 'Each player has one entry ordered by **score descending**, then by **when they reached that score** (earlier wins ties). A hash map points from player to their entry.'
     panels:

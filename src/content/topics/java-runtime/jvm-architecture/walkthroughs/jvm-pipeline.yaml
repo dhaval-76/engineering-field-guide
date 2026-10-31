@@ -1,10 +1,15 @@
 title: From source code to fast machine code
+legend:
+  accent: 'produced in this step'
+  muted: 'interpreted (slow)'
+  info: 'C1: compiled quickly'
+  ok: 'C2: fully optimised'
 frames:
   - caption: '`javac` compiles `.java` source to **bytecode** in `.class` files — instructions for a stack-based virtual machine, not for any real CPU.'
     panels:
       - kind: list
         label: Build time
-        items: [{ v: Add.java, tone: info }, javac, { v: Add.class (bytecode), tone: accent }]
+        items: [Add.java, javac, { v: Add.class (bytecode), tone: accent }]
   - caption: 'At runtime a **class loader** finds the class, the JVM **verifies** the bytecode is safe, prepares static fields, and runs static initialisers on first use.'
     panels:
       - kind: list

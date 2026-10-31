@@ -1,4 +1,9 @@
 title: How a model produces its next token
+legend:
+  accent: 'the token being predicted'
+  ok: 'most likely / picked'
+  warn: 'rare option made likelier'
+  muted: 'nearly ruled out'
 frames:
   - caption: 'The prompt is split into **tokens** — word pieces with integer ids. Everything the model sees for this call is this sequence.'
     panels:

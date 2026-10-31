@@ -1,4 +1,7 @@
 title: From alert to root cause with metrics, traces and logs
+legend:
+  bad: 'where the failure shows'
+  warn: 'symptom'
 frames:
   - caption: '**Alert** (a metric): checkout is burning its error budget 14× too fast. Metrics tell you *that* something is wrong and how big — cheaply, for every request.'
     panels:

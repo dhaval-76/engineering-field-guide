@@ -1,4 +1,8 @@
 title: A cache primary fails
+legend:
+  accent: 'primary for this range'
+  bad: 'failed'
+  ok: 'took over'
 frames:
   - caption: 'Three primaries own slot ranges; each has an asynchronously replicated replica in another zone. Clients cache the slot map and send each key straight to its owner.'
     panels:

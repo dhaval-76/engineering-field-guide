@@ -1,4 +1,8 @@
 title: Finding id = 52, then reading a range
+legend:
+  accent: 'followed / matched'
+  muted: 'skipped'
+  ok: 'row returned'
 frames:
   - caption: 'Start at the **root page**. Its keys split the key space: under 40, 40–79, 80 and above. 52 belongs to the middle child.'
     panels:

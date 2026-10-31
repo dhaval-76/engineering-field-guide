@@ -1,4 +1,8 @@
 title: A 45-minute AI-assisted coding round
+legend:
+  bad: 'bug in the generated code'
+  warn: 'risky choice'
+  ok: 'checked'
 frames:
   - caption: '**0–5 min — understand before you prompt.** Read the task and any existing code, restate it, and ask about edge cases. Candidates who paste the task straight into the assistant lose the interviewer here.'
     panels:

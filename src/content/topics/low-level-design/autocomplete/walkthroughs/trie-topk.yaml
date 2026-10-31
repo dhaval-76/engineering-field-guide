@@ -1,4 +1,8 @@
 title: A trie that caches the top suggestions at every prefix
+legend:
+  info: 'path walked'
+  accent: 'node reached / cache updated'
+  ok: 'top suggestion'
 frames:
   - caption: 'Searches so far: **java** (50), **javascript** (80), **jar** (20). Each node on a word''s path keeps the best K completions beneath it.'
     panels:

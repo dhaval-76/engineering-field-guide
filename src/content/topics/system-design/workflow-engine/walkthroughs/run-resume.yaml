@@ -1,4 +1,8 @@
 title: A run survives a crash mid-workflow
+legend:
+  info: 'queued'
+  ok: 'done'
+  bad: 'worker crashed'
 frames:
   - caption: 'A new email triggers workflow **Support triage** (v12): ① summarise with an AI model → ② create a ticket → ③ post to Slack. Run 77 is created and step ① is queued.'
     panels:

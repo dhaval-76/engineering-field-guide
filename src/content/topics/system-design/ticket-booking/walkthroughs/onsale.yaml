@@ -1,4 +1,9 @@
 title: An on-sale for a stadium concert
+legend:
+  bad: 'fans per seat'
+  accent: 'place in line'
+  ok: 'admitted / held'
+  warn: 'lost the seat to another fan'
 frames:
   - caption: '60,000 seats; 2 million fans arrive in the first minutes. Without protection, every one of them hammers the seat map and hold APIs, and most requests fail on contention for the same front rows.'
     panels:
@@ -24,4 +29,4 @@ frames:
     panels:
       - kind: kv
         label: progress
-        pairs: [[sold, '58,900'], [held, '1,100'], [queue, { v: 'closes when held + sold = capacity', tone: muted }]]
+        pairs: [[sold, '58,900'], [held, '1,100'], [queue, 'closes when held + sold = capacity']]

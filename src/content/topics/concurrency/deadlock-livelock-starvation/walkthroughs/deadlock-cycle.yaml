@@ -1,5 +1,9 @@
 title: How two transfers deadlock — and how lock ordering prevents it
 legend:
+  bad: 'waiting in a cycle'
+  warn: 'waiting, holding nothing'
+  muted: 'free'
+  ok: 'finished'
   info: 'held by T1'
   plum: 'held by T2'
 frames:

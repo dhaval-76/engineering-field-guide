@@ -1,4 +1,10 @@
 title: Two transactions, two versions of a row
+legend:
+  ok: 'committed version'
+  muted: 'not started / old version'
+  warn: 'uncommitted change and its lock'
+  info: 'read'
+  bad: 'blocked or failed'
 frames:
   - caption: 'The `accounts` row for Asha has one committed version: balance **1000**.'
     panels:

@@ -1,4 +1,7 @@
 title: Deltas with periodic snapshots
+legend:
+  info: 'full snapshot'
+  ok: 'rebuilt version'
 frames:
   - caption: 'Version 1 is stored as a **full snapshot** (20 KB).'
     panels:

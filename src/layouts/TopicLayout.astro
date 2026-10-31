@@ -30,7 +30,8 @@ const related = await resolveTopics(data.related);
 // code sample and each step-by-step walkthrough.
 const body = topic.body ?? '';
 const countWords = (text: string) => text.split(/\s+/).filter(Boolean).length;
-const words = countWords(body.replace(/<[^>]+>/g, ' ')) + countWords(JSON.stringify(qa?.data ?? {}));
+const words =
+  countWords(body.replace(/<[^>]+>/g, ' ')) + countWords(JSON.stringify(qa?.data ?? {}));
 const exhibits = (body.match(/<(CodeTabs|Walkthrough)\b/g) ?? []).length;
 const minutes = Math.max(2, Math.round(words / 220 + exhibits));
 const toc = [
@@ -81,10 +82,10 @@ const reviewed = data.lastReviewed.toLocaleDateString('en-GB', { month: 'short',
             type="button"
             data-focus-toggle
             aria-pressed="false"
-            title="Hide side panels"
+            title="Hide the side panels and centre the text"
           >
             <Icon name="focus" />
-            <span>Focus</span>
+            <span>Reading mode</span>
           </button>
         </div>
       </div>
@@ -160,6 +161,20 @@ const reviewed = data.lastReviewed.toLocaleDateString('en-GB', { month: 'short',
     }
     .toc-inline {
       display: none;
+    }
+  }
+  /* Reading mode: no side panels, the article centred at reading width, contents inline. */
+  @media (min-width: 960px) {
+    :global(html[data-focus='on']) .topic {
+      grid-template-columns: minmax(0, 1fr);
+      max-width: var(--measure);
+      margin-inline: auto;
+    }
+    :global(html[data-focus='on']) .toc-col {
+      display: none;
+    }
+    :global(html[data-focus='on']) .toc-inline {
+      display: block;
     }
   }
   .toc-sticky {

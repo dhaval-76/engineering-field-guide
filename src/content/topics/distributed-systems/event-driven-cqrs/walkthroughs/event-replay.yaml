@@ -1,4 +1,8 @@
 title: State as a fold over events
+legend:
+  ok: 'derived state / accepted'
+  bad: 'rejected'
+  accent: 'new event appended'
 frames:
   - caption: 'An event-sourced account stores **what happened**, not the current balance. Each event is an immutable fact with a version within its stream.'
     panels:

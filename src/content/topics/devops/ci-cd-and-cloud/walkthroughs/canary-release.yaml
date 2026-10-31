@@ -1,4 +1,10 @@
 title: A canary release, step by step
+legend:
+  ok: 'healthy'
+  info: 'canary share of traffic'
+  muted: 'no traffic'
+  bad: 'failing metric'
+  warn: 'rolled back'
 frames:
   - caption: 'Version **v42** is running everywhere. The new image **v43** has passed CI and staging.'
     panels:

@@ -1,4 +1,10 @@
 title: A consumer group through a crash
+legend:
+  warn: 'processed, not committed'
+  bad: 'lost commit / charged twice'
+  info: 'took over the partitions'
+  muted: 'gone'
+  ok: 'safe'
 frames:
   - caption: 'Topic `payments` has 4 partitions. Group `charger` has two consumers; each owns two partitions and processes them in order.'
     panels:

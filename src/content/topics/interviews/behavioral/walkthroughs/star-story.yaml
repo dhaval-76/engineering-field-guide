@@ -1,4 +1,6 @@
 title: Turning a memory into a STAR answer
+legend:
+  ok: 'what makes the answer score'
 frames:
   - caption: 'Raw memory: "We had double charges, I fixed it with idempotency." True — and forgettable. Interviewers can''t score what they can''t see: your judgement, actions and impact.'
     panels:

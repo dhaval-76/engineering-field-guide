@@ -1,4 +1,7 @@
 title: Recalculating after A1 changes from 10 to 20
+legend:
+  accent: 'ready: no inputs left to wait for'
+  ok: 'evaluated'
 frames:
   - caption: 'Affected cells = A1 and everything reachable from it: B1, C1, D1. Count, for each, how many of its inputs are **inside** that set (in-degree).'
     panels:

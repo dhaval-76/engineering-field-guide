@@ -165,7 +165,7 @@ if (topicMeta) {
   write(keys.recent, [{ id, title, at: Date.now() }, ...recent].slice(0, 8));
 }
 
-/* ── Focus mode ────────────────────────────────────────── */
+/* ── Reading mode ──────────────────────────────────────── */
 document.querySelectorAll<HTMLButtonElement>('[data-focus-toggle]').forEach((btn) => {
   const sync = () => btn.setAttribute('aria-pressed', String(root.dataset.focus === 'on'));
   sync();
@@ -218,7 +218,8 @@ document.querySelectorAll<HTMLTableElement>('.prose table').forEach((t) => {
   const heads = [...t.querySelectorAll('thead th')].map((th) => th.textContent?.trim() ?? '');
   // Cards suit tables of prose; short cells (traces, numbers, complexities) stay a grid.
   const cells = [...t.querySelectorAll('tbody td')];
-  const avg = cells.reduce((n, td) => n + (td.textContent?.trim().length ?? 0), 0) / (cells.length || 1);
+  const avg =
+    cells.reduce((n, td) => n + (td.textContent?.trim().length ?? 0), 0) / (cells.length || 1);
   const wide = heads.length >= 3 && avg > 14;
   if (!wide || !heads.some(Boolean)) return;
   t.classList.add('stackable');
@@ -233,7 +234,10 @@ function markScrollableTables() {
       t.tabIndex = 0;
       if (!t.hasAttribute('aria-label')) {
         const heading = t.closest('section, .prose')?.querySelector('h2, h3');
-        t.setAttribute('aria-label', `Table${heading ? `: ${heading.textContent?.trim()}` : ''} (scrolls sideways)`);
+        t.setAttribute(
+          'aria-label',
+          `Table${heading ? `: ${heading.textContent?.trim()}` : ''} (scrolls sideways)`,
+        );
       }
     } else {
       t.removeAttribute('tabindex');
@@ -265,7 +269,9 @@ function openDiagram(figure: HTMLElement) {
       </div>
       <div class="dviewer-body" tabindex="0"></div>`;
     document.body.append(viewer);
-    viewer.addEventListener('close', () => viewer!.querySelector('.dviewer-body')!.replaceChildren());
+    viewer.addEventListener('close', () =>
+      viewer!.querySelector('.dviewer-body')!.replaceChildren(),
+    );
     viewer.addEventListener('click', (e) => {
       const t = e.target as HTMLElement;
       if (t === viewer || t.closest('[data-close]')) viewer!.close();
@@ -275,7 +281,8 @@ function openDiagram(figure: HTMLElement) {
   }
   const body = viewer.querySelector<HTMLElement>('.dviewer-body')!;
   const svg = source.cloneNode(true) as SVGSVGElement;
-  const natural = Number(svg.getAttribute('viewBox')?.split(/\s+/)[2]) || source.getBoundingClientRect().width;
+  const natural =
+    Number(svg.getAttribute('viewBox')?.split(/\s+/)[2]) || source.getBoundingClientRect().width;
   svg.dataset.natural = String(natural);
   svg.removeAttribute('style');
   body.replaceChildren(svg);
@@ -311,7 +318,9 @@ document.addEventListener('click', (e) => {
 /* ── Code line wrapping: one global preference ─────────── */
 function syncWrap() {
   const on = root.dataset.wrap === 'on';
-  document.querySelectorAll('[data-wrap-toggle]').forEach((b) => b.setAttribute('aria-pressed', String(on)));
+  document
+    .querySelectorAll('[data-wrap-toggle]')
+    .forEach((b) => b.setAttribute('aria-pressed', String(on)));
 }
 syncWrap();
 document.addEventListener('click', (e) => {

@@ -1,4 +1,8 @@
 title: One log, independent consumer groups
+legend:
+  muted: 'already processed by audit'
+  bad: 'crash'
+  warn: 'delivered again'
 frames:
   - caption: 'Topic `orders` is an append-only log. Publishing appends and returns the next **offset**. Messages are not deleted when read.'
     panels:

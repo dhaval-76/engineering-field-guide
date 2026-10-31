@@ -1,4 +1,7 @@
 title: Moving a card without renumbering the column
+legend:
+  accent: 'moved card and its new rank'
+  ok: 'synced to another viewer'
 frames:
   - caption: 'The "In progress" column has three cards ordered by their **rank** strings.'
     panels:

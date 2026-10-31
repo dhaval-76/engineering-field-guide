@@ -1,4 +1,9 @@
 title: A player adapting to the network
+legend:
+  accent: 'starting rendition'
+  ok: 'top quality'
+  warn: 'stepped down'
+  bad: 'panic: lowest quality'
 frames:
   - caption: 'Playback starts at the **lowest** rendition so the first frame appears fast; the player measures how quickly each 6-second segment downloads.'
     panels:

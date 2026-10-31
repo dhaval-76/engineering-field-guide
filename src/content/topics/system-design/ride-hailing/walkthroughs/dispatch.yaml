@@ -1,4 +1,9 @@
 title: Matching a rider with a driver
+legend:
+  accent: 'trip status'
+  ok: 'chosen / accepted'
+  warn: 'far by road'
+  bad: 'declined'
 frames:
   - caption: 'A rider requests a car at MG Road. The trip service creates trip T (status REQUESTED) with an idempotency key, so a double-tap doesn''t book twice, and authorises the estimated fare.'
     panels:

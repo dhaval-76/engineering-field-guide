@@ -1,5 +1,10 @@
 title: What each join keeps
 legend:
+  warn: 'order with no customer'
+  ok: 'matched / kept'
+  muted: 'kept, padded with NULLs'
+  info: 'semi join result'
+  bad: 'dropped by mistake'
   plum: 'customer with no orders'
 frames:
   - caption: 'Two small tables. Asha has two orders, Ben has one, Chen has none — and order #9 points at customer 4, who doesn''t exist (say, data imported without a foreign key).'

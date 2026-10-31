@@ -1,4 +1,9 @@
 title: An orchestrated order saga that fails at payment
+legend:
+  ok: 'step done'
+  bad: 'step failed'
+  warn: 'compensated (undone)'
+  muted: 'saga closed'
 frames:
   - caption: 'The orchestrator persists a saga record, then asks each service to do its local transaction in turn. Each step is recorded before and after, so a crashed orchestrator can resume from the log.'
     panels:

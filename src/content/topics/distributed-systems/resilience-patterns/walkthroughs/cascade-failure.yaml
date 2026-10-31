@@ -1,4 +1,8 @@
 title: One slow dependency takes down its callers
+legend:
+  ok: 'healthy'
+  warn: 'slow'
+  bad: 'overloaded or down'
 frames:
   - caption: 'Normal: the order service has 200 request threads. Inventory answers in 20 ms, so about 20 threads are busy at 1,000 requests/s.'
     panels:

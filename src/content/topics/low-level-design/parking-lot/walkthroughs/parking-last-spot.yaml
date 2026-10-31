@@ -1,4 +1,10 @@
 title: Two cars race for the last medium spot
+legend:
+  muted: 'occupied'
+  ok: 'free / succeeded'
+  info: 'park request'
+  warn: 'contended / lost the race'
+  accent: 'claimed'
 frames:
   - caption: Floor 1 has one free **MEDIUM** spot, `F1-M7`. Two gates call `park()` for two cars at the same moment.
     panels:

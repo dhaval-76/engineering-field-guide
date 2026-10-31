@@ -1,4 +1,8 @@
 title: Four ways to get an update to the browser
+legend:
+  muted: 'request wasted (no change)'
+  warn: 'update arrives late'
+  ok: 'update delivered'
 frames:
   - caption: 'An order changes status at an unpredictable moment. The browser wants to know within a second or two. Compare how each technique spends requests while waiting.'
     panels:

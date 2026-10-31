@@ -1,4 +1,7 @@
 title: Two concurrent edits converge with operational transformation
+legend:
+  accent: 'transformed operation'
+  ok: 'both copies converge'
 frames:
   - caption: 'Both Ana and Ben see revision 7: `"cat sat"`.'
     panels:

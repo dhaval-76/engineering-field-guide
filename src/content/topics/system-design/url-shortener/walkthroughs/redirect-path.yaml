@@ -1,5 +1,8 @@
 title: Following one redirect
 legend:
+  ok: 'fast path / done'
+  info: 'routed'
+  warn: 'slower: database read'
   plum: 'async, after the response'
 frames:
   - caption: 'A user clicks `sho.rt/aZ3kP9q`. DNS points to the CDN; the CDN has a cached 302 for this popular link and answers from the nearest edge in a few milliseconds. Our servers see nothing.'

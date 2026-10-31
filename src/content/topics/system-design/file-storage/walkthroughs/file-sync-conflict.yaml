@@ -1,4 +1,8 @@
 title: Editing one file on two devices
+legend:
+  ok: 'accepted'
+  bad: 'conflict'
+  warn: 'kept as a conflicted copy'
 frames:
   - caption: '`notes.txt` is at version 3 everywhere. The laptop edits it: the client re-chunks the file (content-defined) and finds only **one** chunk changed.'
     panels:

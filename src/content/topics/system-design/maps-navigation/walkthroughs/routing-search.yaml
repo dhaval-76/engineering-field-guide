@@ -1,4 +1,9 @@
 title: Why A* and hierarchies beat plain Dijkstra
+legend:
+  bad: 'huge search'
+  warn: 'smaller, still large'
+  ok: 'fast'
+  info: 'live-traffic update'
 frames:
   - caption: 'Route from Mumbai to Pune (~150 km). The road graph has millions of nodes nearby. **Dijkstra** expands nodes in order of travel time from the start — a growing circle in every direction, including away from Pune.'
     panels:

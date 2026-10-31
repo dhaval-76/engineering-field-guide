@@ -1,4 +1,9 @@
 title: One product page through a CDN
+legend:
+  warn: 'trip to the origin'
+  ok: 'served from the edge'
+  accent: 'purge'
+  bad: 'origin down'
 frames:
   - caption: 'First request for `/products/42` at the Mumbai edge: **miss**. The edge asks the regional **shield**, which also misses and fetches once from the origin. Both cache the response for `s-maxage=60`.'
     panels:

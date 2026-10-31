@@ -1,4 +1,7 @@
 title: LFU with frequency buckets (capacity 3)
+legend:
+  accent: 'moved up a bucket'
+  warn: 'new key, after an eviction'
 frames:
   - caption: 'put A, B, C. Every new key starts at frequency 1 and joins the end of bucket 1, so the bucket is ordered oldest → newest. `minFreq` = 1.'
     panels:

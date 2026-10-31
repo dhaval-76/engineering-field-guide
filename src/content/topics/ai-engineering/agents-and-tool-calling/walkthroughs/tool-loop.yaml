@@ -1,4 +1,8 @@
 title: One question, two tool calls
+legend:
+  info: 'sent to the model'
+  ok: 'check passed'
+  bad: 'refused by the app'
 frames:
   - caption: 'The app sends the user''s message **plus tool definitions** — name, description, JSON schema for arguments. The model never runs anything itself.'
     panels:

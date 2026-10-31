@@ -1,4 +1,8 @@
 title: Routing three notifications for one user
+legend:
+  ok: 'sent now'
+  muted: 'dropped'
+  warn: 'deferred'
 frames:
   - caption: 'Asha has opted out of SMS, muted social notifications, and set quiet hours 22:00–07:00 in her time zone (IST). Three events arrive.'
     panels:

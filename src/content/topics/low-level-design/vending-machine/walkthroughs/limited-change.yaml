@@ -1,4 +1,8 @@
 title: Why greedy change-making fails in a real machine
+legend:
+  warn: 'greedy choice'
+  bad: 'stuck'
+  ok: 'correct change'
 frames:
   - caption: 'A customer pays ₹50 for a ₹20 item: the machine owes ₹30. The coin box holds one ₹25 coin and three ₹10 coins (an illustrative coin set).'
     panels:

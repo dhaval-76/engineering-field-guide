@@ -1,4 +1,9 @@
 title: Moving into the cell your tail is leaving
+legend:
+  accent: 'head'
+  warn: 'tail'
+  bad: 'false collision'
+  ok: 'legal move'
 frames:
   - caption: 'A 4-cell snake curled into a square. The head turns **UP**, into the cell currently holding the **tail**.'
     panels:

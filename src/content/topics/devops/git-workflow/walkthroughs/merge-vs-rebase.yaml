@@ -1,4 +1,9 @@
 title: Merge vs rebase on the same branches
+legend:
+  info: 'teammates'' latest commit on main'
+  accent: 'your commits'
+  ok: 'commit that joins the work'
+  warn: 'built on the old commits'
 frames:
   - caption: 'You branched `feature` from `main` at **B** and committed **X** and **Y**. Meanwhile teammates added **C** and **D** to `main`.'
     panels:

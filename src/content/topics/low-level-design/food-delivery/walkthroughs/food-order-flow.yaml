@@ -1,4 +1,8 @@
 title: One order, three apps
+legend:
+  accent: 'current status'
+  ok: 'chosen / done'
+  muted: 'skipped'
 frames:
   - caption: 'The customer pays and places an order: status **PLACED**. The restaurant tablet rings; if nobody accepts within ~3 minutes, the system rejects and refunds.'
     panels:

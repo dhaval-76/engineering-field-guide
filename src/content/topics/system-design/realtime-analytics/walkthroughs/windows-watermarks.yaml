@@ -1,4 +1,10 @@
 title: Event time, watermarks and a late event
+legend:
+  info: 'window still open'
+  accent: 'watermark'
+  ok: 'emitted'
+  warn: 'updated by a late event'
+  muted: 'too late: sent to the side output'
 frames:
   - caption: 'Count purchases per one-minute tumbling window, by **event time**. Events for 10:00–10:01 arrive; the window''s running count is 3.'
     panels:

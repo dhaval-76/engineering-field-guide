@@ -1,5 +1,8 @@
 title: Where does a key live?
 legend:
+  warn: 'hot spot'
+  bad: 'key changes shard'
+  ok: 'stays put / moves as a whole bucket'
   plum: 'dedicated shard'
 frames:
   - caption: '**Range sharding** by customer id. Range scans stay on one shard — but ids are increasing, so every new customer lands on the last shard.'

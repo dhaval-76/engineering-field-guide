@@ -1,4 +1,7 @@
 title: Why count++ loses updates
+legend:
+  accent: 'happening in this step'
+  bad: 'wrong result'
 frames:
   - caption: '`count++` is really three steps: **read** the value into a register, **add 1**, **write** it back. Two threads run it at the same time; count starts at 5.'
     panels:
@@ -18,21 +21,21 @@ frames:
         pairs: [[count, '5']]
       - kind: stack
         label: Thread A
-        items: [{ v: 'read → 5', tone: info }]
+        items: [{ v: 'read → 5', tone: accent }]
       - kind: stack
         label: Thread B
-        items: [{ v: 'read → 5', tone: warn }]
+        items: [{ v: 'read → 5', tone: accent }]
   - caption: Both compute 6. Thread B writes **6**.
     panels:
       - kind: kv
         label: Shared memory
-        pairs: [[count, { v: '6', tone: info }]]
+        pairs: [[count, { v: '6', tone: accent }]]
       - kind: stack
         label: Thread A
         items: ['add → 6 (waiting)']
       - kind: stack
         label: Thread B
-        items: [{ v: 'write 6', tone: ok }]
+        items: [{ v: 'write 6', tone: accent }]
   - caption: 'Thread A writes **6** too. Two increments, but count went from 5 to 6 — one update was **lost**. Nothing crashed; the number is just wrong.'
     panels:
       - kind: kv

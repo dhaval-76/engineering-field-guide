@@ -1,4 +1,10 @@
 title: A partition forces a choice
+legend:
+  ok: 'replicas agree'
+  warn: 'refuses: unavailable but correct'
+  bad: 'answers, but sells the item twice'
+  info: 'choose consistency (C)'
+  accent: 'choose availability (A)'
 frames:
   - caption: 'Two replicas of a stock counter, one in each data centre, kept in sync over the network. Both show **1** item left.'
     panels:
@@ -23,11 +29,11 @@ frames:
     panels:
       - kind: kv
         label: Available (AP)
-        pairs: [[DC North, { v: 'sold → stock 0', tone: ok }], [DC South, { v: 'sold → stock 0', tone: ok }]]
+        pairs: [[DC North, { v: 'sold → stock 0', tone: bad }], [DC South, { v: 'sold → stock 0', tone: bad }]]
       - kind: note
         text: 'After the link heals: 2 sold, 1 in stock → apologise, backorder, refund.'
   - caption: 'Neither is "right" — it depends on the operation. Seat reservations and payments usually pick **C**; product pages, likes and carts usually pick **A** and reconcile. Without a partition, both sides can be consistent and available — the remaining cost is **latency** (PACELC).'
     panels:
       - kind: kv
         label: Per operation
-        pairs: [[reserve seat, { v: C, tone: info }], [browse seat map, { v: A, tone: ok }], [add to cart, { v: A, tone: ok }], [charge card, { v: C, tone: info }]]
+        pairs: [[reserve seat, { v: C, tone: info }], [browse seat map, { v: A, tone: accent }], [add to cart, { v: A, tone: accent }], [charge card, { v: C, tone: info }]]

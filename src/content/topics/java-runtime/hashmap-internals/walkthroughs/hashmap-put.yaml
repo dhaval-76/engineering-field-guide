@@ -1,4 +1,8 @@
 title: put() into a HashMap with 4 buckets (to keep it small)
+legend:
+  accent: 'placed in this step'
+  warn: 'collision: chained in the same bucket'
+  ok: 're-placed after the resize'
 frames:
   - caption: 'Index = `hash & (capacity − 1)`. With capacity 4 that keeps the lowest **2 bits** of the (spread) hash: a single AND instead of a modulo.'
     panels:

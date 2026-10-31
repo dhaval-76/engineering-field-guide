@@ -1,4 +1,10 @@
 title: A minor GC in a generational heap
+legend:
+  info: 'newly allocated'
+  muted: 'long-lived, already old'
+  bad: 'garbage'
+  ok: 'live: survives'
+  accent: 'promoted'
 frames:
   - caption: 'New objects are allocated in **Eden** by bumping a pointer — about as cheap as allocation gets. Most of them will be garbage within milliseconds (request DTOs, temporary strings).'
     panels:
@@ -34,4 +40,4 @@ frames:
         items: [{ v: 'B age 2', tone: ok }]
       - kind: array
         label: Old generation
-        items: [{ v: cache, tone: muted }, { v: config, tone: muted }, { v: 'E (promoted)', tone: warn }]
+        items: [{ v: cache, tone: muted }, { v: config, tone: muted }, { v: 'E (promoted)', tone: accent }]

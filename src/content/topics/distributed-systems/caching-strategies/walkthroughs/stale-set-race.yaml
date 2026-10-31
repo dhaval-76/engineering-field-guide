@@ -1,4 +1,10 @@
 title: How cache-aside serves stale data after an update
+legend:
+  muted: 'empty / miss'
+  warn: 'holding an old value'
+  info: 'writer''s step'
+  ok: 'correct value'
+  bad: 'stale cache'
 frames:
   - caption: 'Product 42 costs **100** in the database. The cache entry has just expired.'
     panels:

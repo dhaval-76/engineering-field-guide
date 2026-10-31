@@ -1,4 +1,8 @@
 title: How a stream pipeline actually runs
+legend:
+  bad: 'fails the filter'
+  muted: 'already handled, or never touched'
+  ok: 'the result'
 frames:
   - caption: '`names.stream().filter(s -> s.length() > 3).map(String::toUpperCase).findFirst()` — building the pipeline does **nothing**. No element has been looked at yet.'
     panels:

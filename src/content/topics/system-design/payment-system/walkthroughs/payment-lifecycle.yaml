@@ -1,4 +1,9 @@
 title: A card payment from request to settlement
+legend:
+  info: 'created'
+  warn: 'outcome unknown / transition refused'
+  ok: 'confirmed'
+  muted: 'duplicate, ignored'
 frames:
   - caption: 'Checkout sends `POST /payments` with `Idempotency-Key: ord-881`. The service stores the payment as **CREATED** with the key — a retry of this request returns this same payment.'
     panels:

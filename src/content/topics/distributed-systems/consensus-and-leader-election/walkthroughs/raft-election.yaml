@@ -1,4 +1,10 @@
 title: Raft — electing a leader and committing an entry
+legend:
+  bad: 'crashes'
+  muted: 'down'
+  ok: 'vote granted / entry stored'
+  accent: 'leader'
+  info: 'back, as a follower'
 frames:
   - caption: 'Five nodes. S1 leads term 3 and sends heartbeats. Then S1 crashes. Followers wait a **randomised election timeout** (e.g. 150–300 ms) so they rarely time out together.'
     panels:

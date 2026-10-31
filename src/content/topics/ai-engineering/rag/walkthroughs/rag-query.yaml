@@ -1,4 +1,8 @@
 title: Answering one question with RAG
+legend:
+  warn: 'outdated match'
+  ok: 'kept for the prompt'
+  muted: 'dropped by the reranker'
 frames:
   - caption: 'A user asks: "How many days do customers have to request a refund?" The model alone would guess. We need the policy text.'
     panels:
@@ -8,7 +12,7 @@ frames:
     panels:
       - kind: array
         label: question vector
-        items: ['0.12', '-0.40', '0.07', '…', { v: '1,024 dims', tone: muted }]
+        items: ['0.12', '-0.40', '0.07', '…', '1,024 dims']
   - caption: '**Hybrid retrieval**: a vector search finds chunks with similar meaning ("return window"), a keyword search finds exact terms ("refund", "REF-30"). Both are filtered to documents this user may see.'
     panels:
       - kind: kv

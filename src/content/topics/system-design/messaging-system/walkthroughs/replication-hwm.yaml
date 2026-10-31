@@ -1,4 +1,9 @@
 title: Replication and the high watermark
+legend:
+  ok: 'committed / acknowledged'
+  info: 'leader''s log end / in-sync set'
+  warn: 'waiting or lagging'
+  bad: 'down'
 frames:
   - caption: 'Partition `orders-0` has three replicas. All are in sync up to offset 41; the **high watermark** (HW) is 42 — consumers can read offsets 0–41.'
     panels:

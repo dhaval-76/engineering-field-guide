@@ -1,4 +1,8 @@
 title: Counting the work in a duplicate check
+legend:
+  accent: 'element i, compared with every later one'
+  bad: 'too slow'
+  ok: 'duplicate found'
 frames:
   - caption: 'Task: does the array contain a duplicate? **Brute force** compares every pair. For n = 5, the outer loop picks i, the inner loop checks every j after it.'
     panels:
@@ -16,7 +20,7 @@ frames:
     panels:
       - kind: array
         label: sorted
-        items: ['1', '4', { v: '7', tone: warn }, { v: '7', tone: warn }, '9']
+        items: ['1', '4', { v: '7', tone: ok }, { v: '7', tone: ok }, '9']
   - caption: '**Hash set**: walk once, checking whether each value was seen. Each lookup is O(1) on average → **O(n) time**, but **O(n) extra space**. Trading memory for time is the most common optimisation.'
     panels:
       - kind: array

@@ -1,4 +1,8 @@
 title: A pool of 3 connections under load
+legend:
+  info: 'connection in use'
+  warn: 'waiting for a connection'
+  bad: 'stuck or timed out'
 frames:
   - caption: 'Three request threads borrow the three connections. Queries take 5 ms, so each connection is back almost immediately — a small pool serves many requests.'
     panels:

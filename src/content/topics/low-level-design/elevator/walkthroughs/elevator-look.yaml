@@ -1,4 +1,7 @@
 title: LOOK scheduling for one car (floors 0–9)
+legend:
+  info: 'pending stop'
+  accent: 'car''s floor, then its next stop'
 frames:
   - caption: The car is at floor **3**, going **UP**. Pending stops are 1, 5 and 8.
     panels:
