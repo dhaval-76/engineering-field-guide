@@ -1,0 +1,150 @@
+---
+title: 'Design: Payment Reconciliation'
+summary: Proving that the money in our ledger, the payment provider's reports and the bank account agree — idempotent ingestion, normalisation, multi-pass matching, payout batches, typed breaks with ageing, and fixing errors with adjusting entries.
+track: system-design
+order: 295
+tags: [system-design, case-study, payments, fintech, batch]
+aliases: [reconciliation, payment reconciliation, recon, settlement, settlement file, settlement report, bank statement, mt940, camt.053, three way reconciliation, matching engine, breaks, exceptions, unmatched transactions, payout reconciliation, suspense account, ledger reconciliation, psp reconciliation]
+prerequisites: [system-design/payment-system, databases/transactions-isolation]
+related: [backend/idempotency, system-design/job-scheduler, distributed-systems/saga-and-outbox, databases/joins-normalization-window-functions]
+quickRef:
+  points:
+    - 'Compare **three views**: our ledger, the payment provider''s settlement report, and the bank statement.'
+    - '**Ingest idempotently**: keep the raw file, dedupe lines by `(source, line id)`, so re-importing changes nothing.'
+    - '**Match in passes**: exact reference → amount + currency within a date window → payout batch (one bank credit = many payments − fees).'
+    - 'Unmatched items wait out a **settlement window** before they become breaks; breaks are typed, sized and aged.'
+    - 'Never edit history: fix with **adjusting ledger entries** (fees, refunds, suspense).'
+    - 'Amount-only matches are suggestions unless the amount is unique in its window.'
+  useWhen: '"Design a reconciliation system / settlement matching / how do you know your payments are correct?"'
+lastReviewed: 2026-10-31
+---
+
+## Why it matters
+
+A payment system can be carefully idempotent and still be wrong. A webhook never arrives, a provider charges a fee nobody configured, a refund is settled twice, a currency conversion rounds differently, or a bug writes the wrong amount. None of these raise an error at the time. **Reconciliation** is the independent check that finds them: it compares what we think happened with what the provider and the bank say happened, line by line, every day.
+
+Finance teams need it to close the books, regulators and auditors expect it, and engineers rely on it as the last safety net. It also makes an interesting design problem: large batch data, unreliable external files, fuzzy matching, and a workflow for humans to fix what the machine can't.
+
+<Callout type="analogy">
+Checking your bank statement against your receipts at the end of the month. Most lines match by date and shop name. A few don't: a charge you don't recognise, a refund that never came, a subscription billed twice, a café that charged a tip you forgot. Some receipts aren't on the statement yet because they're still pending. You don't edit the statement; you note each difference and chase it until it's explained.
+</Callout>
+
+## Requirements
+
+**Functional**:
+- Import settlement reports from several payment providers (files over SFTP, or APIs) and bank statements (MT940 or ISO 20022 camt.053 files).
+- Match them against our payments, refunds and payouts.
+- Report breaks by type, amount and age; let operations staff resolve them, with rules that resolve common ones automatically.
+- Produce daily summaries for finance: matched totals, fees, open breaks.
+
+**Non-functional**:
+- 5 million payments a day across providers.
+- A day's run finishes within an hour of the last file arriving.
+- Re-running a day, or re-importing a file, never creates duplicate results.
+- Every resolution is auditable; nothing is deleted or edited in place.
+
+## Estimates
+
+| Quantity | Estimate |
+|---|---|
+| Rows per day | 5 M payments + 5 M settlement lines + a few thousand bank lines (payouts are batched) |
+| Raw data | ~300 bytes per line ⇒ ~3 GB/day of files, kept for years for audit |
+| Matching | 1 M × 1 M in-memory hash match: **140–240 ms** in Java (measured, JDK 22) |
+| Breaks | typically well under 1% of lines ⇒ thousands a day, which is what people actually work on |
+
+The matching itself is cheap; a single machine or a single SQL query handles a day. The difficulty is data quality, timing differences and the resolution workflow.
+
+## High-level design
+
+<Diagram id="recon-pipeline" caption="Files are kept raw, parsed and deduplicated, normalised to one format, matched in passes, and anything left becomes a typed break for rules or people to resolve with adjusting ledger entries." />
+
+- **Ingest**: a scheduled job (or a webhook from the provider) fetches each file, stores it unchanged in object storage with its checksum, and records it in a `files` table. A file seen before is skipped. Each line is inserted with its natural key `(source, line id)`, so a partial import can simply be run again.
+- **Normalise**: convert to minor units and ISO currency codes, parse dates into a value date, and split fees, FX and adjustments into separate lines. Every provider's format is different; adapters per source keep that mess out of the matcher.
+- **Match**: run per day and per source, after the expected files have arrived (or at a cut-off, reporting missing files as their own break).
+- **Breaks and resolution**: a queue of breaks with owners, notes and an audit trail.
+
+## Matching in passes
+
+<Walkthrough id="recon-run" />
+
+<CodeTabs id="recon-matcher" title="A two-pass matcher: exact reference, then amount within a date window; the rest is in transit or a break" />
+
+1. **Exact reference.** We send our payment id to the provider as a reference or metadata field, and it comes back in the settlement report. This should match the vast majority of lines. A reference that matches with a different amount or currency is an `AMOUNT_MISMATCH`; the same reference twice is a `DUPLICATE`.
+2. **Amount, currency and a date window.** For lines without a usable reference (some bank transfers, older providers), pair by amount and currency within a couple of days, closest date first.
+3. **Many to one.** Providers pay out in batches: one bank credit equals the sum of many payments minus fees, refunds and chargebacks. Match the payout report's lines to payments, then the payout total to the bank line.
+
+How safe is pass 2? Measured on one million payments where 2% of settlement lines had no reference:
+
+| Distinct amounts | Wrongly paired, among amount matches |
+|---|---|
+| ~1,000,000 (amounts nearly unique) | 0.4% |
+| 1,000 price points | 92.8% |
+| 50 price points | 99.7% |
+
+The totals still balance when amounts are swapped, but refunds, disputes and customer support then point at the wrong payment. So treat amount matches as **suggestions** unless the amount is unique within its window, and use more fields when the source has them (card last four digits, authorisation code, customer id).
+
+## Timing: in transit isn't a break
+
+Payments settle a day or more after they're captured, cut-off times differ between provider and bank, and weekends and holidays add more. An unmatched payment younger than the expected settlement window (say 3 days for cards) is **in transit**; it becomes a break only when the window passes. The same applies the other way: a settlement line for a payment captured just before midnight may arrive before our ledger's day is closed.
+
+## Doing it in SQL
+
+<CodeTabs id="recon-tables" title="Idempotent tables and a full outer join that classifies every row" />
+
+A `FULL OUTER JOIN` on the reference returns matched pairs plus the rows missing on either side in one pass, so the whole of pass 1 is a single query that a database runs as a hash join. Two details matter for re-runs:
+- Raw lines have a primary key from the source, so re-importing a file inserts nothing new.
+- Breaks have a unique index so `ON CONFLICT DO NOTHING` makes re-running a day harmless. Testing this on PostgreSQL showed a trap: with a plain `UNIQUE (…, payment_id, line_id)`, one-sided breaks were inserted again on every run, because **NULLs never conflict** in a unique constraint. The index on `coalesce(…)` (or `UNIQUE NULLS NOT DISTINCT` on PostgreSQL 15+) fixes it.
+
+## Breaks and resolution
+
+| Break | Usual cause | Typical resolution |
+|---|---|---|
+| Amount mismatch | an unexpected fee, FX rounding, a partial capture | auto-rule for known fee schedules; otherwise post a fee entry and raise it with the provider |
+| Duplicate settlement | double capture, a retried request without an idempotency key | refund or record a payable; fix the idempotency bug |
+| Missing in ledger | a lost webhook, a payment made outside our system | look up the provider's record; create the missing payment through the normal flow, or park it in a suspense account |
+| Missing at provider | a failed capture we recorded as successful, a cancelled payment | query the provider's API; reverse our entry if it never happened |
+| Missing file | the provider didn't deliver | alert and retry fetching; never treat its absence as "nothing settled" |
+
+- **Never edit or delete ledger entries.** Every fix is a new entry (a fee, a reversal, a transfer out of suspense) with a link to the break, so the books always explain themselves.
+- **Rank breaks** by amount and age, and alert when a type suddenly spikes: a jump in `MISSING_IN_LEDGER` usually means webhooks are broken right now, which is worth fixing before the end of the day.
+- **Auto-resolve** the boring cases with explicit, audited rules ("PSP-A card fee of 2% ± 1 paisa"), and leave the judgment calls to people.
+
+## Scaling
+
+- Partition the work by **source and day**: each run is independent, so different providers' runs go in parallel and a late file only delays its own source.
+- One provider with hundreds of millions of lines a day still fits a hash join; beyond one machine, partition by hash of the reference so both sides of a match land on the same worker (a Spark or SQL engine does this for you).
+- Keep raw files and match results for the audit period (often seven or more years), in cheap storage partitioned by date.
+
+## When things fail
+
+Interviewers almost always ask "what happens when X goes down?". The general fallback patterns are in [Surviving dependency outages](../../distributed-systems/failure-fallbacks/).
+
+| What fails | What users see | What the design does |
+|---|---|---|
+| A provider's file is late or missing | finance sees the day as incomplete | the run waits until a cut-off, then reports a missing-file break; other sources reconcile normally |
+| A file is delivered twice or corrected | nothing | the checksum and line keys skip duplicates; a corrected file supersedes lines by key, and the day is re-run |
+| The run crashes halfway | a delayed report | runs are idempotent: start the day again from the raw files |
+| A parser change misreads a field | a sudden spike of breaks | alerts on break rates by type; fix the adapter and re-run from the stored raw files |
+| The ledger database is under load | nothing | matching reads from a replica or a daily export, never the primary on the payment path |
+
+<Pitfalls>
+
+- **Matching on amount alone** when amounts repeat — silently pairs the wrong payments.
+- **Treating unsettled payments as breaks** — floods the queue every day; apply a settlement window.
+- **Editing or deleting ledger rows** to make numbers match — destroys the audit trail.
+- **Not keeping raw files** — a parser bug can't be fixed by re-running.
+- **Floats for money** or mixing currencies — use integer minor units with a currency code.
+- **Unique constraints on nullable columns** for idempotency — NULLs don't conflict.
+- **Reconciling only totals** — equal sums can hide offsetting errors.
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- Reconciliation independently checks ledger, provider and bank against each other, every day.
+- Keep raw inputs, dedupe by natural keys, and make every run repeatable.
+- Match by exact reference first; amount-and-date matching is a suggestion unless unique; batch payouts match many to one.
+- Wait out the settlement window, then turn leftovers into typed, aged, sized breaks.
+- Fix with new adjusting entries, never by editing history.
+
+</KeyTakeaways>

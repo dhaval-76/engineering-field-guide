@@ -1,0 +1,30 @@
+title: One day's reconciliation run
+frames:
+  - caption: 'Run for 15 October. Our ledger has six card payments; the provider''s settlement file has six lines. Amounts are in paise.'
+    panels:
+      - kind: rows
+        label: Ours
+        items: ['p1 R1 1000', 'p2 R2 2500', 'p3 R3 500', 'p4 R4 700', 'p5 R5 900 (14 Oct)', 'p6 R6 300 (5 Oct)']
+      - kind: rows
+        label: Provider
+        items: ['L1 R1 1000', 'L2 R2 2450', 'L3 R3 500', 'L4 R3 500', 'L5 — 700', 'L6 X9 1200']
+  - caption: '**Pass 1, exact reference.** L1 matches p1. L2 finds p2 but the amounts differ by 50: an `AMOUNT_MISMATCH` (often an undeclared fee). L3 matches p3, and L4 carries the same reference again: a `DUPLICATE` settlement, money we may owe back.'
+    panels:
+      - kind: kv
+        label: Results
+        pairs: [[p1 ↔ L1, { v: MATCHED, tone: ok }], [p2 ↔ L2, { v: AMOUNT_MISMATCH, tone: bad }], [p3 ↔ L3, { v: MATCHED, tone: ok }], [p3 ↔ L4, { v: DUPLICATE, tone: bad }]]
+  - caption: '**Pass 2, amount and date window.** L5 has no reference. p4 is the only open payment of 700 within two days, so they pair as `MATCHED_BY_AMOUNT`. It is safe here only because the amount is unique; with common prices it would go to review.'
+    panels:
+      - kind: kv
+        label: Results
+        pairs: [[p4 ↔ L5, { v: MATCHED_BY_AMOUNT, tone: warn }]]
+  - caption: '**Leftovers.** L6 has no payment at all: money arrived that we never recorded, perhaps a lost webhook (`MISSING_IN_LEDGER`). p5 is one day old, within the three-day settlement window, so it is `IN_TRANSIT`, not a break. p6 is ten days old: `MISSING_AT_PROVIDER`.'
+    panels:
+      - kind: kv
+        label: Results
+        pairs: [[L6, { v: MISSING_IN_LEDGER, tone: bad }], [p5, { v: IN_TRANSIT, tone: info }], [p6, { v: MISSING_AT_PROVIDER, tone: bad }]]
+  - caption: 'Four breaks go to the queue, sorted by amount and age. Nothing is edited in place: the fee becomes a fee entry, the duplicate a payable to the customer or a refund request, the unknown payment a suspense entry until it is identified. Tomorrow''s file settles p5 and it matches automatically.'
+    panels:
+      - kind: rows
+        label: Break queue
+        items: [{ v: 'L6 · 1200 · unknown payer', tone: bad }, { v: 'p2/L2 · 50 short · fee?', tone: warn }, { v: 'p3/L4 · duplicate 500', tone: warn }, { v: 'p6 · 300 · 10 days', tone: warn }]

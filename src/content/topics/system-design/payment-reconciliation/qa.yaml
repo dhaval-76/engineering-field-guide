@@ -1,0 +1,37 @@
+questions:
+  - q: 'Design a reconciliation system for a payments company: 5 M payments a day across several providers, daily settlement files, bank statements, and an operations team that resolves differences.'
+    think: What are the three sources of truth, how do you match them, what counts as a break, and how do you make reruns safe?
+    answer: |
+      Ingest each provider file and bank statement on a schedule, keep the raw file with its checksum, and insert lines keyed by `(source, line id)` so re-imports are no-ops. Normalise to minor units, currency codes and value dates, with fees and FX as separate lines. Match per source and day in passes: exact reference (our payment id echoed by the provider), then amount and currency within a date window (as suggestions unless the amount is unique), then payout batches many-to-one against bank credits. Unmatched payments inside the settlement window are in transit; after it they become breaks, typed (amount mismatch, duplicate, missing on either side, missing file), sized and aged in a work queue with owners and audited auto-rules for known fee patterns. Fixes are new ledger entries (fees, reversals, suspense), never edits. Runs are idempotent (unique break keys), partitioned by source and day, and alert on spikes in a break type, which usually signal a live bug such as lost webhooks.
+followUps:
+  - q: A settlement line has no reference. How do you match it, and what can go wrong?
+    intuition: How many open payments share its amount?
+    approach: |
+      Pair it with an open payment of the same amount and currency within a date window, closest date first. If several candidates share the amount, the pairing is a guess: in a measured run with 1,000 price points, 93% of such pairs were wrong. Totals still balance, but refunds and disputes then reference the wrong payment. Use extra fields (card last four, auth code, customer) and send ambiguous cases to review.
+  - q: Totals for the day match exactly. Are you done?
+    intuition: Can two errors cancel?
+    approach: |
+      No. A duplicate settlement of 500 and a missing payment of 500 cancel in the totals. Reconcile line by line, then check totals as a separate control.
+  - q: How do you make re-running a day safe?
+    intuition: What happens to rows that are NULL on one side?
+    approach: |
+      Raw lines are keyed by source and line id; breaks have a unique key and are inserted with `ON CONFLICT DO NOTHING`; resolutions reference break ids. Watch nullable keys: in PostgreSQL NULLs never conflict, so one-sided breaks need a unique index on `coalesce(...)` or `NULLS NOT DISTINCT`.
+practice:
+  - task: Write a matcher that classifies payments and settlement lines into matched, matched by amount, amount mismatch, duplicate, in transit, missing at provider and missing in ledger.
+    hint: A map by reference for pass 1; a map from (amount, currency) to open payments for pass 2; the leftovers by age.
+    solution: |
+      Index our payments by reference. For each line, look up the reference: unknown → keep for pass 2; already matched → duplicate; different amount or currency → mismatch; otherwise matched. Group still-open payments by amount and currency and pair each leftover line with the closest-dated candidate inside the window, removing it once used; lines with none are missing in our ledger. Finally, open payments younger than the settlement window are in transit and older ones are missing at the provider.
+    solutionCode: recon-matcher
+quiz:
+  - q: A card payment captured yesterday has no settlement line yet. What is it?
+    options: [A missing-at-provider break, In transit, A duplicate, An amount mismatch]
+    correct: 1
+    why: Settlement takes days; it only becomes a break after the settlement window passes.
+  - q: How should an unexpected 2% fee found by reconciliation be fixed?
+    options: [Edit the payment amount, Delete the payment and re-create it, Post a separate fee entry linked to the break, Ignore it if the total is close]
+    correct: 2
+    why: Ledger history is never edited; adjustments are new entries that explain the difference.
+  - q: Why keep the raw settlement files?
+    options: [They compress well, To re-run after fixing a parser bug and for audit, Providers require it, To speed up matching]
+    correct: 1
+    why: Parsed data may be wrong; the raw file is the evidence and the input for a corrected re-run.

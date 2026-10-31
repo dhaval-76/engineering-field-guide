@@ -1,0 +1,7 @@
+flowchart TD
+  A[Sources<br/>our ledger · PSP settlement files<br/>bank statements] --> B
+  B[Ingest<br/>keep the raw file · parse<br/>dedupe by source + line id] --> C
+  C[Normalise<br/>minor units · currency · value date<br/>fees and FX as separate lines] --> D
+  D[Match<br/>1 · exact reference<br/>2 · amount + date window<br/>3 · payout batch = sum of lines] --> E
+  E[Breaks<br/>typed · aged · sized] --> F
+  F[Resolve<br/>auto rules or ops review<br/>fix with adjusting ledger entries]
