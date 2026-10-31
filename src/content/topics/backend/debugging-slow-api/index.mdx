@@ -28,7 +28,18 @@ A doctor doesn't prescribe on "I feel unwell". They take vitals (metrics), ask w
 
 ## The method
 
-<Diagram id="slow-api-triage" caption="Measure, find where the time goes, then use the right tool for that layer." />
+<DecisionGuide
+  title="Where does the time go?"
+  steps={[
+    ['Is every request slow (p50 rising with p99)?', 'Systemic: saturation or a shared dependency — CPU, GC, thread or connection pools, the database, a downstream service.'],
+    ['Only some requests (p99 up, p50 normal)?', 'Input-specific: big accounts, N+1 queries, a missing index, a cold cache, lock waits.'],
+    ['In one slow trace, do database spans dominate?', 'EXPLAIN ANALYZE, indexes, N+1, lock and pool waits.'],
+    ['Do downstream calls dominate?', 'Timeouts, run calls in parallel, cache, circuit breaker.'],
+    ['Is the time spent before work starts?', 'Queues: thread pool, connection pool, rate limits.'],
+  ]}
+  otherwise="Time in your own code: flame graph, GC logs, serialisation, a thread dump."
+  caption="Measure first (which endpoint, since when, p50 vs p99), then trace one slow request and fix the layer that dominates."
+/>
 
 1. **Scope it.** Which endpoints? Since when — a deploy, a traffic change, data growth, a dependency incident? Everyone or certain customers?
 2. **Read the percentiles.** p50 rising means everything is slower — saturation or a dependency. Only p99 rising means some requests take a slow path — big accounts, cold caches, lock waits, GC pauses.

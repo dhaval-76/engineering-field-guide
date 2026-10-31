@@ -1,16 +1,16 @@
 sequenceDiagram
   participant U as Browser
-  participant App as Your app
+  participant App as App
   participant AS as Auth server
-  participant API as Your API
+  participant API as API
   U->>App: Sign in
-  App->>App: verifier, challenge = SHA256(verifier), state
-  App->>U: redirect to /authorize<br/>client_id, scope, state, challenge
+  App->>App: verifier, challenge, state
+  App->>U: redirect /authorize + challenge
   U->>AS: log in + consent
-  AS->>U: redirect to /callback?code&state
-  U->>App: code + state (app checks state)
+  AS->>U: redirect /callback?code&state
+  U->>App: code + state (check state)
   App->>AS: POST /token: code + verifier
   AS-->>App: access, refresh, id tokens
-  App->>API: Bearer access_token
-  API->>API: verify signature (JWKS),<br/>iss, aud, exp, scope
+  App->>API: Bearer access token
+  API->>API: verify signature, iss, aud, exp
   API-->>App: 200

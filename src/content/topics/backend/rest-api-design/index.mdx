@@ -42,7 +42,19 @@ A library catalogue. Every book has a stable shelf address (the URL); the desk o
 
 ## Status codes
 
-<Diagram id="status-codes" caption="A rough order for choosing an error status: rate limit, authentication, authorization, validation, existence, state." />
+<DecisionGuide
+  title="Which status code? Check in this order"
+  steps={[
+    ['Over the rate limit?', '429 Too Many Requests, with Retry-After.'],
+    ['Missing or invalid credentials?', '401 Unauthorized.'],
+    ['Authenticated but not allowed?', '403 Forbidden — or 404 when even revealing the resource exists is a leak.'],
+    ['Malformed or failing validation?', '400 Bad Request — 422 when the syntax is fine but the meaning is invalid.'],
+    ['The resource doesn\'t exist?', '404 Not Found.'],
+    ['Conflicts with the current state (duplicate, stale version)?', '409 Conflict — 412 Precondition Failed when an If-Match check fails.'],
+  ]}
+  otherwise="Success: 200 OK · 201 Created + Location · 202 Accepted (async) · 204 No Content."
+  caption="Checks run roughly in this order: cheap gatekeeping first, then validity, existence and state."
+/>
 
 - **401 vs 403**: 401 means "authenticate first" (missing or expired token); 403 means "I know who you are, and you can't do this". Return 404 instead of 403 when even revealing that the resource exists is a leak.
 - **400 vs 422**: 400 for malformed requests; 422 when the syntax is fine but the content breaks a rule (end date before start date). Many APIs use 400 for both — be consistent.

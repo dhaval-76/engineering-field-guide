@@ -1,10 +1,10 @@
 flowchart TD
   subgraph PR["Every pull request — minutes"]
-    direction LR
-    A[Lint · compile<br/>unit tests] --> B[Integration tests<br/>Testcontainers] --> C[Dependency, image<br/>and secret scans]
+    direction TB
+    A[Lint · compile · unit tests] --> B[Integration tests<br/>Testcontainers] --> C[Dependency, image<br/>and secret scans]
   end
-  subgraph MAIN["After merge to main — the same image throughout"]
-    direction LR
-    D[Build image once<br/>tag = commit SHA] --> E[Staging<br/>+ smoke tests] --> F[Approval<br/>or checks] --> G[Production<br/>canary → 100%<br/>auto-rollback on errors]
+  subgraph MAIN["After merge — one image throughout"]
+    direction TB
+    D[Build image once<br/>tag = commit SHA] --> E[Staging + smoke tests] --> F[Approval or checks] --> G[Production: canary → 100%<br/>auto-rollback on errors]
   end
   PR --> MAIN
