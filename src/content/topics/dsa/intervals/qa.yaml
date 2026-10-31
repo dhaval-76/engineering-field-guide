@@ -22,6 +22,16 @@ practice:
     solution: |
       Append every interval ending before the new one starts; then, while intervals start at or before the new interval's end, expand the new interval to cover them; append the merged interval; append the remaining intervals. O(n) time, no sorting since the input is already ordered.
     solutionCode: dsa-insert-interval
+  - task: Given two sorted lists of disjoint closed intervals, return all their intersections.
+    hint: Which interval can be discarded after comparing the current pair?
+    solution: |
+      Two pointers i, j. The current pair intersects on `[max(starts), min(ends)]` if that's non-empty — record it. Then advance the interval with the smaller end, since it can't meet anything later in the other list. O(m + n).
+    solutionCode: dsa-interval-intersections
+  - task: Implement book(start, end) that accepts a half-open booking only if it overlaps no accepted booking, faster than O(n) per call.
+    hint: Which existing bookings could possibly clash with a new one?
+    solution: |
+      Keep bookings in a sorted map by start. Look up the booking with the greatest start ≤ new start (floor) — reject if it ends after the new start — and the one with the smallest start ≥ new start (ceiling) — reject if it starts before the new end. Otherwise insert. O(log n) with a balanced tree.
+    solutionCode: dsa-my-calendar
 quiz:
   - q: To minimise removals so intervals don't overlap, sort by…
     options: [Start time, End time, Length, Input order]
