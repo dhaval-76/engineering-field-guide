@@ -1,0 +1,34 @@
+title: Removing from a randomized set in O(1)
+frames:
+  - caption: 'The set holds 10, 20, 30, 40. The **array** keeps them packed so `getRandom` can pick `values[random(size)]`; the **map** says where each value sits.'
+    panels:
+      - kind: array
+        label: values
+        items: ['10', '20', '30', '40']
+      - kind: kv
+        label: index of
+        pairs: [['10', '0'], ['20', '1'], ['30', '2'], ['40', '3']]
+  - caption: '`remove(20)`. Deleting index 1 directly would shift 30 and 40 left — O(n) — and leave every index in the map wrong. Instead, look up 20''s position (1) and the **last** element (40).'
+    panels:
+      - kind: array
+        label: values
+        items: ['10', { v: '20', tone: bad }, '30', { v: '40', tone: accent }]
+      - kind: kv
+        label: index of
+        pairs: [['10', '0'], [{ v: '20', tone: bad }, '1'], ['30', '2'], [{ v: '40', tone: accent }, '3']]
+  - caption: 'Move 40 into the hole at index 1 and **update its index in the map** — the step people forget.'
+    panels:
+      - kind: array
+        label: values
+        items: ['10', { v: '40', tone: accent }, '30', { v: '40', tone: muted }]
+      - kind: kv
+        label: index of
+        pairs: [['10', '0'], [{ v: '20', tone: bad }, '1'], ['30', '2'], [{ v: '40', tone: accent }, '1']]
+  - caption: 'Pop the last slot and delete 20 from the map. Both structures are consistent again, the array has no gaps, and every step was O(1). The order changed — which a set doesn''t promise anyway.'
+    panels:
+      - kind: array
+        label: values
+        items: ['10', '40', '30']
+      - kind: kv
+        label: index of
+        pairs: [['10', '0'], ['40', '1'], ['30', '2']]

@@ -16,46 +16,72 @@ quickRef:
     - '**Trie**: prefix operations in O(length of word), independent of how many words are stored.'
   complexity: 'Each operation meets its stated bound — usually O(1) or O(log n).'
   useWhen: '"Design a class that supports X, Y, Z in O(1)/O(log n)" — and caches, indexes and registries in real code.'
-lastReviewed: 2026-10-30
+lastReviewed: 2026-10-31
 ---
+
+## Why it matters
+
+"Design a class that supports these operations in O(1)" is a favourite interview format because it mirrors real engineering: no single textbook structure meets every requirement, so you **combine** two or three and keep them in sync. That is exactly how production systems are built — an LRU cache is a hash map plus a linked list, Redis sorted sets are a hash map plus a skip list, a database index is a B-tree beside the table, and MVCC databases keep a version history per row and search it by timestamp.
+
+The skill being tested is not memorising designs but **deriving** one from the required costs, and handling the update paths (especially deletes) without leaving the structures inconsistent.
+
+<Callout type="analogy">
+A library: the catalogue (hash map) tells you exactly where a book is; the shelves (array) let you grab any book at random; when a book is removed, the last book on the shelf moves into its gap and the catalogue is updated — so neither the catalogue nor the shelf ever has holes.
+</Callout>
 
 ## How to approach them
 
 <Steps>
 
 1. List every operation with its required time bound.
-2. For each operation, name the structure that gives that bound alone (hash map for lookup by key, array for random index, heap for min, linked list for O(1) reordering, sorted list for range/floor queries).
-3. Combine them and decide what each stores (often the map stores **positions or nodes** in the other structure).
-4. Walk through each operation, updating **all** structures consistently — especially deletes.
-5. State the complexity of each operation and the space.
+2. For each operation, name the structure that gives that bound on its own: hash map for lookup by key, array for random index access, heap for min/max, doubly linked list for O(1) move/remove given a node, sorted list or tree for floor/ceiling/range, trie for prefixes.
+3. Combine them and decide what each stores — usually the map stores **positions or node references** into the other structure.
+4. Walk through each operation updating **all** structures — especially deletes and overwrites.
+5. State the cost of each operation and the total space; mention concurrency if it's a shared component.
 
 </Steps>
 
-<Callout type="analogy">
-A library: the catalogue (hash map) tells you exactly where a book is; the shelves (array) let you grab any book at random; when a book is removed, the last book on the shelf moves into its gap and the catalogue is updated — so neither the catalogue nor the shelf ever has holes.
-</Callout>
-
 ## Insert, delete and get-random in O(1)
+
+**Requirement.** `insert`, `remove` and a uniformly random `getRandom`, each average O(1).
+
+**Derivation.** A hash set gives O(1) insert/remove but no O(1) uniform random pick (you'd have to iterate). An array gives O(1) random pick but O(n) removal by value. Combine them: an **array** of values plus a **map from value to its index**. To remove, move the last element into the removed slot and update its index — the array stays dense, so a random index is always a valid, uniformly chosen element.
+
+<Walkthrough id="swap-delete" />
 
 <CodeTabs id="dsa-randomized-set" title="Randomized set — hash map of value → index plus an array, swap-delete" />
 
+Redis does the same trick for `SRANDMEMBER` and `SPOP` on sets, which is why random picks stay fast however large the set is.
+
 ## Time-based key-value store
 
-`set(key, value, timestamp)` with increasing timestamps; `get(key, t)` returns the value with the largest timestamp ≤ t. Per key, keep an append-only list of (timestamp, value) — already sorted — and binary-search it.
+**Requirement.** `set(key, value, timestamp)` with timestamps increasing per key; `get(key, t)` returns the value with the largest timestamp ≤ t.
+
+**Derivation.** A map gives the key's history in O(1). Because timestamps only grow, appending keeps each history **already sorted**, and "largest timestamp ≤ t" is a floor query: binary search, O(log h) for a history of length h. This is a tiny version of how multi-version databases answer "read as of snapshot t".
 
 <CodeTabs id="dsa-time-map" title="Time map — per-key sorted history and binary search" />
 
+If timestamps could arrive out of order, use a sorted map per key (`TreeMap.floorEntry`) instead of an append-only list.
+
 ## Trie (prefix tree)
 
-Each node has children by character and an end-of-word flag. Insert, search and prefix checks take O(L) for a word of length L. Autocomplete builds on this with top suggestions cached per node ([Autocomplete](../../low-level-design/autocomplete/)).
+**Requirement.** Insert words, check whole words, and answer "does any word start with this prefix?" — fast even with millions of words.
+
+**Derivation.** A hash set answers whole-word lookups but needs a scan for prefixes. A trie stores words character by character along a path from the root; each node has children by character and an end-of-word flag. Every operation walks one path: **O(L)** for length L, independent of how many words are stored. Autocomplete builds on it by caching the top suggestions at each node ([Autocomplete](../../low-level-design/autocomplete/)).
 
 <CodeTabs id="dsa-trie" title="Trie — insert, search, startsWith" />
 
+Memory is the trade-off: a node per character, each with a child table. Compressed tries (radix trees) merge single-child chains; they're used in IP routing tables and in the Linux kernel.
+
 ## Hit counter (sliding time window)
 
-Count hits in the last 300 seconds. A queue of timestamps (or of `(second, count)` buckets) — evict old entries on each call. With a fixed window, a circular array of 300 buckets gives O(1) per operation and bounded memory.
+**Requirement.** Record hits and count those in the last 300 seconds.
+
+**Derivation.** A queue of timestamps works but grows with traffic. Since only the last 300 seconds matter, keep a **circular array of 300 buckets** indexed by `second % 300`, each storing which second it holds and its count. A bucket from an old second is reset when reused. Both operations are O(1) (or O(300) for the count) with fixed memory, regardless of traffic — the same structure sits inside rate limiters and per-minute metrics ([Rate limiter](../../low-level-design/rate-limiter/)).
 
 <CodeTabs id="dsa-hit-counter" title="Hit counter — circular buckets, O(1) and fixed memory" />
+
+## Combinations at a glance
 
 | Requirement | Structures | Example |
 |---|---|---|
@@ -66,20 +92,29 @@ Count hits in the last 300 seconds. A queue of timestamps (or of `(second, count
 | prefix queries | trie | autocomplete, word dictionary |
 | min/max with O(1) push/pop | stack of (value, min) | [min stack](../stacks-and-monotonic-stacks/) |
 
+## Talking through it in an interview
+
+- Write the operations and their required bounds at the top of the whiteboard.
+- For each structure you add, say which operation it serves.
+- Trace a delete and an overwrite through every structure.
+- Mention what grows without bound and how you'd cap it (eviction, expiry, compaction).
+- If it's a shared service component, say how you'd make it thread-safe.
+
 <Pitfalls>
 
 - **Forgetting to update the index map** when swapping elements on delete.
 - **Deleting from the middle of an array** (O(n)) instead of swap-with-last.
-- **Linear scans** in `get` hidden behind a map (e.g. scanning a key's whole history).
+- **Linear scans** hidden behind a map (scanning a key's whole history in `get`).
 - **Unbounded growth** — old timestamps, expired hits and empty trie branches.
-- **Concurrency** — real caches/registries need locks or concurrent structures.
+- **Concurrency** — real caches and registries need locks or concurrent structures.
 
 </Pitfalls>
 
 <KeyTakeaways>
 
-- Derive the structure from per-operation bounds; combine and keep in sync.
-- Maps store positions/nodes in the other structure; swap-delete keeps arrays dense.
+- Derive the design from per-operation bounds; combine structures and keep them in sync.
+- Maps store positions or nodes in the other structure; swap-delete keeps arrays dense.
 - Sorted histories + binary search answer "as of time t"; tries answer prefixes in O(L).
+- Fixed-size circular buckets give time-window counts with bounded memory.
 
 </KeyTakeaways>
