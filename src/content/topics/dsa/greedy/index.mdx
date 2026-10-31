@@ -4,7 +4,7 @@ summary: Making the locally best choice and proving it never hurts — exchange 
 track: dsa
 order: 150
 tags: [dsa, greedy, patterns, proofs]
-aliases: [greedy, greedy algorithm, exchange argument, greedy choice property, jump game, jump game ii, gas station, partition labels, task scheduler cooldown, assign cookies, minimum number of arrows, activity selection, huffman coding, coin change greedy, when greedy fails]
+aliases: [greedy, greedy algorithm, exchange argument, greedy choice property, jump game, jump game ii, gas station, partition labels, task scheduler cooldown, assign cookies, minimum number of arrows, activity selection, huffman coding, coin change greedy, when greedy fails, candy, two pass greedy, greedy stays ahead, canonical coin system]
 prerequisites: [dsa/intervals]
 related: [dsa/dynamic-programming, dsa/intervals, dsa/heaps-and-top-k]
 quickRef:
@@ -16,48 +16,104 @@ quickRef:
     - 'Try small cases by hand before trusting a greedy rule.'
   complexity: 'Usually O(n) or O(n log n) (dominated by sorting).'
   useWhen: 'An optimisation where a simple local rule provably leads to a global optimum.'
-lastReviewed: 2026-10-30
+lastReviewed: 2026-10-31
 ---
 
-## Recognise it
+## Why it matters
 
-- A sort-then-scan feels natural: intervals by end, tasks by deadline, items by ratio.
-- You can track a single summary of the past ("farthest reachable index", "current fuel") instead of all options.
-- Choosing the extreme option (earliest, largest, most frequent) leaves the most freedom for the rest.
+A greedy algorithm builds a solution one step at a time, always taking the choice that looks best **right now**, and never reconsidering. When that works it is the simplest and fastest possible solution — usually a sort and a single pass, O(n log n) or O(n). Huffman compression, Dijkstra's shortest paths, Kruskal's and Prim's spanning trees, interval scheduling and many load-balancing heuristics are greedy.
+
+The catch: greedy is **often wrong**, and a wrong greedy looks just as convincing as a right one. What separates a strong answer is the ability to *justify* the greedy choice — or to find the small counter-example that kills it and switch to [dynamic programming](../dynamic-programming/).
 
 <Callout type="analogy">
 Packing for a flight with a weight limit when every item is equally useful: take the lightest items first and you fit the most. That simple rule is provably best here — but if items had different values, "lightest first" could leave the most valuable thing behind, and you'd need to compare combinations (dynamic programming).
 </Callout>
 
-<Walkthrough id="jump-game" />
+## Recognise it
+
+- A sort-then-scan feels natural: intervals by end, tasks by deadline, items by ratio, people by height.
+- You can track a single summary of the past ("farthest reachable index", "current fuel", "last occurrence") instead of all possibilities.
+- Choosing the extreme option (earliest end, largest, most frequent) leaves the most freedom for the rest.
+- The constraints are local (each element vs its neighbours) and can be satisfied in passes.
+
+## How to justify a greedy choice
+
+Two standard arguments, both short enough to say in an interview:
+
+- **Exchange argument.** Take any optimal solution that does *not* make the greedy choice. Show you can swap the greedy choice in without making it worse. Then some optimal solution agrees with greedy at step one, and by repeating the argument, at every step. *Interval scheduling:* replace the first interval of any optimal schedule with the interval that ends earliest — it ends no later, so nothing after it conflicts.
+- **Greedy stays ahead.** Show that after every step, greedy's partial solution is at least as good as any other algorithm's after the same number of steps (it has reached at least as far, used no more resources). *Jump game:* after k jumps, greedy's farthest reach is ≥ the reach of any k-jump strategy.
+
+And one practical habit: **test the rule against an exact solver** on many small inputs before trusting it. The snippet below does exactly that for "largest coin first".
+
+<CodeTabs id="dsa-greedy-check" title="Testing a greedy rule — compare with DP on small inputs" />
 
 ## Worked problems
 
+### Jump game I and II
+
+**Problem.** `nums[i]` is the maximum jump from index i. Can you reach the end (I)? With the fewest jumps (II)?
+
+**Insight.** For I, keep the **farthest index reachable so far**; if you ever stand on an index beyond it, you're stuck. For II, think in BFS layers without a queue: all indices reachable with k jumps form a contiguous range; the next range ends at the farthest point reachable from it. Count how many times you must move to a new range.
+
+<Walkthrough id="jump-game" />
+
 <CodeTabs id="dsa-jump-game" title="Jump game I and II — track the farthest reach" />
 
+### Gas station
+
+**Problem.** Stations on a circle with `gas[i]` and `cost[i]` to reach the next. Find the start that completes the loop.
+
+**Insight.** If total gas < total cost, no start works. Otherwise, run once with a tank; whenever it goes negative at station i, **no station from the current start up to i can be a valid start** (each would arrive at i with even less fuel), so restart after i. The last restart point is the answer — one pass instead of trying every start.
+
 <CodeTabs id="dsa-gas-station" title="Gas station — reset the start when the tank goes negative" />
+
+### Partition labels
+
+**Problem.** Split a string into as many parts as possible so each letter appears in only one part.
+
+**Insight.** Record each letter's **last** occurrence. Scan, extending the current part's end to the last occurrence of every letter seen; when the scan reaches that end, the part is closed. Cutting any earlier would split a letter; cutting later wastes a possible part.
 
 <CodeTabs id="dsa-partition-labels" title="Partition labels — extend each part to the last occurrence" />
 
 ### Task scheduler with cooldown
 
-Identical tasks must be at least n slots apart. The most frequent task dictates the frame: `(maxCount − 1)` gaps of size `n + 1`, plus the tasks tied for the maximum in the final slot. If there are enough other tasks to fill every gap, no idling is needed and the answer is simply the number of tasks.
+**Problem.** Identical tasks must be at least n slots apart. Minimum total slots?
+
+**Insight.** The most frequent task dictates the frame: `(maxCount − 1)` gaps of size `n + 1`, plus the tasks tied for the maximum in the final slot. If there are enough other tasks to fill every gap, no idling is needed and the answer is just the number of tasks: `max(tasks, (maxCount − 1)(n + 1) + tiedCount)`.
 
 <CodeTabs id="dsa-task-scheduler" title="Task scheduler — counting formula from the most frequent task" />
+
+### Candy (two passes)
+
+**Problem.** Children in a row with ratings each get at least one candy, and a child rated higher than a neighbour gets more than that neighbour. Minimum total? `[1,0,2]` → 5.
+
+**Insight.** Each child has two constraints, one per neighbour, and satisfying both at once is awkward. So satisfy them **one direction at a time**: a left-to-right pass gives each child one more than its left neighbour when rated higher; a right-to-left pass does the same for right neighbours, taking the max so the first pass isn't undone. Each pass only raises values as much as forced, so the total is minimal.
+
+<CodeTabs id="dsa-candy" title="Candy — one pass per neighbour" />
 
 ## When greedy fails
 
 | Problem | Tempting greedy | Why it fails | Use |
 |---|---|---|---|
-| Coin change (arbitrary coins) | largest coin first | {1, 3, 4}, amount 6 → 3 coins vs optimal 2 | DP |
-| 0/1 knapsack | best value/weight first | can't take fractions; ratios mislead | DP |
-| Longest path | always take the longest next edge | local choices block better routes | DP on DAGs / search |
+| Coin change (arbitrary coins) | largest coin first | {1, 3, 4}, amount 6 → 4+1+1 (3 coins) vs 3+3 (2) | DP |
+| 0/1 knapsack | best value/weight first | items can't be split; ratios mislead | DP |
+| Longest path | take the longest next edge | local choices block better routes | DP on DAGs / search |
+| Interval scheduling | shortest interval first | a short interval can overlap two compatible long ones | earliest end ✓ |
 | Fractional knapsack | best value/weight first | — works, items are divisible | greedy ✓ |
+| Coin change, real currencies | largest coin first | — works: currencies are designed to be "canonical" | greedy ✓ |
+
+## Talking through it in an interview
+
+- State the greedy rule in one sentence, then justify it (exchange argument or stays-ahead).
+- Try two or three small counter-examples out loud — interviewers often have one ready.
+- If you find a counter-example, say so and switch to DP; that is a strong signal, not a failure.
+- Mention the sort (O(n log n)) and the single pass.
 
 <Pitfalls>
 
 - **Assuming greedy works** without an argument or a counter-example search.
-- **Sorting by the wrong key** (start instead of end for interval scheduling).
+- **Sorting by the wrong key** (start instead of end for interval scheduling, shortest-first).
+- **Satisfying two-sided constraints in one pass** — use two passes (candy, trapping rain water).
 - **Ignoring ties** that affect correctness.
 - **Overflow** in running sums.
 
@@ -65,8 +121,8 @@ Identical tasks must be at least n slots apart. The most frequent task dictates 
 
 <KeyTakeaways>
 
-- Greedy commits to local choices; prove them with exchange arguments.
+- Greedy commits to local choices; justify them with an exchange argument or "greedy stays ahead".
 - Track compact state: farthest reach, running balance, last occurrence.
-- Test small counter-examples; fall back to DP when choices interact.
+- Test small counter-examples against an exact solver; fall back to DP when choices interact.
 
 </KeyTakeaways>
