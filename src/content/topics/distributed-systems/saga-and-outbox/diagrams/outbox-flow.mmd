@@ -1,13 +1,12 @@
 sequenceDiagram
-  participant S as Order svc
-  participant DB as Orders DB
+  participant S as Orders + DB
   participant R as Relay
   participant K as Broker
   participant C as Shipping
-  S->>DB: one tx: order + outbox row
-  R->>DB: claim batch (SKIP LOCKED)
+  S->>S: 1 tx: order + outbox row
+  R->>S: claim rows (SKIP LOCKED)
   R->>K: publish, key = order id
   K-->>R: ack
-  R->>DB: mark published
-  K->>C: deliver (at least once)
-  C->>C: one tx: inbox row + change
+  R->>S: mark rows sent
+  K->>C: deliver, at least once
+  C->>C: 1 tx: inbox row + change

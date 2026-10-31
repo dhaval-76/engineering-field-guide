@@ -1,7 +1,7 @@
 stateDiagram-v2
-  direction LR
+  direction TB
   [*] --> CLOSED
-  CLOSED --> OPEN: failure or slow-call rate ≥ threshold
-  OPEN --> HALF_OPEN: wait duration elapsed
+  CLOSED --> OPEN: failure / slow-call rate ≥ threshold
+  OPEN --> HALF_OPEN: wait duration over
   HALF_OPEN --> CLOSED: trial calls succeed
   HALF_OPEN --> OPEN: trial calls fail

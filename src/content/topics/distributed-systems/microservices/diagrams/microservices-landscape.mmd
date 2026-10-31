@@ -1,13 +1,9 @@
 flowchart TD
-  C[Web / mobile clients] --> G[API gateway<br/>auth · routing · rate limits]
-  G --> O[Order service]
-  G --> P[Catalogue service]
-  O -- "sync: charge (timeout 2 s)" --> Pay[Payment service]
-  O --- ODB[(orders DB)]
-  P --- PDB[(catalogue DB)]
-  Pay --- PayDB[(payments DB)]
-  O -- "OrderPlaced (outbox)" --> K{{Kafka}}
-  K --> I[Inventory service]
-  K --> N[Notification service]
-  K --> S[Search indexer]
-  I --- IDB[(inventory DB)]
+  C[Web / mobile] --> G[API gateway<br/>auth · routing · limits]
+  G --> O[Order svc]
+  G --> P[Catalogue svc]
+  O -- "sync, 2 s timeout" --> Pay[Payment svc]
+  O -- "OrderPlaced<br/>via outbox" --> K{{Kafka}}
+  K --> Sub[Inventory · Notifications<br/>· Search indexer]
+  DBN["each service owns its database"]
+  Sub ~~~ DBN
