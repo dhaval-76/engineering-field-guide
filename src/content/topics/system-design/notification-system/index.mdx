@@ -1,0 +1,86 @@
+---
+title: 'Design: Notification System'
+summary: Sending push, SMS, email and in-app notifications at scale — a routing layer for preferences, dedup, quiet hours and frequency caps, priority queues, templates, provider failover and rate limits, and delivery tracking.
+track: system-design
+order: 135
+tags: [system-design, case-study, notifications, messaging, queues]
+aliases: [design notification system, notification service, push notifications, apns, fcm, firebase cloud messaging, sms gateway, email service, in app notifications, notification preferences, quiet hours, frequency capping, notification dedup, priority queue, otp delivery, digest notifications, notification templates]
+prerequisites: [system-design/kafka-vs-rabbitmq, system-design/approach-and-estimation]
+related: [system-design/webhook-delivery, backend/realtime-communication, system-design/distributed-rate-limiter, system-design/job-scheduler]
+quickRef:
+  points:
+    - 'Producers call one **Notification API**; a **router** applies preferences, dedup, quiet hours, frequency caps and templates.'
+    - '**Separate queues by priority**: OTP/security never wait behind a marketing blast.'
+    - 'Channel workers talk to **APNs/FCM, SMS and email providers** with per-provider rate limits, retries and failover.'
+    - 'Idempotency keys stop duplicates; **security** messages bypass mutes and quiet hours.'
+    - 'Track sent → delivered → opened; clean up invalid device tokens and bounced emails.'
+  useWhen: '"Design a notification service" — or any product feature that messages users across channels.'
+lastReviewed: 2026-10-30
+---
+
+## Requirements
+
+**Functional**: send notifications via push (iOS/Android), SMS, email and an in-app inbox; templates with localisation; user preferences per category and channel; scheduled and bulk campaigns; delivery status.
+**Non-functional**: OTPs delivered within seconds; transactional within a minute; campaigns of tens of millions without hurting the rest; no duplicates; respect preferences and regulations.
+
+## Estimates
+
+| | |
+|---|---|
+| Users | 100 M, ~50 M with active devices |
+| Volume | transactional ~200 M/day ≈ 2,300/s; campaigns up to 50 M in an hour ≈ 14,000/s |
+| Providers | APNs/FCM handle very high throughput; SMS providers often allow only hundreds/s per account — the real bottleneck and cost |
+| Storage | in-app inbox: 50 M users × 100 messages × 500 B ≈ 2.5 TB — partition by user, TTL old items |
+
+## High-level design
+
+<Diagram id="notification-pipeline" caption="Producers submit through one API; the router decides channels and timing; priority queues feed channel workers that call providers with rate limits and failover; receipts flow back into tracking." />
+
+<Steps>
+
+1. **API**: producers send `{userId, category, template, data, idempotencyKey}` — not finished text, so wording and translations live in one place.
+2. **Router**: load preferences (cached), drop duplicates, apply mutes, opt-outs, quiet hours (in the user's time zone) and frequency caps, choose channels and render templates.
+3. **Queues by priority**: critical (OTP, security), transactional, bulk. Separate consumer pools guarantee capacity for critical messages.
+4. **Channel workers**: call providers with timeouts, retries and per-provider rate limits; fail over to a secondary SMS/email provider on errors.
+5. **Tracking**: store each send with status; ingest provider callbacks (delivered, bounced, opened); remove dead device tokens and suppress bounced addresses.
+
+</Steps>
+
+## The routing decision
+
+<Walkthrough id="notification-route" />
+
+<CodeTabs id="notify-router" title="Router: dedup, mutes and opt-outs, quiet hours in the user's time zone, frequency caps, critical bypass" />
+
+## Delivery details by channel
+
+| Channel | Notes |
+|---|---|
+| Push (APNs/FCM) | Device tokens per installation; tokens expire — remove on "unregistered" responses; collapse keys to replace stale notifications; small payloads |
+| SMS | Expensive and rate-limited; regional regulations (sender registration, templates for OTP in some countries); multiple providers for failover and cost routing |
+| Email | Domain authentication (SPF, DKIM, DMARC), unsubscribe headers, bounce and complaint handling, warm-up for new sending IPs |
+| In-app | Inbox table per user plus real-time delivery over WebSocket/SSE when online ([Real-time communication](../../backend/realtime-communication/)) |
+
+## Campaigns at scale
+
+Large sends are **jobs**, not loops in a request: segment users, then enqueue in batches at a controlled rate onto the bulk queue ([Job scheduler](../job-scheduler/)). Spread sends over time (and respect time zones) to avoid self-inflicted traffic spikes when everyone taps the notification at once.
+
+<Pitfalls>
+
+- **One queue for everything** — a campaign delays OTPs by minutes.
+- **No idempotency** — producer retries spam users.
+- **Quiet hours in server time** instead of the user's time zone.
+- **Ignoring provider feedback** — sending to dead tokens and bounced emails hurts deliverability.
+- **Hard-coded message text** in producers — no localisation or consistency.
+- **Unbounded fan-out** from a request handler.
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- Centralise routing: preferences, dedup, quiet hours, caps and templates in one place.
+- Separate priority queues; critical messages bypass user mutes and never wait behind bulk.
+- Rate-limit and fail over per provider; track delivery and clean up invalid destinations.
+- Treat campaigns as throttled background jobs.
+
+</KeyTakeaways>

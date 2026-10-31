@@ -1,0 +1,18 @@
+flowchart TD
+  P[Producers<br/>orders · auth · social · campaigns] --> API[Notification API<br/>validate · idempotency key]
+  API --> R[Router<br/>prefs · dedup · quiet hours · caps · template]
+  R --> Q1{{Critical queue<br/>OTP · security}}
+  R --> Q2{{Transactional queue}}
+  R --> Q3{{Bulk queue<br/>marketing · digests}}
+  R --> SCH[(Deferred sends<br/>quiet hours · digests)]
+  SCH --> R
+  Q1 --> W[Channel workers<br/>rate-limited per provider]
+  Q2 --> W
+  Q3 --> W
+  W --> APNS[APNs / FCM]
+  W --> SMS[SMS providers<br/>primary + fallback]
+  W --> EM[Email provider]
+  W --> INBOX[(In-app inbox)]
+  APNS -. delivery receipts .-> TR[(Tracking: sent · delivered · opened)]
+  SMS -.-> TR
+  EM -.-> TR

@@ -1,0 +1,27 @@
+title: Routing three notifications for one user
+frames:
+  - caption: 'Asha has opted out of SMS, muted social notifications, and set quiet hours 22:00–07:00 in her time zone (IST). Three events arrive.'
+    panels:
+      - kind: kv
+        label: preferences
+        pairs: [[opted out, SMS], [muted, SOCIAL], [quiet hours, '22:00–07:00 IST']]
+  - caption: '11:30 IST — "Your order shipped" (transactional) asks for push, SMS and in-app. SMS is dropped by her preference; push and in-app go out now. Its dedup key `order-42-shipped` is remembered for a day.'
+    panels:
+      - kind: rows
+        label: order shipped
+        items: [{ v: 'PUSH — send now', tone: ok }, { v: 'SMS — opted out', tone: muted }, { v: 'IN_APP — send now', tone: ok }]
+  - caption: 'The order service retries the same event after a timeout. Same dedup key → **dropped**. Without this, users get double notifications whenever a producer retries.'
+    panels:
+      - kind: rows
+        label: retry
+        items: [{ v: 'order-42-shipped — duplicate', tone: muted }]
+  - caption: '23:30 IST — "Delivery tomorrow" arrives during quiet hours. In-app is silent, so it''s added now; the push is **deferred** to 07:00.'
+    panels:
+      - kind: rows
+        label: delivery update
+        items: [{ v: 'IN_APP — now', tone: ok }, { v: 'PUSH — deferred to 07:00', tone: warn }]
+  - caption: '23:40 IST — a login OTP. **Security** messages bypass mutes, opt-outs and quiet hours, and go on the critical queue so a marketing blast can never delay them.'
+    panels:
+      - kind: rows
+        label: OTP
+        items: [{ v: 'SMS — send now (critical queue)', tone: ok }]

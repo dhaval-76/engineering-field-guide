@@ -1,0 +1,37 @@
+questions:
+  - q: Design a notification system that sends push, SMS and email for an e-commerce app with 100 million users.
+    think: One entry point, a routing brain, priority separation, providers.
+    answer: |
+      Producers call a Notification API with user, category, template id, data and an idempotency key. A **router** loads cached preferences, de-duplicates by key (Redis `SET NX EX`), applies opt-outs, muted categories, quiet hours in the user's zone and frequency caps, picks channels, renders localised templates, and enqueues per channel on **priority queues** (critical, transactional, bulk) with separate worker pools. **Channel workers** call APNs/FCM, SMS and email providers with per-provider rate limits, retries with backoff and failover to secondary providers. **Tracking** records each send and ingests delivery/bounce/open callbacks, pruning invalid tokens. In-app notifications go to a per-user inbox and over WebSocket/SSE when online. Campaigns are scheduled jobs that enqueue gradually. Metrics: latency per priority, provider error rates, opt-out rates.
+  - q: 'During a big marketing campaign, users stop receiving login OTPs for several minutes. Why, and how do you prevent it?'
+    think: Shared capacity.
+    answer: |
+      OTPs and campaign messages share the same queue, workers or SMS provider rate limit, so millions of campaign messages sit ahead of the OTPs. Prevent it with separate critical queues and dedicated worker pools, reserved provider capacity (or a separate SMS account/route) for transactional and security traffic, rate-limited campaign enqueueing, and priority-aware rate limiters. Alert on OTP delivery latency specifically.
+followUps:
+  - q: How do you avoid sending duplicate notifications?
+    intuition: Producers retry; consumers redeliver.
+    approach: |
+      Require an idempotency or dedup key per logical notification (e.g. `order-42-shipped`), store it with a TTL using an atomic set-if-absent, and drop repeats. Make channel workers idempotent too — record the send id before calling the provider and check it on redelivery — and use provider features like push collapse keys so a resend replaces rather than duplicates.
+  - q: How do quiet hours work across time zones?
+    intuition: Whose clock?
+    approach: |
+      Store each user's IANA time zone and quiet window. The router converts the current instant to the user's local time; if inside the window (handling windows that cross midnight), non-critical channels are deferred to the window's end via a scheduled send, while silent channels like the in-app inbox proceed. Security messages ignore quiet hours.
+  - q: What do you do with provider delivery feedback?
+    intuition: Keep the destination list healthy.
+    approach: |
+      Mark notifications delivered/failed/opened for analytics and retries; remove device tokens reported as unregistered; suppress email addresses that bounce or complain; switch SMS routes when one provider's delivery rate drops. Ignoring feedback raises costs and damages sender reputation, which reduces delivery for everyone.
+practice:
+  - task: Implement the routing decision — dedup, mutes, opt-outs, quiet hours in the user's time zone, a daily marketing cap, and a bypass for security messages.
+    hint: Return which channels to send now and which to defer.
+    solution: |
+      Check the dedup key (seen within 24 h → drop). Unless the category is SECURITY, drop muted categories. For marketing, prune send times older than 24 h and enforce the cap. Filter preferred channels by opt-outs (unless security). If not security and the user's local time is inside quiet hours (handle windows crossing midnight), defer every channel except in-app; otherwise send all now.
+    solutionCode: notify-router
+quiz:
+  - q: Why should OTPs use a separate queue from marketing notifications?
+    options: [They are larger, So bulk sends can never delay time-critical messages, Providers require it, To save cost]
+    correct: 1
+    why: Priority isolation guarantees capacity for critical messages.
+  - q: What should happen to a push token that APNs or FCM reports as unregistered?
+    options: [Retry forever, Remove it from the user's devices, Switch to SMS permanently, Ignore the response]
+    correct: 1
+    why: The app was uninstalled or the token rotated; keep sending and you waste capacity.
