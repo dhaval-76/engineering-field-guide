@@ -86,7 +86,7 @@ A **virtual thread** is a thread managed by the JVM rather than the OS. When it 
 ## Upgrading from Java 8
 
 - Move to 17 or 21 first (both LTS); 25 is the newest LTS.
-- Expect work around the module system (strong encapsulation of JDK internals), removed APIs (Java EE modules like JAXB were removed in 11), and library upgrades (Spring Boot 3 requires 17+).
+- Expect work around the module system (strong encapsulation of JDK internals), removed APIs (Java EE modules like JAXB were removed in 11), and library upgrades (Spring Boot 3 and 4 both require 17+).
 - Adopt features gradually: records for DTOs, switch expressions, text blocks, then sealed types and virtual threads where they fit.
 
 <Pitfalls>
