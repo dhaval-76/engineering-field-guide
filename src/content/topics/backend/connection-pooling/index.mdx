@@ -15,7 +15,7 @@ quickRef:
     - 'Exhaustion symptom: "Connection is not available, request timed out" while the database is idle. Causes: leaks, long transactions, slow calls inside transactions.'
     - 'Always `try-with-resources` / `finally release()`; set `open-in-view: false`; fixed-size pool, short `connection-timeout`, leak detection on.'
   useWhen: Configuring any service that talks to a relational database, or diagnosing timeouts under load.
-lastReviewed: 2026-10-30
+lastReviewed: 2026-10-31
 ---
 
 ## Why it matters
@@ -46,6 +46,19 @@ A car-sharing club with 20 cars. Members book a car, drive, and return it — no
 
 - A database can only execute about as many queries at once as it has CPU cores (plus some for I/O waits). Beyond that, extra connections queue *inside the database*, where they cost memory and context switches. Queuing in the pool is cheaper.
 - HikariCP's starting point is `connections = (cores × 2) + effective spindle count` — the **database server's** cores, and the **total** across all clients. A 16-core database → ~33 connections total, shared by all instances.
+We measured it: 64 client threads running the same short indexed query (a range sum over 2 million rows) through pools of different sizes, against PostgreSQL 14 on an 8-core laptop — client and database on the same machine, so the shape matters more than the absolute numbers:
+
+<Chart
+  type="line"
+  title="Pool size vs throughput and tail latency (measured)"
+  x={['2', '4', '8', '16', '32', '64']}
+  series={[
+    { name: 'queries/s ÷ 10', values: [103, 228, 296, 286, 284, 279], tone: 'ok' },
+    { name: 'p99 latency, ms', values: [289, 35, 27, 69, 199, 385], tone: 'bad' },
+  ]}
+  caption="Throughput peaked at about 8 connections — the number of cores — and stayed flat after that, while p99 latency rose from 27 ms to 385 ms as more connections competed inside the database. Too few connections hurt too: with 2, requests queued in the pool."
+/>
+
 - Account for every client: `instances × pool size` for each service, plus migrations, batch jobs and admin tools, under the database's `max_connections` (PostgreSQL defaults to 100).
 - Many instances or serverless functions? Put a pooler (PgBouncer in transaction mode, RDS Proxy) in front of the database.
 - Size thread pools and connection pools together: 200 Tomcat threads sharing 10 connections means up to 190 threads waiting — fine if waits are short, fatal with long holds. With virtual threads, the connection pool becomes the main concurrency limit.
