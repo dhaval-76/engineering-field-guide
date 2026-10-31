@@ -5,8 +5,8 @@ track: system-design
 order: 70
 tags: [system-design, case-study, caching, ids, read-heavy]
 aliases: [url shortener, tinyurl, bitly, short link, base62, short code generation, custom alias, redirect, 301 vs 302, click analytics, link expiry, design tinyurl]
-prerequisites: [system-design/approach-and-estimation, system-design/id-generator]
-related: [databases/caching-strategies, system-design/pastebin, system-design/distributed-rate-limiter]
+prerequisites: [system-design/approach-and-estimation, distributed-systems/id-generator]
+related: [distributed-systems/caching-strategies, system-design/pastebin, system-design/distributed-rate-limiter]
 quickRef:
   points:
     - 'Reads dominate (~100:1): optimise the **redirect path** — CDN, Redis, then the database.'
@@ -49,7 +49,7 @@ DELETE /api/links/{code}
 
 | Approach | How | Collisions | Notes |
 |---|---|---|---|
-| **Counter + base62** | unique 64-bit id → base62 string | none by construction | needs a distributed counter: ranges per server ([ID generation](../id-generator/)); raw counters are sequential |
+| **Counter + base62** | unique 64-bit id → base62 string | none by construction | needs a distributed counter: ranges per server ([ID generation](../../distributed-systems/id-generator/)); raw counters are sequential |
 | Scrambled counter | apply a reversible bijection (e.g. multiply by a large odd constant mod 62⁷, or a Feistel cipher) to the id first | none | unpredictable codes, still collision-free |
 | Hash of the URL | first 7 chars of base62(SHA-256(url + salt)) | possible → check and retry | same URL can map to the same code (dedup); retries add a read per write |
 | Random | 7 random base62 chars | rare, but grows with volume → insert with a uniqueness constraint, retry on conflict | simple; no coordination |

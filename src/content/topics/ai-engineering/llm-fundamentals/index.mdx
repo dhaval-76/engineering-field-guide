@@ -66,7 +66,7 @@ Even at temperature 0, outputs aren't guaranteed identical across calls (batchin
 
 Production concerns, same as any remote dependency:
 
-- **Timeouts and retries** — retry 429 and 5xx with exponential backoff and jitter, honour `retry-after`; never retry 400s. Put a circuit breaker in front ([Resilience patterns](../../architecture/resilience-patterns/)).
+- **Timeouts and retries** — retry 429 and 5xx with exponential backoff and jitter, honour `retry-after`; never retry 400s. Put a circuit breaker in front ([Resilience patterns](../../distributed-systems/resilience-patterns/)).
 - **Streaming** — send tokens to the user as they arrive (server-sent events); **time to first token** is what users perceive.
 - **Structured output** — use the provider's JSON-schema / tool-calling mode where available, then validate anyway; on failure, retry once with the validation error in the prompt.
 - **Rate limits** are in requests *and* tokens per minute; queue and shed load accordingly.

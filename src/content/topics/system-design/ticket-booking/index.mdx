@@ -6,7 +6,7 @@ order: 275
 tags: [system-design, case-study, booking, concurrency, high-contention]
 aliases: [design bookmyshow, design ticketmaster, ticket booking system, event ticketing, seat reservation, seat hold, double booking, flash sale, on sale spike, virtual waiting room, queue it, admission token, hot event, seat map, bot protection, scalping]
 prerequisites: [low-level-design/movie-booking, databases/transactions-isolation]
-related: [low-level-design/inventory-management, system-design/payment-system, system-design/distributed-rate-limiter, system-design/cdn]
+related: [low-level-design/inventory-management, system-design/payment-system, system-design/distributed-rate-limiter, distributed-systems/cdn]
 quickRef:
   points:
     - '**No double booking**: hold a seat with a single conditional write (only if available or the hold expired); confirm after payment.'
@@ -55,7 +55,7 @@ The hold must be one atomic check-and-set per seat — a conditional `UPDATE` (o
 <CodeTabs id="waiting-room" title="A waiting room: idempotent joins, batch admission per tick, positions and expiring admission" />
 
 - The queue page is static and CDN-served, so millions of waiting clients cost almost nothing; clients poll their position occasionally.
-- Admission rate is set from booking-system capacity and remaining inventory; admitted users get a **signed, expiring token** checked by the booking API ([CDN signed URLs](../cdn/) use the same idea).
+- Admission rate is set from booking-system capacity and remaining inventory; admitted users get a **signed, expiring token** checked by the booking API ([CDN signed URLs](../../distributed-systems/cdn/) use the same idea).
 - Randomise order among users who arrived before the sale opened, so refreshing at 09:59:59.9 isn't an advantage; enforce one queue entry per verified account.
 - Close the queue as soon as sold + held reaches capacity, and tell waiting users.
 

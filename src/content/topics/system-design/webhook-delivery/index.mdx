@@ -5,8 +5,8 @@ track: system-design
 order: 105
 tags: [system-design, case-study, webhooks, messaging, reliability, security]
 aliases: [design webhooks, webhook delivery system, webhook service, stripe webhooks, github webhooks, event notifications to customers, webhook signature, hmac signature, webhook retries, exponential backoff, jitter, dead letter, webhook replay, ssrf, idempotent receiver, webhook id, svix]
-prerequisites: [architecture/saga-and-outbox, backend/idempotency]
-related: [system-design/notification-system, backend/api-styles, architecture/resilience-patterns, system-design/job-scheduler]
+prerequisites: [distributed-systems/saga-and-outbox, backend/idempotency]
+related: [system-design/notification-system, backend/api-styles, distributed-systems/resilience-patterns, system-design/job-scheduler]
 quickRef:
   points:
     - 'Events → **fan-out** to subscribed endpoints → **one delivery job per (event, endpoint)** with its own retries.'
@@ -38,7 +38,7 @@ lastReviewed: 2026-10-30
 
 <Steps>
 
-1. **Capture events reliably** with the transactional outbox ([Sagas and outbox](../../architecture/saga-and-outbox/)) — an order committed always produces its event.
+1. **Capture events reliably** with the transactional outbox ([Sagas and outbox](../../distributed-systems/saga-and-outbox/)) — an order committed always produces its event.
 2. **Fan out**: look up subscriptions by event type and tenant; create one delivery job per endpoint, stored durably (a jobs table or a queue with delayed delivery).
 3. **Deliver**: workers pick due jobs, POST with a short timeout, record the status code, latency and response snippet.
 4. **Retry**: on non-2xx or timeout, compute the next attempt with backoff + jitter; after the retry window, mark failed.
@@ -61,7 +61,7 @@ lastReviewed: 2026-10-30
 ## Isolation and fairness
 
 - **Per-endpoint queues or concurrency limits** — a customer whose endpoint takes 10 s gets, say, 5 concurrent deliveries, not all workers.
-- **Circuit breaker per endpoint** — after repeated failures, pause deliveries and probe occasionally instead of hammering a dead server ([Resilience patterns](../../architecture/resilience-patterns/)).
+- **Circuit breaker per endpoint** — after repeated failures, pause deliveries and probe occasionally instead of hammering a dead server ([Resilience patterns](../../distributed-systems/resilience-patterns/)).
 - **Fair scheduling across tenants** — round robin over tenants with due jobs so a burst from one doesn't starve others.
 
 ## Ordering

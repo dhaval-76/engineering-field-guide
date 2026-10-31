@@ -1,0 +1,104 @@
+---
+title: Content Delivery Networks (CDN)
+summary: Serving content from servers near users — edge PoPs and routing, cache keys and Cache-Control, origin shields, invalidation by versioned URLs and purge tags, signed URLs for private content, dynamic acceleration and edge security.
+track: distributed-systems
+order: 30
+tags: [distributed-systems, building-block, cdn, caching, http, performance]
+aliases: [cdn, content delivery network, edge cache, point of presence, pop, cloudflare, akamai, cloudfront, fastly, cache control, s-maxage, stale while revalidate, stale if error, immutable assets, cache busting, fingerprinted assets, purge, surrogate keys, cache tags, origin shield, tiered caching, signed urls, signed cookies, edge compute, waf, ddos protection]
+prerequisites: [cs-foundations/networking, distributed-systems/caching-strategies]
+related: [distributed-systems/load-balancing, system-design/video-streaming, system-design/file-storage, distributed-systems/consistent-hashing]
+quickRef:
+  points:
+    - 'A CDN caches responses at **edge PoPs** near users; anycast or DNS sends each user to the nearest healthy PoP.'
+    - 'Control caching with `Cache-Control`: `max-age` (browsers), `s-maxage` (CDN), `stale-while-revalidate`, `stale-if-error`, `private`/`no-store`.'
+    - '**Fingerprinted file names** for static assets (cache for a year); **purge by tag** for dynamic pages.'
+    - 'An **origin shield** (tiered cache) collapses misses from many PoPs into one origin request.'
+    - 'Private content: **signed URLs/cookies** verified at the edge. Plus TLS termination, WAF and DDoS absorption.'
+  useWhen: Any public web or mobile product — static assets, images, video, downloads, cacheable API responses — and as a front door for security.
+lastReviewed: 2026-10-30
+---
+
+## Why it matters
+
+Distance is latency, and no amount of server tuning beats the speed of light. A CDN moves content close to users, absorbs most traffic before it reaches your servers, and doubles as a shield against spikes and attacks. For media, downloads and global products it's the single largest performance and cost lever — and it appears in nearly every system design ([Video streaming](../../system-design/video-streaming/), [File storage](../../system-design/file-storage/)).
+
+<Callout type="analogy">
+A publisher printing books in one city versus keeping copies in every neighbourhood library. Readers get a local copy in minutes instead of waiting for shipping, and the publisher only sends new editions to the libraries — not a copy to every reader.
+</Callout>
+
+<Chart
+  type="bar"
+  title="Minimum time to open an HTTPS connection and get a response, from Mumbai (speed of light in fibre)"
+  unit=" ms"
+  bars={[
+    ['Edge PoP in Mumbai', 1, 'ok'],
+    ['Origin in Singapore', 117, 'warn'],
+    ['Origin in Frankfurt', 197, 'warn'],
+    ['Origin in N. Virginia', 386, 'bad'],
+  ]}
+  caption="Three round trips (TCP handshake, TLS 1.3 handshake, request) at 200,000 km/s over great-circle distances — a physical lower bound; real routes and last-mile delays add more. The edge removes almost all of it."
+/>
+
+## How it works
+
+<Diagram id="cdn-tiers" caption="Users reach the nearest edge PoP; edge misses go to a regional shield, so the origin sees roughly one request per object per expiry rather than one per PoP." />
+
+<Steps>
+
+1. **Routing**: anycast (the same IP announced from every PoP; BGP picks the nearest) or GeoDNS returns the nearest healthy PoP.
+2. **Cache key**: usually scheme + host + path + selected query parameters and headers (`Vary`). Every extra variation (cookies, tracking parameters) fragments the cache — normalise keys.
+3. **Freshness**: `Cache-Control` from the origin decides how long edges and browsers keep a response.
+4. **Tiered caching**: misses go to a shield PoP, collapsing simultaneous requests ("request coalescing") so the origin isn't stampeded.
+5. **Edge features**: TLS termination with HTTP/2–3, compression, image resizing, WAF rules, bot and DDoS mitigation, and small edge functions (redirects, A/B, auth checks).
+
+</Steps>
+
+<Walkthrough id="cdn-request" />
+
+## Caching headers
+
+<CodeTabs id="cdn-headers" title="Headers for immutable assets, HTML pages, personalised APIs and revalidation" />
+
+| Content | Strategy |
+|---|---|
+| JS/CSS/fonts/images from a build | Fingerprinted names + `max-age=31536000, immutable` |
+| Product and article pages | Short `s-maxage` + `stale-while-revalidate`, purge by tag on change |
+| Cacheable API responses (catalogue, config) | `s-maxage` of seconds to minutes; vary only on what matters |
+| User-specific data | `private, no-store` — never in a shared cache |
+| Video segments | Long TTL; manifests short TTL for live streams |
+
+## Invalidation
+
+- **Version URLs** wherever possible — new content, new name; nothing to purge, no stale risk.
+- **Purge by tag / surrogate key**: tag responses (`product-42`) and purge all URLs with that tag in one API call; propagation takes seconds.
+- **Avoid purge-everything** — the resulting cold cache sends a traffic spike to the origin.
+
+## Private content
+
+Paid videos, invoices and user uploads can still be served from the edge using **signed URLs** (or signed cookies for many files): the app signs the path and an expiry with a secret shared with the CDN; the edge verifies the signature and expiry without contacting the origin.
+
+<CodeTabs id="signed-url" title="HMAC-signed URLs with expiry, verified at the edge" />
+
+## Dynamic content and APIs
+
+Even uncacheable requests benefit: the user's TLS handshake ends at a nearby PoP, and the CDN carries the request to the origin over warm, optimised long-haul connections. Edge compute can personalise cached pages (inserting a user's name into a cached shell) instead of skipping the cache entirely.
+
+<Pitfalls>
+
+- **Caching personalised responses** in a shared cache — users see each other's data.
+- **Cookies or tracking parameters in the cache key** — near-zero hit rate.
+- **Long TTLs on unversioned files** — users stuck on old JavaScript.
+- **Purging everything** on each deploy.
+- **No origin shield** — every PoP's miss hits the origin at once.
+- **Forgetting `Vary`** when the response differs by `Accept-Encoding` or language.
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- CDNs cut latency by distance and protect the origin by absorbing traffic.
+- Cache-Control directs edges and browsers; fingerprint static assets and purge dynamic pages by tag.
+- Shields and request coalescing keep origin load near one request per object.
+- Signed URLs serve private content at the edge; never share-cache personalised responses.
+
+</KeyTakeaways>

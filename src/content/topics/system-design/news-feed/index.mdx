@@ -5,8 +5,8 @@ track: system-design
 order: 140
 tags: [system-design, case-study, fan-out, caching, ranking]
 aliases: [design twitter, design instagram, news feed, timeline, home feed, fan out on write, fan out on read, push vs pull, celebrity problem, hot users, feed cache, feed ranking, cursor pagination, follow graph, like counts, design facebook feed]
-prerequisites: [system-design/approach-and-estimation, databases/caching-strategies]
-related: [system-design/chat, backend/pagination, system-design/kafka-deep-dive]
+prerequisites: [system-design/approach-and-estimation, distributed-systems/caching-strategies]
+related: [system-design/chat, backend/pagination, distributed-systems/kafka-deep-dive]
 quickRef:
   points:
     - '**Fan-out on write (push)**: on post, insert its id into each follower''s feed cache — fast reads, expensive for accounts with millions of followers.'

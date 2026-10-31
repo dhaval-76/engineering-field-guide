@@ -6,7 +6,7 @@ order: 90
 tags: [system-design, case-study, rate-limiting, redis, api-gateway]
 aliases: [distributed rate limiter, rate limiting at scale, throttling, api quota, redis rate limiter, lua script, sliding window counter, token bucket redis, fail open, fail closed, 429 too many requests, retry-after, ratelimit headers, per tenant limits, global rate limit, envoy rate limit, spring cloud gateway rate limiter]
 prerequisites: [low-level-design/rate-limiter, databases/sql-vs-nosql]
-related: [system-design/api-gateway, architecture/resilience-patterns, databases/caching-strategies]
+related: [system-design/api-gateway, distributed-systems/resilience-patterns, distributed-systems/caching-strategies]
 quickRef:
   points:
     - 'Per-instance counters multiply the limit by the number of instances — **shared state** (Redis) or a dedicated limit service makes it global.'

@@ -5,8 +5,8 @@ track: devops
 order: 20
 tags: [devops, docker, containers, kubernetes, deployment, jvm]
 aliases: [docker, dockerfile, container, image, layer, multi-stage build, distroless, buildpacks, jib, docker compose, kubernetes, k8s, pod, deployment, replicaset, service, ingress, gateway api, configmap, secret, liveness probe, readiness probe, startup probe, requests and limits, oomkilled, crashloopbackoff, hpa, rolling update, rollback, graceful shutdown, kubectl, maxrampercentage]
-prerequisites: [architecture/resilience-patterns]
-related: [devops/ci-cd-and-cloud, architecture/microservices, java-runtime/garbage-collection]
+prerequisites: [distributed-systems/resilience-patterns]
+related: [devops/ci-cd-and-cloud, distributed-systems/microservices, java-runtime/garbage-collection]
 quickRef:
   points:
     - 'A container is a **process** with its own filesystem view, isolated by namespaces and limited by cgroups — not a VM.'
@@ -80,7 +80,7 @@ Since JDK 10 the JVM detects container memory and CPU limits (`UseContainerSuppo
 | **readiness** | should it receive traffic now? | removed from Service endpoints; **not** restarted |
 | **liveness** | is it stuck beyond recovery? | container restarted |
 
-Spring Boot exposes `/actuator/health/liveness` and `/actuator/health/readiness` and flips readiness off during shutdown. Keep dependencies out of liveness ([Resilience patterns](../../architecture/resilience-patterns/)).
+Spring Boot exposes `/actuator/health/liveness` and `/actuator/health/readiness` and flips readiness off during shutdown. Keep dependencies out of liveness ([Resilience patterns](../../distributed-systems/resilience-patterns/)).
 
 ### Resources
 

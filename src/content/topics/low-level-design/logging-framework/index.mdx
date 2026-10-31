@@ -6,7 +6,7 @@ order: 40
 tags: [lld, logging, design-patterns, concurrency]
 aliases: [logger design, logging library lld, log4j design, logback design, slf4j, log levels, appender, formatter, layout, logger hierarchy, additivity, mdc, mapped diagnostic context, async appender, rolling file appender, structured logging, json logs]
 prerequisites: [low-level-design/lld-method, oop-patterns/strategy-and-state]
-related: [architecture/observability, oop-patterns/singleton, concurrency/producer-consumer, system-design/logging-monitoring]
+related: [distributed-systems/observability, oop-patterns/singleton, concurrency/producer-consumer, system-design/logging-monitoring]
 quickRef:
   points:
     - '**Levels** (DEBUG < INFO < WARN < ERROR) filter cheaply before any work is done.'
@@ -60,7 +60,7 @@ A company's mail room. Every department (logger) has a filing rule (level); if a
 
 ## Production concerns
 
-- **Structured (JSON) logs** with stable field names for log pipelines ([Observability](../../architecture/observability/)).
+- **Structured (JSON) logs** with stable field names for log pipelines ([Observability](../../distributed-systems/observability/)).
 - **Context propagation**: MDC values live in thread-locals (Java), `AsyncLocalStorage` (Node) or `contextvars` (Python); copy them when work moves to another thread or task.
 - **Configuration reload** at runtime: change a logger's level without restarting to debug production.
 - **Security**: never log secrets or full personal data; mask by field name in the formatter.

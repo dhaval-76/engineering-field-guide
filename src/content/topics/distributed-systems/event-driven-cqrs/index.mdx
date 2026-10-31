@@ -1,0 +1,96 @@
+---
+title: Event-Driven Architecture, CQRS and Event Sourcing
+summary: Designing with events — commands vs events, notification vs state-transfer events, CQRS read models, event sourcing with optimistic concurrency, snapshots and projections, schema evolution, and when not to use them.
+track: distributed-systems
+order: 110
+tags: [distributed-systems, events, cqrs, event-sourcing]
+aliases: [event driven architecture, eda, domain events, integration events, event notification, event carried state transfer, commands vs events, cqrs, command query responsibility segregation, read model, projection, materialized view, event sourcing, event store, eventstoredb, aggregate, append only log, snapshot, upcasting, event versioning, replay, eventual consistency, optimistic concurrency, expected version, crypto shredding, temporal queries, audit log]
+prerequisites: [distributed-systems/microservices, distributed-systems/saga-and-outbox]
+related: [distributed-systems/kafka-deep-dive, system-design/document-versioning, system-design/payment-system, distributed-systems/caching-strategies]
+quickRef:
+  points:
+    - '**Command** = request to change ("PlaceOrder", may be rejected). **Event** = fact that happened ("OrderPlaced", past tense, immutable).'
+    - '**Event-driven** services react to events instead of calling each other — looser coupling, eventual consistency.'
+    - '**CQRS**: separate the write model (validates commands) from read models (shaped for queries), kept in sync by events.'
+    - '**Event sourcing**: store the events as the source of truth; state = fold over events. Full history and audit, at real complexity cost.'
+    - 'Version events carefully; make projections idempotent and rebuildable; tell users when reads lag.'
+  useWhen: Many consumers of the same changes, read patterns very different from writes, audit/history requirements (ledgers, orders, workflows).
+lastReviewed: 2026-10-30
+---
+
+## Why it matters
+
+Events are how large systems stay decoupled: the order service announces "OrderPlaced" and doesn't care that email, analytics, loyalty and fraud all react. CQRS and event sourcing take the idea further, into how a service stores and serves its own data. They're powerful in the right places (ledgers, audit-heavy domains, read-heavy products) and expensive in the wrong ones — interviews probe whether you know the difference.
+
+<Callout type="analogy">
+An accountant's ledger. Nobody erases a balance and writes a new one; each transaction is a new line, and the balance is the sum. Reports (by month, by category) are separate summaries built from the same lines — and if a report is wrong, you rebuild it from the ledger. That's event sourcing (the ledger) and CQRS (the reports).
+</Callout>
+
+## Commands, events and queries
+
+| Aspect | Command | Event | Query |
+|---|---|---|---|
+| Meaning | "Please do X" | "X happened" | "Tell me Y" |
+| Naming | imperative: `CancelOrder` | past tense: `OrderCancelled` | `GetOrder` |
+| Receivers | exactly one handler | zero to many subscribers | one |
+| Can be rejected? | yes | no — it's a fact | n/a |
+
+Two flavours of event between services:
+
+- **Event notification** — thin: `{orderId: 42}`; consumers call back for details. Small payloads, but consumers depend on the producer's API being up.
+- **Event-carried state transfer** — fat: the event contains the data consumers need. Consumers keep their own copy and never call back. More data, more autonomy.
+
+Separate **domain events** (internal, fine-grained) from **integration events** (a published, versioned contract for other services).
+
+## CQRS
+
+One model rarely serves both well: writes need validation and invariants on a normalised model; reads want denormalised, query-shaped data (search, dashboards, feeds). CQRS splits them: commands go to a write model; events update one or more **read models** (SQL tables, a search index, a cache).
+
+<Diagram id="cqrs-es" caption="Commands are validated against the write model and append events; projectors turn those events into read models shaped for each query, which the query API serves. A publisher can also forward selected events to other services as integration events." />
+
+CQRS doesn't require event sourcing — a plain table plus an outbox feeding a search index is CQRS. The cost is **eventual consistency**: a read right after a write may not see it. Handle it with read-your-own-writes (return the new state from the command, or wait for the projection to reach the write's position), or UI cues ("processing…").
+
+## Event sourcing
+
+<Walkthrough id="event-replay" />
+
+<CodeTabs id="es-account" title="An event-sourced account: pure apply, command handlers that validate and emit events, optimistic append" />
+
+<CodeTabs id="es-store" title="A relational event store: streams with versions, optimistic concurrency, a projection checkpoint" />
+
+What you gain:
+
+- A complete, immutable **audit trail** — what happened, when, by whom.
+- **Temporal queries** — the state of any account at any past moment.
+- **New read models from old data** — add a projection and replay history into it.
+- Natural fit with event-driven integration.
+
+What it costs:
+
+- **Event schema evolution** — events are stored forever. Add fields with defaults; for bigger changes write a new event type and **upcast** old events when reading.
+- **Projection operations** — idempotent projectors, checkpoints, rebuild tooling, and lag monitoring. With a `bigserial` position, a later number can commit before an earlier one; projectors must handle such gaps (or use a store that guarantees commit order).
+- **Deleting personal data** — you can't edit events; use **crypto-shredding** (encrypt personal fields with a per-user key, delete the key) or keep personal data outside the events.
+- **Querying current state** needs projections — there is no "SELECT * WHERE balance > 100" on the event log.
+- A learning curve for the whole team.
+
+Use it for the parts of the domain where history is the point (ledgers, bookings, workflow state, collaborative documents) — not for the whole system by default.
+
+<Pitfalls>
+
+- **Event sourcing everything** — CRUD settings pages don't need it.
+- **Events named like commands** or carrying "set field X" diffs instead of business facts.
+- **Breaking event schemas** that old data and other services depend on.
+- **Non-idempotent projectors** — replays double-count.
+- **Ignoring read lag** — users see stale data with no explanation.
+- **Publishing internal domain events** as public contracts.
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- Commands ask, events state facts, queries read.
+- CQRS separates write and read models; it implies eventual consistency, not event sourcing.
+- Event sourcing stores facts and derives state — great audit and history, real operational cost.
+- Version events, make projections idempotent and rebuildable, and use these patterns selectively.
+
+</KeyTakeaways>

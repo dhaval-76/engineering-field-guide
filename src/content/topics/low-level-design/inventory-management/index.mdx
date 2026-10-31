@@ -6,7 +6,7 @@ order: 42
 tags: [lld, inventory, e-commerce, concurrency, strategy-pattern]
 aliases: [inventory system lld, stock management, warehouse management, reserve stock, prevent overselling, stock reservation expiry, available to promise, reorder point, low stock alert, allocation strategy, flash sale inventory]
 prerequisites: [low-level-design/lld-method, oop-patterns/strategy-and-state]
-related: [low-level-design/shopping-cart, architecture/saga-and-outbox, low-level-design/food-delivery, databases/transactions-isolation]
+related: [low-level-design/shopping-cart, distributed-systems/saga-and-outbox, low-level-design/food-delivery, databases/transactions-isolation]
 quickRef:
   points:
     - 'Track **on hand** and **reserved** per (warehouse, SKU); **available = on hand − reserved**.'
@@ -58,7 +58,7 @@ Decisions worth saying aloud:
 - The conditional `UPDATE … WHERE on_hand - reserved >= qty` is both check and reservation in one statement — no race window, no explicit lock.
 - `CHECK (reserved <= on_hand)` catches bugs.
 - `UNIQUE (order_id, sku)` makes retried checkouts idempotent.
-- Reservations fit in the order saga: reserve → pay → confirm, or compensate by releasing ([Sagas](../../architecture/saga-and-outbox/)).
+- Reservations fit in the order saga: reserve → pay → confirm, or compensate by releasing ([Sagas](../../distributed-systems/saga-and-outbox/)).
 
 ## Flash sales and hot SKUs
 

@@ -1,0 +1,123 @@
+---
+title: Microservices
+summary: When to split a system into services and when not to, drawing boundaries, synchronous vs asynchronous communication, discovery, gateways and configuration, keeping data consistent with sagas and the outbox, contracts, and observability.
+track: distributed-systems
+order: 80
+tags: [distributed-systems, microservices, spring-cloud, kafka, system-design]
+aliases: [microservices, monolith, modular monolith, bounded context, domain driven design, database per service, service discovery, eureka, kubernetes service, api gateway, backend for frontend, bff, config server, spring cloud, openfeign, http interface, restclient, grpc, saga, choreography, orchestration, outbox, transactional outbox, consumer driven contracts, pact, distributed monolith, conways law, strangler fig]
+prerequisites: [backend/rest-api-design, databases/transactions-isolation]
+related: [distributed-systems/resilience-patterns, backend/idempotency, databases/replication]
+quickRef:
+  points:
+    - 'Microservices trade **in-process calls and one database** for **independent deployment and scaling per team**. Start with a well-modularised monolith unless you have that organisational need.'
+    - 'Split along **business capabilities / bounded contexts**; each service **owns its data** — no shared database.'
+    - '**Sync** (REST/gRPC) when the caller needs the answer now; **async events** for side effects and decoupling. Every sync call needs a timeout.'
+    - 'No distributed transactions: use **sagas** (local transactions + compensations) and the **transactional outbox** to publish events reliably.'
+    - 'On Kubernetes, the platform provides discovery (DNS), load balancing and config — Eureka and Config Server are optional.'
+    - 'Evolve APIs **backward-compatibly**; test with consumer-driven contracts; trace every request across services.'
+  useWhen: Deciding on an architecture, splitting a monolith, or answering "how do your services talk to each other?".
+lastReviewed: 2026-10-30
+---
+
+## Why it matters
+
+Microservices are an organisational tool as much as a technical one: they let many teams change, deploy and scale their part of a system independently. The price is that every function call that crosses a service boundary becomes a network call that can be slow, fail, or succeed without you knowing, and every transaction that spans services becomes a distributed-systems problem. Interviewers probe both sides — what you gain, and how you handle what you lose.
+
+<Callout type="analogy">
+A large restaurant splits its kitchen into stations — grill, pastry, salad — each with its own cook, ingredients and pace. The grill can get a new cook without retraining pastry. But a dish now needs stations to coordinate through tickets, and if pastry falls behind, waiters need a plan other than standing at the pass forever.
+</Callout>
+
+## Should you split at all?
+
+| Aspect | Modular monolith | Microservices |
+|---|---|---|
+| Deploy | one unit | each service independently |
+| Calls between parts | in-process, typed, transactional | network: latency, partial failure, versioning |
+| Data | one database, joins and transactions | one per service; consistency by messaging |
+| Scaling | whole app | per service |
+| Team fit | one or a few teams | many teams owning services end to end |
+| Operations | simple | CI/CD per service, platform, tracing, on-call |
+
+Signals that splitting pays off: teams blocked on each other's releases, parts with very different scaling or availability needs, or different technology needs. Signals it doesn't: a small team, unclear domain boundaries, or "services" that must always be deployed together — a **distributed monolith**, the worst of both. Migrating gradually with the **strangler fig** pattern (route one capability at a time to a new service behind a gateway) beats a rewrite.
+
+## Drawing boundaries
+
+- Split by **business capability** (orders, payments, catalogue, shipping), not by technical layer (a "database service" or "validation service" couples everything).
+- Each service **owns its data** and exposes it only through its API or events. A shared database means schema changes need every team's agreement, and coupling returns through the back door.
+- Aim for services that can do most of their work **without calling others synchronously**; keep a local copy of the reference data you need (built from events).
+- Conway's law: system structure mirrors team structure — align service ownership with teams.
+
+<Diagram id="microservices-landscape" caption="A typical layout: an edge gateway, services that own their databases, synchronous calls on the request path and events for everything else." />
+
+## How services talk
+
+| Aspect | Synchronous (REST, gRPC) | Asynchronous (events, commands over Kafka/RabbitMQ) |
+|---|---|---|
+| Caller waits? | yes | no |
+| Coupling | runtime: if B is down, A's request fails | B can be down; messages wait |
+| Consistency | immediate answer | eventual |
+| Good for | queries, validations the user waits for | side effects, fan-out, workflows, integrating teams |
+| Failure handling | timeouts, retries, circuit breakers ([Resilience](../resilience-patterns/)) | retries, dead-letter queues, idempotent consumers |
+
+<CodeTabs id="service-client" title="A typed HTTP client with timeouts — Spring HTTP interface, Node, Python" />
+
+- **Chains of synchronous calls multiply latency and failure**: five services at 99.9% availability each give 99.5% end to end. Keep request paths shallow.
+- **Events** describe facts (`OrderPlaced`) and let others react; **commands** ask a specific service to do something. Prefer events for decoupling, commands where one owner must act.
+- **gRPC** suits internal, high-volume calls with strict contracts; REST/JSON suits public and simple APIs.
+
+## Discovery, gateways and configuration
+
+| Concern | On Kubernetes | Spring Cloud (VMs or without a platform) |
+|---|---|---|
+| Discovery | `Service` DNS name (`http://payments`) | Eureka / Consul registry |
+| Load balancing | kube-proxy or a service mesh | Spring Cloud LoadBalancer (client side) |
+| Configuration | ConfigMaps, Secrets (or an external secret store) | Config Server via `spring.config.import=configserver:` |
+| Edge | Ingress / Gateway API, or an API gateway | Spring Cloud Gateway |
+| mTLS, retries, traffic splitting | service mesh (Istio, Linkerd) | libraries in each service |
+
+An **API gateway** is the single public entry point: routing, TLS, authentication, rate limiting, request size limits. A **backend for frontend** (BFF) is a gateway-like service per client type (web, mobile) that aggregates calls so clients don't make ten round trips.
+
+## Keeping data consistent
+
+There's no transaction across services' databases (and two-phase commit across services is fragile and blocks). Instead:
+
+<Walkthrough id="order-saga" />
+
+- A **saga** is a sequence of local transactions; if a step fails, earlier steps are undone by **compensating actions** (refund, release stock). **Choreography**: services react to each other's events — simple for short flows, hard to follow as they grow. **Orchestration**: one coordinator tells each service what to do and tracks state — clearer for long or branching flows (workflow engines such as Temporal or Camunda).
+- **Transactional outbox**: writing to your database *and* publishing to Kafka can't be atomic, so write the event into an `outbox` table **in the same transaction** as the business change; a relay (polling or CDC with Debezium) publishes it. No lost events, no events for rolled-back changes.
+- **Idempotent consumers**: delivery is at-least-once, so handling the same event twice must be harmless — record processed event ids or use natural idempotency ([Idempotency](../../backend/idempotency/)).
+
+<CodeTabs id="outbox" title="The transactional outbox: business change and event in one transaction" />
+
+## Contracts and change
+
+- **Backward-compatible changes only**: add optional fields, never rename or remove in place; consumers ignore unknown fields (tolerant reader). Version (`/v2`, new event type) only for breaking changes, and run both until consumers migrate.
+- **Consumer-driven contract tests** (Pact, Spring Cloud Contract): consumers publish what they rely on; the provider's build verifies it — breaking changes fail before deploy.
+- Schemas for events (Avro/Protobuf/JSON Schema with a registry) with compatibility checks.
+
+## Observability
+
+Every request gets a **trace id** propagated through HTTP headers (`traceparent`) and message headers; logs include it; metrics per service and endpoint (rate, errors, duration). OpenTelemetry is the standard instrumentation. Without tracing, debugging a slow request across eight services is guesswork.
+
+<Pitfalls>
+
+- **Splitting too early or by layer** — a distributed monolith with all the costs.
+- **Shared database** between services.
+- **Long synchronous call chains** — latency and failure multiply; no timeouts makes it worse.
+- **Publishing events outside the transaction** ("save, then send") — lost or phantom events.
+- **Non-idempotent consumers** with at-least-once delivery.
+- **Breaking API or event changes** deployed without coordination.
+- **No tracing** across services.
+- **Chatty clients** making many calls per screen — add a BFF or aggregate.
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- Microservices solve team-scaling problems; a modular monolith is the default until you have them.
+- Boundaries by business capability; each service owns its data.
+- Sync for answers, events for side effects; timeouts everywhere.
+- Sagas + outbox + idempotent consumers replace distributed transactions.
+- Compatible contracts, contract tests and end-to-end tracing keep many services manageable.
+
+</KeyTakeaways>

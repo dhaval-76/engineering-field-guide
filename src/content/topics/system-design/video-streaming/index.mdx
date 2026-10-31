@@ -5,7 +5,7 @@ track: system-design
 order: 260
 tags: [system-design, case-study, video, cdn, streaming]
 aliases: [design youtube, design netflix, video streaming system, video on demand, vod, transcoding, encoding pipeline, bitrate ladder, adaptive bitrate, abr, hls, dash, cmaf, m3u8, video segments, live streaming, ll-hls, video cdn, drm, view count, thumbnails]
-prerequisites: [system-design/cdn, system-design/file-storage]
+prerequisites: [distributed-systems/cdn, system-design/file-storage]
 related: [system-design/realtime-analytics, system-design/recommendation-system, system-design/job-scheduler, system-design/distributed-cache]
 quickRef:
   points:
@@ -77,7 +77,7 @@ Real players (hls.js, ExoPlayer, AVPlayer) combine throughput and buffer signals
 
 ## Delivery and cost
 
-- **CDN** serves segments with long TTLs (immutable files) and manifests with short TTLs ([CDN](../cdn/)); signed URLs or tokens protect paid content.
+- **CDN** serves segments with long TTLs (immutable files) and manifests with short TTLs ([CDN](../../distributed-systems/cdn/)); signed URLs or tokens protect paid content.
 - **Popularity tiers**: the head of the catalogue is cached at the edge (Netflix even places caches inside ISPs); the long tail lives in cheaper storage tiers and is fetched on demand.
 - **Encode once, serve many**: spending more compute on better compression pays off for popular titles because egress dominates cost.
 

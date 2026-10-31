@@ -6,7 +6,7 @@ order: 170
 tags: [system-design, case-study, scheduling, distributed-systems, queues]
 aliases: [job scheduler, distributed cron, task scheduler at scale, delayed jobs, cron jobs, quartz cluster, skip locked, lease, heartbeat, lock expiry, leader election, fencing token, retries with backoff, dead letter, job dependencies, dag, time wheel, at least once execution, airflow, temporal]
 prerequisites: [low-level-design/task-scheduler, databases/transactions-isolation]
-related: [system-design/workflow-engine, system-design/kafka-vs-rabbitmq, architecture/resilience-patterns]
+related: [system-design/workflow-engine, distributed-systems/kafka-vs-rabbitmq, distributed-systems/resilience-patterns]
 quickRef:
   points:
     - 'Jobs live in a **durable store** with `run_at`, status, attempts and a **lease** (owner + expiry).'

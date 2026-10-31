@@ -34,7 +34,7 @@ Schemas live in `src/content.config.ts`. A missing field, a wrong type or a refe
 ### Add a topic
 
 ```bash
-npm run new:topic -- system-design/consistent-hashing "Consistent Hashing"
+npm run new:topic -- distributed-systems/consistent-hashing "Consistent Hashing"
 ```
 
 This scaffolds the standard template and marks the topic `draft: true`, which keeps it out of production builds until you delete that line. Topics follow the same shape:

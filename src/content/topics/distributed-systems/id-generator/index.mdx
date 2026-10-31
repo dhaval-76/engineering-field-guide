@@ -1,0 +1,89 @@
+---
+title: Unique ID Generation
+summary: Generating unique ids across many machines — auto-increment, UUID v4 and v7, ULID, Snowflake-style 64-bit ids and block allocation — and how clock skew, worker-id assignment and index locality decide between them.
+track: distributed-systems
+order: 50
+tags: [distributed-systems, ids, databases]
+aliases: [id generator, unique id, snowflake, twitter snowflake, uuid, uuid v4, uuid v7, rfc 9562, ulid, ksuid, auto increment, sequence, ticket server, hi lo, block allocation, worker id, machine id, clock skew, time ordered id, k sortable]
+prerequisites: [system-design/approach-and-estimation]
+related: [databases/sharding, databases/indexing, system-design/url-shortener]
+quickRef:
+  points:
+    - 'Requirements to clarify: **unique**, **sortable by time?**, **size** (64 vs 128 bits), **throughput**, **guessability**, and whether generation may need coordination.'
+    - '**UUID v7**: 128-bit, time-ordered, no coordination — the modern default when 16 bytes is acceptable.'
+    - '**Snowflake**: 64-bit = timestamp | worker id | sequence; sortable, compact, millions/s — needs unique worker ids and sane clocks.'
+    - '**UUID v4** (random) is unique but scatters B-tree inserts — poor locality for primary keys.'
+    - '**Block allocation**: a central counter hands out ranges (e.g. 1,000 ids) — dense integers with rare coordination.'
+    - 'Never expose sequential ids where enumeration matters; ids aren''t secrets either way.'
+  complexity: 'Snowflake: O(1) per id, ~4,096 ids per ms per worker; no network call.'
+  useWhen: Primary keys in distributed or sharded systems, public identifiers, event and message ids.
+lastReviewed: 2026-10-30
+---
+
+## Why it matters
+
+A single database's auto-increment works until you have several databases, shards or regions writing at once — then it becomes a bottleneck or a source of collisions. Ids also affect performance (random ids fragment B-tree indexes), security (sequential ids let anyone enumerate your orders), and operations (sortable ids make "everything created in the last hour" a range scan). Choosing an id scheme is a small decision with long-lasting consequences.
+
+<Callout type="analogy">
+Ticket numbers at a deli counter work with one dispenser. With ten counters, either they share one dispenser (coordination), each takes a roll of a hundred tickets at a time (block allocation), or each prints "counter-time-number" so two counters can never print the same ticket (Snowflake).
+</Callout>
+
+## Options
+
+| Scheme | Size | Sortable by time | Coordination | Notes |
+|---|---|---|---|---|
+| DB auto-increment / sequence | 64-bit | yes | every insert, one database | simple; single writer; enumerable |
+| Block allocation (hi/lo, ticket server) | 64-bit | roughly | one call per block | dense ids; a block is lost on crash (gaps) |
+| UUID v4 | 128-bit | no | none | random → index page splits, poor cache locality |
+| **UUID v7** (RFC 9562) | 128-bit | yes (ms) | none | standard UUID columns; PostgreSQL 18 `uuidv7()`, Python 3.14 `uuid.uuid7()` |
+| ULID | 128-bit | yes (ms) | none | 26-character Crockford base32 text form |
+| **Snowflake-style** | 64-bit | yes (ms) | assign worker ids once | compact, fast; depends on clocks |
+
+<Diagram id="snowflake-bits" caption="A Snowflake id packs time, a worker id and a per-millisecond counter into one 64-bit integer." />
+
+- 41 bits of milliseconds from a custom epoch last about **69 years**.
+- 10 bits of worker id allow **1,024** generators (often split 5 datacentre + 5 worker).
+- 12 bits of sequence give **4,096 ids per millisecond per worker** — about 4 million per second each.
+- Ids from different workers interleave, so ordering is by millisecond, not strictly global ("k-sortable").
+
+<CodeTabs id="snowflake" title="A thread-safe Snowflake generator" />
+
+## The hard parts
+
+**Assigning worker ids.** Two generators with the same worker id produce duplicates. Options: the ordinal of a Kubernetes StatefulSet pod (`orders-3` → 3); a lease from etcd/ZooKeeper/Consul or a database row claimed at startup and renewed; or static configuration. Leases must expire safely — a paused process must not keep generating after its lease is reassigned.
+
+**Clocks going backwards.** NTP corrections can move the clock back. If the current time is before the last timestamp used, generating ids risks duplicates. Wait if the gap is small (a few ms); refuse and alert if it's large. Use a monotonic clock source for elapsed time where possible.
+
+**Sequence exhaustion.** More than 4,096 ids in one millisecond on one worker: wait for the next millisecond.
+
+**Index locality.** Time-ordered ids append to the right edge of a B-tree — fewer page splits and better caching than random UUID v4, which matters for write-heavy tables, especially in InnoDB where the primary key is the clustered index ([Indexing](../../databases/indexing/)).
+
+<CodeTabs id="id-alternatives" title="UUID v7 and block allocation" />
+
+## Choosing
+
+- Single database, internal ids only → a sequence/identity column is fine.
+- Distributed writers, 128-bit acceptable → **UUID v7**: no infrastructure, sortable, standard type.
+- Need 64-bit integers (compact indexes, numeric APIs, very high volume) → **Snowflake-style**, with a robust worker-id scheme.
+- Need dense integers (invoice numbers) with gaps acceptable → **block allocation**; truly gapless sequences (legal invoice numbering) need a serialized counter in one transaction.
+- Public-facing ids: avoid exposing sequential counters where enumeration leaks business data; authorisation must never depend on ids being hard to guess.
+
+<Pitfalls>
+
+- **UUID v4 as a clustered primary key** on a write-heavy table.
+- **Duplicate worker ids** after scaling, cloning a VM or a failed lease.
+- **Ignoring clock rollback** in Snowflake generators.
+- **Parsing business meaning from ids** (creation time is fine; tenant or type often isn't).
+- **JavaScript numbers for 64-bit ids** — precision is lost above 2⁵³; send them as strings in JSON.
+- **Relying on unguessable ids for security.**
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- Clarify size, ordering, throughput, coordination and exposure before choosing.
+- UUID v7 is the low-effort modern default; Snowflake when you need 64-bit integers.
+- Unique worker ids and clock-rollback handling make or break Snowflake.
+- Time-ordered ids keep B-tree inserts sequential.
+
+</KeyTakeaways>

@@ -6,7 +6,7 @@ order: 110
 tags: [system-design, case-study, security, authentication, authorization, oauth, oidc]
 aliases: [design authentication system, identity provider, idp, single sign on, sso, oidc, oauth2 at scale, token revocation, logout everywhere, password reset, credential stuffing, mfa, passkeys, webauthn, rbac, abac, rebac, zanzibar, openfga, spicedb, opa, policy engine, mtls, spiffe, workload identity, keycloak]
 prerequisites: [backend/authn-authz, system-design/api-gateway]
-related: [databases/multi-tenant-schema, system-design/distributed-rate-limiter, databases/caching-strategies]
+related: [databases/multi-tenant-schema, system-design/distributed-rate-limiter, distributed-systems/caching-strategies]
 quickRef:
   points:
     - '**Centralise authentication** in an identity provider (OIDC); **decentralise verification**: every service checks token signatures locally.'

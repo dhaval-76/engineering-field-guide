@@ -1,5 +1,5 @@
 title: System Design
 short: System Design
-blurb: Building blocks and end-to-end designs for large-scale systems.
-order: 9
+blurb: How to run a design interview and estimate load, then end-to-end designs of real systems built from the distributed-systems building blocks.
+order: 10
 icon: system

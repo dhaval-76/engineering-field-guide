@@ -6,7 +6,7 @@ order: 20
 tags: [system-design, scalability, performance, caching, load-balancing]
 aliases: [scalability, scaling, horizontal scaling, vertical scaling, stateless, load balancer, sticky sessions, autoscaling, cdn, read replicas, caching layers, async processing, message queue, load shedding, rate limiting, multi region, handling millions of requests, high traffic]
 prerequisites: [system-design/approach-and-estimation]
-related: [databases/caching-strategies, databases/replication, databases/sharding, architecture/resilience-patterns]
+related: [distributed-systems/caching-strategies, databases/replication, databases/sharding, distributed-systems/resilience-patterns]
 quickRef:
   points:
     - '**Measure first**: find the layer closest to saturation; scaling the wrong layer changes nothing.'
@@ -40,10 +40,10 @@ A popular café. First, hire more baristas (app servers) — easy, because any b
 | Edge | CDN for static assets, images, cacheable API responses; compression; HTTP/2–3 | bandwidth and latency to distant users | cache invalidation, cost |
 | Load balancing | L4/L7 load balancers, health checks, autoscaling groups | single-server CPU and failure | need for statelessness |
 | Application | stateless instances; sessions in Redis or signed tokens; connection pools; async I/O or virtual threads | per-instance limits | shared-state stores |
-| Caching | in-process (Caffeine) + distributed (Redis) | repeated reads, slow queries | staleness, invalidation ([Caching](../../databases/caching-strategies/)) |
+| Caching | in-process (Caffeine) + distributed (Redis) | repeated reads, slow queries | staleness, invalidation ([Caching](../../distributed-systems/caching-strategies/)) |
 | Database | indexes, query fixes, pooling → read replicas → partitioning → sharding | read load, then write load and size | lag, routing, cross-shard queries ([Replication](../../databases/replication/), [Sharding](../../databases/sharding/)) |
 | Async work | queues/streams for emails, images, reports, fan-out | slow work in request paths, bursts | eventual consistency, idempotent consumers |
-| Protection | rate limiting, load shedding, bulkheads, timeouts | overload and cascading failure | rejected requests by design ([Resilience](../../architecture/resilience-patterns/)) |
+| Protection | rate limiting, load shedding, bulkheads, timeouts | overload and cascading failure | rejected requests by design ([Resilience](../../distributed-systems/resilience-patterns/)) |
 | Geography | multi-zone, then multi-region (read-local, or partition users by home region) | zone/region outages, global latency | data replication and consistency choices |
 | Observability | metrics, traces, logs, load tests | guessing | instrumentation effort |
 

@@ -2,10 +2,10 @@
 title: 'Design: Distributed Cache'
 summary: A Redis- or Memcached-style cache cluster — partitioning with hash slots, replication and failover, expiry and approximate-LRU eviction, client routing, hot keys, sizing, and keeping the database safe when the cache fails.
 track: system-design
-order: 28
+order: 125
 tags: [system-design, building-block, caching, redis, memcached]
 aliases: [design a distributed cache, design redis, design memcached, cache cluster, redis cluster, hash slots, hash tags, moved redirect, cache replication, cache failover, approximate lru, maxmemory policy, active expiry, lazy expiry, hot key, big key, local cache, near cache, l1 l2 cache, cache sizing]
-prerequisites: [databases/caching-strategies, system-design/consistent-hashing]
+prerequisites: [distributed-systems/caching-strategies, distributed-systems/consistent-hashing]
 related: [low-level-design/lru-cache, low-level-design/lfu-cache, system-design/kv-store, databases/replication]
 quickRef:
   points:
@@ -23,7 +23,7 @@ lastReviewed: 2026-10-30
 **Functional**: `get`, `set` with TTL, `delete`; values up to ~1 MB; optional data structures (counters, hashes, sorted sets).
 **Non-functional**: sub-millisecond latency inside a region; millions of operations per second; scale out by adding nodes; survive a node failure without a full cache flush; bounded memory with eviction.
 
-[Caching strategies](../../databases/caching-strategies/) covers *how applications use* a cache (cache-aside, invalidation, stampedes). This page designs *the cache cluster itself*.
+[Caching strategies](../../distributed-systems/caching-strategies/) covers *how applications use* a cache (cache-aside, invalidation, stampedes). This page designs *the cache cluster itself*.
 
 ## Estimates
 
@@ -40,7 +40,7 @@ lastReviewed: 2026-10-30
 
 <Steps>
 
-1. **Partitioning** — `slot = CRC16(key) % 16384`; slots are assigned to primaries; moving a slot migrates its keys while both nodes answer (with `ASK` redirects). Consistent hashing in clients (Memcached style) works too ([Consistent hashing](../consistent-hashing/)).
+1. **Partitioning** — `slot = CRC16(key) % 16384`; slots are assigned to primaries; moving a slot migrates its keys while both nodes answer (with `ASK` redirects). Consistent hashing in clients (Memcached style) works too ([Consistent hashing](../../distributed-systems/consistent-hashing/)).
 2. **Routing** — smart clients cache the slot map and refresh it on `MOVED`; alternatively a proxy layer (Envoy, Twemproxy) hides topology from simple clients at the cost of an extra hop.
 3. **Replication** — asynchronous, so writes are fast; replicas can serve reads that tolerate slight staleness.
 4. **Failure detection** — nodes gossip heartbeats; a failure is confirmed by a majority of primaries before a replica is promoted, avoiding split brain from one node's view.
@@ -61,7 +61,7 @@ lastReviewed: 2026-10-30
 
 <Walkthrough id="cache-failover" />
 
-The real danger isn't losing cached data — it's the database being hit by everything the cache used to absorb. Protect it with request coalescing and stale-while-revalidate (see caching strategies), client timeouts of a few milliseconds, circuit breakers ([Resilience patterns](../../architecture/resilience-patterns/)), and a gradual warm-up rather than a cold flush.
+The real danger isn't losing cached data — it's the database being hit by everything the cache used to absorb. Protect it with request coalescing and stale-while-revalidate (see caching strategies), client timeouts of a few milliseconds, circuit breakers ([Resilience patterns](../../distributed-systems/resilience-patterns/)), and a gradual warm-up rather than a cold flush.
 
 ## Hot keys and big keys
 

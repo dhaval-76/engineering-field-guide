@@ -5,7 +5,7 @@ track: system-design
 order: 280
 tags: [system-design, case-study, crawler, search, bloom-filter]
 aliases: [design a web crawler, web spider, distributed crawler, googlebot, url frontier, politeness, crawl delay, robots.txt, url normalization, url canonicalization, bloom filter, duplicate detection, simhash, near duplicate, spider trap, recrawl, freshness, mercator, dns cache]
-prerequisites: [system-design/approach-and-estimation, system-design/consistent-hashing]
+prerequisites: [system-design/approach-and-estimation, distributed-systems/consistent-hashing]
 related: [system-design/search-engine, system-design/job-scheduler, system-design/distributed-rate-limiter, system-design/file-storage]
 quickRef:
   points:
@@ -46,7 +46,7 @@ The frontier must balance two things: crawl important pages first, and never hit
 
 - **Politeness**: one connection per host at a time, a delay between requests (robots `Crawl-delay`, or adaptive — back off when response times rise or 429/503 appear).
 - **Priority**: PageRank-like importance, depth, sitemap hints, freshness needs.
-- **Scale**: partition the frontier by **hash of host** across workers ([Consistent hashing](../consistent-hashing/)), so each host's politeness is enforced in one place without coordination.
+- **Scale**: partition the frontier by **hash of host** across workers ([Consistent hashing](../../distributed-systems/consistent-hashing/)), so each host's politeness is enforced in one place without coordination.
 
 ## Have we seen it before?
 

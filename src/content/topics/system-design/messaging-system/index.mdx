@@ -5,8 +5,8 @@ track: system-design
 order: 60
 tags: [system-design, case-study, messaging, distributed-systems, storage]
 aliases: [design kafka, design a message queue, distributed log, commit log, append only log, segment, offset index, page cache, zero copy, sendfile, leader follower replication, isr, high watermark, log end offset, controller, raft, consumer group coordinator, offset storage, retention, design a message broker]
-prerequisites: [system-design/kafka-deep-dive, databases/replication]
-related: [system-design/kafka-vs-rabbitmq, databases/cap-and-consistency, databases/sharding]
+prerequisites: [distributed-systems/kafka-deep-dive, databases/replication]
+related: [distributed-systems/kafka-vs-rabbitmq, databases/cap-and-consistency, databases/sharding]
 quickRef:
   points:
     - 'Core abstraction: a **partitioned, replicated, append-only log**; consumers read by **offset**.'

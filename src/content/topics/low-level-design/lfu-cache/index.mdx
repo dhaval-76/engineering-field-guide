@@ -6,7 +6,7 @@ order: 36
 tags: [lld, cache, hashmap, linked-list, design-data-structures]
 aliases: [least frequently used, lfu, lfu cache o(1), frequency buckets, min frequency, cache eviction policy, lfu vs lru, tinylfu, w-tinylfu, frequency aging]
 prerequisites: [low-level-design/lru-cache]
-related: [databases/caching-strategies, dsa/design-data-structures, low-level-design/lru-cache]
+related: [distributed-systems/caching-strategies, dsa/design-data-structures, low-level-design/lru-cache]
 quickRef:
   points:
     - 'Evict the key with the **lowest access count**; break ties by **least recently used**.'
@@ -59,7 +59,7 @@ Why `minFreq` is easy to maintain: it only changes in two places. When a key lea
 | Weakness | one big scan flushes the cache | **old popularity never fades**; new keys get evicted before they can build counts |
 | Overhead | one list | buckets + counts |
 
-Production caches combine the two: **W-TinyLFU** (Caffeine, Java's default high-performance cache) keeps approximate frequencies in a compact sketch that periodically halves (aging), and admits a new key only if it's more popular than the eviction candidate ([Caching strategies](../../databases/caching-strategies/)). Redis offers `allkeys-lfu` with a logarithmic counter that decays over time.
+Production caches combine the two: **W-TinyLFU** (Caffeine, Java's default high-performance cache) keeps approximate frequencies in a compact sketch that periodically halves (aging), and admits a new key only if it's more popular than the eviction candidate ([Caching strategies](../../distributed-systems/caching-strategies/)). Redis offers `allkeys-lfu` with a logarithmic counter that decays over time.
 
 ## Concurrency and extensions
 

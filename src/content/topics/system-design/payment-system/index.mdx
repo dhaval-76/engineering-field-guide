@@ -5,8 +5,8 @@ track: system-design
 order: 150
 tags: [system-design, case-study, payments, consistency, idempotency, fintech]
 aliases: [design a payment system, payment gateway, psp, stripe, razorpay, upi, card payments, double entry ledger, ledger, wallet, money transfer, idempotency key, payment state machine, webhooks, reconciliation, settlement, refunds, chargebacks, pci dss, tokenization, saga payments, outbox payments, exactly once payments]
-prerequisites: [backend/idempotency, databases/transactions-isolation, architecture/microservices]
-related: [concurrency/case-payment-thread-safety, system-design/kafka-deep-dive, system-design/auth-at-scale]
+prerequisites: [backend/idempotency, databases/transactions-isolation, distributed-systems/microservices]
+related: [concurrency/case-payment-thread-safety, distributed-systems/kafka-deep-dive, system-design/auth-at-scale]
 quickRef:
   points:
     - 'The one rule: **money is never created, lost or moved twice**. Everything else serves it.'
@@ -57,7 +57,7 @@ lastReviewed: 2026-10-30
 
 ## Across services
 
-- Within one service: one database transaction updates the payment, writes ledger entries and inserts an **outbox** event — so state, money and notification never disagree ([Microservices](../../architecture/microservices/)).
+- Within one service: one database transaction updates the payment, writes ledger entries and inserts an **outbox** event — so state, money and notification never disagree ([Microservices](../../distributed-systems/microservices/)).
 - Across services (order, payment, inventory): an **orchestrated saga** — the payment step is explicit, its state stored, and compensations defined (refund if fulfilment fails). Two-phase commit doesn't work with external providers and couples availability.
 - Concurrency on hot accounts (a merchant receiving thousands of payments): lock rows in a consistent order, keep transactions short, or shard a hot account into sub-accounts and aggregate ([Payment thread-safety](../../concurrency/case-payment-thread-safety/)).
 

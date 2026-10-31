@@ -6,7 +6,7 @@ order: 255
 tags: [system-design, case-study, storage, sync, object-storage]
 aliases: [design dropbox, design google drive, file sync, cloud storage design, onedrive, chunking, content defined chunking, rabin fingerprint, deduplication, block storage, object storage, s3, presigned url, resumable upload, multipart upload, delta sync, sync conflict, conflicted copy, change journal, cursor, long polling, file versioning]
 prerequisites: [system-design/approach-and-estimation, databases/sharding]
-related: [system-design/cdn, system-design/document-versioning, system-design/notification-system, system-design/realtime-collaboration]
+related: [distributed-systems/cdn, system-design/document-versioning, system-design/notification-system, system-design/realtime-collaboration]
 quickRef:
   points:
     - 'Split **metadata** (files, versions, chunk lists — relational, sharded) from **bytes** (chunks in object storage).'
@@ -72,14 +72,14 @@ lastReviewed: 2026-10-30
 <Walkthrough id="file-sync-conflict" />
 
 - The **conditional commit** (`WHERE current_version = base_version`) is optimistic concurrency; a miss becomes a conflicted copy rather than a lost edit.
-- The **journal** gives each namespace an ordered change list; clients hold a cursor and catch up after being offline — the same pattern as event logs ([Kafka deep dive](../kafka-deep-dive/)).
+- The **journal** gives each namespace an ordered change list; clients hold a cursor and catch up after being offline — the same pattern as event logs ([Kafka deep dive](../../distributed-systems/kafka-deep-dive/)).
 - **Sharing** maps a shared folder to its own namespace; members' clients sync that namespace too, and ACLs are checked on every metadata call.
 
 ## Large files and reliability
 
 - **Multipart, resumable uploads**: chunk uploads are independent and idempotent (same hash, same content), so a dropped connection resumes from the missing chunks.
 - **Durability**: object storage replicates or erasure-codes across zones (eleven nines); metadata is replicated and backed up — losing metadata loses the map to every chunk.
-- **Downloads** of shared or popular files go through a CDN with signed URLs ([CDN](../cdn/)).
+- **Downloads** of shared or popular files go through a CDN with signed URLs ([CDN](../../distributed-systems/cdn/)).
 
 <Pitfalls>
 

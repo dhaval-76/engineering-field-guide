@@ -1,0 +1,5 @@
+title: Distributed Systems
+short: Distributed Systems
+blurb: The building blocks and patterns every large system is made of — balancing, caching, messaging, consistency, failure handling and observability.
+order: 9
+icon: architecture

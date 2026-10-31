@@ -6,7 +6,7 @@ order: 80
 tags: [system-design, case-study, object-storage, cdn, caching]
 aliases: [pastebin, design pastebin, code sharing, github gist, text sharing, object storage, s3, presigned url, content addressed storage, deduplication, expiry, burn after reading, private paste, cdn caching, viral content]
 prerequisites: [system-design/url-shortener]
-related: [databases/caching-strategies, system-design/distributed-rate-limiter, system-design/scaling-to-millions]
+related: [distributed-systems/caching-strategies, system-design/distributed-rate-limiter, system-design/scaling-to-millions]
 quickRef:
   points:
     - 'Pastes are **immutable** once created: cache aggressively, never invalidate except on delete/expiry.'

@@ -327,7 +327,7 @@
     "draft": "drafts/java3/04-microservices-architecture-deep-dive",
     "panelId": "java3-p3",
     "title": "Microservices Architecture — Deep Dive",
-    "targets": ["architecture/microservices"],
+    "targets": ["distributed-systems/microservices"],
     "questions": 2,
     "followUps": 3,
     "practice": 1
@@ -372,7 +372,7 @@
     "draft": "drafts/java4/01-redis-caching-strategies",
     "panelId": "java4-p0",
     "title": "Redis Caching Strategies",
-    "targets": ["databases/caching-strategies"],
+    "targets": ["distributed-systems/caching-strategies"],
     "questions": 1,
     "followUps": 2,
     "practice": 2
@@ -516,7 +516,7 @@
     "draft": "drafts/sysdesign2/05-kafka-vs-rabbitmq-when-to-use-each",
     "panelId": "sd2-p4",
     "title": "Kafka vs RabbitMQ — When to Use Each",
-    "targets": ["system-design/kafka-vs-rabbitmq"],
+    "targets": ["distributed-systems/kafka-vs-rabbitmq"],
     "questions": 1,
     "followUps": 2,
     "practice": 1
@@ -525,7 +525,7 @@
     "draft": "drafts/sysdesign2/06-kafka-deep-dive-consumer-groups-offsets-performance-tuning",
     "panelId": "sd2-p5",
     "title": "Kafka Deep Dive — Consumer Groups · Offsets · Performance Tuning",
-    "targets": ["system-design/kafka-deep-dive"],
+    "targets": ["distributed-systems/kafka-deep-dive"],
     "questions": 1,
     "followUps": 2,
     "practice": 1
@@ -926,7 +926,7 @@
     "draft": "drafts/sysdesign-v7/07-design-a-unique-id-generator-service",
     "panelId": "sd-p8",
     "title": "Design a Unique ID Generator Service",
-    "targets": ["system-design/id-generator"],
+    "targets": ["distributed-systems/id-generator"],
     "questions": 1,
     "followUps": 2,
     "practice": 1
@@ -1043,7 +1043,7 @@
     "draft": "drafts/devops/04-circuit-breaker-production-resilience",
     "panelId": "do-p3",
     "title": "Circuit Breaker + Production Resilience",
-    "targets": ["architecture/resilience-patterns"],
+    "targets": ["distributed-systems/resilience-patterns"],
     "questions": 1,
     "followUps": 2,
     "practice": 1

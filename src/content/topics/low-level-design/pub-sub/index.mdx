@@ -6,7 +6,7 @@ order: 39
 tags: [lld, pub-sub, messaging, observer, concurrency]
 aliases: [pub sub lld, publish subscribe, message queue design, message broker lld, design kafka lld, event bus, topic subscriber, consumer group, offset commit, at least once, dead letter queue, dlq, backpressure, observer vs pub sub]
 prerequisites: [low-level-design/lld-method, concurrency/producer-consumer]
-related: [system-design/kafka-deep-dive, system-design/messaging-system, oop-patterns/observer, architecture/saga-and-outbox]
+related: [distributed-systems/kafka-deep-dive, system-design/messaging-system, oop-patterns/observer, distributed-systems/saga-and-outbox]
 quickRef:
   points:
     - 'Publishers write to **topics**; subscribers receive without either side knowing the other.'
@@ -45,7 +45,7 @@ A newsroom's wire feed. Every story is appended to the feed with a number. Each 
 | After reading | — | kept (until retention) | deleted on ack |
 | Replay | no | yes — reset the offset | no |
 
-See [Observer](../../oop-patterns/observer/) for the in-process pattern and [Kafka vs RabbitMQ](../../system-design/kafka-vs-rabbitmq/) for the two broker styles.
+See [Observer](../../oop-patterns/observer/) for the in-process pattern and [Kafka vs RabbitMQ](../../distributed-systems/kafka-vs-rabbitmq/) for the two broker styles.
 
 ## Design
 
@@ -70,7 +70,7 @@ A single log is totally ordered but consumed by one consumer per group. To scale
 ## Concurrency and persistence
 
 - One lock per topic keeps publish/poll/commit consistent while topics proceed in parallel; `publish` notifies waiting pollers for long polling.
-- Persistence: append messages to segment files, `fsync` per batch, keep an offset index; store committed offsets in an internal topic — exactly how Kafka works ([Kafka deep dive](../../system-design/kafka-deep-dive/)).
+- Persistence: append messages to segment files, `fsync` per batch, keep an offset index; store committed offsets in an internal topic — exactly how Kafka works ([Kafka deep dive](../../distributed-systems/kafka-deep-dive/)).
 
 <Pitfalls>
 

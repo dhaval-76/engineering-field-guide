@@ -1,0 +1,103 @@
+---
+title: Sagas, Outbox and Inbox
+summary: Keeping data consistent across services without distributed transactions — orchestrated and choreographed sagas, compensations, the transactional outbox and its relay, inbox-based idempotent consumers, and why 2PC is avoided.
+track: distributed-systems
+order: 100
+tags: [distributed-systems, consistency, messaging, microservices]
+aliases: [saga, saga pattern, orchestration, choreography, compensating transaction, compensation, semantic lock, transactional outbox, outbox pattern, outbox relay, polling publisher, cdc, change data capture, debezium, inbox pattern, idempotent consumer, dual write problem, two phase commit, 2pc, xa transactions, distributed transaction, exactly once, at least once, temporal, camunda]
+prerequisites: [distributed-systems/microservices, databases/transactions-isolation]
+related: [backend/idempotency, system-design/workflow-engine, distributed-systems/kafka-deep-dive, distributed-systems/event-driven-cqrs]
+quickRef:
+  points:
+    - '**Dual write problem**: updating your DB and publishing a message can''t be atomic — one can succeed while the other fails.'
+    - '**Outbox**: write the message to an `outbox` table in the same transaction; a relay (polling or CDC) publishes it. At-least-once.'
+    - '**Inbox**: consumers record handled message ids in the same transaction as their change → duplicates become no-ops.'
+    - '**Saga**: a sequence of local transactions with **compensations** run in reverse on failure. Orchestration for complex flows, choreography for short ones.'
+    - 'Sagas are not isolated: use pending states / semantic locks and design compensations that can''t fail.'
+  useWhen: Any business process spanning services or databases — orders, payments, bookings, onboarding.
+lastReviewed: 2026-10-30
+---
+
+## Why it matters
+
+Once each service owns its data, a business action like "place order" touches several databases and a message broker. Distributed transactions (two-phase commit) are slow, block on failures and aren't supported by most brokers and cloud databases. These three patterns are how real systems stay correct anyway — and interviewers expect you to reach for them by name ([Microservices](../microservices/) introduces them; this page goes deeper).
+
+<Callout type="analogy">
+Booking a trip yourself: flight, hotel, car — three separate companies, no "book all or nothing" button. If the car is unavailable you cancel the hotel and the flight (compensations), possibly paying fees, because you can't un-happen a booking. You also keep a checklist (the saga log) so if you're interrupted you know exactly where you were.
+</Callout>
+
+## The dual write problem and the outbox
+
+```text
+db.save(order); kafka.send(OrderPlaced)   // crash between them → order with no event
+kafka.send(OrderPlaced); db.save(order)   // DB fails → event for an order that doesn't exist
+```
+
+<Diagram id="outbox-flow" caption="The event is a row committed with the order. A relay publishes it and marks it sent; consumers de-duplicate through an inbox table in their own transaction." />
+
+<CodeTabs id="outbox-relay" title="Outbox table, a polling relay with SKIP LOCKED, and an inbox for idempotent consumers" />
+
+| Relay option | How | Trade-offs |
+|---|---|---|
+| Polling publisher | Query unpublished rows every ~100 ms | Simple; adds DB load and a little latency |
+| Change data capture (Debezium) | Tail the DB's write-ahead log, publish outbox inserts | Low latency, no polling; another component to run |
+
+Guarantees: **at-least-once** publishing (a crash after send but before marking re-sends) and **per-aggregate ordering** if you key messages by aggregate id and publish in id order. Delete or archive published rows regularly.
+
+## The inbox: idempotent consumers
+
+At-least-once delivery means duplicates. The consumer inserts `(consumer, message_id)` into an `inbox` table **in the same transaction** as its business change; a conflict means "already handled". Alternatives: natural idempotency (`UPDATE … SET status = 'SHIPPED' WHERE status = 'PAID'`) or idempotency keys ([Idempotency](../../backend/idempotency/)).
+
+## Sagas
+
+<Walkthrough id="saga-compensation" />
+
+<CodeTabs id="saga-orchestrator" title="A saga orchestrator: log each step, compensate completed steps in reverse, escalate if a compensation keeps failing" />
+
+| Aspect | Choreography | Orchestration |
+|---|---|---|
+| How | Each service reacts to events and emits its own | A coordinator sends commands and tracks state |
+| Coupling | Services know each other's events | Services know only the orchestrator's commands |
+| Visibility | Flow is spread across services — hard to see | One place shows every saga's state |
+| Best for | 2–3 steps, few changes | Long, branching flows, timeouts, human steps |
+| Tooling | Kafka + outbox/inbox | Temporal, Camunda, AWS Step Functions, or a state table |
+
+### Designing steps and compensations
+
+<Steps>
+
+1. **Order steps by risk**: do the steps most likely to fail (validation, reservations) first, and irreversible ones (shipping, sending email) last — the "pivot" step after which the saga only moves forward.
+2. **Use pending states**: `PENDING` orders, `RESERVED` stock — a semantic lock that tells other transactions the data is in flux.
+3. **Compensations are business actions**, not rollbacks: a refund, a release, a cancellation email. They must be idempotent and retryable, and must not fail for business reasons.
+4. **Persist saga state** so a restarted orchestrator resumes; add timeouts for steps that never answer.
+5. **Make every step idempotent** — the orchestrator will retry.
+
+</Steps>
+
+### Sagas lack isolation
+
+Other requests can see intermediate states (stock reserved for an order that will be rejected). Countermeasures: semantic locks (pending states), commutative updates (increment/decrement rather than set), re-reading values before acting, and ordering steps so that dirty reads are harmless.
+
+## Why not two-phase commit?
+
+2PC makes all participants prepare, then commit. It gives atomicity but holds locks across the network while waiting for the coordinator; if the coordinator dies after "prepare", participants block. Most brokers and many managed databases don't support XA. It's still used inside a single database cluster (distributed SQL databases use consensus-backed commit internally) — across services, prefer sagas.
+
+<Pitfalls>
+
+- **Publishing to the broker inside the DB transaction** — the message goes out even if the transaction rolls back.
+- **Compensations that can fail** for business reasons ("refund not allowed") — the saga gets stuck.
+- **Non-idempotent consumers** with an at-least-once relay.
+- **Choreography for a 7-step flow** — nobody can tell where an order is stuck.
+- **No timeouts** — a saga waits forever on a lost reply.
+- **Never cleaning the outbox** — the table and its index grow forever.
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- Outbox solves dual writes; inbox makes consumers idempotent; together they give effectively-once processing.
+- Sagas replace distributed transactions with local transactions plus compensations.
+- Orchestrate long flows; persist saga state; make every step and compensation idempotent.
+- Sagas are not isolated — design pending states and step order for it.
+
+</KeyTakeaways>
