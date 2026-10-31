@@ -1,6 +1,18 @@
 # Research: what the guide should cover
 
-The topic list is driven by data, not guesswork. This folder holds the inputs, the method and the resulting decisions. Snapshot date: **2026-10-30**.
+The topic list is driven by data, not guesswork. This folder holds the inputs, the method and the resulting decisions.
+
+- **Data snapshot:** 2026-10-30 (LeetCode Discuss posts up to October 2026, job postings from October 2026).
+- **Last reviewed:** 2026-11-01. Remaining agreed work, including new tracks and topics, is in [`../BACKLOG.md`](../BACKLOG.md).
+
+## Files
+
+| File | What it holds |
+|---|---|
+| `topic-matrix.json` | Each research topic with its report count by year, top companies and the keep / add / expand decision |
+| `company-questions.json` | Per company: topics reported and links to the posts |
+| `job-demand.json` | Skill counts from job-posting aggregators |
+| `topic-map.json` | Research keys → guide topic ids; `research:apply` uses it to write `src/content/reports/` |
 
 ## Sources
 
@@ -17,7 +29,11 @@ The topic list is driven by data, not guesswork. This folder holds the inputs, t
 2. `scripts/research/analyze.ts` matches each post against about 150 conservative phrase patterns (e.g. "parking lot", "consistent hashing", "sliding window"). A post counts once per topic. Patterns that matched noise were tightened: "timeline" matched process timelines, "test cases" matched every DSA post, and "Netflix" matched the company tag.
 3. `research/topic-map.json` maps research keys to guide topics. `scripts/research/apply-reports.ts` writes `src/content/reports/<topic>.yaml`, which the site renders as "Reported in interviews at …" with links to the original posts.
 
-Re-run all three steps to refresh the data. Counts are **mentions in candidate reports**, not official question banks, and English-language LeetCode Discuss over-represents India-based and big-tech candidates.
+Re-run all three steps (`npm run research:fetch`, `research:analyze`, `research:apply`) to refresh the data, then update the snapshot date above.
+
+**Before writing any new topic** (each content item in the backlog), do a fresh, smaller pass for that subject: web search for current interview reports and job demand, and record every company tag with its source URL (`askedAt` on the topic or question).
+
+Counts are **mentions in candidate reports**, not official question banks, and English-language LeetCode Discuss over-represents India-based and big-tech candidates.
 
 ## Findings
 
@@ -38,7 +54,7 @@ Job postings (freehire, Oct 2026): API 22k, **Java 15.7k**, cloud 14.7k, AWS 12.
 
 Qualitative 2026 trends: the system-design bar has risen; **AI-aware designs** (LLMs, vector stores, RAG) now appear in general SWE loops; **cost reasoning** is graded explicitly; and coding rounds are moving towards judgement, debugging and AI-assisted formats ([Design Gurus](https://designgurus.substack.com/p/system-design-interviews-changed), [Prepfully](https://prepfully.com/interview-guides/software-engineer-interview-rubric-2026), [Levelop](https://levelop.dev/blog/the-complete-software-engineer-interview-process-in-2026-what-to-expect-at-every)). Modern Java (17/21 LTS: records, sealed types, virtual threads) is now standard in Java interviews ([techinterview.org](https://www.techinterview.org/post/3233474451/java-interview-questions-2025-virtual-threads-records-sealed-classes-stream-api-garbage-collection-concurrency-spring-boot/)).
 
-## Decisions
+## Decisions (2026-10-30)
 
 **Keep** every migrated legacy topic; all of them show up in the data.
 

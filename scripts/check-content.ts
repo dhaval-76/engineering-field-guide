@@ -6,6 +6,7 @@
  *  - every askedAt entry has a source URL (also enforced by the schema)
  *  - no leftover level/schedule framing in content
  *  - every track has an Open Graph card in public/og/
+ *  - every walkthrough's legend labels exactly the colours its frames use
  */
 import { readFile } from 'node:fs/promises';
 import { glob } from 'node:fs/promises';
@@ -135,6 +136,18 @@ for (const id of walkIds) if (!used.walk.has(id)) warn.push(`Orphan walkthrough:
 for (const f of diagramFiles.filter((f) => f.endsWith('.mmd'))) {
   if (!diagramFiles.includes(f.replace(/\.mmd$/, '.svg')))
     errors.push(`${f}: not rendered — run npm run diagrams`);
+}
+
+// The player shows a colour key built from `legend`, so it must name every tone the frames use and nothing else.
+for (const f of walkFiles) {
+  const data = parse(await readFile(join(root, f), 'utf8')) ?? {};
+  const tones = new Set<string>();
+  JSON.stringify(data.frames ?? [], (k, v) => (k === 'tone' && tones.add(v), v));
+  const legend = Object.keys(data.legend ?? {});
+  const missing = [...tones].filter((t) => !legend.includes(t));
+  const unused = legend.filter((t) => !tones.has(t));
+  if (missing.length) errors.push(`${f}: legend has no label for ${missing.join(', ')}`);
+  if (unused.length) errors.push(`${f}: legend labels unused colour ${unused.join(', ')}`);
 }
 
 // Every track needs a pre-rendered social card (npm run og), or its pages point og:image at a 404.

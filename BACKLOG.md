@@ -5,7 +5,7 @@ Agreed work, saved on 2026-11-01.
 **Order set by the owner (2026-11-01): 11 → 6 → 7 → 8 → 9 → 10 → 4 → 3 → 1 → 2 → 5.**
 Work top to bottom. The numbers in the headings below are labels, not the order.
 
-**Standing rule after item 11 is done:** every later change updates the docs it affects
+**Standing rule (item 11 is done, so this applies now):** every later change updates the docs it affects
 (`README.md`, `AGENTS.md`, this backlog, `research/README.md`) in the same commit, so they never
 drift from the code.
 
@@ -180,7 +180,14 @@ them in export and import. This extends 9c.
 
 ## Repo housekeeping
 
-### 11. Update all documentation and add AGENTS.md
+### 11. Update all documentation and add AGENTS.md (done 2026-11-01)
+
+Done: `README.md` and `research/README.md` refreshed, `AGENTS.md` added, the walkthrough legend
+check moved into `check:content`, and the mobile, offline and update audits moved to
+`scripts/audit/` as `npm run audit:mobile`, `audit:offline` and `test:offline-update`.
+
+Original scope:
+
 
 - **`README.md`:**
   - current features (offline app, walkthrough legends, reading mode, glossary, cheat sheets,

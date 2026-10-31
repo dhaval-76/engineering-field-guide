@@ -21,7 +21,10 @@
     "research:analyze": "tsx scripts/research/analyze.ts",
     "research:apply": "tsx scripts/research/apply-reports.ts",
     "og": "tsx scripts/og-images.ts",
-    "icons": "tsx scripts/pwa/icons.ts"
+    "icons": "tsx scripts/pwa/icons.ts",
+    "audit:mobile": "tsx scripts/audit/mobile.ts",
+    "audit:offline": "tsx scripts/audit/offline.ts",
+    "test:offline-update": "tsx scripts/audit/offline-update.ts"
   },
   "dependencies": {
     "@astrojs/mdx": "^8.0.3",
