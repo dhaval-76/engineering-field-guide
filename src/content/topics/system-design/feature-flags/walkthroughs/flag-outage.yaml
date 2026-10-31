@@ -17,9 +17,9 @@ frames:
         pairs: [[ruleset, { v: 'v42 · stale but valid', tone: warn }], [stream, { v: 'reconnecting…', tone: warn }]]
   - caption: 'Worse: a pod restarts during the outage, with nothing in memory. The SDK falls back in order: a CDN snapshot of the ruleset, then a file written at the last successful sync, then the **default value in code**. Defaults must therefore be the safe choice (usually the old behaviour).'
     panels:
-      - kind: rows
+      - kind: flow
         label: Startup fallbacks
-        items: [{ v: 'relay → down', tone: bad }, { v: 'CDN snapshot v42 → used', tone: ok }, 'local file (if CDN also fails)', 'code default (last resort)']
+        items: [{ v: 'relay: down', tone: bad }, { v: 'CDN snapshot v42: used', tone: ok }, 'local file (if CDN also fails)', 'code default (last resort)']
   - caption: 'The flag service recovers. The SDK reconnects and asks for changes **since v42**, so nothing is missed; if the gap is too large it reloads the full ruleset.'
     panels:
       - kind: kv

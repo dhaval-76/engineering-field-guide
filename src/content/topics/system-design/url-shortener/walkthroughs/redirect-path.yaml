@@ -2,22 +2,22 @@ title: Following one redirect
 frames:
   - caption: 'A user clicks `sho.rt/aZ3kP9q`. DNS points to the CDN; the CDN has a cached 302 for this popular link and answers from the nearest edge in a few milliseconds. Our servers see nothing.'
     panels:
-      - kind: rows
+      - kind: flow
         label: Path
         items: [{ v: 'CDN edge: hit → 302', tone: ok }]
   - caption: 'A less popular link misses the CDN and reaches a redirect service instance through the load balancer.'
     panels:
-      - kind: rows
+      - kind: flow
         label: Path
         items: ['CDN: miss', { v: 'load balancer → redirect service', tone: info }]
   - caption: 'The service checks Redis: `GET link:aZ3kP9q` — a hit in under a millisecond for most traffic.'
     panels:
-      - kind: rows
+      - kind: flow
         label: Path
         items: ['CDN: miss', 'redirect service', { v: 'Redis: hit', tone: ok }]
   - caption: 'On a Redis miss, it reads the links store by primary key, checks expiry, and fills Redis with a TTL. Unknown codes are cached as "not found" for a minute so bots scanning codes can''t hammer the database.'
     panels:
-      - kind: rows
+      - kind: flow
         label: Path
         items: ['Redis: miss', { v: 'links store: SELECT by code', tone: warn }, 'Redis: SET with TTL']
   - caption: 'The service responds `302 Location: …` and then publishes a click event to Kafka without waiting. Analytics consumers aggregate counts per link, country and referrer.'

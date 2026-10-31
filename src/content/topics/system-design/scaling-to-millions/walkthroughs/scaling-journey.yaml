@@ -2,35 +2,46 @@ title: Growing from one server to millions of users
 frames:
   - caption: '**Day one**: app and database on one server. Fine for thousands of users; any failure or deploy takes everything down.'
     panels:
-      - kind: rows
-        label: Architecture
-        items: [{ v: 'server: app + database', tone: info }]
+      - kind: flow
+        label: Request path
+        items: [users, { v: 'server: app + database', tone: info }]
       - kind: note
-        text: 'First limit: CPU and memory shared by app and DB.'
+        text: 'Next limit: CPU and memory shared by app and DB.'
   - caption: '**Separate the database** onto its own (bigger) machine. Each can be sized and tuned independently.'
     panels:
-      - kind: rows
-        label: Architecture
-        items: [app server, { v: database server, tone: info }]
+      - kind: flow
+        label: Request path
+        items: [users, app server, { v: database server, tone: info }]
+      - kind: note
+        text: 'Next limit: one app server. A crash or a deploy is still an outage.'
   - caption: '**Stateless app servers behind a load balancer**: move sessions to Redis or tokens, run several instances across zones, autoscale. App failures no longer cause outages.'
     panels:
-      - kind: rows
-        label: Architecture
-        items: [{ v: load balancer, tone: accent }, 'app × N (stateless)', 'Redis (sessions)', database]
+      - kind: flow
+        label: Request path
+        items: [users, { v: load balancer, tone: accent }, { v: 'app × N (stateless)', tone: accent }, 'Redis (sessions)', database]
       - kind: note
         text: 'Next limit: database reads.'
   - caption: '**Cache and read replicas**: Redis for hot reads; replicas for reporting and read-heavy endpoints; a connection pool per instance sized to the database.'
     panels:
-      - kind: rows
-        label: Architecture
-        items: [load balancer, app × N, { v: 'Redis cache', tone: ok }, 'primary DB', { v: 'read replicas × 2', tone: ok }]
+      - kind: flow
+        label: Request path
+        items: [users, load balancer, app × N, { v: 'Redis cache', tone: ok }, 'primary DB', { v: 'read replicas × 2', tone: ok }]
+      - kind: note
+        text: 'Next limit: static files and slow work done inside requests.'
   - caption: '**CDN and async work**: static assets and images served from the edge; emails, thumbnails and reports processed by workers from a queue. Request latency drops; bursts are absorbed.'
     panels:
-      - kind: rows
-        label: Architecture
-        items: [{ v: CDN, tone: plum }, load balancer, app × N, { v: 'queue → workers', tone: plum }, cache, primary + replicas]
+      - kind: flow
+        label: Request path
+        items: [users, { v: CDN, tone: plum }, load balancer, app × N, cache, primary + replicas]
+      - kind: flow
+        label: Background work
+        items: [app × N, { v: queue, tone: plum }, { v: workers, tone: plum }]
+      - kind: note
+        text: 'Next limit: writes and data size on one primary database.'
   - caption: '**Partition the data** when writes or size outgrow one primary: by tenant or user, via virtual shards. Add **rate limits** at the edge and **regions** when users are global.'
     panels:
-      - kind: rows
-        label: Architecture
-        items: [CDN + edge rate limits, 'regional load balancers', 'app × N per region', cache per region, { v: 'DB shards (by user id)', tone: warn }]
+      - kind: flow
+        label: Request path
+        items: [users, CDN + edge rate limits, 'regional load balancers', 'app × N per region', cache per region, { v: 'DB shards (by user id)', tone: warn }]
+      - kind: note
+        text: 'Each step adds cost and moving parts: take it only when a measured limit forces it.'

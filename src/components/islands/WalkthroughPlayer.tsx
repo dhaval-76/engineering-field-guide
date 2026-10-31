@@ -6,7 +6,7 @@ type Cell =
   string | number | { v: string | number; tone?: Tone | undefined; tag?: string | undefined };
 
 interface Panel {
-  kind: 'array' | 'list' | 'rows' | 'kv' | 'stack' | 'queue' | 'note';
+  kind: 'array' | 'list' | 'rows' | 'flow' | 'kv' | 'stack' | 'queue' | 'note';
   label?: string | undefined;
   items: Cell[];
   pairs: [Cell, Cell][];
@@ -75,6 +75,11 @@ function PanelView({ panel }: { panel: Panel }) {
             {kind === 'list' && i < panel.items.length - 1 && (
               <span className="wt-link" aria-hidden="true">
                 ⇄
+              </span>
+            )}
+            {kind === 'flow' && i < panel.items.length - 1 && (
+              <span className="wt-down" aria-hidden="true">
+                ↓
               </span>
             )}
           </div>
