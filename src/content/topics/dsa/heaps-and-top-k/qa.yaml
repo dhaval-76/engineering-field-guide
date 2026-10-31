@@ -22,6 +22,16 @@ practice:
     solution: |
       Push every non-null head into a min-heap keyed by value. Pop the smallest, append it to the result via a tail pointer, and push its `next` if present. Repeat until the heap is empty. Each of N nodes is pushed and popped once in a heap of at most k items: O(N log k) time, O(k) space. (Pairwise merging in a balanced way gives the same bound.)
     solutionCode: dsa-merge-k-lists
+  - task: Find the kth largest element in O(n) average time without a heap.
+    hint: Partition as quicksort does, but recurse into only one side.
+    solution: |
+      The answer is at index `n − k` in sorted order. Partition around a random pivot; the pivot lands at its final index p. If p equals the target, return it; if smaller, continue in the right part, otherwise the left. Expected cost ≈ n + n/2 + … = 2n. Worst case O(n²) with consistently bad pivots, which random choice makes extremely unlikely (introselect switches to a guaranteed O(n) method if it happens).
+    solutionCode: dsa-quickselect
+  - task: Given meeting intervals, find the minimum number of rooms required.
+    hint: Process meetings by start time; what do you need to know about the rooms in use?
+    solution: |
+      Sort by start. Keep a min-heap of end times of occupied rooms. For each meeting, if the smallest end ≤ its start, that room is free — pop it. Push the meeting's end. The answer is the heap's size at the end (equivalently, its maximum during the sweep). O(n log n).
+    solutionCode: dsa-meeting-rooms
 quiz:
   - q: To keep the k largest elements of a stream, which heap and size?
     options: [Max-heap of all elements, Min-heap of size k, Max-heap of size k, Min-heap of all elements]

@@ -7,6 +7,7 @@ class MedianFinder {
     if (this.high.size > this.low.size) this.low.push(this.high.pop());
   }
   findMedian() {
-    return this.low.size > this.high.size ? this.low.peek() : (this.low.peek() + this.high.peek()) / 2;
+    if (this.low.size > this.high.size) return this.low.peek();
+    return (this.low.peek() + this.high.peek()) / 2;
   }
 }

@@ -1,5 +1,6 @@
 ListNode mergeKLists(ListNode[] lists) {
-    PriorityQueue<ListNode> heap = new PriorityQueue<>(Comparator.comparingInt(n -> n.val));
+    PriorityQueue<ListNode> heap =
+            new PriorityQueue<>(Comparator.comparingInt(n -> n.val));
     for (ListNode head : lists) if (head != null) heap.offer(head);
     ListNode dummy = new ListNode(0), tail = dummy;
     while (!heap.isEmpty()) {
