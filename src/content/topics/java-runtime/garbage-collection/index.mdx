@@ -15,7 +15,7 @@ quickRef:
     - 'A Java "leak" = objects still **reachable** but never used again: unbounded caches/collections, ThreadLocals in pools, unremoved listeners, class-loader references.'
     - 'Diagnose with evidence: GC logs → `jcmd GC.class_histogram` → heap dump → dominator tree in Eclipse MAT; JFR for allocation profiling.'
   useWhen: Latency spikes from GC pauses, steadily growing memory, OutOfMemoryError, or choosing JVM settings for a service.
-lastReviewed: 2026-10-30
+lastReviewed: 2026-10-31
 ---
 
 ## Why it matters
