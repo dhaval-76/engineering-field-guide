@@ -109,7 +109,15 @@ Original scope:
 A page that asks quiz questions you got wrong or haven't seen in a while. This means storing quiz
 answers per question (see also 9d).
 
-### 7. Keyboard shortcuts: a help panel and a page
+### 7. Keyboard shortcuts: a help panel and a page (done 2026-11-01)
+
+Done: `?` opens a shortcuts panel; `/shortcuts/` lists everything from one shared list
+(`src/lib/shortcuts.ts`); footer link and a "Press ? for shortcuts" hint on keyboard devices; a link
+from the Offline page. New keys: `t r b m w`, `1`–`5`, `g h` / `g p` / `g r` / `g o`, `[` / `]`,
+with a short confirmation for actions that may be off-screen. Also fixed: after closing search,
+focus stayed in its hidden input and blocked shortcuts until the next click.
+
+Original scope:
 
 Existing shortcuts, which nothing documents yet:
 

@@ -48,8 +48,10 @@ src/
 │  └─ qa/        interview section, company tags
 ├─ layouts/      BaseLayout (head, theme script, manifest), TopicLayout
 ├─ lib/          nav, snippets, highlight, storage (localStorage), url, companies, …
-├─ pages/        home, [track], [...topic], cheatsheets, companies, glossary, progress, review, offline, 404
-├─ scripts/      site.ts (keyboard, code tabs, diagram viewer, …), offline.ts (service worker client)
+├─ pages/        home, [track], [...topic], cheatsheets, companies, glossary, progress, review,
+│                shortcuts, offline, 404
+├─ scripts/      site.ts (keyboard, code tabs, diagram viewer, …), shortcuts.ts (? panel),
+│                offline.ts (service worker client)
 └─ styles/       tokens.css (light + dark), base.css, prose.css, code.css
 scripts/
 ├─ check-content.ts        structural checks (see Verification)
@@ -198,6 +200,15 @@ reported as small; that is expected.
   (download everything again).
 - Icons: `npm run icons` renders `public/icons/` from the header mark. The manifest is
   `public/manifest.webmanifest`.
+
+## Keyboard shortcuts
+
+Every shortcut is listed once in `src/lib/shortcuts.ts`; the `?` panel and the `/shortcuts/` page
+both render from it. The global handler is in `src/scripts/site.ts`. When you add or change a key,
+update that list in the same commit. Rules: single keys are ignored while typing in a field, when a
+dialog is open, and when Ctrl, ⌘ or Alt is held; shortcuts that change something off-screen confirm
+it with `flash()` from `src/scripts/shortcuts.ts`. Number keys switch code language only on pages
+with code tabs (the review page uses them to answer).
 
 ## Personal data in the browser
 

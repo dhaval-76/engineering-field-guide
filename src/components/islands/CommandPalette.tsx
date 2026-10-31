@@ -120,6 +120,8 @@ export default function CommandPalette({ base }: { base: string }) {
       className="palette"
       aria-label="Search"
       onClick={(e) => e.target === dialog.current && dialog.current?.close()}
+      // Focus can stay in the hidden input after closing, which would swallow keyboard shortcuts.
+      onClose={() => input.current?.blur()}
     >
       <div className="palette-box">
         <div className="palette-input">

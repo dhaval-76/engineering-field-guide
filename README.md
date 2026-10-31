@@ -22,6 +22,9 @@ and its order are in [`BACKLOG.md`](BACKLOG.md).
 - **Cheat sheets** collect every Quick Reference card of a track on one printable page.
 - **Search** (`/` or `Ctrl/⌘ K`), light and dark themes, reading mode (hides both side panels),
   code wrap, a remembered code language.
+- **Keyboard shortcuts:** press `?` on any page for the list, or open `/shortcuts/`. For example
+  `j`/`k` next and previous topic, `[`/`]` sections, `m` mark complete, `b` save, `t` theme,
+  `1`–`5` code language, `g` then `h`/`p`/`r`/`o` to jump to a page.
 - **Progress and bookmarks** saved in the browser, with a `/progress/` page.
 - **Review** (`/review/`): quiz answers are remembered per question. Missed questions come back
   straight away; right ones come back after 1, 3, 7, 16 and 35 days (spaced repetition). Rounds

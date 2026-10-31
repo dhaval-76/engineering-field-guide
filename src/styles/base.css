@@ -262,3 +262,121 @@ kbd {
   background: var(--accent);
   color: var(--bg);
 }
+
+/* Keyboard shortcuts panel, opened with ? (src/scripts/shortcuts.ts) */
+.shortcuts-panel {
+  width: min(640px, calc(100vw - 2 * var(--gutter)));
+  max-height: min(80dvh, 720px);
+  padding: 0;
+  border: 1px solid var(--rule-strong);
+  border-radius: var(--radius);
+  background: var(--bg);
+  color: var(--ink);
+  box-shadow: 0 12px 40px rgb(0 0 0 / 0.18);
+}
+.shortcuts-panel[open] {
+  display: flex;
+  flex-direction: column;
+}
+.shortcuts-panel::backdrop {
+  background: rgb(0 0 0 / 0.4);
+}
+.sp-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--rule);
+}
+.sp-head h2 {
+  margin: 0;
+  font-family: var(--font-serif);
+  font-weight: 560;
+  font-size: var(--step-1);
+}
+.sp-head button {
+  min-height: 36px;
+  padding: 0 12px;
+  border: 1px solid var(--rule-strong);
+  border-radius: var(--radius);
+  background: var(--bg-raised);
+  cursor: pointer;
+}
+.sp-body {
+  overflow: auto;
+  padding: 4px 16px 8px;
+}
+.sp-foot {
+  margin: 0;
+  padding: 10px 16px;
+  border-top: 1px solid var(--rule);
+  font-size: 0.875rem;
+  color: var(--ink-3);
+}
+.shortcut-list h3,
+.sp-body h3 {
+  margin: 16px 0 6px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+.shortcut-list h3 span,
+.sp-body h3 span {
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
+}
+.shortcut-list dl,
+.sp-body dl {
+  margin: 0;
+}
+.shortcut-list dl div,
+.sp-body dl div {
+  display: grid;
+  grid-template-columns: 9.5rem minmax(0, 1fr);
+  gap: 4px 16px;
+  align-items: baseline;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--rule);
+}
+.shortcut-list dt,
+.sp-body dt {
+  line-height: 1.9;
+}
+.shortcut-list dd,
+.sp-body dd {
+  margin: 0;
+  font-size: 0.9375rem;
+}
+.shortcut-list kbd,
+.sp-body kbd {
+  font-size: 0.8125rem;
+  color: var(--ink);
+}
+.then,
+.or {
+  font-size: 0.75rem;
+  color: var(--ink-3);
+}
+
+/* Confirms what a keyboard shortcut did (src/scripts/shortcuts.ts) */
+.key-toast {
+  position: fixed;
+  z-index: 90;
+  left: 50%;
+  top: calc(var(--header-h) + 12px);
+  transform: translateX(-50%);
+  max-width: calc(100vw - 2 * var(--gutter));
+  padding: 6px 14px;
+  border-radius: var(--radius);
+  background: var(--ink);
+  color: var(--bg);
+  font-size: 0.875rem;
+  pointer-events: none;
+}
+.key-toast[hidden] {
+  display: none;
+}

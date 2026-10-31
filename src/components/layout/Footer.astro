@@ -7,6 +7,9 @@ import { url } from '~/lib/url';
   <div class="inner">
     <p>
       <strong>{site.name}</strong> — {site.tagline}
+      <span class="keys-hint">
+        Press <kbd>?</kbd> for keyboard shortcuts.
+      </span>
     </p>
     <nav aria-label="Footer">
       <a href={url('cheatsheets/')}>Cheat sheets</a>
@@ -15,12 +18,23 @@ import { url } from '~/lib/url';
       <a href={url('progress/')}>Progress</a>
       <a href={url('review/')}>Review</a>
       <a href={url('offline/')}>Offline</a>
+      <a href={url('shortcuts/')}>Shortcuts</a>
       <a href={site.repoUrl}>Source</a>
     </nav>
   </div>
 </footer>
 
 <style>
+  .keys-hint {
+    display: none;
+  }
+  /* Only where there is a keyboard and a precise pointer, i.e. not on phones. */
+  @media (hover: hover) and (pointer: fine) {
+    .keys-hint {
+      display: block;
+      margin-top: 4px;
+    }
+  }
   .footer {
     border-top: 1px solid var(--rule);
     margin-top: 32px;

@@ -1,0 +1,37 @@
+---
+import { shortcutGroups } from '~/lib/shortcuts';
+
+/** The shortcut tables for the /shortcuts/ page; the ? panel renders the same list in the browser. */
+const join = (combo: string) => combo.split(' ');
+---
+
+<div class="shortcut-list">
+  {shortcutGroups.map((g) => (
+    <section>
+      <h3>
+        {g.title}
+        {g.where && <span> {g.where}</span>}
+      </h3>
+      <dl>
+        {g.items.map((s) => (
+          <div>
+            <dt>
+              {s.keys.map((combo, i) => (
+                <>
+                  {i > 0 && <span class="or"> / </span>}
+                  {join(combo).map((k, j) => (
+                    <>
+                      {j > 0 && (combo.startsWith('Ctrl') ? ' ' : <span class="then"> then </span>)}
+                      <kbd>{k}</kbd>
+                    </>
+                  ))}
+                </>
+              ))}
+            </dt>
+            <dd>{s.does}</dd>
+          </div>
+        ))}
+      </dl>
+    </section>
+  ))}
+</div>

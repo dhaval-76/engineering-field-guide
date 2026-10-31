@@ -4,7 +4,9 @@
  * progress/bookmarks and keyboard shortcuts.
  */
 import { broadcast, keys, read, write, type ProgressMap, type RecentList } from '~/lib/storage';
+import { goTo, languageKeys } from '~/lib/shortcuts';
 import '~/scripts/offline';
+import { flash, openShortcuts } from '~/scripts/shortcuts';
 
 const root = document.documentElement;
 
@@ -69,12 +71,15 @@ function applyLanguage(lang: string) {
 const savedLang = read<string | null>(keys.lang, null);
 if (savedLang) applyLanguage(savedLang);
 
+function setLanguage(lang: string) {
+  write(keys.lang, lang);
+  root.dataset.lang = lang;
+  applyLanguage(lang);
+}
+
 document.addEventListener('click', (e) => {
   const tab = (e.target as Element).closest<HTMLButtonElement>('[data-code-tabs] [role="tab"]');
-  if (!tab?.dataset.lang) return;
-  write(keys.lang, tab.dataset.lang);
-  root.dataset.lang = tab.dataset.lang;
-  applyLanguage(tab.dataset.lang);
+  if (tab?.dataset.lang) setLanguage(tab.dataset.lang);
 });
 
 document.addEventListener('keydown', (e) => {
@@ -199,18 +204,103 @@ if (tocLinks.length && 'IntersectionObserver' in window) {
   headings.forEach((h) => observer.observe(h));
 }
 
-/* ── Keyboard shortcuts ────────────────────────────────── */
+/* ── Keyboard shortcuts (listed in src/lib/shortcuts.ts) ── */
+const BASE = import.meta.env.BASE_URL.replace(/\/?$/, '/');
+const clickFirst = (selector: string) => {
+  const el = document.querySelector<HTMLElement>(selector);
+  el?.click();
+  return el;
+};
+/** Section headings of the page's main content, in order. */
+const sections = () =>
+  [...document.querySelectorAll<HTMLElement>('main h2[id]')].filter((h) => h.offsetParent);
+function jumpSection(dir: 1 | -1) {
+  const offset = parseFloat(getComputedStyle(root).scrollPaddingTop) || 0;
+  const list = sections();
+  const target =
+    dir === 1
+      ? list.find((h) => h.getBoundingClientRect().top > offset + 2)
+      : list.findLast((h) => h.getBoundingClientRect().top < offset - 2);
+  target?.scrollIntoView();
+}
+let awaitingGo: ReturnType<typeof setTimeout> | undefined;
+
 document.addEventListener('keydown', (e) => {
   if (e.defaultPrevented || e.metaKey || e.ctrlKey || e.altKey) return;
   const el = e.target as HTMLElement;
   if (el.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName)) return;
   if (e.key === 'Escape' && root.dataset.nav === 'open') setNav(false);
-  const rel = e.key === 'j' ? 'next' : e.key === 'k' ? 'prev' : null;
-  if (rel) {
-    const link = document.querySelector<HTMLAnchorElement>(`a[rel="${rel}"]`);
-    if (link) location.href = link.href;
+  // Dialogs (search, diagram viewer, this panel) handle their own keys.
+  if (document.querySelector('dialog[open]')) return;
+
+  if (awaitingGo) {
+    clearTimeout(awaitingGo);
+    awaitingGo = undefined;
+    const path = goTo[e.key];
+    if (path !== undefined) location.href = BASE + path;
+    return;
+  }
+  const digit = Number(e.key);
+  if (digit >= 1 && digit <= languageKeys.length) {
+    const groups = document.querySelectorAll<HTMLElement>('[data-code-tabs]');
+    if (!groups.length) return;
+    const lang = languageKeys[digit - 1]!;
+    const label = document.querySelector(`[data-code-tabs] [role="tab"][data-lang="${lang}"]`);
+    setLanguage(lang);
+    flash(label ? `Code: ${label.textContent}` : 'No code in that language on this page');
+    return;
+  }
+  switch (e.key) {
+    case '?':
+      openShortcuts();
+      break;
+    case 'g':
+      awaitingGo = setTimeout(() => (awaitingGo = undefined), 1500);
+      break;
+    case 'j':
+    case 'k': {
+      const link = document.querySelector<HTMLAnchorElement>(
+        `a[rel="${e.key === 'j' ? 'next' : 'prev'}"]`,
+      );
+      if (link) location.href = link.href;
+      break;
+    }
+    case ']':
+    case '[':
+      jumpSection(e.key === ']' ? 1 : -1);
+      break;
+    case 't':
+      if (clickFirst('[data-theme-toggle]')) flash(`Theme: ${currentTheme()}`);
+      break;
+    case 'r':
+      if (clickFirst('[data-focus-toggle]'))
+        flash(root.dataset.focus === 'on' ? 'Reading mode on' : 'Reading mode off');
+      break;
+    case 'm':
+      if (clickFirst('[data-progress-toggle]'))
+        flash(
+          read<ProgressMap>(keys.progress, {})[topicId() ?? '']
+            ? 'Marked complete'
+            : 'Marked not complete',
+        );
+      break;
+    case 'b':
+      if (clickFirst('[data-bookmark-toggle]'))
+        flash(
+          read<string[]>(keys.bookmarks, []).includes(topicId() ?? '')
+            ? 'Saved'
+            : 'Removed from saved',
+        );
+      break;
+    case 'w':
+      if (clickFirst('[data-wrap-toggle]'))
+        flash(root.dataset.wrap === 'on' ? 'Code wrap on' : 'Code wrap off');
+      break;
+    default:
+      return;
   }
 });
+const topicId = () => document.querySelector<HTMLElement>('[data-topic-id]')?.dataset.topicId;
 
 /* ── Scrollable tables ─────────────────────────────────── */
 // Wide tables scroll inside themselves on narrow screens; keyboard users need to focus them to scroll.

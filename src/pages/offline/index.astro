@@ -1,6 +1,7 @@
 ---
 import BaseLayout from '~/layouts/BaseLayout.astro';
 import Icon from '~/components/Icon.astro';
+import { url } from '~/lib/url';
 ---
 
 <BaseLayout title="Offline and updates" noindex>
@@ -114,7 +115,8 @@ import Icon from '~/components/Icon.astro';
     </ul>
     <p class="muted">
       Installed or not, the offline copy works the same; installing adds an icon and opens the guide
-      in its own window.
+      in its own window. On a keyboard, press <kbd>?</kbd> for{' '}
+      <a href={url('shortcuts/')}>keyboard shortcuts</a>.
     </p>
   </div>
 </BaseLayout>

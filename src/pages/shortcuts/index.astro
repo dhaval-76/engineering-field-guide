@@ -1,0 +1,31 @@
+---
+import BaseLayout from '~/layouts/BaseLayout.astro';
+import ShortcutList from '~/components/ShortcutList.astro';
+---
+
+<BaseLayout title="Keyboard shortcuts" noindex>
+  <div class="wrap">
+    <h1>Keyboard shortcuts</h1>
+    <p class="lede">
+      Press <kbd>?</kbd> on any page to see these in a panel. Letter and number shortcuts are
+      ignored while you are typing in a field, and Ctrl, ⌘ and Alt combinations are left to the
+      browser.
+    </p>
+    <ShortcutList />
+  </div>
+</BaseLayout>
+
+<style>
+  .wrap {
+    max-width: 760px;
+  }
+  h1 {
+    font-family: var(--font-serif);
+    font-weight: 560;
+    font-size: var(--step-4);
+    margin: 0;
+  }
+  .lede {
+    color: var(--ink-2);
+  }
+</style>
