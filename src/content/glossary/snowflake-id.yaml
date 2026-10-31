@@ -1,0 +1,3 @@
+term: "Snowflake ID"
+short: "A 64-bit id made of a timestamp, a machine id and a per-millisecond sequence: unique without coordination and roughly time-ordered."
+topic: distributed-systems/id-generator

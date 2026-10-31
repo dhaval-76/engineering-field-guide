@@ -21,7 +21,7 @@ lastReviewed: 2026-10-31
 
 ## Why it matters
 
-"Run this later", "run this every hour" and "retry this until it works" appear in every backend: reminder notifications, retrying failed webhooks, expiring reservations, nightly reports. The LLD version tests whether you pick the right data structure (a heap ordered by time), separate **when** from **how** a task runs (dispatcher vs workers), and handle failure properly. A notification service is the natural consumer of such a scheduler and adds channel choice and idempotency.
+"Run this later", "run this every hour" and "retry this until it works" appear in every backend: reminder notifications, retrying failed webhooks, expiring reservations, nightly reports. The LLD version tests whether you pick the right data structure (a heap ordered by time), separate **when** from **how** a task runs (dispatcher vs workers), and handle failure properly. A notification service is the natural consumer of such a scheduler and adds channel choice and <Term id="idempotency">idempotency</Term>.
 
 <Callout type="analogy">
 A to-do list sorted by due time, pinned to the fridge. You only look at the top item and set an alarm for it. When it rings, you hand the job to whoever is free and set the alarm for the next item. If someone adds an earlier item, you reset the alarm.
@@ -31,7 +31,7 @@ A to-do list sorted by due time, pinned to the fridge. You only look at the top 
 
 - One process or many? (One here; durable distributed scheduling is a system-design topic.)
 - One-shot, fixed-rate recurring, cron expressions? (One-shot and fixed-rate; cron is parsing on top.)
-- Delivery guarantee — at-most-once or at-least-once? (At-least-once with idempotent tasks.)
+- Delivery guarantee — <Term id="at-most-once">at-most-once</Term> or <Term id="at-least-once">at-least-once</Term>? (At-least-once with idempotent tasks.)
 - Cancellation? Retries? Ordering guarantees? (Yes, yes, no.)
 - Survive restarts? (In-memory timers don't — call this out.)
 
@@ -43,13 +43,13 @@ A to-do list sorted by due time, pinned to the fridge. You only look at the top 
 
 Design points:
 
-- **Min-heap by time** gives O(log n) insert and "what's next" in O(1). `DelayQueue.take()` blocks until the head's delay reaches zero, and wakes early if an earlier task is inserted.
+- **<Term id="heap">Min-heap</Term> by time** gives O(log n) insert and "what's next" in O(1). `DelayQueue.take()` blocks until the head's delay reaches zero, and wakes early if an earlier task is inserted.
 - **Dispatcher vs workers**: the dispatcher thread does nothing but take due tasks and submit them. Running task code on the dispatcher would let one slow task delay every other task.
 - **Recurring tasks** re-enqueue themselves after running. Fixed-rate (`previousRunAt + period`) keeps a steady cadence; fixed-delay (`finishedAt + period`) guarantees a gap between runs.
 - **Cancellation** is lazy: mark the id cancelled and skip it when it comes due — cheaper than removing from the middle of a heap.
 - **Injected time** (`Ticker`) makes the whole thing testable without sleeping.
 
-In Java, `ScheduledThreadPoolExecutor` already implements this pattern; building it yourself is about understanding what's inside. In Node (the JavaScript tab above), the event loop's timer queue is the heap — the scheduler just adds ids, retries and repeats.
+In Java, `ScheduledThreadPoolExecutor` already implements this pattern; building it yourself is about understanding what's inside. In Node (the JavaScript tab above), the <Term id="event-loop">event loop</Term>'s timer queue is the heap — the scheduler just adds ids, retries and repeats.
 
 ## Retries: backoff and jitter
 
@@ -57,7 +57,7 @@ In Java, `ScheduledThreadPoolExecutor` already implements this pattern; building
 
 - **Exponential**: 200 ms, 400 ms, 800 ms… gives a struggling dependency room to recover.
 - **Cap** the delay and the number of attempts; after that, write a **dead-letter** record and alert.
-- **Jitter**: if 10,000 tasks fail together, un-jittered retries all fire at the same moments and knock the dependency over again. Randomising the delay spreads them out.
+- **<Term id="jitter">Jitter</Term>**: if 10,000 tasks fail together, un-jittered retries all fire at the same moments and knock the dependency over again. Randomising the delay spreads them out.
 - Retry only **retryable** errors (timeouts, 503s), not validation errors.
 - Retries mean a task can run more than once — tasks must be **idempotent** (dedupe by a task/notification id).
 
@@ -82,7 +82,7 @@ Other things a real notification service handles:
 
 ## Making it durable
 
-An in-memory scheduler loses everything on restart. When that matters, persist tasks in a database table (`run_at`, `status`, `attempts`, `locked_by`) and have workers claim due rows with `SELECT … WHERE run_at <= now() AND status='PENDING' FOR UPDATE SKIP LOCKED`, or use a sorted set in Redis, or a managed queue with delayed delivery. That's the distributed job scheduler covered in system design.
+An in-memory scheduler loses everything on restart. When that matters, persist tasks in a database table (`run_at`, `status`, `attempts`, `locked_by`) and have workers claim due rows with `SELECT … WHERE run_at <= now() AND status='PENDING' FOR UPDATE SKIP LOCKED`, or use a sorted set in <Term id="redis">Redis</Term>, or a managed queue with delayed delivery. That's the distributed job scheduler covered in system design.
 
 <Pitfalls>
 
@@ -98,7 +98,7 @@ An in-memory scheduler loses everything on restart. When that matters, persist t
 
 - Heap/delay queue by run time + a dispatcher that sleeps until the head is due + a worker pool.
 - Recurring and retried tasks are re-enqueued with a new run time; cancellation can be lazy.
-- Exponential backoff with jitter and a cap; dead-letter after the last attempt; make tasks idempotent.
+- <Term id="exponential-backoff">Exponential backoff</Term> with jitter and a cap; dead-letter after the last attempt; make tasks idempotent.
 - Notifications: broadcast vs fallback chain, preferences, and a delivery log for dedupe.
 
 </KeyTakeaways>

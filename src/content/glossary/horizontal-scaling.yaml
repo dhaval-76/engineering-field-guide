@@ -1,0 +1,3 @@
+term: "Horizontal scaling"
+short: "Adding more machines and spreading load across them, as opposed to vertical scaling (a bigger machine). Needs stateless services or partitioned data."
+topic: system-design/scaling-to-millions

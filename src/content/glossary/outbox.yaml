@@ -1,0 +1,3 @@
+term: "Transactional outbox"
+short: "Write the business change and the event to publish in one local database transaction; a relay publishes outbox rows later, so the two can't disagree."
+topic: distributed-systems/saga-and-outbox

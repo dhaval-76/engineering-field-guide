@@ -1,0 +1,3 @@
+term: "Container"
+short: "A process isolated with Linux namespaces and resource limits (cgroups), packaged with its dependencies in an image; lighter than a virtual machine."
+topic: devops/docker-kubernetes

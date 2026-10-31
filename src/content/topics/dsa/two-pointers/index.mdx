@@ -59,7 +59,7 @@ Take a sorted array and `sum = a[l] + a[r]` against a target:
 - **Sum too large** → by the same argument `r` can't be part of any answer: `r--`.
 - **Equal** → found.
 
-Each step permanently eliminates one index, and there are n of them: **O(n)**, with no extra memory. That elimination argument is what you should say out loud in an interview — it's what makes the greedy pointer moves correct, not just fast.
+Each step permanently eliminates one index, and there are n of them: **O(n)**, with no extra memory. That elimination argument is what you should say out loud in an interview — it's what makes the <Term id="greedy">greedy</Term> pointer moves correct, not just fast.
 
 ## Templates
 
@@ -114,7 +114,7 @@ Sorted array: `[-4,-1,-1,0,1,2]`.
 
 <CodeTabs id="dsa-trapping-rain-water" title="Trapping rain water — settle the lower side, O(1) space" />
 
-**Complexity.** O(n) time, O(1) space. (A monotonic stack also solves it in O(n), filling water layer by layer — see [Stacks](../stacks-and-monotonic-stacks/).)
+**Complexity.** O(n) time, O(1) space. (A <Term id="monotonic-stack">monotonic stack</Term> also solves it in O(n), filling water layer by layer — see [Stacks](../stacks-and-monotonic-stacks/).)
 
 ### Remove duplicates from a sorted array (in place)
 

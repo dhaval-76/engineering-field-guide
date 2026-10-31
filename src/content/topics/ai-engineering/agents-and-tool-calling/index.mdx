@@ -33,7 +33,7 @@ A capable new intern with a phone. They can't touch any system directly; they as
 - A tool definition is **name + description + JSON schema** for its arguments. The description is a prompt: say what the tool does, when to use it, and what it returns.
 - The model's reply contains structured tool calls (possibly several in parallel). Validate arguments against the schema — models do produce wrong ids and types.
 - Send results back tied to the call id. Return **errors as results** ("order not found") so the model can recover, rather than throwing away the turn.
-- Keep tool results small and relevant: they consume context tokens on every following step.
+- Keep tool results small and relevant: they consume context <Term id="token">tokens</Term> on every following step.
 
 ## The agent loop
 
@@ -57,12 +57,12 @@ Start with the simplest thing: one model call, then a workflow, and only then an
 MCP is an open protocol for connecting LLM applications to tools and data, so a tool written once works in any MCP-capable host (IDEs, chat apps, agent frameworks).
 
 - **Servers** expose **tools** (actions the model can call), **resources** (readable data such as files or records) and **prompts** (reusable templates).
-- Messages are **JSON-RPC 2.0**. Transports: **stdio** for local servers launched as subprocesses, and **Streamable HTTP** for remote servers, secured with OAuth.
+- Messages are **JSON-RPC 2.0**. Transports: **stdio** for local servers launched as subprocesses, and **Streamable HTTP** for remote servers, secured with <Term id="oauth2">OAuth</Term>.
 - The **2026-07-28** revision made the protocol **stateless**: no initialisation handshake or sessions — each request carries its protocol version and capabilities in `_meta`, which makes remote servers easy to load-balance like any HTTP API. Older SDKs may still speak 2025-11-25; check what your host supports.
 
 <CodeTabs id="mcp-messages" title="MCP over JSON-RPC: list tools, then call one" />
 
-Building an MCP server for your service is like building any API: authenticate the caller, authorize per user, validate inputs, rate-limit, log, and design small, well-described tools rather than exposing your whole REST surface.
+Building an MCP server for your service is like building any API: authenticate the caller, authorize per user, validate inputs, rate-limit, log, and design small, well-described tools rather than exposing your whole <Term id="rest">REST</Term> surface.
 
 ## Safety
 
@@ -95,6 +95,6 @@ Measure on a set of realistic tasks: **task success** (did the order get the rig
 - The model proposes tool calls; your code validates, authorizes and executes them.
 - An agent is a budgeted loop; prefer workflows when steps are known.
 - MCP is the standard way to expose tools and data to LLM apps; now stateless over HTTP.
-- Least privilege, user-scoped authorization, confirmations and idempotency make agents safe.
+- Least privilege, user-scoped authorization, confirmations and <Term id="idempotency">idempotency</Term> make agents safe.
 
 </KeyTakeaways>

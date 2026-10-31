@@ -66,7 +66,7 @@ A subclass inherits the parent's fields and methods and can **override** behavio
 
 <CodeTabs id="oop-inheritance" title="SavingsAccount reuses BankAccount and specialises withdraw()" />
 
-The cost is **coupling**: the child depends on the parent's internals. A change in the parent can break every child (the "fragile base class" problem), and deep hierarchies make it hard to know which method actually runs.
+The cost is **<Term id="coupling">coupling</Term>**: the child depends on the parent's internals. A change in the parent can break every child (the "fragile base class" problem), and deep hierarchies make it hard to know which method actually runs.
 
 ## Polymorphism: one call, many behaviours
 
@@ -102,7 +102,7 @@ Say the relationship out loud. "A savings account **is a** bank account" — inh
 
 - **Public fields and blanket setters.** They let any code put the object into an invalid state. Start everything private and expose behaviour.
 - **Inheriting for code reuse.** If the child isn't a true subtype, you'll end up overriding methods to throw `UnsupportedOperationException` — a sign to compose instead.
-- **God classes.** A class that does auth, email, payments and reporting has four reasons to change. Split by responsibility (see SOLID).
+- **God classes.** A class that does auth, email, payments and reporting has four reasons to change. Split by responsibility (see <Term id="solid">SOLID</Term>).
 - **Type checks instead of polymorphism.** `instanceof` chains that grow with every new type should usually become a method on the type.
 - **Deep hierarchies.** More than two or three levels is hard to reason about; flatten with interfaces and composition.
 

@@ -20,7 +20,7 @@ lastReviewed: 2026-10-31
 
 ## Why it matters
 
-Java changed more between 8 and 21 than in the decade before. Interviews for Java roles now expect you to know at least records, sealed types, pattern matching and virtual threads — and why they exist. They also make everyday code shorter and safer: algebraic data types with exhaustive `switch`, data classes in one line, and simple blocking code that scales.
+Java changed more between 8 and 21 than in the decade before. Interviews for Java roles now expect you to know at least records, sealed types, pattern matching and <Term id="virtual-thread">virtual threads</Term> — and why they exist. They also make everyday code shorter and safer: algebraic data types with exhaustive `switch`, data classes in one line, and simple blocking code that scales.
 
 <Callout type="analogy">
 Upgrading from a manual toolbox to power tools. The old tools still work, and you can build the same things — but jobs that took a page of careful work now take a line, and the new tools have safety guards built in.
@@ -44,7 +44,7 @@ Upgrading from a manual toolbox to power tools. The old tools still work, and yo
 
 Together these give Java **algebraic data types**:
 
-- **Records** are concise immutable data carriers.
+- **Records** are concise <Term id="immutable">immutable</Term> data carriers.
 - **Sealed** interfaces list every permitted implementation, so the compiler knows the full set.
 - **Pattern matching `switch`** with **record patterns** deconstructs values and must be **exhaustive** over a sealed type — add a new case and every switch that doesn't handle it stops compiling.
 
@@ -72,7 +72,7 @@ A **virtual thread** is a thread managed by the JVM rather than the OS. When it 
 
 - **Good for**: I/O-bound work — HTTP calls, database queries, message handling.
 - **Not for**: CPU-bound work (it still needs cores) — keep bounded platform pools there.
-- **Don't pool** virtual threads; create one per task. Limit concurrency to fragile downstreams with a semaphore, not a small pool.
+- **Don't pool** virtual threads; create one per task. Limit concurrency to fragile downstreams with a <Term id="semaphore">semaphore</Term>, not a small pool.
 - Since Java 24, `synchronized` no longer pins a virtual thread to its carrier; on 21–23 prefer `ReentrantLock` around blocking calls.
 
 ## Newer stream and context APIs

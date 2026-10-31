@@ -1,0 +1,3 @@
+term: "Strategy pattern"
+short: "Putting interchangeable algorithms behind one interface so the caller picks one at runtime without if/else chains."
+topic: oop-patterns/strategy-and-state

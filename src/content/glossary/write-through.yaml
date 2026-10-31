@@ -1,0 +1,3 @@
+term: "Write-through cache"
+short: "Every write goes to the cache and the database together, keeping the cache fresh at the cost of slower writes."
+topic: distributed-systems/caching-strategies

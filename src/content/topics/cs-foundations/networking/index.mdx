@@ -65,13 +65,13 @@ TCP keeps a connection per (source IP, source port, destination IP, destination 
 | Head-of-line blocking | per connection | at the TCP level (one lost packet stalls all streams) | none across streams |
 | Handshake | TCP + TLS | TCP + TLS | combined, 1 RTT (0-RTT resumption) |
 
-gRPC runs on HTTP/2; WebSockets upgrade an HTTP/1.1 connection (or use HTTP/2 extended CONNECT) into a long-lived bidirectional channel.
+<Term id="grpc">gRPC</Term> runs on HTTP/2; <Term id="websocket">WebSockets</Term> upgrade an HTTP/1.1 connection (or use HTTP/2 extended CONNECT) into a long-lived bidirectional channel.
 
 <CodeTabs id="net-debugging" title="Seeing the layers: dig, curl timings, openssl, ss" />
 
 ## DNS
 
-Resolution walks from your resolver's cache to root, TLD and authoritative servers; answers are cached for their **TTL** at every level. Lower TTLs before a migration; expect clients and JVMs to cache longer than you'd like (Java caches successful lookups — set `networkaddress.cache.ttl` sensibly). DNS-based load balancing and failover are only as fast as the TTLs allow.
+Resolution walks from your resolver's cache to root, TLD and authoritative servers; answers are cached for their **<Term id="ttl">TTL</Term>** at every level. Lower TTLs before a migration; expect clients and JVMs to cache longer than you'd like (Java caches successful lookups — set `networkaddress.cache.ttl` sensibly). DNS-based load balancing and failover are only as fast as the TTLs allow.
 
 ## Load balancers and proxies
 

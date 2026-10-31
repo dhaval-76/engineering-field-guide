@@ -99,7 +99,7 @@ Decorator and Proxy are structurally identical; the difference is intent. A deco
 <Pitfalls>
 
 - **Decorators that change the contract.** A "decorator" that alters return values or swallows exceptions surprises callers — that's a different component, not a transparent wrapper.
-- **Retrying non-idempotent operations.** A retry decorator around a payment call can double-charge unless the downstream operation is idempotent (idempotency key per payment).
+- **Retrying non-idempotent operations.** A retry decorator around a payment call can double-charge unless the downstream operation is <Term id="idempotency">idempotent</Term> (<Term id="idempotency-key">idempotency key</Term> per payment).
 - **Leaky adapters.** If vendor types (`StripeException`, vendor DTOs) escape the adapter, the rest of the code is coupled to the vendor again.
 - **Fat facades.** A facade that accumulates business rules becomes the new god class.
 - **Proxy surprises.** Self-invocation and `final` methods bypass Spring proxies; `equals`/`getClass()` on Hibernate proxies may not be what you expect.

@@ -1,0 +1,3 @@
+term: "Cache-aside"
+short: "The application reads the cache first; on a miss it loads from the database and fills the cache, and on a write it updates the database and evicts the key."
+topic: distributed-systems/caching-strategies

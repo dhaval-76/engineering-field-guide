@@ -38,7 +38,7 @@ A library catalogue. Every book has a stable shelf address (the URL); the desk o
 | `PATCH` | Partial update | | not by default | 200 |
 | `DELETE` | Remove | | ✓ | 204 |
 
-**Safe** means no side effects; **idempotent** means repeating the request leaves the same state. A `PATCH` like `{"stock": 5}` is idempotent; one like "increment stock by 1" isn't. `POST` becomes safely retryable with an [idempotency key](../idempotency/).
+**Safe** means no side effects; **<Term id="idempotency">idempotent</Term>** means repeating the request leaves the same state. A `PATCH` like `{"stock": 5}` is idempotent; one like "increment stock by 1" isn't. `POST` becomes safely retryable with an [idempotency key](../idempotency/).
 
 ## Status codes
 
@@ -93,7 +93,7 @@ Evolve **additively** whenever possible: add optional fields and new endpoints, 
 
 - **Bulk:** `POST /v1/orders/batch` with up to N items; return per-item results (`207 Multi-Status` or a 200 body with each item's status) so partial success is explicit.
 - **Long-running:** return `202 Accepted` with `Location: /v1/jobs/job_42`; the client polls the job (or receives a webhook) for the result.
-- **Concurrency control:** return an `ETag`; clients send `If-Match` on updates, and you answer `412 Precondition Failed` if someone changed it first — optimistic locking over HTTP.
+- **Concurrency control:** return an `ETag`; clients send `If-Match` on updates, and you answer `412 Precondition Failed` if someone changed it first — <Term id="optimistic-locking">optimistic locking</Term> over HTTP.
 
 <Pitfalls>
 

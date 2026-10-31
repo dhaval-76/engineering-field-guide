@@ -1,0 +1,3 @@
+term: "Thread pool"
+short: "A fixed set of reusable worker threads that take tasks from a queue, bounding concurrency and avoiding the cost of a thread per task."
+topic: concurrency/executors-thread-pools

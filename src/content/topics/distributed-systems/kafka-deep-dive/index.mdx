@@ -21,7 +21,7 @@ lastReviewed: 2026-10-31
 
 ## Why it matters
 
-Kafka is the default backbone for events between services, change data capture, and stream processing. It's easy to get a hello-world working and easy to ship something that loses messages on broker failure, processes payments twice after a rebalance, or stalls a whole partition on one bad message. Interviewers probe exactly these details: ordering, delivery guarantees, consumer groups, and what happens when things crash.
+Kafka is the default backbone for events between services, <Term id="cdc">change data capture</Term>, and stream processing. It's easy to get a hello-world working and easy to ship something that loses messages on <Term id="message-broker">broker</Term> failure, processes payments twice after a rebalance, or stalls a whole partition on one bad message. Interviewers probe exactly these details: ordering, delivery guarantees, consumer groups, and what happens when things crash.
 
 <Callout type="analogy">
 A ship's logbook kept in several volumes. Entries are only ever added at the end of a volume, numbered in order, and never torn out when someone reads them — they're removed only when the volume is old enough to archive. Different readers keep their own bookmark in each volume, so the navigator, the cook and an auditor can read at their own pace, and a new reader can start from page one.
@@ -63,7 +63,7 @@ Batching is not a small tuning knob. Measured against a single local broker with
   caption="Log scale. Waiting for each acknowledgement turns every message into a network round trip; letting the client batch gives two orders of magnitude more throughput. Absolute numbers vary by run and hardware — the ratios are the point."
 />
 
-- **Transactions** (`transactional.id`) write to several partitions atomically and commit consumer offsets in the same transaction — exactly-once for Kafka-to-Kafka pipelines (read-process-write), not for external side effects.
+- **<Term id="transaction">Transactions</Term>** (`transactional.id`) write to several partitions atomically and commit consumer offsets in the same transaction — exactly-once for Kafka-to-Kafka pipelines (read-process-write), not for external side effects.
 
 ## Consumers and groups
 
@@ -82,7 +82,7 @@ Batching is not a small tuning knob. Measured against a single local broker with
 - Ordering holds per partition **only if** you process records of a partition sequentially. Parallel processing within a partition (thread pools) breaks it unless you partition work by key.
 - A message that always fails ("poison pill") blocks its partition if retried forever. Retry a few times with backoff, then publish it to a **dead-letter topic** with the error, and move on; alert and reprocess later.
 - **Non-blocking retries** (retry topics with delays) keep the partition moving but give up strict ordering for the retried records.
-- When the **brokers** are the thing that's down, producers need a plan too — short `max.block.ms`, a circuit breaker and a durable spool with ordered replay: see [Surviving dependency outages](../failure-fallbacks/).
+- When the **brokers** are the thing that's down, producers need a plan too — short `max.block.ms`, a <Term id="circuit-breaker">circuit breaker</Term> and a durable spool with ordered replay: see [Surviving dependency outages](../failure-fallbacks/).
 
 ## Delivery semantics end to end
 
@@ -127,7 +127,7 @@ Batching is not a small tuning knob. Measured against a single local broker with
 <KeyTakeaways>
 
 - Partitions = ordering + parallelism; keys choose partitions.
-- `acks=all`, RF 3, min ISR 2, idempotent producer for durability.
+- `acks=all`, RF 3, min ISR 2, <Term id="idempotency">idempotent</Term> producer for durability.
 - Commit after processing, make consumers idempotent, dead-letter poison messages.
 - Watch lag and rebalances; size partitions for peak parallelism.
 - Retention for history, compaction for latest-state-per-key.

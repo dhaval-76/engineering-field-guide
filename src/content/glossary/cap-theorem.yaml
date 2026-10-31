@@ -1,0 +1,3 @@
+term: "CAP theorem"
+short: "During a network partition a distributed store must choose between consistency (refuse or wait) and availability (answer, possibly stale)."
+topic: databases/cap-and-consistency

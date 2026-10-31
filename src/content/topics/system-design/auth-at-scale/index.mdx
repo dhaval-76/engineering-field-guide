@@ -29,9 +29,9 @@ A conference badge desk. You prove who you are once, at registration, and get a 
 ## Requirements
 
 **Functional**: sign-up with email verification; login with password, social login and MFA/passkeys; single sign-on across several products; password reset; logout and logout-everywhere; roles and fine-grained permissions (e.g. "can edit this document"); API keys for integrations; service-to-service authentication.
-**Non-functional**: 100 M users; ~50,000 authenticated requests/s across 500 services; login p99 < 500 ms; login surges at the start of the working day; the identity platform must be more available than anything that depends on it; strong auditability.
+**Non-functional**: 100 M users; ~50,000 authenticated requests/s across 500 services; login <Term id="p99">p99</Term> < 500 ms; login surges at the start of the working day; the identity platform must be more available than anything that depends on it; strong auditability.
 
-The request-level mechanics — JWT validation, OAuth flows, refresh rotation — are in [Authentication and authorization](../../backend/authn-authz/). This design is about the platform.
+The request-level mechanics — <Term id="jwt">JWT</Term> validation, <Term id="oauth2">OAuth</Term> flows, refresh rotation — are in [Authentication and authorization](../../backend/authn-authz/). This design is about the platform.
 
 ## High-level design
 
@@ -97,7 +97,7 @@ Interviewers almost always ask "what happens when X goes down?". Decide the degr
 - **Long-lived access tokens** with no revocation path.
 - **Fat tokens** carrying every permission — huge headers and stale permissions.
 - **Different responses for "no such user" and "wrong password".**
-- **Rate limiting logins only by IP** — botnets rotate IPs; also limit per account.
+- **<Term id="rate-limiter">Rate limiting</Term> logins only by IP** — botnets rotate IPs; also limit per account.
 - **Reset tokens stored in plain text or reusable.**
 - **Shared static API secrets between services.**
 

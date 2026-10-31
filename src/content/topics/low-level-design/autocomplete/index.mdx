@@ -86,7 +86,7 @@ A single in-memory trie with live updates works for a product catalogue or an ID
 
 <KeyTakeaways>
 
-- A trie answers prefix queries in O(prefix length); completions come from a DFS below the prefix node.
+- A trie answers prefix queries in O(prefix length); completions come from a <Term id="dfs">DFS</Term> below the prefix node.
 - Cache top-K per node for ranked suggestions; refresh along one path on updates.
 - At scale, precompute top-K per prefix offline and serve from a key-value store.
 

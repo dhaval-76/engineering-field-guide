@@ -1,0 +1,3 @@
+term: "Singleton"
+short: "A class with exactly one instance and a global access point. Prefer letting a DI container manage one instance over hand-written singletons."
+topic: oop-patterns/singleton

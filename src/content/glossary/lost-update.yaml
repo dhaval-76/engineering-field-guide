@@ -1,0 +1,3 @@
+term: "Lost update"
+short: "Two transactions read a value, both modify it, and the second write silently overwrites the first. Fixed with row locks, version checks or atomic updates."
+topic: databases/transactions-isolation

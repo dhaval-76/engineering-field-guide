@@ -1,0 +1,3 @@
+term: "Server-sent events"
+short: "A one-way stream from server to browser over plain HTTP, with automatic reconnect; simpler than WebSockets when the client doesn't need to push."
+topic: backend/realtime-communication

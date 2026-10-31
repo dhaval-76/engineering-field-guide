@@ -1,0 +1,3 @@
+term: "HTTP/2"
+short: "Multiplexes many request streams over one TCP connection with binary framing and header compression; still subject to TCP head-of-line blocking."
+topic: cs-foundations/networking

@@ -1,0 +1,3 @@
+term: "String pool"
+short: "The JVM's table of interned strings; identical string literals share one object, which is safe because strings are immutable."
+topic: java-runtime/string-immutability

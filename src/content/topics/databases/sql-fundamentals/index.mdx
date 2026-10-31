@@ -52,7 +52,7 @@ Constraints are the last line of defence against application bugs and race condi
 - **Upsert** needs a *unique* target: `ON CONFLICT (sku)`. Conflicting on a generated `id` never fires. MySQL's form is `INSERT … ON DUPLICATE KEY UPDATE`.
 - **`UPDATE … WHERE id = ? AND status = 'PLACED'`** makes the state transition atomic: check the affected-row count, and `0` means someone else changed it first.
 - **`RETURNING`** (PostgreSQL, SQLite, MariaDB) returns generated ids and new values without a second query.
-- An `UPDATE` or `DELETE` without `WHERE` changes every row. Run risky statements inside a transaction and check the count before `COMMIT`.
+- An `UPDATE` or `DELETE` without `WHERE` changes every row. Run risky statements inside a <Term id="transaction">transaction</Term> and check the count before `COMMIT`.
 
 ## How a query is evaluated
 

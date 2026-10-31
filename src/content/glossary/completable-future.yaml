@@ -1,0 +1,3 @@
+term: "CompletableFuture"
+short: "Java's composable future: chain steps (thenApply, thenCompose), combine results (allOf) and handle errors without blocking a thread."
+topic: concurrency/completablefuture

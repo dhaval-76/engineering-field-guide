@@ -20,7 +20,7 @@ lastReviewed: 2026-10-31
 
 ## Why it matters
 
-`synchronized` protects data inside one process. With ten instances of a service, a scheduled job runs ten times, and two requests for the same account can run on different machines. Distributed locks look like the fix, but they fail in subtle ways: processes pause, clocks drift, networks partition. Interviewers like this topic because naive answers ("use Redis SETNX") hide real bugs.
+`synchronized` protects data inside one process. With ten instances of a service, a scheduled job runs ten times, and two requests for the same account can run on different machines. Distributed locks look like the fix, but they fail in subtle ways: processes pause, clocks drift, networks partition. Interviewers like this topic because naive answers ("use <Term id="redis">Redis</Term> SETNX") hide real bugs.
 
 <Callout type="analogy">
 A meeting-room booking with a time limit. You book the room until 3 pm; if you forget to leave, the next team can take it at 3. That's what stops a no-show from blocking the room forever — and also why, if your meeting overruns without you noticing, you suddenly share the room with someone else. A fencing token is the receptionist checking the latest booking number before letting anyone use the projector.
@@ -43,7 +43,7 @@ A meeting-room booking with a time limit. You book the room until 3 pm; if you f
 Rules that matter:
 
 - **Unique token per acquisition**, and release with a compare-and-delete script — otherwise you can delete a lock that expired and was taken by someone else.
-- **TTL longer than the work**, or extend it with a heartbeat while working; stop working if an extend fails.
+- **<Term id="ttl">TTL</Term> longer than the work**, or extend it with a <Term id="heartbeat">heartbeat</Term> while working; stop working if an extend fails.
 - **Single Redis node** = single point of failure; with replication, a failover can lose a just-acquired lock (replication is asynchronous).
 
 ## Fencing tokens
@@ -70,7 +70,7 @@ Any lease-based lock can have two holders at once from the holders' point of vie
 
 1. **Classify**: if two holders would only waste work, a Redis lease is fine. If they'd corrupt data or double-charge, you need fencing and a strongly consistent lock — or a design without a lock.
 2. **Bound the work** by the lease: extend with heartbeats and abort when you lose the lease.
-3. **Make the work idempotent** anyway — locks reduce duplicates, they don't eliminate them.
+3. **Make the work <Term id="idempotency">idempotent</Term>** anyway — locks reduce duplicates, they don't eliminate them.
 4. **Monitor** acquisition latency, contention and lease losses.
 
 </Steps>
@@ -88,7 +88,7 @@ Any lease-based lock can have two holders at once from the holders' point of vie
 
 <KeyTakeaways>
 
-- Prefer designs that don't need locks: idempotency, optimistic concurrency, constraints, single-owner partitions.
+- Prefer designs that don't need locks: idempotency, <Term id="optimistic-locking">optimistic concurrency</Term>, constraints, single-owner partitions.
 - Distributed locks are leases; leases can be lost silently.
 - Owner-checked release, TTL plus heartbeat, and fencing tokens checked by the resource.
 - Redis for efficiency locks; databases or consensus systems for correctness.

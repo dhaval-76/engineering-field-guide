@@ -1,0 +1,3 @@
+term: "Cohesion"
+short: "How closely the parts of a class or module belong together. High cohesion means one clear purpose; it pairs with low coupling."
+topic: oop-patterns/solid

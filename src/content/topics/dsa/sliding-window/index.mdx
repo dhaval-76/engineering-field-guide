@@ -60,7 +60,7 @@ Two indices mark the window `[left, right]`. The loop always moves `right` forwa
 
 </Steps>
 
-**Why it's O(n) even with a nested `while`:** `left` only moves forward and never passes `right`, so across the whole run it moves at most n times. The inner loop's total work is bounded by n, not by n per step. This is an **amortised** argument — some steps do a lot of shrinking, but the total is linear.
+**Why it's O(n) even with a nested `while`:** `left` only moves forward and never passes `right`, so across the whole run it moves at most n times. The inner loop's total work is bounded by n, not by n per step. This is an **<Term id="amortized">amortised</Term>** argument — some steps do a lot of shrinking, but the total is linear.
 
 **Why it's correct:** for every `right`, the loop finds the *smallest* `left` that makes the window valid. Because the condition is monotone, any window ending at `right` that starts earlier than that `left` is invalid, and any that starts later is shorter. So the longest valid window ending at each `right` is seen exactly once — and the overall longest is among them.
 
@@ -170,7 +170,7 @@ To **count** windows instead of measuring them, note that once `[left, right]` i
 - **Shortest subarray with sum ≥ target** (positive numbers) — shrink while valid, like minimum window.
 - **Max consecutive ones with k flips** — window valid while it contains ≤ k zeros.
 - **Fruit into baskets** — at most 2 distinct values.
-- **Subarray sum equals k with negative numbers** — *not* a window: use prefix sums and a hash map ([Arrays, hashing and prefix sums](../arrays-and-hashing/)).
+- **Subarray sum equals k with negative numbers** — *not* a window: use <Term id="prefix-sum">prefix sums</Term> and a hash map ([Arrays, hashing and prefix sums](../arrays-and-hashing/)).
 - **Shortest subarray with sum ≥ k with negatives** — prefix sums plus a monotonic deque.
 
 ## Talking through it in an interview

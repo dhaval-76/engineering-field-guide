@@ -24,7 +24,7 @@ lastReviewed: 2026-10-31
 One database server is one failure away from an outage, and one machine's CPU away from a read bottleneck. Replication keeps copies of the data on other machines so that a replica can take over, serve reads, or sit closer to users. Every copy, though, is a little behind — and most of the subtle bugs in replicated systems are a user reading from a copy that hasn't caught up.
 
 <Callout type="analogy">
-A head chef (leader) writes every recipe change in a notebook, and assistants (followers) copy the notebook into their own. Customers can ask any assistant for a recipe — but an assistant who hasn't copied the latest page will give the old version. If the head chef falls ill, an assistant takes over; if the old chef comes back and keeps writing changes too, you have two head chefs and a mess (split brain).
+A head chef (leader) writes every recipe change in a notebook, and assistants (followers) copy the notebook into their own. Customers can ask any assistant for a recipe — but an assistant who hasn't copied the latest page will give the old version. If the head chef falls ill, an assistant takes over; if the old chef comes back and keeps writing changes too, you have two head chefs and a mess (<Term id="split-brain">split brain</Term>).
 </Callout>
 
 ## Leader-follower replication
@@ -84,7 +84,7 @@ Dynamo-style stores (Cassandra, ScyllaDB, Riak; DynamoDB's internal design is re
 <CodeTabs id="quorum" title="Quorums in Cassandra, and what N, W and R buy you" />
 
 - **W + R > N** → the read set and write set overlap in at least one replica, so a read sees the latest acknowledged write (with caveats: concurrent writes, sloppy quorums, failed writes that partially applied).
-- N = 3, W = 2, R = 2 tolerates one node down for both reads and writes. W = 1, R = 1 is fastest and eventually consistent.
+- N = 3, W = 2, R = 2 tolerates one node down for both reads and writes. W = 1, R = 1 is fastest and <Term id="eventual-consistency">eventually consistent</Term>.
 - Replicas converge through **read repair** (fix stale replicas seen during reads), **hinted handoff** (a neighbour holds writes for a down node) and **anti-entropy** (background Merkle-tree comparison).
 
 ## Physical vs logical replication
@@ -95,7 +95,7 @@ Dynamo-style stores (Cassandra, ScyllaDB, Riak; DynamoDB's internal design is re
 | Replica | exact copy, read-only, same major version | any subscriber; subset of tables; other versions |
 | Used for | standbys, read replicas, failover | major-version upgrades, migrations between databases, **CDC** into Kafka (Debezium), search indexes and caches |
 
-**Change data capture** turns the replication stream into events, which is the reliable way to keep caches, search indexes and other services in sync with the database without dual writes.
+**<Term id="cdc">Change data capture</Term>** turns the replication stream into events, which is the reliable way to keep caches, search indexes and other services in sync with the database without dual writes.
 
 <Pitfalls>
 

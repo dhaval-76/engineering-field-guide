@@ -1,0 +1,3 @@
+term: "Saga"
+short: "A long business transaction split into local steps across services, each with a compensating action that undoes it if a later step fails."
+topic: distributed-systems/saga-and-outbox

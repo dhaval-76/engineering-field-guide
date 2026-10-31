@@ -1,0 +1,3 @@
+term: "Context switch"
+short: "The OS saving one thread's registers and loading another's so it can run. Costs microseconds plus cold caches, which is why too many threads hurt."
+topic: cs-foundations/operating-systems

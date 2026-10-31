@@ -1,0 +1,3 @@
+term: "Young generation"
+short: "The heap area for new objects. Most die young, so it is collected often and cheaply; survivors are promoted to the old generation."
+topic: java-runtime/garbage-collection

@@ -1,0 +1,3 @@
+term: "Lease"
+short: "A lock or role granted for a limited time; the holder must renew it, so a crashed holder's claim expires on its own."
+topic: distributed-systems/distributed-locks

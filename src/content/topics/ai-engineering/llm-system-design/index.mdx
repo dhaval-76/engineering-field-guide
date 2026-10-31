@@ -21,7 +21,7 @@ lastReviewed: 2026-10-30
 ## Why it matters
 
 Calling a model API from one script is easy. Running LLM features for millions of users is a different problem:
-- **Every request costs money in proportion to its tokens.** A careless prompt that drags in the whole chat history can cost ten times more than a trimmed one.
+- **Every request costs money in proportion to its <Term id="token">tokens</Term>.** A careless prompt that drags in the whole chat history can cost ten times more than a trimmed one.
 - **Latency is seconds, not milliseconds**, so streaming and asynchronous work become part of the design.
 - **Providers have outages and rate limits** that you don't control.
 - **Quality can silently get worse** when a prompt, a model version or the retrieved data changes.
@@ -54,7 +54,7 @@ Example: an AI assistant inside a SaaS product (answers questions over the custo
 
 <Steps>
 
-1. **Assistant API** authenticates, loads the conversation, and opens a **server-sent events** stream to the client.
+1. **Assistant API** authenticates, loads the conversation, and opens a **<Term id="sse">server-sent events</Term>** stream to the client.
 2. **Orchestrator** selects a prompt template (versioned), retrieves context ([RAG](../rag/)), and runs the tool loop if the model asks for tools ([Agents and tool calling](../agents-and-tool-calling/)).
 3. **LLM gateway** checks the tenant's token budget, picks a model, calls the provider with a timeout, falls back on failure, streams tokens back, and emits a usage event.
 4. **Usage events** feed cost dashboards, per-tenant billing, and a sampled trace store for evaluation.
@@ -77,7 +77,7 @@ Example: an AI assistant inside a SaaS product (answers questions over the custo
 
 ## Streaming and long work
 
-- Stream tokens over SSE (or WebSockets if the client also sends mid-stream) — users judge speed by the first token.
+- Stream tokens over SSE (or <Term id="websocket">WebSockets</Term> if the client also sends mid-stream) — users judge speed by the first token.
 - Generation can take tens of seconds: set generous but finite timeouts at every hop, and make sure load balancers don't cut idle streams.
 - Long jobs (summarise 500 documents) go on a queue with workers and a job status endpoint, not a request thread ([Job scheduler](../../system-design/job-scheduler/)).
 
@@ -104,14 +104,14 @@ Trace each request across retrieval, every model call and every tool call (OpenT
 
 ## Deep dives interviewers like
 
-- **Provider outage** — circuit breaker opens, traffic shifts to the fallback; quality may drop, so flag degraded answers and alert.
+- **Provider outage** — <Term id="circuit-breaker">circuit breaker</Term> opens, traffic shifts to the fallback; quality may drop, so flag degraded answers and alert.
 - **A tenant runs a script that burns the budget** — token-based rate limits per tenant and per user, hard monthly caps, alerts at 80%.
 - **Model upgrade** — run the eval suite, shadow traffic, then a gradual rollout with rollback; pin model versions.
 - **Conversation memory** — keep the last N turns verbatim, summarise older ones, retrieve relevant past messages for very long sessions.
 
 <Pitfalls>
 
-- **Rate limiting by requests only** — token usage varies by orders of magnitude.
+- **<Term id="rate-limiter">Rate limiting</Term> by requests only** — token usage varies by orders of magnitude.
 - **No fallback** — a provider incident becomes your outage.
 - **Semantic caching personalised or permissioned answers** — users see each other's data.
 - **Shipping prompt changes without evals.**

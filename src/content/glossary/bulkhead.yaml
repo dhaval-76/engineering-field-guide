@@ -1,0 +1,3 @@
+term: "Bulkhead"
+short: "Separate pools (threads, connections) per dependency, so one slow dependency can exhaust only its own pool and not the whole service."
+topic: distributed-systems/resilience-patterns

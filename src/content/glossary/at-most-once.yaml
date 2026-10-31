@@ -1,0 +1,3 @@
+term: "At-most-once delivery"
+short: "A message is sent without retries: it is never duplicated but can be lost."
+topic: distributed-systems/kafka-deep-dive

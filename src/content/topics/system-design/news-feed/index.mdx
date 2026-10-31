@@ -30,11 +30,11 @@ A newspaper with personalised editions. Writers' stories can be slipped into eac
 ## Requirements
 
 **Functional**: post text/media; follow users; home feed of followees' posts (ranked or reverse-chronological), infinite scroll; like/comment counts.
-**Non-functional**: 300 M DAU, ~20 feed loads per user per day, ~100 M new posts/day; feed load p99 < 300 ms; a new post visible to followers within seconds; skewed graph (a few accounts with tens of millions of followers).
+**Non-functional**: 300 M DAU, ~20 feed loads per user per day, ~100 M new posts/day; feed load <Term id="p99">p99</Term> < 300 ms; a new post visible to followers within seconds; skewed graph (a few accounts with tens of millions of followers).
 
 ## Estimates
 
-Feed reads ≈ 6 B/day ≈ 70,000/s (peaks 3–5×). Posts ≈ 1,200/s. If the average account has 200 followers, push fan-out = 1,200 × 200 ≈ 240,000 feed inserts/s — fine — but one post by an account with 50 M followers is 50 M inserts on its own. Feed cache: 300 M users × 800 ids × 8 bytes ≈ 2 TB of RAM across a Redis cluster (only active users need cached feeds).
+Feed reads ≈ 6 B/day ≈ 70,000/s (peaks 3–5×). Posts ≈ 1,200/s. If the average account has 200 followers, push fan-out = 1,200 × 200 ≈ 240,000 feed inserts/s — fine — but one post by an account with 50 M followers is 50 M inserts on its own. Feed cache: 300 M users × 800 ids × 8 bytes ≈ 2 TB of RAM across a <Term id="redis">Redis</Term> cluster (only active users need cached feeds).
 
 ## High-level design
 
@@ -57,7 +57,7 @@ Refinements: skip fan-out to users inactive for 30+ days (rebuild on their retur
 
 <CodeTabs id="feed-model" title="Posts, follows and the feed cache" />
 
-- **Posts** in a store partitioned by author (Cassandra/DynamoDB or sharded SQL), media in object storage behind a CDN.
+- **Posts** in a store partitioned by author (Cassandra/DynamoDB or <Term id="sharding">sharded</Term> SQL), media in object storage behind a <Term id="cdn">CDN</Term>.
 - **Follow graph**: two tables (followers of X, followees of X) for both directions of lookup.
 - **Feed cache**: a Redis sorted set per user of post ids scored by time (or rank), trimmed to a bounded length. The cache is derived data — it can always be rebuilt from follows + posts.
 
@@ -99,7 +99,7 @@ Interviewers almost always ask "what happens when X goes down?". Decide the degr
 
 - Hybrid fan-out: push for most accounts, pull for celebrities, merge on read.
 - Feed caches of ids are derived and rebuildable; hydrate in batches.
-- Cursor pagination; filter deletions and blocks at read time.
+- <Term id="cursor-pagination">Cursor pagination</Term>; filter deletions and blocks at read time.
 - Counts are approximate and sharded; ranking happens after candidate retrieval.
 
 </KeyTakeaways>

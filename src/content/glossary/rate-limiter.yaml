@@ -1,0 +1,3 @@
+term: "Rate limiter"
+short: "Caps how many requests a client may make per time window (token bucket, sliding window), protecting services from overload and abuse."
+topic: system-design/distributed-rate-limiter

@@ -1,0 +1,3 @@
+term: "Isolation level"
+short: "How much concurrent transactions can see of each other: read uncommitted, read committed, repeatable read, serializable. Stronger levels prevent more anomalies."
+topic: databases/transactions-isolation

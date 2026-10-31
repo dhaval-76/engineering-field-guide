@@ -22,7 +22,7 @@ lastReviewed: 2026-10-31
 
 > "You're building a payment service where many transactions are processed concurrently. How do you make account balance updates thread-safe?"
 
-It tests whether you can spot the race, whether you know that application-level locks stop working when there are several instances, and whether you can weigh database locking strategies, retries and idempotency like someone who has run such a system.
+It tests whether you can spot the race, whether you know that application-level locks stop working when there are several instances, and whether you can weigh database locking strategies, retries and <Term id="idempotency">idempotency</Term> like someone who has run such a system.
 
 <Callout type="analogy">
 Two cashiers at different branches both look up the same joint account on their screens, see enough money, and each hand out cash. Each followed the rules; the problem is that both decisions were made on a number that was already out of date.
@@ -54,7 +54,7 @@ The database takes a row lock for the update, so concurrent debits of the same a
 
 ## Fix 2: pessimistic locking (multi-row or complex rules)
 
-When the decision needs more than one statement — a transfer between two accounts, limits, fees, fraud rules — lock the rows first and keep the transaction short.
+When the decision needs more than one statement — a transfer between two accounts, limits, fees, fraud rules — lock the rows first and keep the <Term id="transaction">transaction</Term> short.
 
 <CodeTabs id="payment-pessimistic" title="SELECT … FOR UPDATE in a consistent order" />
 
@@ -71,21 +71,21 @@ When the decision needs more than one statement — a transfer between two accou
 
 ## Beyond locking
 
-- **Idempotency.** Clients and gateways retry on timeouts. Without an idempotency key, a retried request debits twice even with perfect locking.
+- **Idempotency.** Clients and gateways retry on timeouts. Without an <Term id="idempotency-key">idempotency key</Term>, a retried request debits twice even with perfect locking.
 
 <CodeTabs id="payment-idempotency" title="Idempotency key: one execution per key" />
 
-- **Ledger, not just a balance.** Write an immutable entry for each movement (double-entry: debit one account, credit another) in the same transaction; the balance is derived or reconciled from it. That gives you an audit trail and a way to detect mistakes.
+- **Ledger, not just a balance.** Write an <Term id="immutable">immutable</Term> entry for each movement (double-entry: debit one account, credit another) in the same transaction; the balance is derived or reconciled from it. That gives you an audit trail and a way to detect mistakes.
 - **Money types.** `BigDecimal` with an explicit scale and rounding mode, or integer minor units (paise, cents). Never `double`.
 - **Hot accounts.** One very busy account (a merchant receiving thousands of payments a second) turns its row lock into a bottleneck: split it into sub-accounts or buffer credits and apply them in batches.
-- **Across services.** When the debit and the order live in different services, a single transaction isn't available: use a saga with compensations and the outbox pattern for events.
+- **Across services.** When the debit and the order live in different services, a single transaction isn't available: use a <Term id="saga">saga</Term> with compensations and the <Term id="outbox">outbox</Term> pattern for events.
 
 <Pitfalls>
 
 - **`synchronized` or a `ConcurrentHashMap` of locks** as the main defence in a horizontally scaled service.
 - **Read in one transaction, write in another** — the check is stale by the time you write.
 - **Long transactions holding row locks** while calling external payment providers. Reserve funds, commit, call out, then confirm or release.
-- **Retrying optimistic failures without a limit or jitter**.
+- **Retrying optimistic failures without a limit or <Term id="jitter">jitter</Term>**.
 - **No idempotency** on payment endpoints.
 
 </Pitfalls>

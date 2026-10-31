@@ -25,7 +25,7 @@ lastReviewed: 2026-10-31
 Without an index, `WHERE email = 'asha@example.com'` reads every row of the table. That's fine for 1,000 rows and a disaster for 50 million. The right index turns seconds into milliseconds; the wrong ones slow every write, waste memory and still don't get used. Most "the database is slow" incidents end with one well-designed index — or with removing a function call that stopped an existing one from being used.
 
 <Callout type="analogy">
-The index at the back of a textbook: terms in alphabetical order, each with page numbers. You don't read the book to find "deadlock" — you jump to D, find the entry, go to page 212. A composite index is like a phone book sorted by surname, then first name: great for "Smith, John", useless for "everyone called John".
+The index at the back of a textbook: terms in alphabetical order, each with page numbers. You don't read the book to find "<Term id="deadlock">deadlock</Term>" — you jump to D, find the entry, go to page 212. A composite index is like a phone book sorted by surname, then first name: great for "Smith, John", useless for "everyone called John".
 </Callout>
 
 ## How a B-tree index works

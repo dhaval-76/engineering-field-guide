@@ -21,13 +21,13 @@ lastReviewed: 2026-10-31
 
 ## Why it matters
 
-An ORM lets you work with objects instead of rows, but it doesn't remove the database — it decides *when* and *how many* SQL statements run on your behalf. Most JPA production incidents come from not knowing those decisions: a page that fires 300 queries (N+1), a `LazyInitializationException` in a JSON serializer, an update nobody "saved" that still hit the database, or a lost update because two requests read the same row. Once you understand the persistence context, every one of these becomes predictable.
+An ORM lets you work with objects instead of rows, but it doesn't remove the database — it decides *when* and *how many* SQL statements run on your behalf. Most JPA production incidents come from not knowing those decisions: a page that fires 300 queries (N+1), a `LazyInitializationException` in a JSON serializer, an update nobody "saved" that still hit the database, or a <Term id="lost-update">lost update</Term> because two requests read the same row. Once you understand the persistence context, every one of these becomes predictable.
 
 <Callout type="analogy">
 The persistence context is a waiter's notepad. The first time you ask for a dish, the waiter goes to the kitchen (a `SELECT`) and writes it down; ask again and they read from the notepad. Change your order and they just amend the note — the kitchen hears about every amendment in one trip when the waiter next goes back (the **flush**), at the latest when you pay (the **commit**).
 </Callout>
 
-**Terms used here.** *JPA* (Jakarta Persistence) is the specification and its annotations (`@Entity`, `EntityManager`). *Hibernate* is the most common implementation. *Spring Data JPA* adds repository interfaces on top. In Spring, one transaction = one `EntityManager` = one persistence context.
+**Terms used here.** *JPA* (Jakarta Persistence) is the specification and its annotations (`@Entity`, `EntityManager`). *Hibernate* is the most common implementation. *Spring Data JPA* adds repository interfaces on top. In Spring, one <Term id="transaction">transaction</Term> = one `EntityManager` = one persistence context.
 
 ## The persistence context
 
@@ -40,7 +40,7 @@ Three behaviours follow from it:
 - **Write-behind.** `persist()` and setters don't run SQL immediately; statements are queued and sent at **flush**: before commit, before a query whose results could be affected (flush mode `AUTO`), or when you call `flush()` explicitly.
 
 <Callout type="tip">
-`@Transactional(readOnly = true)` on read-only service methods lets Hibernate skip snapshots and dirty checking entirely, and lets Spring route the connection to a read replica if you've set that up.
+`@Transactional(readOnly = true)` on read-only service methods lets Hibernate skip snapshots and dirty checking entirely, and lets Spring route the connection to a <Term id="read-replica">read replica</Term> if you've set that up.
 </Callout>
 
 ## Entity states
@@ -148,7 +148,7 @@ Two requests that read the same row and both write back produce a **lost update*
 
 <CodeTabs id="jpa-l2-cache" title="Enabling the L2 cache for reference data" />
 
-The L2 cache pays off for small, read-mostly reference data looked up by id (countries, currencies, plans). It is the wrong tool for frequently-updated rows, and it has two traps: with several app instances, each JVM has its own copy unless you use a clustered provider (Infinispan, Hazelcast), and any write that bypasses Hibernate — another service, a migration, a bulk query — leaves it stale. For most caching needs an explicit cache in front of the service (see [Idempotency](../idempotency/)'s Redis usage, or a cache-aside layer) is easier to reason about.
+The L2 cache pays off for small, read-mostly reference data looked up by id (countries, currencies, plans). It is the wrong tool for frequently-updated rows, and it has two traps: with several app instances, each JVM has its own copy unless you use a clustered provider (Infinispan, Hazelcast), and any write that bypasses Hibernate — another service, a migration, a bulk query — leaves it stale. For most caching needs an explicit cache in front of the service (see [Idempotency](../idempotency/)'s <Term id="redis">Redis</Term> usage, or a <Term id="cache-aside">cache-aside</Term> layer) is easier to reason about.
 
 <Pitfalls>
 

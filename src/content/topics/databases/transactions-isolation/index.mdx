@@ -104,13 +104,13 @@ The pattern to remember: Repeatable Read protects a row you read **and** write; 
 
 ## Deadlocks and retries
 
-Two transactions that lock the same rows in opposite orders deadlock. The database detects the cycle within about a second (`deadlock_timeout` in PostgreSQL, immediately in InnoDB), aborts one transaction with an error, and lets the other continue. Prevent most deadlocks by **locking in a consistent order** (e.g. by account id — see [Deadlock, livelock and starvation](../../concurrency/deadlock-livelock-starvation/)) and keeping transactions short; handle the rest by retrying.
+Two transactions that lock the same rows in opposite orders <Term id="deadlock">deadlock</Term>. The database detects the cycle within about a second (`deadlock_timeout` in PostgreSQL, immediately in InnoDB), aborts one transaction with an error, and lets the other continue. Prevent most deadlocks by **locking in a consistent order** (e.g. by account id — see [Deadlock, livelock and starvation](../../concurrency/deadlock-livelock-starvation/)) and keeping transactions short; handle the rest by retrying.
 
 <CodeTabs id="retry-transaction" title="Retrying a transaction on serialization failure or deadlock" />
 
 - Retry the **whole transaction** from its first read, never just the failed statement — its earlier reads are stale.
 - Retry only **retryable** errors: SQLSTATE `40001` (serialization failure) and `40P01` (deadlock) in PostgreSQL; MySQL error 1213 (deadlock) and 1205 (lock wait timeout).
-- Limit attempts and add jittered backoff. Make side effects (emails, HTTP calls) happen after commit, or idempotent.
+- Limit attempts and add jittered backoff. Make side effects (emails, HTTP calls) happen after commit, or <Term id="idempotency">idempotent</Term>.
 
 ## In Spring
 

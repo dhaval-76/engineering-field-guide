@@ -1,0 +1,3 @@
+term: "Prefix sum"
+short: "prefix[i] holds the sum of the first i elements, so any range sum is the difference of two prefixes, in O(1)."
+topic: dsa/arrays-and-hashing

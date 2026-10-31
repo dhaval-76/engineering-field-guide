@@ -21,7 +21,7 @@ lastReviewed: 2026-10-31
 
 ## Why it matters
 
-"Design a class that supports these operations in O(1)" is a favourite interview format because it mirrors real engineering: no single textbook structure meets every requirement, so you **combine** two or three and keep them in sync. That is exactly how production systems are built — an LRU cache is a hash map plus a linked list, Redis sorted sets are a hash map plus a skip list, a database index is a B-tree beside the table, and MVCC databases keep a version history per row and search it by timestamp.
+"Design a class that supports these operations in O(1)" is a favourite interview format because it mirrors real engineering: no single textbook structure meets every requirement, so you **combine** two or three and keep them in sync. That is exactly how production systems are built — an <Term id="lru">LRU</Term> cache is a hash map plus a linked list, <Term id="redis">Redis</Term> sorted sets are a hash map plus a skip list, a database index is a B-tree beside the table, and <Term id="mvcc">MVCC</Term> databases keep a version history per row and search it by timestamp.
 
 The skill being tested is not memorising designs but **deriving** one from the required costs, and handling the update paths (especially deletes) without leaving the structures inconsistent.
 
@@ -34,7 +34,7 @@ A library: the catalogue (hash map) tells you exactly where a book is; the shelv
 <Steps>
 
 1. List every operation with its required time bound.
-2. For each operation, name the structure that gives that bound on its own: hash map for lookup by key, array for random index access, heap for min/max, doubly linked list for O(1) move/remove given a node, sorted list or tree for floor/ceiling/range, trie for prefixes.
+2. For each operation, name the structure that gives that bound on its own: hash map for lookup by key, array for random index access, heap for min/max, doubly linked list for O(1) move/remove given a node, sorted list or tree for floor/ceiling/range, <Term id="trie">trie</Term> for prefixes.
 3. Combine them and decide what each stores — usually the map stores **positions or node references** into the other structure.
 4. Walk through each operation updating **all** structures — especially deletes and overwrites.
 5. State the cost of each operation and the total space; mention concurrency if it's a shared component.
@@ -57,7 +57,7 @@ Redis does the same trick for `SRANDMEMBER` and `SPOP` on sets, which is why ran
 
 **Requirement.** `set(key, value, timestamp)` with timestamps increasing per key; `get(key, t)` returns the value with the largest timestamp ≤ t.
 
-**Derivation.** A map gives the key's history in O(1). Because timestamps only grow, appending keeps each history **already sorted**, and "largest timestamp ≤ t" is a floor query: binary search, O(log h) for a history of length h. This is a tiny version of how multi-version databases answer "read as of snapshot t".
+**Derivation.** A map gives the key's history in O(1). Because timestamps only grow, appending keeps each history **already sorted**, and "largest timestamp ≤ t" is a floor query: <Term id="binary-search">binary search</Term>, O(log h) for a history of length h. This is a tiny version of how multi-version databases answer "read as of snapshot t".
 
 <CodeTabs id="dsa-time-map" title="Time map — per-key sorted history and binary search" />
 

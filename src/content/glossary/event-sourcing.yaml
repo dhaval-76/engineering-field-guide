@@ -1,0 +1,3 @@
+term: "Event sourcing"
+short: "Storing every change as an immutable event and deriving the current state by replaying them, instead of storing only the latest state."
+topic: distributed-systems/event-driven-cqrs

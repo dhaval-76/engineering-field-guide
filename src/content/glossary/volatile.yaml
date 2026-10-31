@@ -1,0 +1,3 @@
+term: "volatile"
+short: "A Java field modifier that makes every write visible to other threads' later reads and prevents reordering around it; it does not make count++ atomic."
+topic: concurrency/volatile-and-synchronized

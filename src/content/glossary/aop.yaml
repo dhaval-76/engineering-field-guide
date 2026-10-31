@@ -1,0 +1,3 @@
+term: "AOP"
+short: "Aspect-oriented programming: adding cross-cutting behaviour (transactions, logging, security) around methods via proxies, without editing them."
+topic: backend/spring-aop

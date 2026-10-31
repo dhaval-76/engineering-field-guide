@@ -1,0 +1,3 @@
+term: "Call stack"
+short: "The per-thread stack of frames for active method calls, holding local variables. Deep recursion overflows it (StackOverflowError)."
+topic: java-runtime/data-types-and-memory

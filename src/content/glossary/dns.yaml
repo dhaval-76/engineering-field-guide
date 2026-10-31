@@ -1,0 +1,3 @@
+term: "DNS"
+short: "The Domain Name System: resolves names like example.com to IP addresses through a hierarchy of cached lookups with time-to-live values."
+topic: cs-foundations/networking

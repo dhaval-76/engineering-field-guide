@@ -30,11 +30,11 @@ A cloakroom ticket for web addresses. You hand over a long address and get a sho
 ## Requirements
 
 **Functional**: create a short link for a long URL (optionally with a custom alias and expiry); redirect `GET /{code}` to the long URL; basic click analytics; users can list and delete their links.
-**Non-functional**: 100 M new links/day, 10 B redirects/day; redirect p99 under ~50 ms; very high availability for redirects (a broken link is a broken page for someone else); links last years; codes shouldn't be guessable in sequence.
+**Non-functional**: 100 M new links/day, 10 B redirects/day; redirect <Term id="p99">p99</Term> under ~50 ms; very high availability for redirects (a broken link is a broken page for someone else); links last years; codes shouldn't be guessable in sequence.
 
 ## Estimates
 
-Writes ≈ 1,200/s (peak ~3,000); reads ≈ 115,000/s (peak ~350,000). Storage ≈ 100 M × ~500 B = 50 GB/day → ~90 TB over five years. A day's hot links (~20%) ≈ 10 GB → fits in Redis. ([Worked through in the estimation topic](../approach-and-estimation/).)
+Writes ≈ 1,200/s (peak ~3,000); reads ≈ 115,000/s (peak ~350,000). Storage ≈ 100 M × ~500 B = 50 GB/day → ~90 TB over five years. A day's hot links (~20%) ≈ 10 GB → fits in <Term id="redis">Redis</Term>. ([Worked through in the estimation topic](../approach-and-estimation/).)
 
 ## API
 
@@ -74,7 +74,7 @@ DELETE /api/links/{code}
 
 ## Deep dives
 
-**Caching**: cache-aside in Redis keyed by code with a TTL; negative-cache unknown codes briefly to stop scans from hitting the database; CDN caching of redirects (`Cache-Control: public, max-age=…`) for very popular links, accepting that analytics then undercount and deletions take effect after the TTL.
+**Caching**: <Term id="cache-aside">cache-aside</Term> in Redis keyed by code with a <Term id="ttl">TTL</Term>; negative-cache unknown codes briefly to stop scans from hitting the database; <Term id="cdn">CDN</Term> caching of redirects (`Cache-Control: public, max-age=…`) for very popular links, accepting that analytics then undercount and deletions take effect after the TTL.
 
 **301 vs 302**: a 301 (permanent) is cached by browsers, so repeat visits never reach you — cheap but invisible. A 302/307 makes every visit hit you (or your CDN) — accurate analytics, more load. Most commercial shorteners use 302 for that reason.
 
@@ -99,7 +99,7 @@ Interviewers almost always ask "what happens when X goes down?". Decide the degr
 
 - **Synchronous analytics writes** in the redirect path.
 - **Sequential codes** — anyone can enumerate every link.
-- **Truncated hashes without collision handling.**
+- **Truncated hashes without <Term id="hash-collision">collision</Term> handling.**
 - **301 redirects when analytics are a requirement.**
 - **Caching deleted or expired links** with long TTLs and no invalidation.
 - **One global counter** as a single point of failure.

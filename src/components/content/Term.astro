@@ -16,11 +16,11 @@ const more = entry.data.topic ? topicUrl(entry.data.topic.id) : url(`glossary/#$
 <button type="button" class="term" popovertarget={pid} style={`anchor-name: --${pid}`}>
   <slot>{entry.data.term}</slot>
 </button>
-<div id={pid} popover class="term-pop" style={`position-anchor: --${pid}`}>
+<span id={pid} popover class="term-pop" data-pagefind-ignore style={`position-anchor: --${pid}`}>
   <strong>{entry.data.term}</strong>
   <span>{entry.data.short}</span>
   <a href={more}>Read more →</a>
-</div>
+</span>
 
 <style>
   .term {

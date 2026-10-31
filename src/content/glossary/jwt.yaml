@@ -1,0 +1,3 @@
+term: "JWT"
+short: "JSON Web Token: a signed, base64url-encoded set of claims. Servers verify the signature without a lookup, which also makes early revocation hard."
+topic: backend/authn-authz

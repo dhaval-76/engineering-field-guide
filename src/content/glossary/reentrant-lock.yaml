@@ -1,0 +1,3 @@
+term: "ReentrantLock"
+short: "An explicit Java lock with tryLock, timeouts, interruptible waiting and optional fairness; the same thread may acquire it again."
+topic: concurrency/volatile-and-synchronized

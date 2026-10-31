@@ -1,0 +1,3 @@
+term: "Embedding"
+short: "A list of numbers representing the meaning of a text (or image); similar meanings have nearby vectors, measured by cosine similarity."
+topic: ai-engineering/rag

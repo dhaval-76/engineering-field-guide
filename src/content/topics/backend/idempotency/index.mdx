@@ -20,7 +20,7 @@ lastReviewed: 2026-10-31
 
 ## Why it matters
 
-A client sends "charge ₹500", the server charges the card, and the response is lost to a timeout. From the client's side, the charge may or may not have happened. Retrying risks charging twice; not retrying risks never charging. Mobile networks, load balancers, gateways and SDKs all retry automatically, and message brokers redeliver. The only robust answer is to make the operation **idempotent**: repeating it has no additional effect. "Exactly once" in distributed systems is really *at-least-once delivery plus idempotent processing*.
+A client sends "charge ₹500", the server charges the card, and the response is lost to a timeout. From the client's side, the charge may or may not have happened. Retrying risks charging twice; not retrying risks never charging. Mobile networks, load balancers, gateways and SDKs all retry automatically, and message brokers redeliver. The only robust answer is to make the operation **idempotent**: repeating it has no additional effect. "Exactly once" in distributed systems is really *<Term id="at-least-once">at-least-once</Term> delivery plus idempotent processing*.
 
 <Callout type="analogy">
 A lift button. Pressing it five times calls the lift once. A vending machine without that property would hand out five drinks — so it gives each purchase a receipt number and refuses to dispense twice for the same receipt.
@@ -48,11 +48,11 @@ Idempotency is about **state**, not identical responses.
 
 The decisions that make it correct:
 
-1. **Claim atomically.** "Check if the key exists, then process" races: two concurrent retries both see "not found". Insert first and let a unique constraint (or Redis `SET NX`) pick one winner.
+1. **Claim atomically.** "Check if the key exists, then process" races: two concurrent retries both see "not found". Insert first and let a unique constraint (or <Term id="redis">Redis</Term> `SET NX`) pick one winner.
 2. **Store the outcome with the effect.** Writing the result in the same database transaction as the business change means they can't disagree after a crash.
 3. **Store final outcomes only.** Success and business rejections (card declined) are replayed; unexpected 5xx failures release the key so a retry can run again.
 4. **Detect misuse.** Hash the request body; the same key with a different body is a client bug → 422.
-5. **Concurrent duplicates.** A second request while the first is still running gets 409 with `Retry-After`; a claim older than its lease (`locked_until`) can be taken over after a crash.
+5. **Concurrent duplicates.** A second request while the first is still running gets 409 with `Retry-After`; a claim older than its <Term id="lease">lease</Term> (`locked_until`) can be taken over after a crash.
 6. **Scope and expiry.** Unique per client (or per API key); purge after the retry window — 24 hours is typical.
 7. **Key generation.** The client generates a UUID per *logical operation* and reuses it for every retry of that operation — not a new key per HTTP attempt.
 
@@ -74,7 +74,7 @@ Client-generated ids (`PUT /orders/{uuid}` or `POST` with an `id` in the body pl
 
 <CodeTabs id="idem-consumer" title="Deduplicating at-least-once message delivery" />
 
-Brokers redeliver after consumer crashes, rebalances and timeouts, and producers may publish twice on retry (Kafka's idempotent producer prevents duplicates within a partition, but not end to end). Every consumer with side effects needs a dedupe key — the event id — recorded atomically with the effect. When an operation spans services, pass a key downstream (e.g. `orderId:charge`) so every step is idempotent and a saga can be retried safely.
+Brokers redeliver after consumer crashes, rebalances and timeouts, and producers may publish twice on retry (Kafka's idempotent producer prevents duplicates within a <Term id="partition">partition</Term>, but not end to end). Every consumer with side effects needs a dedupe key — the event id — recorded atomically with the effect. When an operation spans services, pass a key downstream (e.g. `orderId:charge`) so every step is idempotent and a <Term id="saga">saga</Term> can be retried safely.
 
 <Pitfalls>
 
@@ -92,6 +92,6 @@ Brokers redeliver after consumer crashes, rebalances and timeouts, and producers
 - Timeouts make retries unavoidable; idempotency makes them safe.
 - Keys: atomic claim, outcome stored with the effect, replay on repeat, 409/422 for in-progress or misuse, expiry.
 - Prefer naturally idempotent operations (absolute sets, upserts, conditional transitions).
-- At-least-once delivery + idempotent consumers ≈ exactly-once effects.
+- At-least-once delivery + idempotent consumers ≈ <Term id="exactly-once">exactly-once</Term> effects.
 
 </KeyTakeaways>

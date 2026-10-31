@@ -36,7 +36,7 @@ Looking for a value in a million sorted items by scanning takes up to a million 
   caption="Log scale. Doubling the data adds one comparison to binary search and doubles a linear scan."
 />
 
-But the real power isn't "find a number in a sorted array". Binary search finds the **boundary of any yes/no question whose answer flips exactly once** — the first version with a bug (`git bisect`), the smallest machine size that meets a deadline, the first timestamp after a given offset in a Kafka index. Recognising that shape is the skill interviewers test.
+But the real power isn't "find a number in a sorted array". Binary search finds the **boundary of any yes/no question whose answer flips exactly once** — the first version with a bug (`git bisect`), the smallest machine size that meets a deadline, the first timestamp after a given <Term id="offset">offset</Term> in a Kafka index. Recognising that shape is the skill interviewers test.
 
 <Callout type="analogy">
 Guessing a number between 1 and 1,000 with "higher/lower" hints. Always guess the middle: at most 10 guesses, because each guess throws away half of what's left. Binary search on the answer is the same game with a different question — "is a ship of capacity 15 enough?" instead of "is the number above 500?".
@@ -120,7 +120,7 @@ This is one of the hardest common interview problems; the key is to say the inva
 ## Binary search in real systems
 
 - **Database indexes**: a B-tree lookup is a binary search inside each page, repeated down a few levels ([Indexing](../../databases/indexing/)).
-- **Consistent hashing**: finding a key's node is "the first ring position ≥ hash(key)" — a lower bound on a sorted ring (`TreeMap.ceilingKey` in Java) ([Consistent hashing](../../distributed-systems/consistent-hashing/)).
+- **<Term id="consistent-hashing">Consistent hashing</Term>**: finding a key's node is "the first ring position ≥ hash(key)" — a lower bound on a sorted ring (`TreeMap.ceilingKey` in Java) ([Consistent hashing](../../distributed-systems/consistent-hashing/)).
 - **Kafka and LSM storage**: sparse offset/time indexes and SSTable block indexes are searched with binary search, then scanned briefly.
 - **`git bisect`**: finds the first bad commit in log₂(commits) test runs — first-true over history.
 - **Capacity planning**: the smallest instance count that meets a latency target, checked by load tests.

@@ -20,7 +20,7 @@ lastReviewed: 2026-10-31
 
 ## Why it matters
 
-Once each service owns its data, a business action like "place order" touches several databases and a message broker. Distributed transactions (two-phase commit) are slow, block on failures and aren't supported by most brokers and cloud databases. These three patterns are how real systems stay correct anyway — and interviewers expect you to reach for them by name ([Microservices](../microservices/) introduces them; this page goes deeper).
+Once each service owns its data, a business action like "place order" touches several databases and a <Term id="message-broker">message broker</Term>. Distributed <Term id="transaction">transactions</Term> (two-phase commit) are slow, block on failures and aren't supported by most brokers and cloud databases. These three patterns are how real systems stay correct anyway — and interviewers expect you to reach for them by name ([Microservices](../microservices/) introduces them; this page goes deeper).
 
 <Callout type="analogy">
 Booking a trip yourself: flight, hotel, car — three separate companies, no "book all or nothing" button. If the car is unavailable you cancel the hotel and the flight (compensations), possibly paying fees, because you can't un-happen a booking. You also keep a checklist (the saga log) so if you're interrupted you know exactly where you were.
@@ -42,11 +42,11 @@ kafka.send(OrderPlaced); db.save(order)   // DB fails → event for an order tha
 | Polling publisher | Query unpublished rows every ~100 ms | Simple; adds DB load and a little latency |
 | Change data capture (Debezium) | Tail the DB's write-ahead log, publish outbox inserts | Low latency, no polling; another component to run |
 
-Guarantees: **at-least-once** publishing (a crash after send but before marking re-sends) and **per-aggregate ordering** if you key messages by aggregate id and publish in id order. Delete or archive published rows regularly.
+Guarantees: **<Term id="at-least-once">at-least-once</Term>** publishing (a crash after send but before marking re-sends) and **per-aggregate ordering** if you key messages by aggregate id and publish in id order. Delete or archive published rows regularly.
 
 ## The inbox: idempotent consumers
 
-At-least-once delivery means duplicates. The consumer inserts `(consumer, message_id)` into an `inbox` table **in the same transaction** as its business change; a conflict means "already handled". Alternatives: natural idempotency (`UPDATE … SET status = 'SHIPPED' WHERE status = 'PAID'`) or idempotency keys ([Idempotency](../../backend/idempotency/)).
+At-least-once delivery means duplicates. The consumer inserts `(consumer, message_id)` into an `inbox` table **in the same transaction** as its business change; a conflict means "already handled". Alternatives: natural <Term id="idempotency">idempotency</Term> (`UPDATE … SET status = 'SHIPPED' WHERE status = 'PAID'`) or idempotency keys ([Idempotency](../../backend/idempotency/)).
 
 ## Sagas
 

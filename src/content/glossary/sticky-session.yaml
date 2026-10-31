@@ -1,0 +1,3 @@
+term: "Sticky sessions"
+short: "A load balancer sending a client's requests to the same server each time. Simple for in-memory state, but uneven load and lost state when that server dies."
+topic: distributed-systems/load-balancing

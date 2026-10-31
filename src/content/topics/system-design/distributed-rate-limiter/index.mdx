@@ -21,7 +21,7 @@ lastReviewed: 2026-10-31
 
 ## Why it matters
 
-Rate limits protect services from overload and abuse and enforce what each customer pays for. On one server a counter in memory is enough; with dozens of instances behind a load balancer, each instance only sees a slice of the traffic, so the limit has to be shared — usually through a fast central store — without making every request wait on it. The design questions are where to enforce, how to count accurately (fixed windows allow bursts at the boundary), how to stay fast for hot keys, and what to do when the shared store itself is down.
+Rate limits protect services from overload and abuse and enforce what each customer pays for. On one server a counter in memory is enough; with dozens of instances behind a <Term id="load-balancer">load balancer</Term>, each instance only sees a slice of the traffic, so the limit has to be shared — usually through a fast central store — without making every request wait on it. The design questions are where to enforce, how to count accurately (fixed windows allow bursts at the boundary), how to stay fast for <Term id="hot-partition">hot keys</Term>, and what to do when the shared store itself is down.
 
 <Callout type="analogy">
 A nightclub with several entrances and one occupancy limit. Each door has a bouncer; if they only count their own door, the club overfills. They need a shared clicker — and a plan for what to do if the clicker breaks: keep letting people in (fail open) or stop at the doors (fail closed).
@@ -32,7 +32,7 @@ A nightclub with several entrances and one occupancy limit. Each door has a boun
 **Functional**: limit requests per key (API key, user, tenant, IP, endpoint) by rules such as "100 per minute" or "10 per second with bursts of 20"; different limits per plan; tell clients when to retry.
 **Non-functional**: decisions in about a millisecond (it's on every request); consistent across dozens of instances; highly available — the limiter must not become the outage; 100,000+ decisions per second.
 
-The algorithms themselves (token bucket, windows, leaky bucket) are covered in the [LLD rate limiter](../../low-level-design/rate-limiter/); here the question is how to run one across a fleet.
+The algorithms themselves (<Term id="token-bucket">token bucket</Term>, windows, leaky bucket) are covered in the [LLD rate limiter](../../low-level-design/rate-limiter/); here the question is how to run one across a fleet.
 
 ## Where it sits
 
@@ -49,7 +49,7 @@ Most systems combine a coarse edge limit (per IP/API key) with finer in-service 
 
 ## Shared state and atomicity
 
-With 12 gateway instances each allowing "100/min" locally, a client spread across them gets 1,200/min. The counter must be shared — typically Redis (sub-millisecond, atomic operations, TTLs). The read-check-write must be one atomic step, or two instances both see "99" and both allow. A **Lua script** runs atomically inside Redis; using `redis.call('TIME')` inside it avoids errors from callers' clocks disagreeing.
+With 12 gateway instances each allowing "100/min" locally, a client spread across them gets 1,200/min. The counter must be shared — typically <Term id="redis">Redis</Term> (sub-millisecond, atomic operations, TTLs). The read-check-write must be one atomic step, or two instances both see "99" and both allow. A **Lua script** runs atomically inside Redis; using `redis.call('TIME')` inside it avoids errors from callers' clocks disagreeing.
 
 <Walkthrough id="sliding-window" />
 
@@ -57,7 +57,7 @@ With 12 gateway instances each allowing "100/min" locally, a client spread acros
 
 ## Scaling and hot keys
 
-- **Shard by key** across a Redis Cluster; one key's counter lives on one shard.
+- **<Term id="sharding">Shard</Term> by key** across a Redis Cluster; one key's counter lives on one shard.
 - A single very hot key (a big tenant's API key) can saturate a shard. Options: **local token batches** — each instance takes, say, 50 tokens at a time from Redis and spends them locally (fewer round trips, slight over-admission); or **approximate local limiting** — each instance enforces `limit ÷ instances` and periodically reconciles.
 - Pipelines and connection pooling keep per-request latency low; place Redis in the same zone as the gateways.
 
@@ -68,13 +68,13 @@ With 12 gateway instances each allowing "100/min" locally, a client spread acros
 | **Fail-open** | allow requests (optionally with a generous local limit) | user-facing APIs where availability matters most |
 | **Fail-closed** | reject requests | protecting a fragile, expensive dependency or a strict paid quota |
 
-Either way: tight timeouts (a few milliseconds) on the limiter call, a circuit breaker around it, and alerts.
+Either way: tight timeouts (a few milliseconds) on the limiter call, a <Term id="circuit-breaker">circuit breaker</Term> around it, and alerts.
 
 ## Rules, tiers and responses
 
 <CodeTabs id="limiter-rules" title="Rules per plan and endpoint, and the filter that applies them" />
 
-Respond with **429 Too Many Requests**, a `Retry-After` header, and the remaining quota (`X-RateLimit-Limit`/`Remaining`/`Reset`, or the IETF `RateLimit`/`RateLimit-Policy` fields). Clients should back off with jitter.
+Respond with **429 Too Many Requests**, a `Retry-After` header, and the remaining quota (`X-RateLimit-Limit`/`Remaining`/`Reset`, or the IETF `RateLimit`/`RateLimit-Policy` fields). Clients should back off with <Term id="jitter">jitter</Term>.
 
 ## Multi-region
 

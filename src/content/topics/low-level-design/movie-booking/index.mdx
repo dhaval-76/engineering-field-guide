@@ -62,7 +62,7 @@ The protocol:
 <Steps>
 
 1. **Hold** — atomically move every selected seat from AVAILABLE to HELD under one hold id, or none of them. Sorting seat ids keeps lock order consistent (avoids deadlocks when using row locks).
-2. **Pay** — charge with the **hold id as the idempotency key**, so a retried request (double-click, network timeout) never charges twice.
+2. **Pay** — charge with the **hold id as the <Term id="idempotency-key">idempotency key</Term>**, so a retried request (double-click, network timeout) never charges twice.
 3. **Confirm** — move HELD → BOOKED only if the hold is still ours and unexpired. If the hold expired during payment, refund automatically.
 4. **Release** — on payment failure, cancellation or expiry, return seats to AVAILABLE.
 
@@ -82,7 +82,7 @@ The `WHERE status = 'AVAILABLE' …` condition makes each row update a compare-a
 
 <CodeTabs id="movie-redis-hold" title="Seat holds as expiring Redis keys" />
 
-Redis handles very high request rates for hot shows, and keys expire by themselves. The database remains the record of BOOKED seats; Redis only arbitrates short-lived holds.
+<Term id="redis">Redis</Term> handles very high request rates for hot shows, and keys expire by themselves. The database remains the record of BOOKED seats; Redis only arbitrates short-lived holds.
 
 ### Launch-day spikes
 
@@ -90,10 +90,10 @@ For releases where demand is 100× the seats, put a **virtual waiting room** in 
 
 ## Extensions
 
-- **Seat-map freshness** — push seat status changes to viewers over WebSockets, or refresh on selection; the hold step is the authority anyway.
+- **Seat-map freshness** — push seat status changes to viewers over <Term id="websocket">WebSockets</Term>, or refresh on selection; the hold step is the authority anyway.
 - **Cancellation and refunds** — a policy (Strategy) by time before the show; cancelled seats return to inventory.
 - **Offers and coupons** — pricing pipeline applied to the hold total.
-- **Multiplex-level reporting** — read replicas or an analytics store fed by booking events.
+- **Multiplex-level reporting** — <Term id="read-replica">read replicas</Term> or an analytics store fed by booking events.
 
 <Pitfalls>
 
@@ -108,7 +108,7 @@ For releases where demand is 100× the seats, put a **virtual waiting room** in 
 <KeyTakeaways>
 
 - Separate catalogue from per-show inventory; contention is only on `ShowSeat`.
-- Hold all-or-nothing with a TTL, pay with the hold id as the idempotency key, confirm only a valid hold, refund otherwise.
+- Hold all-or-nothing with a <Term id="ttl">TTL</Term>, pay with the hold id as the <Term id="idempotency">idempotency</Term> key, confirm only a valid hold, refund otherwise.
 - Use conditional updates (or Redis `SET NX PX`) as the atomic hold; sort seats to avoid deadlocks.
 - Waiting rooms tame launch spikes; GA events use an atomic counter instead of per-seat holds.
 

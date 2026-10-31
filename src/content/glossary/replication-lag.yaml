@@ -1,0 +1,3 @@
+term: "Replication lag"
+short: "How far a replica is behind the primary. A user may not see their own write if the next read goes to a lagging replica."
+topic: databases/replication

@@ -44,7 +44,7 @@ Everything that isn't one of these is an object, and variables of those types ho
 
 - Each thread has its own **stack** of frames, one per method call, holding local primitives and references. Frames disappear when methods return — no GC needed.
 - **Objects** live on the **heap**, shared by all threads and reclaimed by the garbage collector. An object's primitive fields are stored inside the object, on the heap — "primitives live on the stack" is only true for local variables.
-- The JIT may avoid heap allocation for objects that never escape a method (**escape analysis**), but that's an optimisation, not a rule to rely on.
+- The <Term id="jit">JIT</Term> may avoid heap allocation for objects that never escape a method (**escape analysis**), but that's an optimisation, not a rule to rely on.
 
 Because the heap is shared, objects reachable from several threads need synchronisation; values confined to one thread's stack don't.
 
@@ -71,7 +71,7 @@ Java copies the argument's value into the parameter. For an object that value is
 
 - A **shallow copy** duplicates the outer object but shares the inner ones — changes through one copy appear in the other.
 - A **deep copy** duplicates everything reachable. It's needed only for **mutable** contents.
-- The cheapest deep copy is no copy: make data immutable (records, `List.copyOf`) and share it freely.
+- The cheapest deep copy is no copy: make data <Term id="immutable">immutable</Term> (records, `List.copyOf`) and share it freely.
 
 <Pitfalls>
 

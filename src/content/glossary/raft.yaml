@@ -1,0 +1,3 @@
+term: "Raft"
+short: "A consensus algorithm: an elected leader appends entries to a replicated log and commits them once a majority has stored them. Used by etcd and Kafka's KRaft."
+topic: distributed-systems/consensus-and-leader-election

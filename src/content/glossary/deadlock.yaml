@@ -1,0 +1,3 @@
+term: "Deadlock"
+short: "Two or more threads each wait for a lock another holds, so none can proceed. Prevented by acquiring locks in one global order."
+topic: concurrency/deadlock-livelock-starvation

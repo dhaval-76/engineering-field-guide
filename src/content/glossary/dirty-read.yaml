@@ -1,0 +1,3 @@
+term: "Dirty read"
+short: "Reading another transaction's uncommitted change, which may then be rolled back. Prevented from READ COMMITTED upwards."
+topic: databases/transactions-isolation

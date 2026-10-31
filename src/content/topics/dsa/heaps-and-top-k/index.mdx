@@ -23,7 +23,7 @@ lastReviewed: 2026-10-31
 
 Many problems need the **current best item** over and over while new items keep arriving: the next task to run, the closest unvisited city, the cheapest order in a book, the K most frequent search terms. Sorting after every insertion costs O(n log n) each time. A **heap** keeps the minimum (or maximum) at the top with **O(log n)** inserts and removals and O(1) access to the top — the right tool whenever "give me the best, then let me add more" repeats.
 
-Heaps run inside OS schedulers, timer wheels and delayed-job queues, Dijkstra's shortest paths ([Shortest paths](../shortest-paths/)), the merge step of databases' external sort, and every "top K" dashboard. Java's `PriorityQueue` and Python's `heapq` are binary heaps.
+Heaps run inside OS schedulers, timer wheels and delayed-job queues, <Term id="dijkstra">Dijkstra</Term>'s shortest paths ([Shortest paths](../shortest-paths/)), the merge step of databases' external sort, and every "top K" dashboard. Java's `PriorityQueue` and Python's `heapq` are binary heaps.
 
 <Callout type="analogy">
 A hospital emergency room: patients don't leave in arrival order but by urgency. The triage desk always knows who is most urgent, and a new arrival doesn't force re-sorting everyone — they are slotted in with a few comparisons against the people "above" them.

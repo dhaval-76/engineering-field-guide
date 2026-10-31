@@ -1,0 +1,3 @@
+term: "GIL"
+short: "CPython's global interpreter lock: only one thread runs Python bytecode at a time, so threads help I/O-bound but not CPU-bound work."
+topic: concurrency/event-loop-and-async

@@ -21,7 +21,7 @@ lastReviewed: 2026-10-31
 
 Memory is finite. When a cache is full and a new item arrives, something has to go. **Least Recently Used (LRU)** evicts the item that has gone longest without being read or written. The bet is that what was used recently will be used again soon, which holds for most real traffic: a user who just opened their profile will likely open it again in the next minute.
 
-You meet LRU everywhere: CPU caches, database buffer pools, CDN edges, browser caches and the in-process caches in front of most backend services. It is also one of the most frequently asked coding/LLD problems because it tests whether you can **combine two data structures** so that each covers the other's weakness.
+You meet LRU everywhere: CPU caches, database buffer pools, <Term id="cdn">CDN</Term> edges, browser caches and the in-process caches in front of most backend services. It is also one of the most frequently asked coding/LLD problems because it tests whether you can **combine two data structures** so that each covers the other's weakness.
 
 <Callout type="analogy">
 A desk with room for three books. Every time you read a book you put it on top of the pile. When a fourth book arrives and the desk is full, the book at the bottom of the pile — the one you haven't touched for the longest — goes back to the shelf.
@@ -115,7 +115,7 @@ Start with the simple, correct `synchronized` version, explain why `get` is a wr
 
 ## In production
 
-You rarely hand-roll this in production code. Use a library that also gives you expiry, metrics and protection against a **cache stampede** (many threads missing the same key at once and all hitting the database).
+You rarely hand-roll this in production code. Use a library that also gives you expiry, metrics and protection against a **<Term id="cache-stampede">cache stampede</Term>** (many threads missing the same key at once and all hitting the database).
 
 <CodeTabs id="lru-production" title="Production-grade caches" />
 
@@ -134,6 +134,6 @@ You rarely hand-roll this in production code. Use a library that also gives you 
 - HashMap for O(1) lookup + doubly linked list for O(1) reordering = O(1) LRU.
 - Nodes store their key so eviction can clean up the map.
 - Sentinels make the pointer code short and branch-free.
-- Know the built-in shortcut in your language, and know that production code uses Caffeine / `lru-cache` for thread safety, TTL and stampede protection.
+- Know the built-in shortcut in your language, and know that production code uses Caffeine / `lru-cache` for thread safety, <Term id="ttl">TTL</Term> and stampede protection.
 
 </KeyTakeaways>

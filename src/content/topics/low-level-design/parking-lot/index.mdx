@@ -88,7 +88,7 @@ The last option also fixes performance: instead of scanning thousands of spots p
 <CodeTabs id="parking-free-index" title="O(log n) allocation with a sorted concurrent set per size" />
 
 <Callout type="warning" title="When the lot runs on more than one server">
-Atomic variables only protect memory inside one process. With gates served by several application instances, the claim must happen in shared storage: `UPDATE spots SET vehicle=? WHERE id=? AND vehicle IS NULL` (check the affected-row count), a Redis `SET spot:F1-M7 KA-01 NX`, or by partitioning floors between instances so each owns its spots.
+Atomic variables only protect memory inside one process. With gates served by several application instances, the claim must happen in shared storage: `UPDATE spots SET vehicle=? WHERE id=? AND vehicle IS NULL` (check the affected-row count), a <Term id="redis">Redis</Term> `SET spot:F1-M7 KA-01 NX`, or by partitioning floors between instances so each owns its spots.
 </Callout>
 
 ## Live availability with Observer
@@ -109,7 +109,7 @@ Display boards shouldn't poll every spot. The lot notifies `SpotListener`s on ea
 
 - **Find-then-mark without atomicity** — the classic double-booking bug.
 - **`double` for money** and `toHours()` truncation (`61 minutes → 1 hour`): use integer minutes, round up explicitly, and a money type.
-- **Singleton `ParkingLot` with static access** — makes tests share state. Construct it once and inject it.
+- **<Term id="singleton">Singleton</Term> `ParkingLot` with static access** — makes tests share state. Construct it once and inject it.
 - **A god `ParkingLot`** containing pricing tables, display rendering and payment calls. Keep those behind interfaces.
 - **Recomputing fees at exit** after a rate change — store the fee on the ticket when paid.
 
@@ -119,7 +119,7 @@ Display boards shouldn't poll every spot. The lot notifies `SpotListener`s on ea
 
 - Model spots, vehicles and tickets; make ticket status a small state machine.
 - Spot selection and pricing are strategies; display boards are observers.
-- Make the spot claim atomic (CAS or a concurrent free-spot set); across servers, move the claim into the database or Redis.
+- Make the spot claim atomic (<Term id="cas">CAS</Term> or a concurrent free-spot set); across servers, move the claim into the database or Redis.
 - The same design generalises to any "allocate a typed resource and bill for it" problem.
 
 </KeyTakeaways>

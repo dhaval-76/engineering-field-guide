@@ -1,0 +1,3 @@
+term: "Monotonic stack"
+short: "A stack kept sorted by popping elements that break the order before each push; finds the next greater or smaller element for all items in O(n)."
+topic: dsa/stacks-and-monotonic-stacks

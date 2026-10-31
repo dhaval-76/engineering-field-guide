@@ -1,0 +1,3 @@
+term: "Dual write"
+short: "Writing to two systems (a database and a broker) in one request without a shared transaction; a crash between them leaves them inconsistent. The outbox pattern fixes it."
+topic: distributed-systems/saga-and-outbox

@@ -1,3 +1,4 @@
 term: Temporal locality
 short: Data accessed recently is likely to be accessed again soon — the
   assumption behind LRU caches.
+topic: low-level-design/lru-cache

@@ -1,0 +1,3 @@
+term: "Hot partition"
+short: "One partition or key receiving a disproportionate share of traffic, so it saturates while others sit idle."
+topic: databases/sharding

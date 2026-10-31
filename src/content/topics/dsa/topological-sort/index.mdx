@@ -38,7 +38,7 @@ Getting dressed: socks before shoes, trousers before shoes and belt, shirt befor
 
 ## What a topological order is
 
-Draw an arrow `u → v` for "u must come before v". A topological order lists every node so that all arrows point **forward**. It exists **if and only if the graph has no directed cycle** — such a graph is a DAG (directed acyclic graph). There can be many valid orders; any of them is correct unless the problem asks for a specific one (for example the lexicographically smallest, which uses a min-heap instead of a queue in Kahn's algorithm).
+Draw an arrow `u → v` for "u must come before v". A topological order lists every node so that all arrows point **forward**. It exists **if and only if the graph has no directed cycle** — such a graph is a DAG (directed acyclic graph). There can be many valid orders; any of them is correct unless the problem asks for a specific one (for example the lexicographically smallest, which uses a <Term id="heap">min-heap</Term> instead of a queue in Kahn's algorithm).
 
 ## Kahn's algorithm (BFS on in-degrees)
 
@@ -57,7 +57,7 @@ Draw an arrow `u → v` for "u must come before v". A topological order lists ev
 
 ## DFS with three colours
 
-DFS gives a second, equally O(V + E) method. Colour each node **white** (unvisited), **grey** (on the current DFS path) or **black** (finished, with all its descendants).
+<Term id="dfs">DFS</Term> gives a second, equally O(V + E) method. Colour each node **white** (unvisited), **grey** (on the current DFS path) or **black** (finished, with all its descendants).
 
 - Reaching a **grey** node means you followed an edge back to a node still on your path — a **back edge**, i.e. a cycle. (A plain visited set can't tell this apart from reaching a black node via a different route, which is harmless.)
 - A node turns black only after everything that depends on it has finished, so the **reverse of the finishing order** is a topological order.
@@ -118,7 +118,7 @@ Longest path is NP-hard in general graphs, but easy in a DAG precisely because a
 <KeyTakeaways>
 
 - Topological orders exist exactly for DAGs; there may be several.
-- Kahn's (in-degrees, BFS) detects cycles by count and gives parallel levels.
+- Kahn's (in-degrees, <Term id="bfs">BFS</Term>) detects cycles by count and gives parallel levels.
 - DFS three-colour: an edge to a grey node is a cycle; reverse finishing order is a topological order.
 - In a DAG, the longest weighted path — the critical path — is easy and gives the minimum total time.
 

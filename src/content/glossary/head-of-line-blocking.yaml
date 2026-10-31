@@ -1,0 +1,3 @@
+term: "Head-of-line blocking"
+short: "One slow or lost item at the front of a queue delays everything behind it, e.g. a lost TCP packet stalling all HTTP/2 streams on that connection."
+topic: cs-foundations/networking

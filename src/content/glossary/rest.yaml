@@ -1,0 +1,3 @@
+term: "REST"
+short: "An API style built on resources identified by URLs and manipulated with standard HTTP methods and status codes; stateless between requests."
+topic: backend/rest-api-design

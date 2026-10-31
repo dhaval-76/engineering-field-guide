@@ -1,0 +1,3 @@
+term: "TCP"
+short: "A reliable, ordered byte stream over IP, with a three-way handshake, acknowledgements, retransmission, and flow and congestion control."
+topic: cs-foundations/networking

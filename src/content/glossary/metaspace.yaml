@@ -1,0 +1,3 @@
+term: "Metaspace"
+short: "Native memory (outside the heap) where the JVM stores class metadata since Java 8; replaced PermGen."
+topic: java-runtime/jvm-architecture

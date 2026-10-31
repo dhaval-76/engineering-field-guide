@@ -20,7 +20,7 @@ lastReviewed: 2026-10-31
 
 ## Why it matters
 
-"Put it on a queue" is a common answer in system design, but there are two quite different things it can mean. Sending a thumbnail job to exactly one of ten workers is a different problem from announcing "order placed" to inventory, email, analytics and a service that doesn't exist yet. Picking a tool built for the wrong shape leads to awkward workarounds: fan-out bolted onto a queue, or per-message retries and priorities bolted onto a log.
+"Put it on a queue" is a common answer in system design, but there are two quite different things it can mean. Sending a thumbnail job to exactly one of ten workers is a different problem from announcing "order placed" to inventory, email, analytics and a service that doesn't exist yet. Picking a tool built for the wrong shape leads to awkward workarounds: <Term id="fan-out">fan-out</Term> bolted onto a queue, or per-message retries and priorities bolted onto a log.
 
 <Callout type="analogy">
 A queue is a pile of work orders on a counter: whichever worker is free takes the top one, and once done, it's gone. A log is a newspaper archive: every subscriber reads every edition at their own pace, a new subscriber can start from last year's issues, and reading doesn't remove anything.
@@ -43,7 +43,7 @@ A queue is a pile of work orders on a counter: whichever worker is free takes th
 | Throughput | very high (sequential disk, batching) | high, lower per node; quorum queues trade some speed for safety |
 | Consumer model | pull | push with prefetch |
 
-Recent changes worth knowing: Kafka 4.0 runs without ZooKeeper (KRaft) and has a faster consumer-group protocol, and is adding **share groups** for queue-like consumption; RabbitMQ 4 favours **quorum queues** (Raft-replicated) and offers **streams** with Kafka-like replay.
+Recent changes worth knowing: Kafka 4.0 runs without ZooKeeper (KRaft) and has a faster consumer-group protocol, and is adding **share groups** for queue-like consumption; RabbitMQ 4 favours **<Term id="quorum">quorum</Term> queues** (Raft-replicated) and offers **streams** with Kafka-like replay.
 
 ## Delivery guarantees
 
@@ -53,7 +53,7 @@ Recent changes worth knowing: Kafka 4.0 runs without ZooKeeper (KRaft) and has a
 | **At-least-once** (default) | acknowledge/commit after processing | crash → message redelivered → duplicates |
 | Effectively exactly-once | at-least-once + idempotent consumer, or Kafka transactions for Kafka-to-Kafka pipelines | design effort |
 
-"Exactly once" end to end, including side effects like charging a card or sending an email, comes from **idempotent processing** — remembering what you've handled ([Idempotency](../../backend/idempotency/)).
+"Exactly once" end to end, including side effects like charging a card or sending an email, comes from **<Term id="idempotency">idempotent</Term> processing** — remembering what you've handled ([Idempotency](../../backend/idempotency/)).
 
 <CodeTabs id="fanout-vs-workqueue" title="Fan-out with Kafka consumer groups, a work queue with RabbitMQ" />
 
@@ -72,8 +72,8 @@ Many systems use both: Kafka for domain events between services, and a queue (or
 <Pitfalls>
 
 - **Using a queue for fan-out to many services** — every new consumer needs a new queue and binding, and late joiners get no history.
-- **Using Kafka as a job queue with per-message retries and priorities** — partitions block on a poison message unless you build retry topics.
-- **Assuming exactly-once** — design for duplicates.
+- **Using Kafka as a job queue with per-message retries and priorities** — <Term id="partition">partitions</Term> block on a poison message unless you build retry topics.
+- **Assuming <Term id="exactly-once">exactly-once</Term>** — design for duplicates.
 - **Null keys in Kafka when order matters** — related events land on different partitions.
 - **No dead-letter handling** — one bad message retried forever.
 - **Unbounded queues** with no alerting on depth or consumer lag.
@@ -84,6 +84,6 @@ Many systems use both: Kafka for domain events between services, and a queue (or
 
 - Queue = work distribution, message gone after ack. Log = durable stream, many readers, replay.
 - Kafka for events, fan-out, replay and volume; RabbitMQ/SQS for task queues with routing and per-message control.
-- At-least-once is the norm; idempotent consumers make it safe.
+- <Term id="at-least-once">At-least-once</Term> is the norm; idempotent consumers make it safe.
 
 </KeyTakeaways>

@@ -21,9 +21,9 @@ lastReviewed: 2026-10-31
 
 ## Why it matters
 
-A rate limiter decides whether a request may proceed based on how many requests that client has made recently. It protects services from overload and abuse, enforces fair use and paid-plan quotas, and controls cost when you call metered third-party APIs. It's a favourite interview question because each algorithm has a crisp trade-off, and the implementation exercises time, concurrency and memory management.
+A <Term id="rate-limiter">rate limiter</Term> decides whether a request may proceed based on how many requests that client has made recently. It protects services from overload and abuse, enforces fair use and paid-plan quotas, and controls cost when you call metered third-party APIs. It's a favourite interview question because each algorithm has a crisp trade-off, and the implementation exercises time, concurrency and memory management.
 
-This page covers the **in-process** design. When many servers must share one limit, the same algorithms move into Redis — see the note at the end.
+This page covers the **in-process** design. When many servers must share one limit, the same algorithms move into <Term id="redis">Redis</Term> — see the note at the end.
 
 <Callout type="analogy">
 A nightclub bouncer with a stack of entry wristbands. A new wristband is added to the stack every few seconds, up to a maximum. A group can rush in at once if there are enough wristbands; once they're gone, people wait for the next one. That's a token bucket.
@@ -91,7 +91,7 @@ Say which one you'd pick and why: "Token bucket — it separates burst size from
 
 ## When there's more than one server
 
-An in-memory limiter on each of N servers lets a client make N × limit requests in total (with a load balancer spreading their traffic). Shared limits move the bucket into **Redis**, with the read-refill-decrement done in one **Lua script** so it's atomic across servers:
+An in-memory limiter on each of N servers lets a client make N × limit requests in total (with a <Term id="load-balancer">load balancer</Term> spreading their traffic). Shared limits move the bucket into **Redis**, with the read-refill-decrement done in one **Lua script** so it's atomic across servers:
 
 <CodeTabs id="rl-redis-lua" title="Token bucket in Redis with an atomic Lua script" />
 

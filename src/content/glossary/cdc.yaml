@@ -1,0 +1,3 @@
+term: "Change data capture (CDC)"
+short: "Streaming a database's committed changes, usually by reading its write-ahead log (e.g. Debezium), so other systems can react without dual writes."
+topic: distributed-systems/saga-and-outbox

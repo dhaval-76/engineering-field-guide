@@ -1,0 +1,3 @@
+term: "Trie"
+short: "A tree of characters where each path from the root spells a prefix; finds all words with a given prefix in time proportional to its length."
+topic: low-level-design/autocomplete

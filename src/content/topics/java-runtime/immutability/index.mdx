@@ -69,7 +69,7 @@ The cost is allocation: every change creates a new object. For most business cod
 
 <CodeTabs id="immut-publication" title="The steps of new, and why final fields matter across threads" />
 
-The Java Memory Model lets the JIT and CPU reorder writes, so a thread can observe a reference to an object before its constructor's writes are visible — seeing zeros and nulls. `final` fields carry a special guarantee: once the constructor finishes (without leaking `this`), any thread that obtains the reference sees the final fields' values. That's what makes properly built immutable objects safe to share without synchronisation.
+The Java Memory Model lets the <Term id="jit">JIT</Term> and CPU reorder writes, so a thread can observe a reference to an object before its constructor's writes are visible — seeing zeros and nulls. `final` fields carry a special guarantee: once the constructor finishes (without leaking `this`), any thread that obtains the reference sees the final fields' values. That's what makes properly built immutable objects safe to share without synchronisation.
 
 <Pitfalls>
 

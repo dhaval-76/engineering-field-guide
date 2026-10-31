@@ -1,0 +1,3 @@
+term: "Normalization"
+short: "Organizing tables so each fact is stored once, which avoids update anomalies at the cost of joins on read."
+topic: databases/joins-normalization-window-functions

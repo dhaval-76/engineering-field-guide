@@ -83,7 +83,7 @@ The **fixed slots** approach is the one most systems use in practice: `slot = ha
 Hashing spreads *keys* evenly, not *traffic*. One celebrity key can overload its server regardless of scheme. Mitigations:
 
 - **Consistent hashing with bounded loads**: cap each server at (1 + ε) × average load; if the chosen server is full, move to the next one clockwise (used in HAProxy and Vimeo's video serving).
-- **Replicate hot keys** to several servers and pick randomly among them; or add a local in-process cache in front ([Distributed cache](../../system-design/distributed-cache/)).
+- **Replicate <Term id="hot-partition">hot keys</Term>** to several servers and pick randomly among them; or add a local in-process cache in front ([Distributed cache](../../system-design/distributed-cache/)).
 - **Split the key** (`counter:42#0..7`) and aggregate on read.
 
 <Pitfalls>

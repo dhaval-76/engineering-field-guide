@@ -58,7 +58,7 @@ A failed stage skips every following transformation until something handles it �
 - `supplyAsync(fn)` **without** an executor uses `ForkJoinPool.commonPool()` — sized to CPU cores − 1 and shared by the whole JVM (parallel streams too). Blocking I/O there starves everyone.
 - `thenApply(fn)` runs on the thread that completed the previous stage — or immediately on the caller's thread if the future is already done. Fine for quick transforms.
 - `thenApplyAsync(fn, executor)` hands the callback to your executor. Use it for anything slow.
-- With **virtual threads** (Java 21+), plain blocking code in `newVirtualThreadPerTaskExecutor` is often simpler than long callback chains; `CompletableFuture` is still useful for combining and timeouts. Structured concurrency (`StructuredTaskScope`) targets the same fan-out-and-join problem with automatic cancellation of sibling tasks; it is a preview API through JDK 27 and is final in JDK 28 (March 2027).
+- With **<Term id="virtual-thread">virtual threads</Term>** (Java 21+), plain blocking code in `newVirtualThreadPerTaskExecutor` is often simpler than long callback chains; `CompletableFuture` is still useful for combining and timeouts. Structured concurrency (`StructuredTaskScope`) targets the same fan-out-and-join problem with automatic cancellation of sibling tasks; it is a preview API through JDK 27 and is final in JDK 28 (March 2027).
 
 <Pitfalls>
 
@@ -67,7 +67,7 @@ A failed stage skips every following transformation until something handles it �
 - **Forgetting timeouts** on remote calls.
 - **Swallowed failures**: a future nobody reads or handles fails silently.
 - **`thenApply` returning a future** — you get `CompletableFuture<CompletableFuture<T>>`; use `thenCompose`.
-- **Losing context**: ThreadLocal values (trace ids, security context) don't follow callbacks to other threads unless propagated.
+- **Losing context**: <Term id="threadlocal">ThreadLocal</Term> values (trace ids, security context) don't follow callbacks to other threads unless propagated.
 
 </Pitfalls>
 

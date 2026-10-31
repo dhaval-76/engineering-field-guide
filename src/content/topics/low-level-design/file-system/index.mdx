@@ -66,7 +66,7 @@ Each `find` option (`-name`, `-type`, `-size`, `-mtime`) is a small object that 
 Turning `*.java` into a regex by replacing `*` with `.*` breaks on names containing regex characters (`a+b.java`, `x(1).txt`). Escape every literal character, then map `*` → `[^/]*` and `?` → `[^/]`.
 </Callout>
 
-The traversal is an **iterative** DFS with an explicit stack, so very deep trees can't overflow the call stack, and a depth counter supports `-maxdepth`.
+The traversal is an **iterative** <Term id="dfs">DFS</Term> with an explicit stack, so very deep trees can't overflow the <Term id="recursion-depth">call stack</Term>, and a depth counter supports `-maxdepth`.
 
 ## Extensions
 

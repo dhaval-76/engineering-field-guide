@@ -21,7 +21,7 @@ lastReviewed: 2026-10-31
 
 ## Why it matters
 
-In a distributed system, something is always failing a little: a slow database, a GC pause, a deploy, a congested network. Whether that stays a small blip or becomes an outage depends on how callers react. Without protection, one slow dependency fills every caller's thread pool, the callers become slow, *their* callers fill up — a **cascading failure**. Retries without limits then multiply the load on whatever is already struggling. These patterns are how you keep the blast radius small.
+In a distributed system, something is always failing a little: a slow database, a GC pause, a deploy, a congested network. Whether that stays a small blip or becomes an outage depends on how callers react. Without protection, one slow dependency fills every caller's <Term id="thread-pool">thread pool</Term>, the callers become slow, *their* callers fill up — a **cascading failure**. Retries without limits then multiply the load on whatever is already struggling. These patterns are how you keep the blast radius small.
 
 <Callout type="analogy">
 A house's electrical system. A fuse (circuit breaker) cuts off a faulty circuit before it burns the house down, and you test it again later. Separate circuits for the kitchen and the bedrooms (bulkheads) mean a broken kettle doesn't plunge the whole house into darkness. And you don't keep flipping a tripped switch every second (retry storm).
@@ -34,9 +34,9 @@ A house's electrical system. A fuse (circuit breaker) cuts off a faulty circuit 
 ## Timeouts and deadlines
 
 - **Every** network call needs a connect timeout and a response timeout — many clients default to infinite or very long values.
-- Choose from the dependency's latency: a bit above its p99 under normal load, and well below your own SLA.
-- **Propagate a deadline**: if the user's request has 2 s left, a downstream call shouldn't be allowed 5 s. gRPC does this natively; with HTTP, pass a remaining-time header or use a request-scoped budget.
-- A timeout doesn't free the remote work — the downstream may still complete the operation. Combine with idempotency keys so retries are safe.
+- Choose from the dependency's latency: a bit above its <Term id="p99">p99</Term> under normal load, and well below your own <Term id="sla">SLA</Term>.
+- **Propagate a deadline**: if the user's request has 2 s left, a downstream call shouldn't be allowed 5 s. <Term id="grpc">gRPC</Term> does this natively; with HTTP, pass a remaining-time header or use a request-scoped budget.
+- A timeout doesn't free the remote work — the downstream may still complete the operation. Combine with <Term id="idempotency">idempotency</Term> keys so retries are safe.
 
 ## Retries
 
@@ -69,10 +69,10 @@ Resilience4j applies its decorators in a fixed order — `Retry(CircuitBreaker(R
 
 ## Bulkheads, rate limits and load shedding
 
-- **Bulkhead**: a cap on concurrent calls to one dependency (a semaphore, or a dedicated thread pool). When it's full, new calls fail fast, and calls to *other* dependencies are unaffected.
-- **Rate limiter** (client side): don't send more than a partner's quota allows.
+- **Bulkhead**: a cap on concurrent calls to one dependency (a <Term id="semaphore">semaphore</Term>, or a dedicated thread pool). When it's full, new calls fail fast, and calls to *other* dependencies are unaffected.
+- **<Term id="rate-limiter">Rate limiter</Term>** (client side): don't send more than a partner's quota allows.
 - **Load shedding** (server side): when overloaded, reject early with 429/503 and `Retry-After` rather than accepting work you can't finish — queues that grow without bound only add latency before the inevitable timeout. Prioritise: shed analytics before checkout.
-- **Backpressure**: bounded queues between stages ([Producer–consumer](../../concurrency/producer-consumer/)).
+- **<Term id="backpressure">Backpressure</Term>**: bounded queues between stages ([Producer–consumer](../../concurrency/producer-consumer/)).
 
 ## Fallbacks and graceful degradation
 

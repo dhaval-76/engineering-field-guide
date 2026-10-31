@@ -1,0 +1,3 @@
+term: "Dead-letter queue (DLQ)"
+short: "Where messages go after repeated processing failures, so one bad message doesn't block the rest; they are inspected and replayed later."
+topic: distributed-systems/failure-fallbacks

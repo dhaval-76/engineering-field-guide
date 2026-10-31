@@ -85,7 +85,7 @@ Name each pattern **with its reason**: "Pricing is a strategy because weekend an
 Write the code for the 2–3 most important operations end to end — not every getter. Keep it compiling: in machine-coding rounds the code is run against test inputs, and a smaller working solution beats a larger broken one.
 
 - Start from the service method (`park`) and implement downward.
-- Use enums for fixed sets (`SpotType`, `TicketStatus`) and immutable value objects (`record Money`, `record Ticket`).
+- Use enums for fixed sets (`SpotType`, `TicketStatus`) and <Term id="immutable">immutable</Term> value objects (`record Money`, `record Ticket`).
 - In-memory repositories (`Map<String, Ticket>`) are fine; put them behind an interface so a database version could replace them.
 - Validate inputs and fail with clear exceptions.
 
@@ -99,7 +99,7 @@ This is where strong answers separate themselves.
 - **Scale-out**: if it ran on several servers, which in-memory state would have to move to a database or cache?
 
 <Callout type="insight">
-Proactively state trade-offs: "I used a lock per floor rather than one global lock — finer locking means more concurrency at the cost of more complex code; per-spot CAS would be finer still." Interviewers look for you to raise these before being asked.
+Proactively state trade-offs: "I used a lock per floor rather than one global lock — finer locking means more concurrency at the cost of more complex code; per-spot <Term id="cas">CAS</Term> would be finer still." Interviewers look for you to raise these before being asked.
 </Callout>
 
 ## Machine-coding rounds

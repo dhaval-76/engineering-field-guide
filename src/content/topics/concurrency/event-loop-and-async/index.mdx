@@ -20,7 +20,7 @@ lastReviewed: 2026-10-31
 
 ## Why it matters
 
-Not every runtime handles concurrency with a thread per request. Node.js serves thousands of connections on one thread with an **event loop**; Python offers threads, `asyncio` and processes, constrained by the **GIL**; Java now has **virtual threads**. Each model has one rule that, when broken, freezes or slows the whole service — and interviews for full-stack and backend roles regularly probe it ("what does this print?", "why did one request stall all the others?").
+Not every runtime handles concurrency with a thread per request. Node.js serves thousands of connections on one thread with an **event loop**; Python offers threads, `asyncio` and processes, constrained by the **GIL**; Java now has **<Term id="virtual-thread">virtual threads</Term>**. Each model has one rule that, when broken, freezes or slows the whole service — and interviews for full-stack and backend roles regularly probe it ("what does this print?", "why did one request stall all the others?").
 
 <Callout type="analogy">
 A single waiter serving many tables. They take an order, hand it to the kitchen, and move on instead of standing at the kitchen door; when a dish is ready, they're called to deliver it. One waiter can handle a full restaurant — unless a customer asks them to personally cook a five-course meal, at which point every other table waits.

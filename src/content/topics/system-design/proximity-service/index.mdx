@@ -41,7 +41,7 @@ Finding a pharmacy using a city map divided into numbered squares. Rather than m
 | Search QPS | 100 M users × 5 searches/day ≈ 5,800/s average, ~20,000/s peak |
 | Writes | thousands per hour — negligible |
 
-The index fitting in memory is the key insight: replicate it rather than shard it.
+The index fitting in memory is the key insight: replicate it rather than <Term id="sharding">shard</Term> it.
 
 ## High-level design
 
@@ -64,7 +64,7 @@ Choose precision by radius: cells should be at least as wide as the search radiu
 
 <CodeTabs id="geo-redis" title="Redis GEO: add places, radius and box search, geohash and distance" />
 
-At smaller scale a single PostGIS database (`ST_DWithin` on a GiST index) or Redis GEO is the whole answer; the custom design matters at hundreds of millions of places and tens of thousands of QPS.
+At smaller scale a single PostGIS database (`ST_DWithin` on a GiST index) or <Term id="redis">Redis</Term> GEO is the whole answer; the custom design matters at hundreds of millions of places and tens of thousands of QPS.
 
 ## Ranking and results
 
@@ -93,7 +93,7 @@ Interviewers almost always ask "what happens when X goes down?". Decide the degr
 - **Treating cells as distance** — always filter by exact distance.
 - **Sharding a 5 GB index** that could simply be replicated.
 - **One precision for all densities** — too many candidates downtown, too few in rural areas (quadtrees or adaptive radius help).
-- **Coupling business CRUD and search** in one service and database.
+- **<Term id="coupling">Coupling</Term> business CRUD and search** in one service and database.
 
 </Pitfalls>
 

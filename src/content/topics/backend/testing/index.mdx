@@ -38,7 +38,7 @@ Testing a car. You bench-test the engine on its own (unit tests — fast, precis
 | End-to-end | deployed system | everything | wiring between services, config, infrastructure | s – min |
 
 - **Mock at the boundary you don't control** — third-party APIs, email, payments, the clock, randomness. They're slow, cost money or are non-deterministic.
-- **Don't mock your own repositories in tests of persistence behaviour.** A mocked repository can't tell you the query is wrong, the mapping is broken or there's an N+1. Test the repository against a real database.
+- **Don't mock your own repositories in tests of persistence behaviour.** A mocked repository can't tell you the query is wrong, the mapping is broken or there's an <Term id="n-plus-one">N+1</Term>. Test the repository against a real database.
 - **Don't test private methods or interaction trivia.** Asserting that `save` was called before `publish` locks in the implementation; asserting on the outcome survives refactoring.
 
 <Callout type="tip">

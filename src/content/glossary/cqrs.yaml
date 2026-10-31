@@ -1,0 +1,3 @@
+term: "CQRS"
+short: "Command Query Responsibility Segregation: separate models (often separate stores) for writes and for reads, kept in sync by events."
+topic: distributed-systems/event-driven-cqrs

@@ -20,7 +20,7 @@ lastReviewed: 2026-10-31
 
 ## Why it matters
 
-Automation platforms like Zapier or n8n let users chain steps — "when a form is submitted, create a CRM contact, then send a Slack message". The engine must run millions of user-defined workflows reliably: resume exactly where it stopped after a crash, retry failed steps without repeating finished ones, respect each third-party API's rate limits, and keep users' credentials safe. It's a good test of durable execution and idempotency.
+Automation platforms like Zapier or n8n let users chain steps — "when a form is submitted, create a CRM contact, then send a Slack message". The engine must run millions of user-defined workflows reliably: resume exactly where it stopped after a crash, retry failed steps without repeating finished ones, respect each third-party API's rate limits, and keep users' credentials safe. It's a good test of durable execution and <Term id="idempotency">idempotency</Term>.
 
 <Callout type="analogy">
 A recipe card that a relay of cooks follows. Each finished step is ticked on the card, so if a cook goes home mid-recipe, the next cook continues from the last tick instead of starting over — and never adds the salt twice.
@@ -28,7 +28,7 @@ A recipe card that a relay of cooks follows. Each finished step is ticked on the
 
 ## Requirements
 
-**Functional**: users build workflows — a trigger ("new row in a spreadsheet", "webhook received", "every Monday 9:00") followed by actions ("call an AI model", "create a ticket", "send a Slack message"), with conditions, branches, loops over lists and data mapping between steps; view run history and retry failed runs; connect accounts via OAuth.
+**Functional**: users build workflows — a trigger ("new row in a spreadsheet", "webhook received", "every Monday 9:00") followed by actions ("call an AI model", "create a ticket", "send a Slack message"), with conditions, branches, loops over lists and data mapping between steps; view run history and retry failed runs; connect accounts via <Term id="oauth2">OAuth</Term>.
 **Non-functional**: millions of workflows, tens of thousands of runs per second at peak; runs must not be lost or silently half-done; third-party APIs are slow, rate-limited and flaky; one tenant's surge mustn't starve others.
 
 ## High-level design
@@ -49,7 +49,7 @@ A recipe card that a relay of cooks follows. Each finished step is ticked on the
 
 <CodeTabs id="workflow-engine" title="Advancing a run one step at a time, safely" />
 
-- The engine is **stateless**: workers take "execute step N of run R" tasks from a queue, load the run's state, execute, persist the step result and enqueue the next step(s) — in that order, with the next-step enqueue in the same transaction as the result (outbox).
+- The engine is **stateless**: workers take "execute step N of run R" tasks from a queue, load the run's state, execute, persist the step result and enqueue the next step(s) — in that order, with the next-step enqueue in the same transaction as the result (<Term id="outbox">outbox</Term>).
 - A crash anywhere means the step task is redelivered; because results are persisted and steps carry idempotency keys (`run-id:step-id`), re-execution is safe and completed steps are skipped.
 - Waits ("delay 3 days", "wait for approval") are timers, not sleeping threads: the run parks with a wake-up time ([Job scheduler](../job-scheduler/)).
 - General-purpose engines (Temporal, AWS Step Functions, Camunda) provide exactly this durable-execution model if you don't build your own.
@@ -66,7 +66,7 @@ A recipe card that a relay of cooks follows. Each finished step is ticked on the
 ## Calling third parties
 
 - **Per-connector, per-account rate limiters** — a 429 means "wait `Retry-After`", parking the step rather than holding a worker.
-- Retries with exponential backoff for timeouts and 5xx; no retries for 4xx validation errors; idempotency keys where the API supports them.
+- Retries with <Term id="exponential-backoff">exponential backoff</Term> for timeouts and 5xx; no retries for 4xx validation errors; idempotency keys where the API supports them.
 - **Credentials**: OAuth tokens encrypted at rest (envelope encryption with a KMS), refreshed proactively, scoped to the minimum needed.
 - Separate worker pools (bulkheads) per slow connector so one failing API can't block all runs.
 
@@ -92,7 +92,7 @@ Interviewers almost always ask "what happens when X goes down?". Decide the degr
 - **Sleeping threads for delays** instead of persisted timers.
 - **Global rate limits** instead of per connector and account.
 - **Plain-text OAuth tokens** or tokens in logs.
-- **Unbounded loops or fan-out** from user definitions.
+- **Unbounded loops or <Term id="fan-out">fan-out</Term>** from user definitions.
 
 </Pitfalls>
 

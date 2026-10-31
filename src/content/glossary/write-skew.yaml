@@ -1,0 +1,3 @@
+term: "Write skew"
+short: "Two transactions read overlapping data, each makes a decision that is valid alone, and together they break a rule (two doctors both going off call)."
+topic: databases/transactions-isolation

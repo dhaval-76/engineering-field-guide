@@ -42,7 +42,7 @@ A doctor doesn't prescribe on "I feel unwell". They take vitals (metrics), ask w
 />
 
 1. **Scope it.** Which endpoints? Since when — a deploy, a traffic change, data growth, a dependency incident? Everyone or certain customers?
-2. **Read the percentiles.** p50 rising means everything is slower — saturation or a dependency. Only p99 rising means some requests take a slow path — big accounts, cold caches, lock waits, GC pauses.
+2. **Read the percentiles.** p50 rising means everything is slower — saturation or a dependency. Only <Term id="p99">p99</Term> rising means some requests take a slow path — big accounts, cold caches, lock waits, GC pauses.
 3. **Trace a slow request.** Distributed tracing breaks the request into spans: database, HTTP clients, cache, queues. The biggest span is where to dig.
 4. **Use the layer's tools** (below), form a hypothesis, change one thing, and **verify with the same metrics**.
 
@@ -77,14 +77,14 @@ A doctor doesn't prescribe on "I feel unwell". They take vitals (metrics), ask w
 
 ## Fixes, in order of payoff
 
-1. **Do less work**: fix N+1, select only needed columns (projections), paginate, stop computing things nobody reads.
+1. **Do less work**: fix <Term id="n-plus-one">N+1</Term>, select only needed columns (projections), paginate, stop computing things nobody reads.
 2. **Make the work cheaper**: indexes that match filters and sorts, better queries, batch writes.
 3. **Overlap waiting**: run independent calls in parallel with timeouts.
 4. **Avoid repeating work**: cache hot reads (with explicit invalidation and TTLs), precompute aggregates.
 5. **Move work off the request path**: queue emails, analytics, PDFs; return 202 and finish asynchronously.
-6. **Add capacity last**: scale out stateless instances, read replicas, bigger database — after the above.
+6. **Add capacity last**: <Term id="horizontal-scaling">scale out</Term> stateless instances, <Term id="read-replica">read replicas</Term>, bigger database — after the above.
 
-For high concurrency with mostly-waiting requests, **virtual threads** (`spring.threads.virtual.enabled=true`, Spring Boot 3.2+) remove thread-pool limits while keeping blocking code; reactive stacks (WebFlux) achieve the same with a different programming model. Neither fixes slow queries.
+For high concurrency with mostly-waiting requests, **<Term id="virtual-thread">virtual threads</Term>** (`spring.threads.virtual.enabled=true`, Spring Boot 3.2+) remove thread-pool limits while keeping blocking code; reactive stacks (WebFlux) achieve the same with a different programming model. Neither fixes slow queries.
 
 <Pitfalls>
 

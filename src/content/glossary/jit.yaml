@@ -1,0 +1,3 @@
+term: "JIT compiler"
+short: "Just-in-time compiler: the JVM compiles frequently run bytecode to optimized machine code at runtime, using profiling data about how it is actually used."
+topic: java-runtime/jvm-architecture

@@ -1,0 +1,3 @@
+term: "Greedy algorithm"
+short: "Making the locally best choice at each step without revisiting it. Correct only when an exchange argument shows it can't miss the optimum."
+topic: dsa/greedy

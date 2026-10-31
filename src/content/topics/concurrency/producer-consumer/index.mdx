@@ -20,7 +20,7 @@ lastReviewed: 2026-10-31
 
 ## Why it matters
 
-Requests, events or file chunks often arrive faster or more unevenly than they can be processed. The producer–consumer pattern puts a **queue** between the two sides: producers hand off work and move on, a fixed number of consumers process it at their own pace. A **bounded** queue keeps memory flat and tells producers when the system is overloaded. Every thread pool is this pattern, and so is every message broker.
+Requests, events or file chunks often arrive faster or more unevenly than they can be processed. The producer–consumer pattern puts a **queue** between the two sides: producers hand off work and move on, a fixed number of consumers process it at their own pace. A **bounded** queue keeps memory flat and tells producers when the system is overloaded. Every <Term id="thread-pool">thread pool</Term> is this pattern, and so is every message broker.
 
 <Callout type="analogy">
 A bakery counter with room for three trays. Bakers (producers) slide trays on; shop staff (consumers) take them off to the shelves. When the counter is full, bakers wait instead of stacking trays on the floor; when it's empty, staff wait instead of pacing.
@@ -71,7 +71,7 @@ Compared with the `wait`/`notifyAll` version in [wait, sleep and join](../wait-s
 
 - **Shutdown:** stop producers first, let consumers drain, then interrupt (or send a "poison pill" sentinel per consumer).
 - **Failures:** catch exceptions per item so one bad message doesn't kill a consumer thread; route repeated failures to a dead-letter store.
-- **Durability:** an in-memory queue loses everything on a crash. If work must survive restarts or be shared across instances, use a broker or a database-backed queue (outbox, `SELECT … FOR UPDATE SKIP LOCKED`). When the broker itself is down, see [Surviving dependency outages](../../distributed-systems/failure-fallbacks/).
+- **Durability:** an in-memory queue loses everything on a crash. If work must survive restarts or be shared across instances, use a broker or a database-backed queue (<Term id="outbox">outbox</Term>, `SELECT … FOR UPDATE SKIP LOCKED`). When the broker itself is down, see [Surviving dependency outages](../../distributed-systems/failure-fallbacks/).
 - **Monitoring:** queue depth and age of the oldest item are the best early-warning signals.
 
 <Pitfalls>
@@ -87,7 +87,7 @@ Compared with the `wait`/`notifyAll` version in [wait, sleep and join](../wait-s
 
 - A bounded queue decouples rates and gives backpressure.
 - `BlockingQueue` = one lock + two conditions + loops; use it instead of writing your own.
-- Pick the coordination tool by the question: limit (Semaphore), wait for events (Latch), meet up (Barrier).
+- Pick the coordination tool by the question: limit (<Term id="semaphore">Semaphore</Term>), wait for events (Latch), meet up (Barrier).
 - Need durability or multiple machines? Use a broker.
 
 </KeyTakeaways>

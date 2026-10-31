@@ -1,0 +1,3 @@
+term: "API gateway"
+short: "A single entry point in front of services that handles routing, authentication, rate limiting and request shaping, so each service doesn't have to."
+topic: system-design/api-gateway

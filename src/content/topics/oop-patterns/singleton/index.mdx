@@ -20,7 +20,7 @@ lastReviewed: 2026-10-31
 
 ## Why it matters
 
-Some objects are expensive or must be shared: a database connection pool (one per process, or you exhaust the database's connection limit), a metrics registry, a configuration snapshot. Singleton guarantees there is exactly one instance and gives a well-known way to reach it.
+Some objects are expensive or must be shared: a database <Term id="connection-pool">connection pool</Term> (one per process, or you exhaust the database's connection limit), a metrics registry, a configuration snapshot. Singleton guarantees there is exactly one instance and gives a well-known way to reach it.
 
 It is also the pattern most likely to come up as a **concurrency** question — "make this thread-safe" and "why is `volatile` needed" — and as a design-judgement question: "why is Singleton considered an anti-pattern?"
 
@@ -78,7 +78,7 @@ Why **`volatile`**? `instance = new Registry()` is really *allocate memory → r
 
 ## The same idea in JavaScript and Python
 
-Both languages cache modules after the first import, so a module-level value is a singleton per process. Node runs JavaScript on a single thread per event loop, so lazy creation has no race (worker threads have their own module instances).
+Both languages cache modules after the first import, so a module-level value is a singleton per process. Node runs JavaScript on a single thread per <Term id="event-loop">event loop</Term>, so lazy creation has no race (worker threads have their own module instances).
 
 <CodeTabs id="singleton-module" title="Module-level singletons" />
 
@@ -89,7 +89,7 @@ The pattern guarantees one instance — but `Registry.getInstance()` called from
 - **Hidden dependencies.** A class's constructor says it needs nothing, yet it secretly depends on a global. Reading the code no longer tells you what it uses.
 - **Hard to test.** You can't hand the class a fake; tests share global state and can affect each other's results.
 - **Global mutable state.** If the singleton holds mutable state, any code anywhere can change it.
-- **"One" is per process.** With 3 pods in Kubernetes you have 3 instances. In-memory counters, rate limits or caches in a singleton are **not** shared across the cluster — that needs Redis or a database.
+- **"One" is per process.** With 3 <Term id="pod">pods</Term> in Kubernetes you have 3 instances. In-memory counters, rate limits or caches in a singleton are **not** shared across the cluster — that needs <Term id="redis">Redis</Term> or a database.
 - **Multiple class loaders** (app servers, plugins) can each load the class and create their own instance.
 
 ### What to do instead

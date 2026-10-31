@@ -47,7 +47,7 @@ Keeping transitions in a single table means every rule — "you can't cancel a c
 
 Scanning every driver for every request is O(drivers). Instead, index drivers by location:
 
-- **Uniform grid / geohash** — divide the map into cells; each GPS ping moves the driver to the right cell (O(1)). A search checks the pickup cell and its neighbours, then filters by exact distance.
+- **Uniform grid / <Term id="geohash">geohash</Term>** — divide the map into cells; each GPS ping moves the driver to the right cell (O(1)). A search checks the pickup cell and its neighbours, then filters by exact distance.
 - **Quadtree** — cells subdivide where drivers are dense, so busy downtown cells stay small.
 - **H3 hexagons** (used by Uber) — hexagonal cells with uniform neighbour distances.
 

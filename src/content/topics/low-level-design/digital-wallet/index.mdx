@@ -21,7 +21,7 @@ lastReviewed: 2026-10-31
 
 ## Why it matters
 
-A wallet looks like `balance -= x; balance += x`. The interview is about everything that can go wrong around those two lines: retries that pay twice, concurrent transfers that overdraw or deadlock, crashes between the debit and the credit, rounding errors, and auditors asking why a balance is what it is. The answers — double-entry ledgers, idempotency keys, lock ordering and holds — carry straight into real payment systems ([Payment system](../../system-design/payment-system/)).
+A wallet looks like `balance -= x; balance += x`. The interview is about everything that can go wrong around those two lines: retries that pay twice, concurrent transfers that overdraw or <Term id="deadlock">deadlock</Term>, crashes between the debit and the credit, rounding errors, and auditors asking why a balance is what it is. The answers — double-entry ledgers, <Term id="idempotency">idempotency</Term> keys, lock ordering and holds — carry straight into real payment systems ([Payment system](../../system-design/payment-system/)).
 
 <Callout type="analogy">
 An accountant's ledger with two columns. Money never appears or disappears; every line that takes ₹50 from one account has a matching line that gives ₹50 to another. If the totals don't balance at the end of the day, something is wrong — and the ledger shows exactly where.
@@ -40,7 +40,7 @@ An accountant's ledger with two columns. Money never appears or disappears; ever
 <Diagram id="wallet-model" caption="Accounts, transactions, balanced ledger entries and holds. System accounts (bank-in, bank-out, fees) let deposits and withdrawals balance too." />
 
 - **Account**: cached `balance` and `held`; `available = balance − held`.
-- **Transaction**: one business operation with a unique **idempotency key**.
+- **Transaction**: one business operation with a unique **<Term id="idempotency-key">idempotency key</Term>**.
 - **Ledger entry**: (transaction, account, signed amount). Entries of a transaction sum to zero.
 - **Hold**: an authorisation that reduces available funds until captured or released.
 

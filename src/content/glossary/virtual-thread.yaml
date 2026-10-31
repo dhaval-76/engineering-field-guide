@@ -1,0 +1,3 @@
+term: "Virtual thread"
+short: "A lightweight JVM-managed thread (Java 21+) that unmounts from its carrier OS thread while blocked on I/O, so millions can exist."
+topic: concurrency/executors-thread-pools

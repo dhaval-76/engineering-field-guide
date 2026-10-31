@@ -23,7 +23,7 @@ lastReviewed: 2026-10-31
 
 Every value in memory is a row of bits, and operating on them directly is the cheapest thing a CPU can do — one instruction for 64 flags at once. That makes bit tricks useful in two very different settings:
 
-- **Compact sets and flags.** Unix file permissions (`rwx` = 3 bits), feature flags, Java's `EnumSet` and `BitSet`, Redis bitmaps (`SETBIT user:active:2026-10-31 <userId> 1`, then `BITCOUNT` for daily active users — one bit per user, 12.5 MB for 100 million users), Bloom filters, database bitmap indexes, and the "which items are used" state of a search.
+- **Compact sets and flags.** Unix file permissions (`rwx` = 3 bits), <Term id="feature-flag">feature flags</Term>, Java's `EnumSet` and `BitSet`, <Term id="redis">Redis</Term> bitmaps (`SETBIT user:active:2026-10-31 <userId> 1`, then `BITCOUNT` for daily active users — one bit per user, 12.5 MB for 100 million users), Bloom filters, database bitmap indexes, and the "which items are used" state of a search.
 - **Clever identities.** XOR cancels pairs; `x & (x − 1)` removes the lowest set bit; a mask enumerates every subset. These turn some O(n) memory or O(n log n) problems into O(1) memory, O(n) time.
 
 Interviewers use bit problems to check that you're comfortable below the abstraction — and bitmask DP to see if you can handle exponential state spaces cleverly.

@@ -1,0 +1,3 @@
+term: "Geohash"
+short: "Encodes latitude and longitude as a short string where a shared prefix means nearby cells, so \"near me\" becomes a prefix or range query."
+topic: system-design/proximity-service

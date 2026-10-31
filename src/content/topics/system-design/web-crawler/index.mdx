@@ -79,7 +79,7 @@ The frontier must balance two things: crawl important pages first, and never hit
 
 - **Traps**: infinite calendars, session ids in URLs, `?page=1..∞`, symlink loops. Limit depth, URL length and pages per site; detect repeating path patterns.
 - **Bad content**: size limits, timeouts, content-type filtering, defensive HTML parsing in sandboxed workers.
-- **DNS**: a local resolver cache — DNS lookups otherwise dominate latency.
+- **<Term id="dns">DNS</Term>**: a local resolver cache — DNS lookups otherwise dominate latency.
 - **Failures**: fetch results and frontier state are persisted; workers are stateless and restartable ([Job scheduler](../job-scheduler/)).
 
 ## Freshness

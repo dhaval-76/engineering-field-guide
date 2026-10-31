@@ -75,8 +75,8 @@ Parallel streams use the JVM-wide **common ForkJoinPool** (about one thread per 
 - **`toMap` without a merge function** — throws on the first duplicate key.
 - **`forEach` that adds to an outside list** — breaks with parallel streams and hides intent; collect instead.
 - **`peek` for logic** — it's a debugging aid and may not run for every element.
-- **Boxing in numeric pipelines** — use `mapToLong(...).sum()` rather than `map(...).reduce(0L, Long::sum)` on wrappers.
-- **Parallel streams with I/O** — use an executor or virtual threads.
+- **<Term id="autoboxing">Boxing</Term> in numeric pipelines** — use `mapToLong(...).sum()` rather than `map(...).reduce(0L, Long::sum)` on wrappers.
+- **Parallel streams with I/O** — use an executor or <Term id="virtual-thread">virtual threads</Term>.
 
 </Pitfalls>
 

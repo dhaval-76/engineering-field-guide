@@ -73,7 +73,7 @@ What the platform asks of every service: structured logs that carry the trace id
 
 <Walkthrough id="incident-debug" />
 
-- Define **SLIs** (e.g. share of checkout requests under 500 ms and non-5xx) and **SLOs** (99.9% over 30 days). The **error budget** is the allowed failure (0.1%).
+- Define **SLIs** (e.g. share of checkout requests under 500 ms and non-5xx) and **<Term id="sla">SLOs</Term>** (99.9% over 30 days). The **error budget** is the allowed failure (0.1%).
 - Alert on **burn rate** — how fast the budget is being consumed — with a fast window for severe incidents and a slow one for steady degradation. Fewer, more meaningful pages.
 - Every alert links to a dashboard and runbook and routes to the owning team; non-urgent signals become tickets, not pages.
 

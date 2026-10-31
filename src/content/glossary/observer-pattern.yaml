@@ -1,0 +1,3 @@
+term: "Observer pattern"
+short: "Subscribers register with a subject and are notified when it changes, so the subject doesn't depend on who listens."
+topic: oop-patterns/observer

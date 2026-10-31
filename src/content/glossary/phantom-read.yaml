@@ -1,0 +1,3 @@
+term: "Phantom read"
+short: "Re-running a range query in the same transaction returns new rows that another transaction inserted. Prevented at SERIALIZABLE."
+topic: databases/transactions-isolation

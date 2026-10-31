@@ -1,0 +1,3 @@
+term: "Circuit breaker"
+short: "Stops calling a failing dependency after too many errors (open), fails fast for a cool-down, then lets a few trial calls through (half-open) before closing again."
+topic: distributed-systems/resilience-patterns

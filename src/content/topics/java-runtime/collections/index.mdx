@@ -43,7 +43,7 @@ A numbered car park (ArrayList) versus a treasure hunt (LinkedList). In the car 
 | `ArrayDeque` | FIFO/LIFO | Yes | No | Ends O(1) | Ends O(1) | Stacks and queues |
 | `PriorityQueue` | Heap (min first) | Yes | No | Peek O(1) | O(log n) | Top-K, scheduling |
 
-\* amortised: occasional resizes copy the array.
+\* <Term id="amortized">amortised</Term>: occasional resizes copy the array.
 
 ## ArrayList vs LinkedList: theory vs reality
 
@@ -97,7 +97,7 @@ Measured on JDK 22 with 100,000 integers (best of several warm runs):
 
 - Most iterators are **fail-fast**: they track a modification counter and throw `ConcurrentModificationException` if the collection is structurally changed except through the iterator itself. It's a bug detector, not a thread-safety guarantee.
 - **Concurrent collections** (`ConcurrentHashMap`, `CopyOnWriteArrayList`) have weakly consistent iterators that never throw, but may or may not see concurrent changes.
-- `Collections.unmodifiableList(x)` is a **read-only view**: changes to `x` still show through. `List.copyOf(x)` and `List.of(...)` are truly **immutable** snapshots.
+- `Collections.unmodifiableList(x)` is a **read-only view**: changes to `x` still show through. `List.copyOf(x)` and `List.of(...)` are truly **<Term id="immutable">immutable</Term>** snapshots.
 
 ## Patterns worth knowing
 

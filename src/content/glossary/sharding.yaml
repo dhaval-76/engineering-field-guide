@@ -1,0 +1,3 @@
+term: "Sharding"
+short: "Splitting data across several databases by a key so each holds part of it; scales writes and storage, but makes cross-shard queries harder."
+topic: databases/sharding

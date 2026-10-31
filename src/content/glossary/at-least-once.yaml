@@ -1,0 +1,3 @@
+term: "At-least-once delivery"
+short: "A message is retried until acknowledged, so it is never lost but may arrive more than once. Consumers must be idempotent."
+topic: distributed-systems/kafka-deep-dive

@@ -1,0 +1,3 @@
+term: "Gossip protocol"
+short: "Nodes periodically exchange state with a few random peers, so membership and failure information spreads through a cluster in O(log n) rounds."
+topic: system-design/kv-store

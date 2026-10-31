@@ -1,0 +1,3 @@
+term: "Stop-the-world pause"
+short: "A garbage-collector phase that halts all application threads. Modern collectors (G1, ZGC) keep these short; ZGC aims for under a millisecond."
+topic: java-runtime/garbage-collection

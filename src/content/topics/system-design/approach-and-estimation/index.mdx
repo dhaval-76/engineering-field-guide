@@ -36,7 +36,7 @@ An architect doesn't start by drawing a skyscraper. They ask how many people wil
 3. **API (≈3 min).** The key endpoints or events with their main parameters — it fixes the boundaries of the system.
 4. **Data model (≈5 min).** Entities, access patterns, and the storage choice that fits them ([SQL vs NoSQL](../../databases/sql-vs-nosql/)).
 5. **High-level design (≈10 min).** Components and how a request flows through them; start simple and correct.
-6. **Deep dives (≈15 min).** The hardest parts for *this* problem: scaling the hot path, consistency, fan-out, failure handling, hot keys. Usually chosen with the interviewer.
+6. **Deep dives (≈15 min).** The hardest parts for *this* problem: scaling the hot path, consistency, <Term id="fan-out">fan-out</Term>, failure handling, <Term id="hot-partition">hot keys</Term>. Usually chosen with the interviewer.
 7. **Wrap-up (≈2–5 min).** Bottlenecks at 10× scale, failure modes, monitoring, cost, what you'd do next.
 
 </Steps>
@@ -97,7 +97,7 @@ Make each number earn its place by drawing a conclusion from it:
 
 ## Deep-dive menu
 
-Pick the parts that are hard *for this problem* — a chat system's hard part is delivery and presence; a URL shortener's is key generation and read scaling; a payment system's is correctness and idempotency.
+Pick the parts that are hard *for this problem* — a chat system's hard part is delivery and presence; a URL shortener's is key generation and read scaling; a payment system's is correctness and <Term id="idempotency">idempotency</Term>.
 
 | Concern | Questions to address |
 |---|---|

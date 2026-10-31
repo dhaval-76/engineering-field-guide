@@ -22,7 +22,7 @@ lastReviewed: 2026-10-31
 
 `new EmailNotifier()` scattered through business code welds that code to one implementation. Every new channel means hunting down and editing every place that decides which class to create, and testing that code means really sending email.
 
-A factory puts the **decision about which class to instantiate** in one place. Callers ask for "a notifier for this channel" and get back something that implements `Notifier`. This keeps callers open for extension (SOLID's O) and lets them depend on an abstraction (the D).
+A factory puts the **decision about which class to instantiate** in one place. Callers ask for "a notifier for this channel" and get back something that implements `Notifier`. This keeps callers open for extension (<Term id="solid">SOLID</Term>'s O) and lets them depend on an abstraction (the D).
 
 <Callout type="analogy">
 At a restaurant you order "veg burger". You don't walk into the kitchen, pick a chef and choose an oven. The kitchen decides how to make it; you get a burger. If the kitchen changes its supplier tomorrow, your order doesn't change.

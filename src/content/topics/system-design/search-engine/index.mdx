@@ -21,7 +21,7 @@ lastReviewed: 2026-10-31
 
 ## Why it matters
 
-Search boxes promise relevant results across millions of documents in tens of milliseconds, tolerating typos and partial words. A database `LIKE '%word%'` scans everything; search engines instead build an inverted index from words to documents, rank results with scoring like BM25, and keep the index in sync with the source data. The design covers indexing pipelines, sharding, relevance, autocomplete and permissions.
+Search boxes promise relevant results across millions of documents in tens of milliseconds, tolerating typos and partial words. A database `LIKE '%word%'` scans everything; search engines instead build an inverted index from words to documents, rank results with scoring like BM25, and keep the index in sync with the source data. The design covers indexing pipelines, <Term id="sharding">sharding</Term>, relevance, autocomplete and permissions.
 
 <Callout type="analogy">
 The index at the back of a textbook. To find every page mentioning "photosynthesis" you don't read the whole book; you look up the word and get a list of page numbers. A search engine is that index for millions of documents, updated as they change and sorted by how relevant each page is.
@@ -30,7 +30,7 @@ The index at the back of a textbook. To find every page mentioning "photosynthes
 ## Requirements
 
 **Functional**: keyword search over titles and bodies with relevance ranking; filters and facets (space, category, author, date); highlighted snippets; autocomplete; typo tolerance; results only from documents the user may see; new and edited documents searchable within seconds.
-**Non-functional**: 10 M documents (~20 KB average → ~200 GB of text), ~1 M queries/day with peaks of a few hundred per second; p99 < 200 ms; indexing lag < ~10 s.
+**Non-functional**: 10 M documents (~20 KB average → ~200 GB of text), ~1 M queries/day with peaks of a few hundred per second; <Term id="p99">p99</Term> < 200 ms; indexing lag < ~10 s.
 
 ## How an inverted index works
 
@@ -48,7 +48,7 @@ The index at the back of a textbook. To find every page mentioning "photosynthes
 
 <Diagram id="search-architecture" caption="Writes go to the database; an indexer keeps the search cluster in sync; queries go only to the search cluster." />
 
-- **Indexing pipeline**: the document service writes to its database and an outbox; a consumer (or CDC) loads the full document, enriches it (permissions, tags), analyses and upserts it — idempotently, using the document version so out-of-order updates don't regress the index.
+- **Indexing pipeline**: the document service writes to its database and an <Term id="outbox">outbox</Term>; a consumer (or <Term id="cdc">CDC</Term>) loads the full document, enriches it (permissions, tags), analyses and upserts it — idempotently, using the document version so out-of-order updates don't regress the index.
 - **Reindexing**: build a new index from a snapshot + catch up with the event stream, then switch an alias — no downtime when analysers or mappings change.
 - **Sharding**: documents spread across primary shards (size each to ~10–50 GB); every query fans out to all shards and merges top-K. **Replicas** serve reads and survive node loss. Very large multi-tenant corpora can route by tenant to keep queries on few shards.
 
@@ -89,7 +89,7 @@ Interviewers almost always ask "what happens when X goes down?". Decide the degr
 <KeyTakeaways>
 
 - Inverted index + consistent analysis + BM25, then business boosts tuned with data.
-- Database as source of truth; asynchronous, idempotent, versioned indexing; alias-based reindexing.
+- Database as source of truth; asynchronous, <Term id="idempotency">idempotent</Term>, versioned indexing; alias-based reindexing.
 - Shards for size, replicas for throughput and availability.
 - Permissions as query filters; autocomplete and typo tolerance as separate structures; hybrid search for meaning.
 

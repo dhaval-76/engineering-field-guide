@@ -1,0 +1,3 @@
+term: "Backpressure"
+short: "A way for a slow consumer to make a fast producer slow down (a bounded queue that blocks, a rejected request, a reduced credit) instead of buffering without limit."
+topic: concurrency/producer-consumer

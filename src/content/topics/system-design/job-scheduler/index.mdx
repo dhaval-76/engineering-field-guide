@@ -21,7 +21,7 @@ lastReviewed: 2026-10-31
 
 ## Why it matters
 
-Sending tomorrow's reminder emails, retrying failed payouts, running nightly reports: products are full of work that must happen at a certain time, exactly once in effect, even when machines crash mid-job. A distributed scheduler stores millions of due jobs durably, hands each one to exactly one worker at a time, recovers jobs from workers that died, retries with backoff, and never runs a job twice in a way that matters. It tests leases, idempotency and time-ordered storage.
+Sending tomorrow's reminder emails, retrying failed payouts, running nightly reports: products are full of work that must happen at a certain time, exactly once in effect, even when machines crash mid-job. A distributed scheduler stores millions of due jobs durably, hands each one to exactly one worker at a time, recovers jobs from workers that died, retries with backoff, and never runs a job twice in a way that matters. It tests leases, <Term id="idempotency">idempotency</Term> and time-ordered storage.
 
 <Callout type="analogy">
 A hotel's wake-up call system. Requests are written in a book ordered by time; at each minute, staff take the due cards, mark them "in progress, back by 7:05" and make the calls. If a staff member disappears, the card's time runs out and someone else picks it up — so guests may occasionally get two calls, but never none.
@@ -32,7 +32,7 @@ A hotel's wake-up call system. Requests are written in a book ordered by time; a
 **Functional**: schedule one-off jobs (run at T or after a delay) and recurring jobs (cron); priorities; retries with backoff; cancel and pause; dependencies (B after A succeeds); see job history.
 **Non-functional**: 10 M executions/day; start within ~1 s of the due time; no job lost when a scheduler or worker dies; a job runs once in the normal case and never silently zero times; horizontal scale.
 
-The single-process version (a priority queue and a worker pool) is the [LLD task scheduler](../../low-level-design/task-scheduler/); here the hard part is coordination across machines.
+The single-process version (a <Term id="heap">priority queue</Term> and a worker pool) is the [LLD task scheduler](../../low-level-design/task-scheduler/); here the hard part is coordination across machines.
 
 ## Estimates
 
@@ -48,22 +48,22 @@ The single-process version (a priority queue and a worker pool) is the [LLD task
 
 <CodeTabs id="job-claim" title="Claim due jobs with SKIP LOCKED, heartbeat, complete or retry" />
 
-- A **lease** (owner, `lease_until`) marks a job as taken. A healthy worker **heartbeats** to extend it; if the worker dies, the lease expires and another worker can claim the job.
+- A **<Term id="lease">lease</Term>** (owner, `lease_until`) marks a job as taken. A healthy worker **heartbeats** to extend it; if the worker dies, the lease expires and another worker can claim the job.
 - Therefore a job can run **twice** (a slow worker whose lease expired is still running when another starts). Make job handlers idempotent, and for exclusive resources pass a **fencing token** (a version incremented on every claim) that the resource checks, so a stale holder's writes are rejected.
-- Claim and execute in **separate** steps: commit the claim, run the job outside any database transaction, then record the result.
+- Claim and execute in **separate** steps: commit the claim, run the job outside any database <Term id="transaction">transaction</Term>, then record the result.
 
 ## Retries, dead letters and recurrence
 
 <CodeTabs id="job-schema" title="Jobs, schedules and executions" />
 
-- On failure: `attempts + 1`, `run_at = now + backoff(attempts)` with jitter, until `max_attempts`; then `DEAD` with the last error and an alert. Distinguish retryable errors (timeouts, 503) from permanent ones (validation).
+- On failure: `attempts + 1`, `run_at = now + backoff(attempts)` with <Term id="jitter">jitter</Term>, until `max_attempts`; then `DEAD` with the last error and an alert. Distinguish retryable errors (timeouts, 503) from permanent ones (validation).
 - **Recurring jobs**: a schedule row holds the cron expression and time zone; each time an occurrence is created, the next occurrence is inserted (idempotently, with a unique `(schedule_id, scheduled_for)`), so missed occurrences after an outage can be detected and run or skipped by policy.
 - **Overlapping runs** of a slow recurring job: choose per job — skip if the previous run is still active, or queue sequentially.
 - **Dependencies**: store edges; when a job succeeds, decrement a pending-dependency counter on its dependents and release those reaching zero. Long multi-step pipelines belong in a [workflow engine](../workflow-engine/).
 
 ## Scaling
 
-- **Partition** the job table (or Redis sorted sets of due ids) by hash of job id; each scheduler instance owns some partitions (assigned via a coordinator or consistent hashing) — no single leader scanning everything.
+- **Partition** the job table (or <Term id="redis">Redis</Term> sorted sets of due ids) by hash of job id; each scheduler instance owns some partitions (assigned via a coordinator or <Term id="consistent-hashing">consistent hashing</Term>) — no single leader scanning everything.
 - **Time-bucketed** storage (jobs grouped by due minute) makes "what's due now?" cheap for far-future schedules.
 - Decouple **scheduling** from **execution**: schedulers push due jobs to a queue (Kafka/SQS) and a separate worker pool runs them, so slow jobs don't delay triggering.
 - Smooth thundering hours with jitter for jobs that don't need an exact second.
@@ -92,7 +92,7 @@ Interviewers almost always ask "what happens when X goes down?". Decide the degr
 
 - **Delete-then-publish** of due jobs — a crash in between loses them; claim durably first.
 - **Locks without expiry or heartbeats** — a dead worker holds a job forever.
-- **Non-idempotent jobs** with at-least-once execution.
+- **Non-idempotent jobs** with <Term id="at-least-once">at-least-once</Term> execution.
 - **One leader scanning all jobs** — a bottleneck and single point of failure.
 - **Running jobs inside the claim transaction** — long transactions and held locks.
 - **Ignoring time zones and daylight-saving changes** in cron schedules.

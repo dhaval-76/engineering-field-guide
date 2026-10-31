@@ -20,7 +20,7 @@ lastReviewed: 2026-10-30
 
 ## Why it matters
 
-"Design Kafka" tests whether you understand **why** a log-based broker is fast and durable: sequential disk writes, batching, zero-copy reads, partitioning for parallelism and replication for failures. This page designs such a system from first principles; how to **use** Kafka well — producers, consumer groups, delivery semantics — is in [Kafka in depth](../../distributed-systems/kafka-deep-dive/).
+"Design Kafka" tests whether you understand **why** a log-based <Term id="message-broker">broker</Term> is fast and durable: sequential disk writes, batching, zero-copy reads, partitioning for parallelism and replication for failures. This page designs such a system from first principles; how to **use** Kafka well — producers, consumer groups, delivery semantics — is in [Kafka in depth](../../distributed-systems/kafka-deep-dive/).
 
 <Callout type="analogy">
 A row of numbered ledgers in a records office, one per category. Clerks only ever write on the next blank line of a ledger, which is the fastest way to write. Each department keeps its own bookmark per ledger and reads at its own pace; ledgers are copied to a second office in case of fire, and pages older than the retention period are archived.
@@ -28,8 +28,8 @@ A row of numbered ledgers in a records office, one per category. Clerks only eve
 
 ## Requirements
 
-**Functional**: producers publish messages to named topics; consumers read them in order per partition; many independent consumer groups; replay from any retained offset; configurable retention.
-**Non-functional**: 1 M messages/s at ~1 KB (≈ 1 GB/s in, several GB/s out with fan-out); durable once acknowledged (survive one broker loss); per-key ordering; horizontal scaling; latency in milliseconds.
+**Functional**: producers publish messages to named topics; consumers read them in order per <Term id="partition">partition</Term>; many independent consumer groups; replay from any retained <Term id="offset">offset</Term>; configurable retention.
+**Non-functional**: 1 M messages/s at ~1 KB (≈ 1 GB/s in, several GB/s out with <Term id="fan-out">fan-out</Term>); durable once acknowledged (survive one broker loss); per-key ordering; <Term id="horizontal-scaling">horizontal scaling</Term>; latency in milliseconds.
 
 ## Estimates
 
@@ -61,7 +61,7 @@ joinGroup(group, topics) / heartbeat       → assigned partitions
 <CodeTabs id="partition-log" title="A partition as segment files with a sparse offset index" />
 
 - Each partition is a directory of **segments** (e.g. 1 GB files named by their base offset). Appends go to the active segment; old segments are immutable and deleted (or compacted) wholesale by retention — no per-message deletes.
-- A **sparse index** maps every Nth offset to a byte position; finding offset X = binary search in the index + short scan.
+- A **sparse index** maps every Nth offset to a byte position; finding offset X = <Term id="binary-search">binary search</Term> in the index + short scan.
 - **Sequential writes** run at disk bandwidth; the OS **page cache** serves recent data to consumers from memory; **zero-copy** (`sendfile`) streams bytes from the page cache to the socket without copying through the JVM.
 - **Batching and compression** at the producer amortise per-message costs; the broker stores batches as-is.
 
@@ -76,7 +76,7 @@ joinGroup(group, topics) / heartbeat       → assigned partitions
 
 ## Metadata and coordination
 
-A small **controller quorum** (Raft — Kafka's KRaft) stores the cluster's metadata: topics, partitions, replica placement, leaders and ISR. Brokers watch it and act on changes. Only metadata goes through consensus; message data flows through partition replication, which is why throughput scales with brokers.
+A small **controller <Term id="quorum">quorum</Term>** (<Term id="raft">Raft</Term> — Kafka's KRaft) stores the cluster's metadata: topics, partitions, replica placement, leaders and ISR. Brokers watch it and act on changes. Only metadata goes through consensus; message data flows through partition replication, which is why throughput scales with brokers.
 
 ## Consumers
 

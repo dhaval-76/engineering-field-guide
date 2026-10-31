@@ -23,7 +23,7 @@ lastReviewed: 2026-10-31
 Every service boundary needs a contract. The protocol you pick decides how easy the API is to consume, cache, evolve, debug and secure, and how much data crosses the network. Most real systems use several styles — the skill is matching each boundary to the right one, and explaining why.
 
 <Callout type="analogy">
-A restaurant. **REST** is a set menu by dish: fixed plates at known addresses. **GraphQL** is a buffet where you fill one plate with exactly what you want, in one trip. **gRPC** is the kitchen's internal ticket system — terse, fast, and only the staff understand it. **Async** is "we'll text you when your table is ready".
+A restaurant. **<Term id="rest">REST</Term>** is a set menu by dish: fixed plates at known addresses. **GraphQL** is a buffet where you fill one plate with exactly what you want, in one trip. **gRPC** is the kitchen's internal ticket system — terse, fast, and only the staff understand it. **Async** is "we'll text you when your table is ready".
 </Callout>
 
 ## At a glance
@@ -56,15 +56,15 @@ A typed schema describes the graph; clients send queries selecting exactly the f
 
 Production concerns:
 
-- **N+1** — batch every relation (DataLoader, `@BatchMapping`).
+- **<Term id="n-plus-one">N+1</Term>** — batch every relation (DataLoader, `@BatchMapping`).
 - **Abuse** — a single query can request a huge nested graph. Limit depth and complexity, paginate every list, and use **persisted queries** (an allow-list of query hashes) for first-party apps.
-- **Caching** — responses vary per query; cache inside (DataLoader per request, entity caches) or use persisted queries over GET for CDN caching.
+- **Caching** — responses vary per query; cache inside (DataLoader per request, entity caches) or use persisted queries over GET for <Term id="cdn">CDN</Term> caching.
 - **Errors** — HTTP 200 with an `errors` array; expected business errors are better modelled in the payload (`CancelOrderPayload.errors`).
 - **Authorization** — per field/object in the service layer, not by hiding schema fields.
 
 ## gRPC
 
-Define services and messages in Protobuf; code generators produce typed clients and servers in every major language. Messages are compact binary over HTTP/2 multiplexed connections.
+Define services and messages in Protobuf; code generators produce typed clients and servers in every major language. Messages are compact binary over <Term id="http2">HTTP/2</Term> multiplexed connections.
 
 <CodeTabs id="api-orders" title="orders.proto: unary and streaming RPCs, reserved fields, enums with a zero value" />
 
@@ -73,14 +73,14 @@ Define services and messages in Protobuf; code generators produce typed clients 
 Production concerns:
 
 - **Deadlines** on every call, propagated downstream — gRPC carries the remaining deadline across hops.
-- **Status codes** (`NOT_FOUND`, `UNAVAILABLE`, `DEADLINE_EXCEEDED`, …) replace HTTP statuses; retry only idempotent calls on `UNAVAILABLE`.
-- **Load balancing** — HTTP/2 keeps one long-lived connection, so an L4 load balancer pins a client to one pod. Use client-side balancing (`round_robin` over DNS), an L7 proxy (Envoy) or a service mesh.
+- **Status codes** (`NOT_FOUND`, `UNAVAILABLE`, `DEADLINE_EXCEEDED`, …) replace HTTP statuses; retry only <Term id="idempotency">idempotent</Term> calls on `UNAVAILABLE`.
+- **Load balancing** — HTTP/2 keeps one long-lived connection, so an L4 <Term id="load-balancer">load balancer</Term> pins a client to one pod. Use client-side balancing (`round_robin` over <Term id="dns">DNS</Term>), an L7 proxy (Envoy) or a service mesh.
 - **Browsers** need grpc-web or a REST/JSON gateway (gRPC-Gateway, Envoy transcoding).
 - **Compatibility** — add fields with new numbers; never change a field's type or reuse a number (`reserved`); unknown fields are ignored by old clients.
 
 ## Asynchronous APIs
 
-When the caller doesn't need the result now, or several services react to the same fact, publish an **event** ("OrderPlaced") to a broker ([Kafka vs RabbitMQ](../../distributed-systems/kafka-vs-rabbitmq/)). For external consumers, **webhooks** push events over HTTP — signed, retried with backoff, idempotent on the receiver ([Webhook delivery](../../system-design/webhook-delivery/)). Async APIs need schemas and versioning too (a schema registry), and consumers must tolerate duplicates and reordering.
+When the caller doesn't need the result now, or several services react to the same fact, publish an **event** ("OrderPlaced") to a <Term id="message-broker">broker</Term> ([Kafka vs RabbitMQ](../../distributed-systems/kafka-vs-rabbitmq/)). For external consumers, **webhooks** push events over HTTP — signed, retried with backoff, idempotent on the receiver ([Webhook delivery](../../system-design/webhook-delivery/)). Async APIs need schemas and versioning too (a schema registry), and consumers must tolerate duplicates and reordering.
 
 ## Choosing
 

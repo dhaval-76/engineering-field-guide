@@ -42,9 +42,9 @@ A cloakroom ticket system. Instead of searching every coat on the rack for yours
 
 "O(1)" hides details that matter when you defend a solution:
 
-- **Average, not worst case.** A good hash function spreads keys across buckets; many collisions degrade a bucket to a list (Java turns long chains into balanced trees, so the worst case is O(log n) there). See [HashMap internals](../../java-runtime/hashmap-internals/).
+- **Average, not worst case.** A good hash function spreads keys across buckets; many <Term id="hash-collision">collisions</Term> degrade a bucket to a list (Java turns long chains into balanced trees, so the worst case is O(log n) there). See [HashMap internals](../../java-runtime/hashmap-internals/).
 - **Hashing the key costs time too.** Hashing a string of length k is O(k), so grouping n words of length k is O(n·k), not O(n).
-- **Memory is real.** Measured on JDK 22, a `HashMap<Integer, Integer>` costs about **71 bytes per entry** once the entry object, two boxed `Integer`s and the bucket table are counted — a million entries is about 70 MB. An `int[]` indexed by value uses 4 bytes per slot.
+- **Memory is real.** Measured on JDK 22, a `HashMap<Integer, Integer>` costs about **71 bytes per entry** once the entry object, two <Term id="autoboxing">boxed</Term> `Integer`s and the bucket table are counted — a million entries is about 70 MB. An `int[]` indexed by value uses 4 bytes per slot.
 - **Keys must be stable.** Java arrays hash by identity, so `int[]` keys never match; use a `String`, a `List`, or a record. Never mutate an object while it's a key.
 
 ## Templates
@@ -98,7 +98,7 @@ The same idea groups anything up to an equivalence: emails up to case and dots, 
 
 <CodeTabs id="dsa-subarray-sum-k" title="Subarray sum equals k — prefix sums + counts" />
 
-**Why not a sliding window?** A window needs the sum to grow when the window grows; with negative numbers it can shrink, so you can't tell which pointer to move. Prefix sums don't care about signs.
+**Why not a <Term id="sliding-window">sliding window</Term>?** A window needs the sum to grow when the window grows; with negative numbers it can shrink, so you can't tell which pointer to move. Prefix sums don't care about signs.
 
 ### Product of array except self
 

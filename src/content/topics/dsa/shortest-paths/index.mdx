@@ -21,7 +21,7 @@ lastReviewed: 2026-10-31
 
 ## Why it matters
 
-When edges have **costs** — kilometres, milliseconds of latency, ticket prices, risk — the fewest-edges path from BFS is no longer the cheapest. Shortest-path algorithms find the cheapest route, and they run everywhere: maps and ride-hailing ETAs ([Maps and navigation](../../system-design/maps-navigation/)), network routing protocols (OSPF is Dijkstra; RIP is Bellman-Ford), game AI pathfinding (A*), currency arbitrage detection (negative cycles), and dependency-aware scheduling.
+When edges have **costs** — kilometres, milliseconds of latency, ticket prices, risk — the fewest-edges path from <Term id="bfs">BFS</Term> is no longer the cheapest. Shortest-path algorithms find the cheapest route, and they run everywhere: maps and ride-hailing ETAs ([Maps and navigation](../../system-design/maps-navigation/)), network routing protocols (OSPF is Dijkstra; RIP is Bellman-Ford), game AI pathfinding (A*), currency arbitrage detection (negative cycles), and dependency-aware scheduling.
 
 The interview skill is **picking the right algorithm from the weights**: equal weights, 0/1 weights, non-negative weights, negative weights, a limit on the number of edges, or all pairs. Each has a different best tool.
 
@@ -57,7 +57,7 @@ Dijkstra is water flooding from the source through pipes of different lengths: i
 
 **Why negative edges break it** — a concrete case: edges `A→B` (2), `A→C` (5), `C→B` (−4). Classic Dijkstra pops B at distance 2 and treats it as final, but the true distance is 5 − 4 = 1, discovered only after B was settled (and anything relaxed from B used the wrong value). Lazy-deletion versions without a "settled" check may happen to recover on small examples, but can take exponential time on others — use Bellman-Ford when weights can be negative.
 
-**Complexity** O((V + E) log V) with a binary heap. Early exit: when the target is popped, its distance is final.
+**Complexity** O((V + E) log V) with a <Term id="heap">binary heap</Term>. Early exit: when the target is popped, its distance is final.
 
 ## Dijkstra with a custom cost
 

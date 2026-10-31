@@ -1,0 +1,3 @@
+term: "Serializable isolation"
+short: "The strongest isolation level: concurrent transactions produce a result equal to running them one at a time; conflicts abort and must be retried."
+topic: databases/transactions-isolation

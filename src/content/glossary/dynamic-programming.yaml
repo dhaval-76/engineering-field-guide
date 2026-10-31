@@ -1,0 +1,3 @@
+term: "Dynamic programming"
+short: "Solving a problem by combining answers to overlapping subproblems, each computed once and stored (memoization or a table)."
+topic: dsa/dynamic-programming

@@ -1,0 +1,3 @@
+term: "Message broker"
+short: "A server that receives messages from producers and delivers them to consumers, decoupling them in time and load (Kafka, RabbitMQ)."
+topic: distributed-systems/kafka-vs-rabbitmq

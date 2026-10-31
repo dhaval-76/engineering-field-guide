@@ -21,7 +21,7 @@ lastReviewed: 2026-10-31
 
 ## Why it matters
 
-A paste or snippet-sharing service is mostly reads: content is written once and then viewed many times, sometimes by millions of people when a link goes viral. That makes it a clean design exercise in separating metadata from content, generating short unique ids, serving reads from a CDN and object storage rather than a database, and expiring data on schedule — the same shape as image hosting, file sharing links and many internal artifact stores.
+A paste or snippet-sharing service is mostly reads: content is written once and then viewed many times, sometimes by millions of people when a link goes viral. That makes it a clean design exercise in separating metadata from content, generating short unique ids, serving reads from a <Term id="cdn">CDN</Term> and object storage rather than a database, and expiring data on schedule — the same shape as image hosting, file sharing links and many internal artifact stores.
 
 <Callout type="analogy">
 A public notice board with a numbered key for each notice. Posting a notice takes a minute; reading it takes seconds, and popular notices get photocopied to boards all over town (the CDN). Notices with an expiry date are taken down by a nightly sweep.
@@ -56,7 +56,7 @@ Large uploads can go straight to object storage with a **presigned URL** limited
 
 ## Deep dives
 
-**Viral pastes.** Because content never changes, public responses carry `Cache-Control: public, max-age=…` (capped at the time to expiry) and the CDN absorbs the spike: the origin sees roughly one request per edge per TTL. Behind it, a Redis cache keeps hot pastes' content (size-capped — megabyte values belong in the object store, not Redis).
+**Viral pastes.** Because content never changes, public responses carry `Cache-Control: public, max-age=…` (capped at the time to expiry) and the CDN absorbs the spike: the origin sees roughly one request per edge per <Term id="ttl">TTL</Term>. Behind it, a <Term id="redis">Redis</Term> cache keeps hot pastes' content (size-capped — megabyte values belong in the object store, not Redis).
 
 **Expiry.** The read path checks `expires_at` and returns 404/410 even if cleanup hasn't run; object-store lifecycle rules or a batch job delete expired content; metadata TTL (DynamoDB TTL) or a periodic `DELETE … WHERE expires_at < now()` in batches; cache TTLs never exceed the remaining lifetime.
 

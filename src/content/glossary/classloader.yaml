@@ -1,0 +1,3 @@
+term: "Class loader"
+short: "The JVM component that finds, loads and links classes, delegating to its parent first (bootstrap, platform, application)."
+topic: java-runtime/jvm-architecture

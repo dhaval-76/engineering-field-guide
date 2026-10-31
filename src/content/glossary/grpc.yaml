@@ -1,0 +1,3 @@
+term: "gRPC"
+short: "An RPC framework over HTTP/2 with Protocol Buffers: typed contracts, compact binary messages and streaming in both directions."
+topic: backend/api-styles

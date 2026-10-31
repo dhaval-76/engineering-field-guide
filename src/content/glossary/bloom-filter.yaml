@@ -1,0 +1,3 @@
+term: "Bloom filter"
+short: "A compact bit array that answers \"definitely not present\" or \"probably present\". It has false positives, never false negatives, and can't delete items."
+topic: system-design/web-crawler

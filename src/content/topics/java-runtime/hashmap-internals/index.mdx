@@ -62,7 +62,7 @@ If a chain grows past **8** nodes, Java 8+ converts it to a **red-black tree** o
 
 When `size > capacity × 0.75`, the table doubles. Because the new index uses exactly one extra bit of the hash, each entry either **stays** at `i` or moves to **`i + oldCapacity`** — Java splits each chain in two without recomputing hash codes.
 
-Resizing is O(n) but happens rarely (amortised O(1) per insert). If you know the final size, pre-size the map and skip every intermediate resize:
+Resizing is O(n) but happens rarely (<Term id="amortized">amortised</Term> O(1) per insert). If you know the final size, pre-size the map and skip every intermediate resize:
 
 <CodeTabs id="hashmap-presize" title="Pre-sizing and merge() for counting" />
 
@@ -70,7 +70,7 @@ Resizing is O(n) but happens rarely (amortised O(1) per insert). If you know the
 
 <CodeTabs id="hashmap-mutable-key" title="Changing a key's fields strands its entry" />
 
-The entry was placed in the bucket for the **old** hash. After mutation, lookups compute the new hash and search the wrong bucket; even searching with an equal "old" key fails `equals`. The entry can't be found or removed but still occupies memory. Use immutable keys — `String`, boxed numbers, enums, or records with immutable fields.
+The entry was placed in the bucket for the **old** hash. After mutation, lookups compute the new hash and search the wrong bucket; even searching with an equal "old" key fails `equals`. The entry can't be found or removed but still occupies memory. Use <Term id="immutable">immutable</Term> keys — `String`, <Term id="autoboxing">boxed</Term> numbers, enums, or records with immutable fields.
 
 ## HashMap vs its relatives
 

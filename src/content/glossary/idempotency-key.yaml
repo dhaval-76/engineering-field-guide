@@ -1,0 +1,3 @@
+term: "Idempotency key"
+short: "A client-chosen unique id sent with a request; the server stores the result under it and returns the same result for a retry instead of acting again."
+topic: backend/idempotency

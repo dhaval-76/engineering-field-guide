@@ -1,0 +1,3 @@
+term: "Heartbeat"
+short: "A periodic \"I'm alive\" message. Missing several in a row is how nodes, leaders and workers are declared dead."
+topic: distributed-systems/consensus-and-leader-election

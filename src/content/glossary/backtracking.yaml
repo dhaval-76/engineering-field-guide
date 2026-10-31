@@ -1,0 +1,3 @@
+term: "Backtracking"
+short: "Building a solution step by step, undoing the last choice when it can't lead to a valid result, and pruning branches early."
+topic: dsa/backtracking

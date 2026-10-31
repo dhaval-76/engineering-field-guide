@@ -1,0 +1,3 @@
+term: "Topological sort"
+short: "An ordering of a directed acyclic graph's nodes in which every edge points forward, e.g. a build order where dependencies come first."
+topic: dsa/topological-sort

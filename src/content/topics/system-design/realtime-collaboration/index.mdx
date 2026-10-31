@@ -55,7 +55,7 @@ Either way, the architecture around the algorithm is similar.
 
 <Diagram id="collab-architecture" caption="All editors of a document connect to the session server that owns it; it sequences ops, appends them to a log and broadcasts them." />
 
-- **Routing**: a document id maps to one **session server** (consistent hashing or a lease in a coordination store); every client editing that document connects there (or through a gateway that forwards). Having one owner makes ordering simple.
+- **Routing**: a document id maps to one **session server** (<Term id="consistent-hashing">consistent hashing</Term> or a <Term id="lease">lease</Term> in a coordination store); every client editing that document connects there (or through a gateway that forwards). Having one owner makes ordering simple.
 - **Ops flow**: client applies its op locally → sends `{docId, baseRevision, op, clientOpId}` → the session server transforms it against ops since `baseRevision`, assigns the next revision, appends it to the **op log** (durable before acking), broadcasts it → clients transform any of their pending ops and apply.
 - **Snapshots**: every N ops (or minutes) the server stores a full snapshot; loading a document = latest snapshot + ops after it. Old ops can be compacted after the version-history policy allows.
 - **Failover**: if the session server dies, the lease moves; the new owner loads snapshot + log and clients reconnect, resending unacknowledged ops (de-duplicated by `clientOpId`).

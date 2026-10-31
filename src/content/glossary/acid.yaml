@@ -1,0 +1,3 @@
+term: "ACID"
+short: "Atomicity, Consistency, Isolation, Durability: a transaction applies fully or not at all, keeps constraints valid, is isolated from concurrent ones and survives a crash once committed."
+topic: databases/transactions-isolation

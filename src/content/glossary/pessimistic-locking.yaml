@@ -1,0 +1,3 @@
+term: "Pessimistic locking"
+short: "Lock the row when reading it (SELECT … FOR UPDATE) so no one else can change it until you commit. Good when conflicts are frequent."
+topic: databases/transactions-isolation

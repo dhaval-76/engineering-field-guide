@@ -59,13 +59,13 @@ Why `minFreq` is easy to maintain: it only changes in two places. When a key lea
 | Weakness | one big scan flushes the cache | **old popularity never fades**; new keys get evicted before they can build counts |
 | Overhead | one list | buckets + counts |
 
-Production caches combine the two: **W-TinyLFU** (Caffeine, Java's default high-performance cache) keeps approximate frequencies in a compact sketch that periodically halves (aging), and admits a new key only if it's more popular than the eviction candidate ([Caching strategies](../../distributed-systems/caching-strategies/)). Redis offers `allkeys-lfu` with a logarithmic counter that decays over time.
+Production caches combine the two: **W-TinyLFU** (Caffeine, Java's default high-performance cache) keeps approximate frequencies in a compact sketch that periodically halves (aging), and admits a new key only if it's more popular than the eviction candidate ([Caching strategies](../../distributed-systems/caching-strategies/)). <Term id="redis">Redis</Term> offers `allkeys-lfu` with a logarithmic counter that decays over time.
 
 ## Concurrency and extensions
 
 - **Thread safety**: one lock around get/put is simplest and correct (every get mutates structure). For high throughput, shard by key hash into N independent caches, or buffer accesses and apply them in batches as Caffeine does.
 - **Aging**: periodically halve all counts, or decay counts by time since last access.
-- **TTL**: store an expiry per entry; check on get and evict expired entries lazily.
+- **<Term id="ttl">TTL</Term>**: store an expiry per entry; check on get and evict expired entries lazily.
 - **Size-based capacity**: track total weight; evict until under the limit.
 
 <Pitfalls>
@@ -73,7 +73,7 @@ Production caches combine the two: **W-TinyLFU** (Caffeine, Java's default high-
 - **Forgetting that `put` to an existing key is an access** — counts drift from the spec.
 - **Not resetting `minFreq = 1`** after inserting a new key.
 - **Scanning all keys to find the minimum** — O(n) eviction.
-- **Ignoring ties** — the spec needs LRU among equal counts.
+- **Ignoring ties** — the spec needs <Term id="lru">LRU</Term> among equal counts.
 - **Capacity 0** — guard it explicitly.
 
 </Pitfalls>

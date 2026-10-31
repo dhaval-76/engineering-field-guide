@@ -38,7 +38,7 @@ Finding your way through a maze by trying a corridor, and when it dead-ends, wal
 
 ## The template
 
-Backtracking is a depth-first search over a **decision tree**: each level makes one choice, each node is a partial candidate, and leaves are complete candidates.
+Backtracking is a <Term id="dfs">depth-first</Term> search over a **decision tree**: each level makes one choice, each node is a partial candidate, and leaves are complete candidates.
 
 <Walkthrough id="subsets-tree" />
 
@@ -93,7 +93,7 @@ Three questions define any backtracking solution: *what is one choice?*, *which 
 
 <CodeTabs id="dsa-word-search" title="Word search — grid DFS with in-place marking" />
 
-To search **many** words at once in the same grid, put the words in a trie and walk the trie alongside the DFS ([Autocomplete / tries](../../low-level-design/autocomplete/)).
+To search **many** words at once in the same grid, put the words in a <Term id="trie">trie</Term> and walk the trie alongside the DFS ([Autocomplete / tries](../../low-level-design/autocomplete/)).
 
 ### N-Queens
 

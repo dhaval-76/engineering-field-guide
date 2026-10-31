@@ -1,0 +1,3 @@
+term: "Exactly-once processing"
+short: "Each message's effect is applied once. In practice: at-least-once delivery plus idempotent or transactional processing."
+topic: distributed-systems/kafka-deep-dive

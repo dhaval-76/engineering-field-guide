@@ -21,7 +21,7 @@ lastReviewed: 2026-10-31
 
 ## Why it matters
 
-Pub/sub is how services and components stay decoupled, and "design a message queue" is a common machine-coding question. Interviewers look for the delivery guarantees (when exactly is a message "done"?), independent subscribers, ordering, failure handling and thread safety. Designing it as a **log with offsets** — the way Kafka works — answers most of those questions at once.
+Pub/sub is how services and components stay decoupled, and "design a message queue" is a common machine-coding question. Interviewers look for the delivery guarantees (when exactly is a message "done"?), independent subscribers, ordering, failure handling and thread safety. Designing it as a **log with <Term id="offset">offsets</Term>** — the way Kafka works — answers most of those questions at once.
 
 <Callout type="analogy">
 A newsroom's wire feed. Every story is appended to the feed with a number. Each newspaper keeps a bookmark of the last story it has printed; a paper that was offline catches up from its bookmark, and a new paper can start from today or read the archive. Nobody tears stories out of the feed when they read them.
@@ -31,7 +31,7 @@ A newsroom's wire feed. Every story is appended to the feed with a number. Each 
 
 - Multiple independent subscribers per topic, each seeing every message? (Yes — consumer groups.)
 - Several workers sharing one subscription's load? (Extension — partitions.)
-- Delivery guarantee? (At-least-once.)
+- Delivery guarantee? (<Term id="at-least-once">At-least-once</Term>.)
 - Push (callbacks) or pull (poll)? (Both: pull core, push dispatcher on top.)
 - Ordering? (Per topic; per key with partitions.)
 - Persistence? (In memory; discuss segment files.)
@@ -45,7 +45,7 @@ A newsroom's wire feed. Every story is appended to the feed with a number. Each 
 | After reading | — | kept (until retention) | deleted on ack |
 | Replay | no | yes — reset the offset | no |
 
-See [Observer](../../oop-patterns/observer/) for the in-process pattern and [Kafka vs RabbitMQ](../../distributed-systems/kafka-vs-rabbitmq/) for the two broker styles.
+See [Observer](../../oop-patterns/observer/) for the in-process pattern and [Kafka vs RabbitMQ](../../distributed-systems/kafka-vs-rabbitmq/) for the two <Term id="message-broker">broker</Term> styles.
 
 ## Design
 
@@ -61,11 +61,11 @@ See [Observer](../../oop-patterns/observer/) for the in-process pattern and [Kaf
 
 - **Retry with backoff** for transient failures; after N attempts publish to `topic.dlq` and move on, so one bad message doesn't block the whole topic.
 - **Commit after handling** — at-least-once; handlers de-duplicate by message id or offset ([Idempotency](../../backend/idempotency/)).
-- **Backpressure**: pull-based consumption naturally limits in-flight work to the batch size; push systems need bounded buffers and flow control.
+- **<Term id="backpressure">Backpressure</Term>**: pull-based consumption naturally limits in-flight work to the batch size; push systems need bounded buffers and flow control.
 
 ## Ordering and scaling out
 
-A single log is totally ordered but consumed by one consumer per group. To scale, split a topic into **partitions**: publish chooses `partition = hash(key) % n`, each partition is its own log, and a group's partitions are spread across its consumers. Messages with the same key (an order id) stay in order; there's no order across partitions. Retries reorder messages unless the dispatcher blocks the partition while retrying.
+A single log is totally ordered but consumed by one consumer per group. To scale, split a topic into **<Term id="partition">partitions</Term>**: publish chooses `partition = hash(key) % n`, each partition is its own log, and a group's partitions are spread across its consumers. Messages with the same key (an order id) stay in order; there's no order across partitions. Retries reorder messages unless the dispatcher blocks the partition while retrying.
 
 ## Concurrency and persistence
 
@@ -86,7 +86,7 @@ A single log is totally ordered but consumed by one consumer per group. To scale
 <KeyTakeaways>
 
 - Topics as append-only logs + per-group offsets give independent subscribers and replay.
-- Commit after handling for at-least-once; make handlers idempotent.
+- Commit after handling for at-least-once; make handlers <Term id="idempotency">idempotent</Term>.
 - Retries with backoff and a dead-letter topic keep the stream moving.
 - Partition by key to scale while keeping per-key order.
 

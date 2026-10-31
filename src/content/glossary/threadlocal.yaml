@@ -1,0 +1,3 @@
+term: "ThreadLocal"
+short: "A variable with a separate value per thread. Must be cleared in pooled threads, or values leak between requests."
+topic: concurrency/threadlocal

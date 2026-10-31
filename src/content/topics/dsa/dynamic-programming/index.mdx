@@ -43,7 +43,7 @@ Counting the ways to climb a 10-step staircase taking 1 or 2 steps at a time. Th
 ## Recognise it
 
 - "**How many ways**…", "**minimum/maximum**…", "**is it possible**…" over a sequence, string, grid or budget.
-- A backtracking solution would reach the **same state by different paths** (same index and same remaining amount).
+- A <Term id="backtracking">backtracking</Term> solution would reach the **same state by different paths** (same index and same remaining amount).
 - Each step is a small choice: take/skip, which coin, match/insert/delete, which split point.
 - **Two properties** make DP valid: *optimal substructure* (the best answer is built from best answers to subproblems) and *overlapping subproblems* (the same subproblems recur). Without overlap, plain recursion or divide and conquer is enough.
 
@@ -153,7 +153,7 @@ The running time O(n · capacity) is **pseudo-polynomial**: fine for capacities 
 - **0/1 knapsack in 1-D iterating capacity upward** — items get reused; iterate downward.
 - **Forgetting the empty base case** (`dp[0] = 1` ways, `ok[0] = true`).
 - **Recursion limits** in top-down Python/Java for large n — convert to bottom-up.
-- **Using DP when greedy or a formula suffices** — and vice versa ([Greedy](../greedy/)).
+- **Using DP when <Term id="greedy">greedy</Term> or a formula suffices** — and vice versa ([Greedy](../greedy/)).
 
 </Pitfalls>
 

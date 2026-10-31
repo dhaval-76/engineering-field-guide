@@ -1,0 +1,3 @@
+term: "Pod"
+short: "Kubernetes' smallest deployable unit: one or more containers that share a network address and volumes and are scheduled together."
+topic: devops/docker-kubernetes

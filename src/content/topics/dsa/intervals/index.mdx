@@ -80,7 +80,7 @@ Two intervals `[a, b]` and `[c, d]` overlap exactly when **`a < d` and `c < b`**
 
 ### How many rooms?
 
-**Insight.** The number of rooms equals the **maximum number of meetings running at the same moment**. Sort by start and keep a min-heap of end times of rooms in use (reuse the earliest-ending room when it's free), or turn every meeting into two events, +1 at its start and −1 at its end, and sweep them in time order — processing ends before starts at equal times for half-open intervals.
+**Insight.** The number of rooms equals the **maximum number of meetings running at the same moment**. Sort by start and keep a <Term id="heap">min-heap</Term> of end times of rooms in use (reuse the earliest-ending room when it's free), or turn every meeting into two events, +1 at its start and −1 at its end, and sweep them in time order — processing ends before starts at equal times for half-open intervals.
 
 <CodeTabs id="dsa-meeting-rooms" title="Minimum meeting rooms — min-heap of end times, and sweep line" />
 
@@ -115,7 +115,7 @@ Two intervals `[a, b]` and `[c, d]` overlap exactly when **`a < d` and `c < b`**
 
 - Ask about the endpoint convention: do touching intervals overlap?
 - Say which endpoint you sort by and why (start for merging, end for selection).
-- For greedy selection, give the one-line exchange argument.
+- For <Term id="greedy">greedy</Term> selection, give the one-line exchange argument.
 - For online versions, mention the sorted map and concurrency (two requests booking the same slot).
 
 <Pitfalls>

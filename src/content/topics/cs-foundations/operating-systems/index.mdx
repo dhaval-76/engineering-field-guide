@@ -36,7 +36,7 @@ A shared kitchen (the CPU) with a few stoves (cores). Each recipe being cooked i
 | Isolation | a crash doesn't affect others | a crash (or corrupt state) affects the whole process |
 | Communication | pipes, sockets, shared memory | shared variables (needs synchronisation) |
 
-JVM platform threads map 1:1 to OS threads (~1 MB stack reserved each, scheduler cost); Java 21 **virtual threads** are scheduled by the JVM onto a few carrier threads, so a blocked virtual thread doesn't hold an OS thread ([Threads](../../concurrency/threads-and-race-conditions/)).
+JVM platform threads map 1:1 to OS threads (~1 MB stack reserved each, scheduler cost); Java 21 **<Term id="virtual-thread">virtual threads</Term>** are scheduled by the JVM onto a few carrier threads, so a blocked virtual thread doesn't hold an OS thread ([Threads](../../concurrency/threads-and-race-conditions/)).
 
 ## Scheduling and context switches
 
@@ -48,7 +48,7 @@ The scheduler gives each runnable thread a time slice on a core. Switching betwe
 
 - Each process sees a private virtual address space; the MMU translates pages (typically 4 KB) to physical frames via page tables (cached in the TLB).
 - Memory is allocated lazily: touching a page for the first time causes a **minor page fault**; reading a page of a file not in RAM causes a **major fault** (disk I/O).
-- When RAM runs out, the kernel evicts page cache, then swaps anonymous memory (slow), and finally the **OOM killer** terminates a process. In containers, exceeding the cgroup memory limit kills the container ([Docker and Kubernetes](../../devops/docker-kubernetes/)).
+- When RAM runs out, the kernel evicts page cache, then swaps anonymous memory (slow), and finally the **OOM killer** terminates a process. In <Term id="container">containers</Term>, exceeding the cgroup memory limit kills the container ([Docker and Kubernetes](../../devops/docker-kubernetes/)).
 
 ## Files, the page cache and descriptors
 
@@ -78,7 +78,7 @@ A container is a normal process with **namespaces** (its own view of PIDs, netwo
 - **Assuming free memory is wasted** — Linux uses spare RAM as page cache.
 - **Swap on latency-sensitive servers** — usually disabled or minimised.
 - **Leaking file descriptors** (unclosed sockets/files) until the process hits its limit.
-- **Blocking calls inside an event loop.**
+- **Blocking calls inside an <Term id="event-loop">event loop</Term>.**
 - **Ignoring SIGTERM** — killed mid-request on every deploy.
 
 </Pitfalls>

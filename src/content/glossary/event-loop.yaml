@@ -1,0 +1,3 @@
+term: "Event loop"
+short: "One thread that takes ready callbacks from queues and runs each to completion, while I/O happens in the background. Used by Node.js and asyncio."
+topic: concurrency/event-loop-and-async

@@ -21,7 +21,7 @@ lastReviewed: 2026-10-31
 
 ## Why it matters
 
-Amazon's Dynamo paper and the databases it inspired (Cassandra, Riak, DynamoDB) showed how to build a store that stays available through machine and network failures by giving up some consistency. Designing one covers the core vocabulary of distributed data: partitioning with consistent hashing, replication, quorum reads and writes, conflict resolution, failure detection and repair. It's a favourite deep-dive question because each choice has a clear trade-off.
+Amazon's Dynamo paper and the databases it inspired (Cassandra, Riak, DynamoDB) showed how to build a store that stays available through machine and network failures by giving up some consistency. Designing one covers the core vocabulary of distributed data: partitioning with <Term id="consistent-hashing">consistent hashing</Term>, replication, <Term id="quorum">quorum</Term> reads and writes, conflict resolution, failure detection and repair. It's a favourite deep-dive question because each choice has a clear trade-off.
 
 <Callout type="analogy">
 A library that keeps three copies of every book in different branches. To borrow, you check enough branches to be confident you have the latest edition; when a branch was closed during an update, the others leave a note to bring it up to date when it reopens, and a periodic audit compares catalogues to catch anything missed.
@@ -29,7 +29,7 @@ A library that keeps three copies of every book in different branches. To borrow
 
 ## Requirements
 
-**Functional**: `put`, `get`, `delete` by key; values up to ~1 MB; optional TTL.
+**Functional**: `put`, `get`, `delete` by key; values up to ~1 MB; optional <Term id="ttl">TTL</Term>.
 **Non-functional**: petabytes of data and millions of operations per second; single-digit-millisecond latency; always writable even during node or zone failures (availability over strict consistency, tunable per request); add and remove nodes without downtime.
 
 ## High-level design
@@ -55,8 +55,8 @@ Virtual nodes spread each physical node's share across the ring, so adding a nod
 ## Replication and consistency
 
 - Each key lives on **N** replicas (e.g. 3), on distinct nodes and ideally distinct zones.
-- **Writes** go to all N; the coordinator acknowledges after **W**. **Reads** ask R replicas and return the newest version. W + R > N gives overlap ([Replication](../../databases/replication/)); W = 1/R = 1 is fastest and eventually consistent.
-- **Versioning**: with concurrent writes to different replicas, versions can conflict. Last-write-wins by timestamp silently drops one; **version vectors** detect concurrency and return siblings for the client (or a CRDT merge) to resolve.
+- **Writes** go to all N; the coordinator acknowledges after **W**. **Reads** ask R replicas and return the newest version. W + R > N gives overlap ([Replication](../../databases/replication/)); W = 1/R = 1 is fastest and <Term id="eventual-consistency">eventually consistent</Term>.
+- **Versioning**: with concurrent writes to different replicas, versions can conflict. Last-write-wins by timestamp silently drops one; **version vectors** detect concurrency and return siblings for the client (or a <Term id="crdt">CRDT</Term> merge) to resolve.
 
 <CodeTabs id="kv-node" title="One node's store: a map with TTL that's safe to overwrite" />
 
@@ -77,9 +77,9 @@ Writes append to a **commit log** (durability) and an in-memory **memtable**; fu
 ## Trade-offs to discuss
 
 - **AP by default** (always writable, eventual consistency), with per-request knobs towards consistency; strongly consistent operations (compare-and-set) need consensus per key range (Paxos/Raft), at higher latency.
-- **Hot keys**: a single key's replicas carry all its load — client-side caching, key splitting, or read replicas for hot items.
+- **<Term id="hot-partition">Hot keys</Term>**: a single key's replicas carry all its load — client-side caching, key splitting, or <Term id="read-replica">read replicas</Term> for hot items.
 - **Large values** hurt latency and compaction — store blobs in object storage and keep references.
-- Redis Cluster differs from Dynamo: single primary per slot with async replicas (failover can lose acknowledged writes), in-memory storage with optional persistence.
+- <Term id="redis">Redis</Term> Cluster differs from Dynamo: single primary per slot with async replicas (failover can lose acknowledged writes), in-memory storage with optional persistence.
 
 <Pitfalls>
 

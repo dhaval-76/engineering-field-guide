@@ -1,0 +1,3 @@
+term: "Blue-green deployment"
+short: "Running the new version beside the old one and switching all traffic at once, with instant rollback by switching back."
+topic: devops/ci-cd-and-cloud

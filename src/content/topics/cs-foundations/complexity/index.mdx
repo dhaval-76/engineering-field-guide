@@ -93,7 +93,7 @@ Cost = number of calls × work per call. Draw the **recursion tree**: how many l
 | T(n) = T(n−1) + O(1) | chain | O(n) |
 | T(n) = 2T(n−1) + O(1) | two branches, shrinking by 1 | O(2ⁿ) — naive Fibonacci |
 
-Recursion also uses **stack space** proportional to its depth: O(log n) for balanced divide-and-conquer, O(n) for a chain (and a stack overflow risk for large n). Memoisation turns exponential recursion with repeated subproblems into polynomial time ([Dynamic programming](../../dsa/dynamic-programming/)).
+Recursion also uses **stack space** proportional to its depth: O(log n) for balanced divide-and-conquer, O(n) for a chain (and a stack overflow risk for large n). <Term id="memoization">Memoisation</Term> turns exponential recursion with repeated subproblems into polynomial time ([Dynamic programming](../../dsa/dynamic-programming/)).
 
 <CodeTabs id="fib-complexity" title="The same function at O(2ⁿ), O(n) and O(n) with O(1) space" />
 
@@ -101,7 +101,7 @@ Recursion also uses **stack space** proportional to its depth: O(log n) for bala
 
 - **Space complexity** counts extra memory beyond the input: a hash set of all elements is O(n) space; two pointers are O(1). Recursion depth counts.
 - **Amortised**: appending to a dynamic array is usually O(1) but occasionally O(n) when it doubles its capacity; over n appends the total is O(n), so each is **amortised O(1)**.
-- **Average vs worst case**: hash map operations are O(1) on average but O(n) in the worst case (Java bins with many collisions become trees, giving O(log n)); quicksort is O(n log n) average, O(n²) worst.
+- **Average vs worst case**: hash map operations are O(1) on average but O(n) in the worst case (Java bins with many <Term id="hash-collision">collisions</Term> become trees, giving O(log n)); quicksort is O(n log n) average, O(n²) worst.
 - **Big-O, Θ and Ω**: O is an upper bound, Ω a lower bound, Θ both. In interviews, "Big-O" conventionally means the tight bound for the worst case.
 
 <Pitfalls>

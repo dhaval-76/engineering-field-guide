@@ -1,0 +1,3 @@
+term: "Offset (Kafka)"
+short: "A message's position in a Kafka partition. Consumers commit the offset they have processed up to, and resume from it after a restart."
+topic: distributed-systems/kafka-deep-dive

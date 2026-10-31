@@ -20,7 +20,7 @@ lastReviewed: 2026-10-31
 
 ## Why it matters
 
-A load balancer turns many servers into one service: it spreads load, hides failures and enables zero-downtime deploys. Its algorithm decides whether one slow server stays a small problem or becomes everyone's tail latency. "Add a load balancer" is the first step in [scaling](../../system-design/scaling-to-millions/) — knowing which kind, which algorithm and how it detects failures is what interviewers probe next.
+A load balancer turns many servers into one service: it spreads load, hides failures and enables zero-downtime deploys. Its algorithm decides whether one slow server stays a small problem or becomes everyone's <Term id="p99">tail latency</Term>. "Add a load balancer" is the first step in [scaling](../../system-design/scaling-to-millions/) — knowing which kind, which algorithm and how it detects failures is what interviewers probe next.
 
 <Callout type="analogy">
 A host at a busy restaurant seating guests. A naive host seats tables strictly in turn; a good host glances at which waiters are swamped and seats new guests with the one who has the fewest tables — and stops seating anyone in the section where a waiter has gone home sick.
@@ -68,22 +68,22 @@ A host at a busy restaurant seating guests. A naive host seats tables strictly i
 
 - **Active checks** probe an endpoint; use **readiness** (can serve traffic: dependencies reachable, warmed up), not just liveness.
 - **Passive checks** (outlier detection) eject a backend after consecutive errors or high latency observed on real traffic.
-- **Retries** only for idempotent requests, with a retry budget, so a failing backend doesn't double the load on the rest.
+- **Retries** only for <Term id="idempotency">idempotent</Term> requests, with a retry budget, so a failing backend doesn't double the load on the rest.
 - **Draining** before shutdown and **slow start** after startup make rolling deploys error-free ([Docker and Kubernetes](../../devops/docker-kubernetes/)).
 
 <CodeTabs id="lb-nginx" title="nginx upstream: least connections, weights, passive health checks, keep-alive, bounded retries" />
 
 ## Sticky sessions
 
-Pinning a user to one server (cookie or IP hash) breaks even balancing, loses sessions when that server dies, and complicates scaling in. Prefer stateless servers with sessions in Redis or signed tokens ([Auth at scale](../../system-design/auth-at-scale/)). Affinity is still useful as an optimisation — e.g. routing a user to the server holding their warm cache — as long as correctness doesn't depend on it.
+Pinning a user to one server (cookie or IP hash) breaks even balancing, loses sessions when that server dies, and complicates scaling in. Prefer stateless servers with sessions in <Term id="redis">Redis</Term> or signed tokens ([Auth at scale](../../system-design/auth-at-scale/)). Affinity is still useful as an optimisation — e.g. routing a user to the server holding their warm cache — as long as correctness doesn't depend on it.
 
 ## High availability of the balancer itself
 
-Run balancers in pairs or fleets: cloud balancers are managed and multi-zone; self-managed ones use a floating virtual IP (VRRP/keepalived), anycast with ECMP routing, or DNS with several addresses. Global balancing (GeoDNS, anycast, health-checked DNS failover) routes users to the nearest healthy region.
+Run balancers in pairs or fleets: cloud balancers are managed and multi-zone; self-managed ones use a floating virtual IP (VRRP/keepalived), anycast with ECMP routing, or <Term id="dns">DNS</Term> with several addresses. Global balancing (GeoDNS, anycast, health-checked DNS failover) routes users to the nearest healthy region.
 
 ## Client-side balancing
 
-Inside a service mesh, callers often balance themselves: the client resolves all backend addresses (DNS, service registry) and picks per request with round robin or P2C. This avoids a proxy hop and is essential for gRPC, whose long-lived HTTP/2 connections defeat L4 balancers ([API styles](../../backend/api-styles/)). Sidecar proxies (Envoy in Istio) do the same transparently.
+Inside a service mesh, callers often balance themselves: the client resolves all backend addresses (DNS, service registry) and picks per request with round robin or P2C. This avoids a proxy hop and is essential for <Term id="grpc">gRPC</Term>, whose long-lived <Term id="http2">HTTP/2</Term> connections defeat L4 balancers ([API styles](../../backend/api-styles/)). Sidecar proxies (Envoy in Istio) do the same transparently.
 
 <Pitfalls>
 
@@ -98,7 +98,7 @@ Inside a service mesh, callers often balance themselves: the client resolves all
 
 <KeyTakeaways>
 
-- L4 for raw connection throughput, L7 for request-aware routing and TLS.
+- L4 for raw connection throughput, L7 for request-aware routing and <Term id="tls">TLS</Term>.
 - Load-aware algorithms (least connections, power of two choices) protect tail latency.
 - Readiness checks, outlier ejection, bounded retries, draining and slow start keep failures and deploys invisible.
 - Stateless servers make balancing simple; use client-side balancing for gRPC.

@@ -35,7 +35,7 @@ A company asking "how many people work under each manager?" Every manager asks t
 - Input is a tree, or a hierarchy (org charts, file systems, expression trees, nested JSON).
 - The answer for a node depends on its children's answers (height, size, sums, diameter) → **post-order recursion**.
 - The answer depends on the path from the root (path sums, depth limits, BST bounds) → **pass state down** (pre-order).
-- "By level", "right side view", "minimum depth", "closest" → **BFS** with a queue.
+- "By level", "right side view", "minimum depth", "closest" → **<Term id="bfs">BFS</Term>** with a queue.
 - Sorted order, k-th smallest, range queries, predecessor/successor → **BST** properties.
 
 <CodeTabs id="dsa-tree-node" title="The tree node used in these examples" />
@@ -82,7 +82,7 @@ Recursion uses O(h) stack — fine for balanced trees (h ≈ log n), dangerous f
 
 ## Binary search trees
 
-A **binary search tree** keeps every key in a node's left subtree smaller than the node, and every key in the right subtree larger. Search, insert and delete walk one root-to-leaf path: O(h).
+A **<Term id="binary-search">binary search</Term> tree** keeps every key in a node's left subtree smaller than the node, and every key in the right subtree larger. Search, insert and delete walk one root-to-leaf path: O(h).
 
 <CodeTabs id="dsa-validate-bst" title="Validate a BST with bounds, and k-th smallest via in-order" />
 

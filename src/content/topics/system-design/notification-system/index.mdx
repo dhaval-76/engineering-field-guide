@@ -87,11 +87,11 @@ Interviewers almost always ask "what happens when X goes down?". Decide the degr
 <Pitfalls>
 
 - **One queue for everything** — a campaign delays OTPs by minutes.
-- **No idempotency** — producer retries spam users.
+- **No <Term id="idempotency">idempotency</Term>** — producer retries spam users.
 - **Quiet hours in server time** instead of the user's time zone.
 - **Ignoring provider feedback** — sending to dead tokens and bounced emails hurts deliverability.
 - **Hard-coded message text** in producers — no localisation or consistency.
-- **Unbounded fan-out** from a request handler.
+- **Unbounded <Term id="fan-out">fan-out</Term>** from a request handler.
 
 </Pitfalls>
 

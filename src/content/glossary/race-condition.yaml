@@ -1,0 +1,3 @@
+term: "Race condition"
+short: "A bug where the result depends on the timing of threads, e.g. two threads doing count++ at once and losing an increment."
+topic: concurrency/threads-and-race-conditions

@@ -49,7 +49,7 @@ A shared photo album kept in several homes. Rather than mailing the whole album 
 1. **Client**: watches the file system, keeps a local DB of known files, versions and chunk hashes, and chunks changed files.
 2. **Upload**: send the chunk hash list; the server replies with hashes it doesn't have; upload those via **presigned URLs** directly to object storage (multipart and resumable for big files).
 3. **Commit**: create a new version (ordered chunk list) only if the client's base version is still current — otherwise it's a conflict.
-4. **Notify**: a lightweight notification service tells other devices "namespace changed" (long-poll or WebSocket).
+4. **Notify**: a lightweight notification service tells other devices "namespace changed" (long-poll or <Term id="websocket">WebSocket</Term>).
 5. **Sync down**: devices fetch journal entries after their cursor, update metadata, and download missing chunks.
 
 </Steps>
@@ -79,15 +79,15 @@ A shared photo album kept in several homes. Rather than mailing the whole album 
 
 <Walkthrough id="file-sync-conflict" />
 
-- The **conditional commit** (`WHERE current_version = base_version`) is optimistic concurrency; a miss becomes a conflicted copy rather than a lost edit.
+- The **conditional commit** (`WHERE current_version = base_version`) is <Term id="optimistic-locking">optimistic concurrency</Term>; a miss becomes a conflicted copy rather than a lost edit.
 - The **journal** gives each namespace an ordered change list; clients hold a cursor and catch up after being offline — the same pattern as event logs ([Kafka deep dive](../../distributed-systems/kafka-deep-dive/)).
 - **Sharing** maps a shared folder to its own namespace; members' clients sync that namespace too, and ACLs are checked on every metadata call.
 
 ## Large files and reliability
 
-- **Multipart, resumable uploads**: chunk uploads are independent and idempotent (same hash, same content), so a dropped connection resumes from the missing chunks.
+- **Multipart, resumable uploads**: chunk uploads are independent and <Term id="idempotency">idempotent</Term> (same hash, same content), so a dropped connection resumes from the missing chunks.
 - **Durability**: object storage replicates or erasure-codes across zones (eleven nines); metadata is replicated and backed up — losing metadata loses the map to every chunk.
-- **Downloads** of shared or popular files go through a CDN with signed URLs ([CDN](../../distributed-systems/cdn/)).
+- **Downloads** of shared or popular files go through a <Term id="cdn">CDN</Term> with signed URLs ([CDN](../../distributed-systems/cdn/)).
 
 <Pitfalls>
 

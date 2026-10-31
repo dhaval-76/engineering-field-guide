@@ -1,0 +1,3 @@
+term: "CDN"
+short: "Content delivery network: servers near users that cache static and cacheable responses, cutting latency and load on the origin."
+topic: distributed-systems/cdn

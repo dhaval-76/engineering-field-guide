@@ -1,0 +1,3 @@
+term: "mTLS"
+short: "Mutual TLS: both sides present certificates, so services authenticate each other, not just the server to the client."
+topic: system-design/auth-at-scale

@@ -55,7 +55,7 @@ A library, a filing cabinet and a coat check. The library (relational) is organi
 
 ## Relational first, usually
 
-A single PostgreSQL or MySQL instance on modern hardware handles tens of thousands of transactions per second and terabytes of data. Read replicas scale reads; partitioning keeps big tables manageable; `JSONB` columns with GIN indexes cover flexible attributes without a second database. Choose something else when a specific need outgrows it — not pre-emptively.
+A single PostgreSQL or MySQL instance on modern hardware handles tens of thousands of transactions per second and terabytes of data. <Term id="read-replica">Read replicas</Term> scale reads; partitioning keeps big tables manageable; `JSONB` columns with GIN indexes cover flexible attributes without a second database. Choose something else when a specific need outgrows it — not pre-emptively.
 
 <CodeTabs id="jsonb-catalog" title="Flexible product attributes in PostgreSQL with JSONB" />
 
@@ -69,7 +69,7 @@ A single PostgreSQL or MySQL instance on modern hardware handles tens of thousan
 | one-to-few, bounded | many-to-many, or shared across parents (products in orders) |
 | the child has no life of its own | the child is queried or updated independently |
 
-MongoDB documents are limited to 16 MB, and single-document writes are atomic; multi-document ACID transactions exist (since 4.0) but cost more and suggest the documents are modelled across the wrong boundary. Design documents around **aggregates** — the units your code reads and writes together.
+MongoDB documents are limited to 16 MB, and single-document writes are atomic; multi-document <Term id="acid">ACID</Term> transactions exist (since 4.0) but cost more and suggest the documents are modelled across the wrong boundary. Design documents around **aggregates** — the units your code reads and writes together.
 
 ## Wide-column stores and DynamoDB: query-first modelling
 
@@ -84,7 +84,7 @@ In Cassandra and DynamoDB, data is spread across nodes by a **partition key**, a
 
 ## Redis: data structures, not just a cache
 
-Redis keeps everything in memory and offers data structures with atomic operations — which is why it's used for far more than caching. (Redis switched licences in 2024 and added AGPL in Redis 8; **Valkey** is the Linux Foundation fork, wire-compatible.)
+<Term id="redis">Redis</Term> keeps everything in memory and offers data structures with atomic operations — which is why it's used for far more than caching. (Redis switched licences in 2024 and added AGPL in Redis 8; **Valkey** is the Linux Foundation fork, wire-compatible.)
 
 | Structure | Commands | Use for |
 |---|---|---|
@@ -104,7 +104,7 @@ Redis is durable only as far as its persistence settings (RDB snapshots, AOF wit
 
 ## Polyglot persistence
 
-Real systems combine stores, each fed from one source of truth: orders and payments in PostgreSQL; the product catalogue's search index in OpenSearch; sessions, rate limits and hot data in Redis; events in Kafka; analytics in a columnar warehouse. Every extra store adds operations work and a synchronisation problem — keep them in sync with change-data-capture or an outbox, not dual writes from the application.
+Real systems combine stores, each fed from one source of truth: orders and payments in PostgreSQL; the product catalogue's search index in OpenSearch; sessions, rate limits and hot data in Redis; events in Kafka; analytics in a columnar warehouse. Every extra store adds operations work and a synchronisation problem — keep them in sync with change-data-capture or an <Term id="outbox">outbox</Term>, not dual writes from the application.
 
 <Pitfalls>
 
@@ -123,6 +123,6 @@ Real systems combine stores, each fed from one source of truth: orders and payme
 - Decide by access patterns, consistency and growth; default to relational.
 - Documents: model aggregates. Wide-column/DynamoDB: one table per query, partition key first.
 - Redis: data structures with atomic operations and TTLs, beside a durable store.
-- Specialised stores (search, graph, time-series, vector) are fed from the source of truth via CDC or an outbox.
+- Specialised stores (search, graph, time-series, vector) are fed from the source of truth via <Term id="cdc">CDC</Term> or an outbox.
 
 </KeyTakeaways>

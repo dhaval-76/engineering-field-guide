@@ -1,0 +1,3 @@
+term: "Hash collision"
+short: "Two different keys landing in the same bucket. Handled by chaining (a list or tree per bucket) or by probing for another slot."
+topic: java-runtime/hashmap-internals

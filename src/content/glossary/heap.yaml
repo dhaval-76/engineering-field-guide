@@ -1,0 +1,3 @@
+term: "Heap"
+short: "A tree kept in an array where each parent is ≤ (min-heap) its children; gives the smallest item in O(1) and inserts or removes in O(log n)."
+topic: dsa/heaps-and-top-k

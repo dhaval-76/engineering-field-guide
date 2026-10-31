@@ -20,7 +20,7 @@ lastReviewed: 2026-10-31
 
 ## Why it matters
 
-Locks are only half of thread safety. Even with no interleaving at all, a thread may simply **never see** another thread's write, or see writes in a surprising order — because compilers, JIT and CPUs reorder and cache aggressively for speed. The Java Memory Model (JMM) defines exactly when a write is guaranteed to be visible. `volatile` and locks are the tools that create those guarantees.
+Locks are only half of thread safety. Even with no interleaving at all, a thread may simply **never see** another thread's write, or see writes in a surprising order — because compilers, <Term id="jit">JIT</Term> and CPUs reorder and cache aggressively for speed. The Java Memory Model (JMM) defines exactly when a write is guaranteed to be visible. `volatile` and locks are the tools that create those guarantees.
 
 <Callout type="analogy">
 Two colleagues working from their own notes. Without an agreed sync point, one may keep working from an outdated note forever. A `volatile` variable is a status board everyone checks directly. A lock is a meeting room: whatever you decided inside is known to the next person who enters.
@@ -55,7 +55,7 @@ That last row is why you rarely need `volatile` directly: concurrent collections
 
 <CodeTabs id="jmm-publish" title="Publishing a new immutable config with one volatile write" />
 
-`volatile` is right for **one variable** that is written as a whole: stop flags, status fields, and swapping a reference to an immutable object. It's wrong for anything that reads, then writes based on what it read (`count++`, `if (x == null) x = …`) — use atomics or a lock. The double-checked-locking singleton needs `volatile` for the same publication reason.
+`volatile` is right for **one variable** that is written as a whole: stop flags, status fields, and swapping a reference to an <Term id="immutable">immutable</Term> object. It's wrong for anything that reads, then writes based on what it read (`count++`, `if (x == null) x = …`) — use atomics or a lock. The double-checked-locking singleton needs `volatile` for the same publication reason.
 
 ## Locks: synchronized and java.util.concurrent.locks
 

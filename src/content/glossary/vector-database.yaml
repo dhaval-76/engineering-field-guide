@@ -1,0 +1,3 @@
+term: "Vector database"
+short: "A store that indexes embeddings for fast approximate nearest-neighbour search (HNSW, IVF), used to find semantically similar text."
+topic: ai-engineering/rag

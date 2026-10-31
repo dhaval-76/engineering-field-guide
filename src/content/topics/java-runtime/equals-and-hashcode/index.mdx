@@ -37,7 +37,7 @@ Two copies of the same book are *equal* (same title, same edition) but they are 
 
 - `==` on objects is **reference** comparison. On primitives (`int`, `double`) it compares values.
 - `String` literals are interned, so two literals are often the same object — which makes `==` *seem* to work until a string comes from input or concatenation.
-- `Integer.valueOf` caches −128 to 127, so `==` on small boxed numbers works by accident and fails at 128. Always use `equals` (or unbox) for wrappers.
+- `Integer.valueOf` caches −128 to 127, so `==` on small <Term id="autoboxing">boxed</Term> numbers works by accident and fails at 128. Always use `equals` (or unbox) for wrappers.
 
 ## The contract
 
@@ -51,7 +51,7 @@ Two copies of the same book are *equal* (same title, same edition) but they are 
 | Consistent | Same answer on repeated calls if nothing changed |
 | Non-null | `a.equals(null)` is `false` (never throws) |
 
-and `hashCode` must return equal values for equal objects. The reverse isn't required — collisions are normal.
+and `hashCode` must return equal values for equal objects. The reverse isn't required — <Term id="hash-collision">collisions</Term> are normal.
 
 ## Implementing them
 
@@ -94,7 +94,7 @@ For database entities, field-by-field equality on mutable fields is dangerous (h
 
 - `==` is identity; `equals` is value equality defined by you.
 - Equal objects must have equal hash codes; use the same fields in both.
-- Prefer records/dataclasses for value objects; keep them immutable.
+- Prefer records/dataclasses for value objects; keep them <Term id="immutable">immutable</Term>.
 - Equality is a domain decision — normalise once, document it.
 
 </KeyTakeaways>

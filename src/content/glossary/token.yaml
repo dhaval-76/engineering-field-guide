@@ -1,0 +1,3 @@
+term: "Token (LLM)"
+short: "The unit an LLM reads and writes: a word piece of roughly four English characters. Context limits, latency and price are all counted in tokens."
+topic: ai-engineering/llm-fundamentals

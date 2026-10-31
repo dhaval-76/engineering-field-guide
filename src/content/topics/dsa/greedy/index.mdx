@@ -21,12 +21,12 @@ lastReviewed: 2026-10-31
 
 ## Why it matters
 
-A greedy algorithm builds a solution one step at a time, always taking the choice that looks best **right now**, and never reconsidering. When that works it is the simplest and fastest possible solution — usually a sort and a single pass, O(n log n) or O(n). Huffman compression, Dijkstra's shortest paths, Kruskal's and Prim's spanning trees, interval scheduling and many load-balancing heuristics are greedy.
+A greedy algorithm builds a solution one step at a time, always taking the choice that looks best **right now**, and never reconsidering. When that works it is the simplest and fastest possible solution — usually a sort and a single pass, O(n log n) or O(n). Huffman compression, <Term id="dijkstra">Dijkstra</Term>'s shortest paths, Kruskal's and Prim's spanning trees, interval scheduling and many load-balancing heuristics are greedy.
 
 The catch: greedy is **often wrong**, and a wrong greedy looks just as convincing as a right one. What separates a strong answer is the ability to *justify* the greedy choice — or to find the small counter-example that kills it and switch to [dynamic programming](../dynamic-programming/).
 
 <Callout type="analogy">
-Packing for a flight with a weight limit when every item is equally useful: take the lightest items first and you fit the most. That simple rule is provably best here — but if items had different values, "lightest first" could leave the most valuable thing behind, and you'd need to compare combinations (dynamic programming).
+Packing for a flight with a weight limit when every item is equally useful: take the lightest items first and you fit the most. That simple rule is provably best here — but if items had different values, "lightest first" could leave the most valuable thing behind, and you'd need to compare combinations (<Term id="dynamic-programming">dynamic programming</Term>).
 </Callout>
 
 ## Recognise it
@@ -53,7 +53,7 @@ And one practical habit: **test the rule against an exact solver** on many small
 
 **Problem.** `nums[i]` is the maximum jump from index i. Can you reach the end (I)? With the fewest jumps (II)?
 
-**Insight.** For I, keep the **farthest index reachable so far**; if you ever stand on an index beyond it, you're stuck. For II, think in BFS layers without a queue: all indices reachable with k jumps form a contiguous range; the next range ends at the farthest point reachable from it. Count how many times you must move to a new range.
+**Insight.** For I, keep the **farthest index reachable so far**; if you ever stand on an index beyond it, you're stuck. For II, think in <Term id="bfs">BFS</Term> layers without a queue: all indices reachable with k jumps form a contiguous range; the next range ends at the farthest point reachable from it. Count how many times you must move to a new range.
 
 <Walkthrough id="jump-game" />
 

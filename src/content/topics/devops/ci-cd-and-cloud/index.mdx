@@ -109,7 +109,7 @@ During any rolling or canary deploy, **old and new code run at the same time** a
 - **Slow, flaky pipelines** — people stop trusting red builds and start bypassing them.
 - **Long-lived access keys in CI secrets** — prime targets; use OIDC.
 - **Unpinned third-party actions** with write permissions.
-- **Breaking schema changes deployed with the code** — the old pods (and rollbacks) fail.
+- **Breaking schema changes deployed with the code** — the old <Term id="pod">pods</Term> (and rollbacks) fail.
 - **Manual production changes** ("click-ops") that drift from code.
 - **Deploying without the metrics to judge it** — canaries need error-rate and latency comparisons.
 - **Single-AZ deployments** of anything that must stay up.

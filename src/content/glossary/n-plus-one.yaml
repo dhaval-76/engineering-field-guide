@@ -1,0 +1,3 @@
+term: "N+1 query problem"
+short: "Loading a list with one query, then one more query per item to load a relation. Fixed with a join fetch, batch fetching or an entity graph."
+topic: backend/jpa-hibernate

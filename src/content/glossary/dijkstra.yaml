@@ -1,0 +1,3 @@
+term: "Dijkstra's algorithm"
+short: "Shortest paths from one source in a graph with non-negative weights, always expanding the closest unsettled node from a priority queue: O((V + E) log V)."
+topic: dsa/shortest-paths

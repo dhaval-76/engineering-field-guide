@@ -1,0 +1,3 @@
+term: "Reverse proxy"
+short: "A server in front of your servers that receives client requests and forwards them, adding TLS termination, caching, compression or load balancing (e.g. Nginx)."
+topic: distributed-systems/load-balancing

@@ -1,0 +1,3 @@
+term: "BFS"
+short: "Breadth-first search: visits nodes in order of distance from the start using a queue; finds shortest paths in unweighted graphs."
+topic: dsa/graphs-bfs-dfs

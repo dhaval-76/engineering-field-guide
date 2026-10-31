@@ -1,0 +1,3 @@
+term: "Hallucination"
+short: "An LLM producing fluent but false or unsupported content. Reduced by grounding (RAG), constraints and verification, not eliminated."
+topic: ai-engineering/llm-fundamentals

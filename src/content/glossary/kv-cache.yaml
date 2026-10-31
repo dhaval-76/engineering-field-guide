@@ -1,0 +1,3 @@
+term: "KV cache"
+short: "During LLM generation, the stored attention keys and values for tokens already processed, so each new token doesn't recompute them. Often dominates GPU memory."
+topic: ai-engineering/llm-system-design

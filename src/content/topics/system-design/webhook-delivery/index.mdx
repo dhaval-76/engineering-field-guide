@@ -20,7 +20,7 @@ lastReviewed: 2026-10-31
 
 ## Why it matters
 
-Platforms like Stripe and GitHub notify customers' servers about events through webhooks. The receiving endpoints are outside your control: they're slow, down, misconfigured or malicious. Reliable delivery means at-least-once sending with retries and backoff, signatures so customers can trust the payload, isolation so one broken endpoint can't delay everyone else, and protection against the platform being tricked into calling internal addresses.
+Platforms like Stripe and GitHub notify customers' servers about events through webhooks. The receiving endpoints are outside your control: they're slow, down, misconfigured or malicious. Reliable delivery means <Term id="at-least-once">at-least-once</Term> sending with retries and backoff, signatures so customers can trust the payload, isolation so one broken endpoint can't delay everyone else, and protection against the platform being tricked into calling internal addresses.
 
 <Callout type="analogy">
 A courier delivering letters to thousands of businesses. Some offices are closed, some have moved; the courier retries later rather than giving up, never lets one closed office hold up the whole van, stamps each letter with a seal the recipient can verify, and refuses to deliver to addresses inside the courier company's own building.
@@ -46,10 +46,10 @@ A courier delivering letters to thousands of businesses. Some offices are closed
 
 <Steps>
 
-1. **Capture events reliably** with the transactional outbox ([Sagas and outbox](../../distributed-systems/saga-and-outbox/)) — an order committed always produces its event.
+1. **Capture events reliably** with the transactional <Term id="outbox">outbox</Term> ([Sagas and outbox](../../distributed-systems/saga-and-outbox/)) — an order committed always produces its event.
 2. **Fan out**: look up subscriptions by event type and tenant; create one delivery job per endpoint, stored durably (a jobs table or a queue with delayed delivery).
 3. **Deliver**: workers pick due jobs, POST with a short timeout, record the status code, latency and response snippet.
-4. **Retry**: on non-2xx or timeout, compute the next attempt with backoff + jitter; after the retry window, mark failed.
+4. **Retry**: on non-2xx or timeout, compute the next attempt with backoff + <Term id="jitter">jitter</Term>; after the retry window, mark failed.
 5. **Observe and control**: delivery logs, per-endpoint success rate, a dashboard with replay, automatic disabling and customer alerts.
 
 </Steps>
@@ -69,16 +69,16 @@ A courier delivering letters to thousands of businesses. Some offices are closed
 ## Isolation and fairness
 
 - **Per-endpoint queues or concurrency limits** — a customer whose endpoint takes 10 s gets, say, 5 concurrent deliveries, not all workers.
-- **Circuit breaker per endpoint** — after repeated failures, pause deliveries and probe occasionally instead of hammering a dead server ([Resilience patterns](../../distributed-systems/resilience-patterns/)).
+- **<Term id="circuit-breaker">Circuit breaker</Term> per endpoint** — after repeated failures, pause deliveries and probe occasionally instead of hammering a dead server ([Resilience patterns](../../distributed-systems/resilience-patterns/)).
 - **Fair scheduling across tenants** — round robin over tenants with due jobs so a burst from one doesn't starve others.
 
 ## Ordering
 
-Ordering isn't guaranteed: retries and parallel workers reorder events. Include a creation timestamp and a per-object version or sequence so receivers can ignore older updates, or keep deliveries per (endpoint, object) sequential when ordering truly matters — at the cost of head-of-line blocking. Thin events ("order 42 changed — fetch it") sidestep ordering by making receivers read current state.
+Ordering isn't guaranteed: retries and parallel workers reorder events. Include a creation timestamp and a per-object version or sequence so receivers can ignore older updates, or keep deliveries per (endpoint, object) sequential when ordering truly matters — at the cost of <Term id="head-of-line-blocking">head-of-line blocking</Term>. Thin events ("order 42 changed — fetch it") sidestep ordering by making receivers read current state.
 
 ## Security
 
-- **SSRF**: customer-supplied URLs could target internal services or cloud metadata. Resolve DNS, reject private, loopback and link-local ranges, connect to the resolved IP (no re-resolution), disallow redirects to internal addresses, and send from dedicated egress IPs customers can allow-list.
+- **SSRF**: customer-supplied URLs could target internal services or cloud metadata. Resolve <Term id="dns">DNS</Term>, reject private, loopback and link-local ranges, connect to the resolved IP (no re-resolution), disallow redirects to internal addresses, and send from dedicated egress IPs customers can allow-list.
 - HTTPS only; no secrets in URLs; payload size limits; redact sensitive fields per event type.
 
 ## When things fail
@@ -105,7 +105,7 @@ Interviewers almost always ask "what happens when X goes down?". Decide the degr
 
 <KeyTakeaways>
 
-- Outbox → fan-out → one durable delivery job per endpoint, with backoff, jitter and a long retry window.
+- Outbox → <Term id="fan-out">fan-out</Term> → one durable delivery job per endpoint, with backoff, jitter and a long retry window.
 - Sign timestamp + raw body; receivers verify and de-duplicate by event id.
 - Isolate endpoints with per-endpoint limits and circuit breakers; disable dead ones.
 - Guard egress against SSRF; give customers logs and replay.

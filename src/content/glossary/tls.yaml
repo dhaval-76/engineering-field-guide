@@ -1,0 +1,3 @@
+term: "TLS"
+short: "Transport Layer Security: encrypts and authenticates a connection using certificates; TLS 1.3 needs one round trip to set up."
+topic: cs-foundations/networking

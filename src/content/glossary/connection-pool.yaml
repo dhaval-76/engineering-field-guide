@@ -1,0 +1,3 @@
+term: "Connection pool"
+short: "A fixed set of open database connections reused across requests, avoiding the cost of a TCP and TLS handshake and authentication per query."
+topic: backend/connection-pooling

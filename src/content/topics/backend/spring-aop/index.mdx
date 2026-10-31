@@ -20,7 +20,7 @@ lastReviewed: 2026-10-31
 
 ## Why it matters
 
-Some concerns cut across every layer: start a transaction, check permissions, time the call, cache the result, retry on failure. Writing them inside each method buries business logic and invites copy-paste mistakes. **Aspect-oriented programming** declares them once and applies them to many methods. Spring uses it for its own core features — `@Transactional`, `@Async`, `@Cacheable`, `@PreAuthorize`, `@Retryable` are all proxies — so understanding proxies explains a classic production bug: an annotation that silently does nothing.
+Some concerns cut across every layer: start a <Term id="transaction">transaction</Term>, check permissions, time the call, cache the result, retry on failure. Writing them inside each method buries business logic and invites copy-paste mistakes. **Aspect-oriented programming** declares them once and applies them to many methods. Spring uses it for its own core features — `@Transactional`, `@Async`, `@Cacheable`, `@PreAuthorize`, `@Retryable` are all proxies — so understanding proxies explains a classic production bug: an annotation that silently does nothing.
 
 <Callout type="analogy">
 A receptionist in front of an office. Visitors talk to the receptionist, who signs them in, checks their badge and notes the time before showing them through — the person they're visiting doesn't do any of that. But a colleague walking over from the next desk never passes reception: no sign-in, no badge check. That's a self-call.
@@ -78,6 +78,6 @@ Other `@Transactional` details that cause surprises:
 - Spring AOP = runtime proxies around beans; advice runs only for calls through the proxy.
 - `@Transactional`, `@Async`, `@Cacheable`, `@PreAuthorize` follow the same rules.
 - Move advised methods to another bean or make them the entry point; mind rollback rules and propagation.
-- Events + after-commit listeners decouple side effects; outbox for guaranteed delivery.
+- Events + after-commit listeners decouple side effects; <Term id="outbox">outbox</Term> for guaranteed delivery.
 
 </KeyTakeaways>

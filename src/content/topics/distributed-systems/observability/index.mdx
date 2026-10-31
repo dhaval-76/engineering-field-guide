@@ -43,7 +43,7 @@ A car's dashboard, a GPS trip log and a mechanic's notes. The warning light (met
 
 <Steps>
 
-1. **Auto-instrumentation first** — OpenTelemetry agents and framework integrations cover inbound HTTP, outbound HTTP, JDBC, Kafka and gRPC with no code.
+1. **Auto-instrumentation first** — OpenTelemetry agents and framework integrations cover inbound HTTP, outbound HTTP, JDBC, Kafka and <Term id="grpc">gRPC</Term> with no code.
 2. **Add business spans and metrics** for the operations you care about: checkout, payment authorisation, orders placed by channel.
 3. **Structured logs** (JSON) with stable field names; log events, not prose; include ids (order, user — hashed if sensitive), never secrets or full card numbers.
 4. **Low-cardinality metric labels** (route template, status class, channel). User ids, order ids and raw URLs belong on spans and logs — as labels they create millions of series.

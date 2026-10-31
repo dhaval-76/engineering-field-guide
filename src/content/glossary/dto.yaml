@@ -1,0 +1,3 @@
+term: "DTO"
+short: "Data transfer object: a plain object shaped for an API or message, kept separate from internal entities so each can change independently."
+topic: backend/rest-api-design

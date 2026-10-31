@@ -1,0 +1,3 @@
+term: "Consumer group"
+short: "Kafka consumers sharing one group id split a topic's partitions between them; each partition is read by exactly one member of the group."
+topic: distributed-systems/kafka-deep-dive

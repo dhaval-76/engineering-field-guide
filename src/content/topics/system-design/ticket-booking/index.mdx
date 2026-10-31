@@ -20,7 +20,7 @@ lastReviewed: 2026-10-31
 
 ## Why it matters
 
-When tickets for a big concert or match go on sale, demand can be thousands of times the supply, all within minutes. The system must never sell a seat twice, must hold seats while people pay without letting abandoned carts lock them forever, and must survive a traffic spike that would crush a normal site. The design covers atomic seat holds, a virtual waiting room, sharding inventory by event and payment with expiring holds.
+When tickets for a big concert or match go on sale, demand can be thousands of times the supply, all within minutes. The system must never sell a seat twice, must hold seats while people pay without letting abandoned carts lock them forever, and must survive a traffic spike that would crush a normal site. The design covers atomic seat holds, a virtual waiting room, <Term id="sharding">sharding</Term> inventory by event and payment with expiring holds.
 
 <Callout type="analogy">
 A theatre box office on opening day. A queue outside lets a few people in at a time; each customer's chosen seats get a "reserved" ticket clipped to the seating chart while they pay, and if they wander off, the clip is removed after ten minutes so someone else can buy those seats.
@@ -48,12 +48,12 @@ The object model — shows, seats, holds, bookings — is in [Design a movie boo
 
 ## Holding seats without double booking
 
-The hold must be one atomic check-and-set per seat — a conditional `UPDATE` (only if available or the previous hold expired), a Redis `SET seat:{show}:{seat} {user} NX EX 480`, or both. Multi-seat holds are all-or-nothing in one transaction.
+The hold must be one atomic check-and-set per seat — a conditional `UPDATE` (only if available or the previous hold expired), a <Term id="redis">Redis</Term> `SET seat:{show}:{seat} {user} NX EX 480`, or both. Multi-seat holds are all-or-nothing in one transaction.
 
 <CodeTabs id="movie-booking-sql" title="Conditional UPDATE as the hold, with lazy expiry (from the LLD design)" />
 
 - **Expiry** returns seats from abandoned checkouts; payment callbacks arriving after expiry are refunded rather than confirmed.
-- **Idempotent payment** with a key per booking attempt ([Payment system](../payment-system/)).
+- **<Term id="idempotency">Idempotent</Term> payment** with a key per booking attempt ([Payment system](../payment-system/)).
 - **General admission** (no seat numbers) is a counter per section — use the bucketed counters from [inventory management](../../low-level-design/inventory-management/).
 
 ## Surviving on-sales: the waiting room
@@ -69,7 +69,7 @@ The hold must be one atomic check-and-set per seat — a conditional `UPDATE` (o
 
 ## Read path and sharding
 
-- **Seat maps**: cache availability per section with a TTL of a second or two and update from hold events; tolerate brief staleness — the hold decides.
+- **Seat maps**: cache availability per section with a <Term id="ttl">TTL</Term> of a second or two and update from hold events; tolerate brief staleness — the hold decides.
 - **Shard by event (show)**: holds for one event live in one partition, keeping transactions local; a hot event can get dedicated capacity.
 - **Search and browse** come from a read-optimised catalogue (search index + cache), separate from inventory.
 

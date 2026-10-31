@@ -28,8 +28,8 @@ A chain of corner shops stocking the most popular items from a central warehouse
 
 ## Requirements
 
-**Functional**: `get`, `set` with TTL, `delete`; values up to ~1 MB; optional data structures (counters, hashes, sorted sets).
-**Non-functional**: sub-millisecond latency inside a region; millions of operations per second; scale out by adding nodes; survive a node failure without a full cache flush; bounded memory with eviction.
+**Functional**: `get`, `set` with <Term id="ttl">TTL</Term>, `delete`; values up to ~1 MB; optional data structures (counters, hashes, sorted sets).
+**Non-functional**: sub-millisecond latency inside a region; millions of operations per second; <Term id="horizontal-scaling">scale out</Term> by adding nodes; survive a node failure without a full cache flush; bounded memory with eviction.
 
 [Caching strategies](../../distributed-systems/caching-strategies/) covers *how applications use* a cache (cache-aside, invalidation, stampedes). This page designs *the cache cluster itself*.
 
@@ -48,10 +48,10 @@ A chain of corner shops stocking the most popular items from a central warehouse
 
 <Steps>
 
-1. **Partitioning** — `slot = CRC16(key) % 16384`; slots are assigned to primaries; moving a slot migrates its keys while both nodes answer (with `ASK` redirects). Consistent hashing in clients (Memcached style) works too ([Consistent hashing](../../distributed-systems/consistent-hashing/)).
+1. **Partitioning** — `slot = CRC16(key) % 16384`; slots are assigned to primaries; moving a slot migrates its keys while both nodes answer (with `ASK` redirects). <Term id="consistent-hashing">Consistent hashing</Term> in clients (Memcached style) works too ([Consistent hashing](../../distributed-systems/consistent-hashing/)).
 2. **Routing** — smart clients cache the slot map and refresh it on `MOVED`; alternatively a proxy layer (Envoy, Twemproxy) hides topology from simple clients at the cost of an extra hop.
 3. **Replication** — asynchronous, so writes are fast; replicas can serve reads that tolerate slight staleness.
-4. **Failure detection** — nodes gossip heartbeats; a failure is confirmed by a majority of primaries before a replica is promoted, avoiding split brain from one node's view.
+4. **Failure detection** — nodes <Term id="gossip">gossip</Term> heartbeats; a failure is confirmed by a majority of primaries before a replica is promoted, avoiding <Term id="split-brain">split brain</Term> from one node's view.
 
 </Steps>
 
@@ -62,7 +62,7 @@ A chain of corner shops stocking the most popular items from a central warehouse
 <CodeTabs id="cache-node" title="A cache node with lazy and sampled active expiry, and approximate LRU eviction by sampling" />
 
 - **Lazy expiry** checks TTL on access; **active expiry** samples keys with TTLs several times a second and repeats while a large fraction of the sample was expired — so memory is reclaimed even for keys nobody reads.
-- **Exact LRU** needs a linked list through every key (two pointers each). Redis instead **samples** a few keys and evicts the oldest of the sample; with 5–10 samples it behaves very close to true LRU at a fraction of the memory ([LRU](../../low-level-design/lru-cache/), [LFU](../../low-level-design/lfu-cache/)).
+- **Exact <Term id="lru">LRU</Term>** needs a linked list through every key (two pointers each). <Term id="redis">Redis</Term> instead **samples** a few keys and evicts the oldest of the sample; with 5–10 samples it behaves very close to true LRU at a fraction of the memory ([LRU](../../low-level-design/lru-cache/), [LFU](../../low-level-design/lfu-cache/)).
 - **Persistence** is optional for a pure cache; enabling snapshots shortens warm-up after restarts.
 
 ## Failure handling
@@ -73,7 +73,7 @@ The real danger isn't losing cached data — it's the database being hit by ever
 
 ## Hot keys and big keys
 
-- **Hot key** (a celebrity profile, a flash-sale product): one node melts while others idle. Use a short-TTL **local L1 cache** in each app instance, replicate the key to several nodes (`key#0..7`, read one at random), or serve from read replicas.
+- **<Term id="hot-partition">Hot key</Term>** (a celebrity profile, a flash-sale product): one node melts while others idle. Use a short-TTL **local L1 cache** in each app instance, replicate the key to several nodes (`key#0..7`, read one at random), or serve from <Term id="read-replica">read replicas</Term>.
 - **Big key** (a 50 MB list): slow to read, replicate and migrate, and blocks a single-threaded node. Split into chunks or redesign.
 - Detect both continuously (`--hotkeys`, `--bigkeys`, per-key metrics).
 
@@ -81,7 +81,7 @@ The real danger isn't losing cached data — it's the database being hit by ever
 
 - **Consistency with the database**: delete-on-write plus TTL; change-data-capture driven invalidation for many writers.
 - **Multi-region**: one cache cluster per region, invalidated by events — never cross-region reads on the hot path.
-- **Memcached vs Redis**: Memcached is a simple multithreaded LRU store with client-side sharding; Redis adds data structures, replication, clustering and persistence on a (mostly) single-threaded core.
+- **Memcached vs Redis**: Memcached is a simple multithreaded LRU store with client-side <Term id="sharding">sharding</Term>; Redis adds data structures, replication, clustering and persistence on a (mostly) single-threaded core.
 
 <Pitfalls>
 

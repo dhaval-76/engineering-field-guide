@@ -20,7 +20,7 @@ lastReviewed: 2026-10-31
 
 ## Why it matters
 
-Video is most of the internet's traffic. A streaming platform must accept large uploads, transcode each video into many resolutions and bitrates, cut them into small segments, and deliver them from CDNs so playback starts fast and adapts to the viewer's connection without buffering. The design is dominated by processing pipelines, storage and CDN delivery, with adaptive bitrate streaming (HLS/DASH) at its core.
+Video is most of the internet's traffic. A streaming platform must accept large uploads, transcode each video into many resolutions and bitrates, cut them into small segments, and deliver them from CDNs so playback starts fast and adapts to the viewer's connection without buffering. The design is dominated by processing pipelines, storage and <Term id="cdn">CDN</Term> delivery, with adaptive bitrate streaming (HLS/DASH) at its core.
 
 <Callout type="analogy">
 A film released as a set of pamphlets in several sizes. Each scene is printed in small, medium and large print, and the cinema hands you scenes in whichever size your eyesight — your bandwidth — can manage at that moment, switching between sizes scene by scene.
@@ -95,7 +95,7 @@ Ingest over RTMP/SRT to regional servers; transcode in real time into the ladder
 
 ## View counts and analytics
 
-Players emit heartbeat events; a stream pipeline de-duplicates, filters bots, and aggregates counts in windows ([Real-time analytics](../realtime-analytics/)). Exact counts can lag; approximate live counters are fine. The same events feed quality-of-experience metrics (startup time, rebuffer ratio, average bitrate) and [recommendations](../recommendation-system/).
+Players emit <Term id="heartbeat">heartbeat</Term> events; a stream pipeline de-duplicates, filters bots, and aggregates counts in windows ([Real-time analytics](../realtime-analytics/)). Exact counts can lag; approximate live counters are fine. The same events feed quality-of-experience metrics (startup time, rebuffer ratio, average bitrate) and [recommendations](../recommendation-system/).
 
 ## When things fail
 

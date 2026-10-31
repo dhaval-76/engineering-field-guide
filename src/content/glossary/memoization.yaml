@@ -1,0 +1,3 @@
+term: "Memoization"
+short: "Caching a function's results by its arguments so repeated subproblems are computed once: top-down dynamic programming."
+topic: dsa/dynamic-programming

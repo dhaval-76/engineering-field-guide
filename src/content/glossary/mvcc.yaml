@@ -1,0 +1,3 @@
+term: "MVCC"
+short: "Multi-version concurrency control: writers create new row versions and readers see a consistent snapshot, so reads don't block writes."
+topic: databases/transactions-isolation

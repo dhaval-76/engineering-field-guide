@@ -21,7 +21,7 @@ lastReviewed: 2026-10-31
 
 ## Why it matters
 
-Some problems only ever **merge** groups and ask **"are these two in the same group?"**: friend circles, accounts that share an email, pixels in the same region, network nodes in the same partition, edges in a spanning tree. You could run a BFS each time the question is asked, but when connections arrive one by one and questions are interleaved with them, that re-traverses the whole graph again and again.
+Some problems only ever **merge** groups and ask **"are these two in the same group?"**: friend circles, accounts that share an email, pixels in the same region, network nodes in the same partition, edges in a spanning tree. You could run a <Term id="bfs">BFS</Term> each time the question is asked, but when connections arrive one by one and questions are interleaved with them, that re-traverses the whole graph again and again.
 
 **Union-find** (disjoint set union) answers both operations in effectively **constant time**, using nothing but an integer array. It's the engine of Kruskal's minimum spanning tree, image segmentation, percolation simulations, type unification in compilers, and "is this cluster still connected?" checks.
 
@@ -53,7 +53,7 @@ Two small optimisations turn this from O(n) per operation into practically O(1):
 - **Union by size (or rank)**: hang the **smaller** tree under the larger one. A node's depth increases only when its tree at least doubles in size, so depth stays ≤ log₂ n.
 - **Path compression**: after finding the root, point every node on the path **directly at the root**. Future finds from those nodes take one step.
 
-With both, the amortised cost is O(α(n)), where α is the inverse Ackermann function — at most 4 for any input that fits in the universe.
+With both, the <Term id="amortized">amortised</Term> cost is O(α(n)), where α is the inverse Ackermann function — at most 4 for any input that fits in the universe.
 
 Measured on one million elements, linking them into a single group in the worst possible order for naive linking (each union hangs the growing tree under a new single node, creating a chain), then calling `find` on random elements:
 

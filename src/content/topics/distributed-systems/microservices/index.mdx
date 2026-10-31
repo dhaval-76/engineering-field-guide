@@ -43,7 +43,7 @@ Signals that splitting pays off: teams blocked on each other's releases, parts w
 ## Drawing boundaries
 
 - Split by **business capability** (orders, payments, catalogue, shipping), not by technical layer (a "database service" or "validation service" couples everything).
-- Each service **owns its data** and exposes it only through its API or events. A shared database means schema changes need every team's agreement, and coupling returns through the back door.
+- Each service **owns its data** and exposes it only through its API or events. A shared database means schema changes need every team's agreement, and <Term id="coupling">coupling</Term> returns through the back door.
 - Aim for services that can do most of their work **without calling others synchronously**; keep a local copy of the reference data you need (built from events).
 - Conway's law: system structure mirrors team structure — align service ownership with teams.
 
@@ -63,7 +63,7 @@ Signals that splitting pays off: teams blocked on each other's releases, parts w
 
 - **Chains of synchronous calls multiply latency and failure**: five services at 99.9% availability each give 99.5% end to end. Keep request paths shallow.
 - **Events** describe facts (`OrderPlaced`) and let others react; **commands** ask a specific service to do something. Prefer events for decoupling, commands where one owner must act.
-- **gRPC** suits internal, high-volume calls with strict contracts; REST/JSON suits public and simple APIs.
+- **<Term id="grpc">gRPC</Term>** suits internal, high-volume calls with strict contracts; REST/JSON suits public and simple APIs.
 
 ## Discovery, gateways and configuration
 
@@ -75,16 +75,16 @@ Signals that splitting pays off: teams blocked on each other's releases, parts w
 | Edge | Ingress / Gateway API, or an API gateway | Spring Cloud Gateway |
 | mTLS, retries, traffic splitting | service mesh (Istio, Linkerd) | libraries in each service |
 
-An **API gateway** is the single public entry point: routing, TLS, authentication, rate limiting, request size limits. A **backend for frontend** (BFF) is a gateway-like service per client type (web, mobile) that aggregates calls so clients don't make ten round trips.
+An **<Term id="api-gateway">API gateway</Term>** is the single public entry point: routing, <Term id="tls">TLS</Term>, authentication, <Term id="rate-limiter">rate limiting</Term>, request size limits. A **backend for frontend** (BFF) is a gateway-like service per client type (web, mobile) that aggregates calls so clients don't make ten round trips.
 
 ## Keeping data consistent
 
-There's no transaction across services' databases (and two-phase commit across services is fragile and blocks). Instead:
+There's no <Term id="transaction">transaction</Term> across services' databases (and <Term id="two-phase-commit">two-phase commit</Term> across services is fragile and blocks). Instead:
 
 <Walkthrough id="order-saga" />
 
-- A **saga** is a sequence of local transactions; if a step fails, earlier steps are undone by **compensating actions** (refund, release stock). **Choreography**: services react to each other's events — simple for short flows, hard to follow as they grow. **Orchestration**: one coordinator tells each service what to do and tracks state — clearer for long or branching flows (workflow engines such as Temporal or Camunda).
-- **Transactional outbox**: writing to your database *and* publishing to Kafka can't be atomic, so write the event into an `outbox` table **in the same transaction** as the business change; a relay (polling or CDC with Debezium) publishes it. No lost events, no events for rolled-back changes.
+- A **<Term id="saga">saga</Term>** is a sequence of local transactions; if a step fails, earlier steps are undone by **compensating actions** (refund, release stock). **Choreography**: services react to each other's events — simple for short flows, hard to follow as they grow. **Orchestration**: one coordinator tells each service what to do and tracks state — clearer for long or branching flows (workflow engines such as Temporal or Camunda).
+- **Transactional <Term id="outbox">outbox</Term>**: writing to your database *and* publishing to Kafka can't be atomic, so write the event into an `outbox` table **in the same transaction** as the business change; a relay (polling or <Term id="cdc">CDC</Term> with Debezium) publishes it. No lost events, no events for rolled-back changes.
 - **Idempotent consumers**: delivery is at-least-once, so handling the same event twice must be harmless — record processed event ids or use natural idempotency ([Idempotency](../../backend/idempotency/)).
 
 <CodeTabs id="outbox" title="The transactional outbox: business change and event in one transaction" />

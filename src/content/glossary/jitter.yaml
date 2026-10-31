@@ -1,0 +1,3 @@
+term: "Jitter"
+short: "Randomness added to retry delays or timers so many clients don't act at the same instant and cause synchronized load spikes."
+topic: distributed-systems/resilience-patterns

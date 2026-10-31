@@ -1,0 +1,3 @@
+term: "Coupling"
+short: "How much one module depends on another's details. Low coupling lets you change one without changing the other."
+topic: oop-patterns/solid

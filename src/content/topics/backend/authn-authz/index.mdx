@@ -72,9 +72,9 @@ Both are valid. Many modern web apps use a **BFF**: the browser holds an `HttpOn
 
 Ways to cut off a JWT before it expires, in order of preference:
 
-1. **Short access-token TTL** (5–15 minutes) and revoke the refresh token — at most one TTL of continued access.
+1. **Short access-token <Term id="ttl">TTL</Term>** (5–15 minutes) and revoke the refresh token — at most one TTL of continued access.
 2. **Per-user token version / "not before"** claim checked against a cache — revokes all of a user's tokens (password change, compromised account).
-3. **Deny list of `jti`s** in Redis with TTL = remaining lifetime — instant, but a lookup per request.
+3. **Deny list of `jti`s** in <Term id="redis">Redis</Term> with TTL = remaining lifetime — instant, but a lookup per request.
 4. **Opaque tokens + introspection** at the authorization server — instant, central, but a network call (usually cached briefly).
 
 ## Authorization models

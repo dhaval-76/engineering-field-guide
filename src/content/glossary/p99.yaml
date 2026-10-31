@@ -1,0 +1,3 @@
+term: "p99 latency"
+short: "The latency that 99% of requests beat. Averages hide slow requests; percentiles show what the unluckiest users experience."
+topic: distributed-systems/observability

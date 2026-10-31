@@ -69,7 +69,7 @@ Older JVMs stored strings as `char[]` (2 bytes per character). **Compact strings
 
 ## Same idea in other languages
 
-JavaScript and Python strings are immutable too, with the same consequences: concatenation creates new strings, and the efficient pattern is to collect pieces and join once (`Array.join`, `str.join`, `io.StringIO`).
+JavaScript and Python strings are <Term id="immutable">immutable</Term> too, with the same consequences: concatenation creates new strings, and the efficient pattern is to collect pieces and join once (`Array.join`, `str.join`, `io.StringIO`).
 
 ## Practice: building a CSV row correctly
 

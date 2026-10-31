@@ -1,0 +1,3 @@
+term: "Vector clock"
+short: "A per-node counter set attached to a value; comparing two clocks tells whether one write happened before another or they were concurrent."
+topic: system-design/kv-store

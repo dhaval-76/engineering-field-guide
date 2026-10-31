@@ -1,0 +1,3 @@
+term: "Context window"
+short: "The maximum number of tokens (prompt plus output) a model can attend to in one request."
+topic: ai-engineering/llm-fundamentals

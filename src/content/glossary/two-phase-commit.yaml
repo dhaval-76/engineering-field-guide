@@ -1,0 +1,3 @@
+term: "Two-phase commit (2PC)"
+short: "A coordinator asks every participant to prepare, then tells all to commit. Atomic across systems, but blocks if the coordinator fails mid-way."
+topic: distributed-systems/saga-and-outbox

@@ -21,7 +21,7 @@ lastReviewed: 2026-10-31
 
 ## Why it matters
 
-Chat looks simple — send a message, show it — but at hundreds of millions of users it combines the hardest pieces of real-time systems: millions of long-lived connections, delivering each message to the right server holding the recipient's connection, keeping messages **in order** per conversation, never losing one, syncing devices that were offline, and showing receipts and presence without flooding the network. Interviewers use it to test connection management, fan-out and ordering together.
+Chat looks simple — send a message, show it — but at hundreds of millions of users it combines the hardest pieces of real-time systems: millions of long-lived connections, delivering each message to the right server holding the recipient's connection, keeping messages **in order** per conversation, never losing one, syncing devices that were offline, and showing receipts and presence without flooding the network. Interviewers use it to test connection management, <Term id="fan-out">fan-out</Term> and ordering together.
 
 <Callout type="analogy">
 A postal service where every resident has a personal courier waiting at their door. A sorting office (the router) must know which courier serves which door, number every letter in a conversation so it's read in order, keep a copy until it's delivered, and hold mail for people who are away until they come back.
@@ -56,7 +56,7 @@ A postal service where every resident has a personal courier waiting at their do
 <CodeTabs id="chat-delivery" title="Accept, persist, then route to gateways or push" />
 
 - A **session registry** (Redis/consistent store) maps `user → [(device, gateway)]` with TTLs refreshed by heartbeats.
-- Routing to another gateway: publish to that gateway's channel (Redis pub/sub, or a per-gateway queue), or call it directly via an internal RPC.
+- Routing to another gateway: publish to that gateway's channel (<Term id="redis">Redis</Term> pub/sub, or a per-gateway queue), or call it directly via an internal RPC.
 - **Receipts**: "sent" when the server persisted it; "delivered" when a recipient device acknowledges; "read" when displayed — each is a small event routed back to the sender (and stored as per-member read pointers for groups, not per message).
 
 ## Groups
@@ -66,7 +66,7 @@ A postal service where every resident has a personal courier waiting at their do
 
 ## Presence and typing
 
-Presence is high-churn and disposable: gateways update `presence:{user}` with a short TTL on each heartbeat; subscribers (only the user's contacts who are currently online, or the open conversation) get changes — never broadcast every status change to everyone. Typing indicators are sent over the live connection only and never stored.
+Presence is high-churn and disposable: gateways update `presence:{user}` with a short <Term id="ttl">TTL</Term> on each <Term id="heartbeat">heartbeat</Term>; subscribers (only the user's contacts who are currently online, or the open conversation) get changes — never broadcast every status change to everyone. Typing indicators are sent over the live connection only and never stored.
 
 ## End-to-end encryption
 
@@ -99,7 +99,7 @@ Interviewers almost always ask "what happens when X goes down?". Decide the degr
 
 - Stateful gateways + a session registry route messages to live connections.
 - Persist with a per-conversation sequence, then fan out; clients sync from their last sequence.
-- Idempotent sends, push for offline users, receipts as events.
+- <Term id="idempotency">Idempotent</Term> sends, push for offline users, receipts as events.
 - Presence ephemeral and scoped; big channels pull instead of push.
 
 </KeyTakeaways>

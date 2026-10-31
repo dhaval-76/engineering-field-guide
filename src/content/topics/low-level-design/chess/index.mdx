@@ -37,7 +37,7 @@ Each piece is a specialist who knows only how it moves. The referee (the game) a
 
 <Diagram id="chess-classes" caption="Game owns the board, the turn and the move history. Pieces know only their own movement." wide />
 
-- **`Square`** — an immutable (file, rank) value.
+- **`Square`** — an <Term id="immutable">immutable</Term> (file, rank) value.
 - **`Piece`** — colour plus `candidateMoves(board, from)`. Pieces don't store their own position; the board is the single source of truth, so a move can't leave the two out of sync.
 - **`Board`** — 8×8 grid, lookups, "is this square attacked by colour X?".
 - **`Move`** — from, to, moved piece, captured piece; can apply and revert itself.

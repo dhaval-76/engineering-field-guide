@@ -1,0 +1,3 @@
+term: "Autoboxing"
+short: "Java's automatic conversion between primitives and wrapper objects (int ↔ Integer). Each box is a heap object, costing memory and speed in hot loops."
+topic: java-runtime/data-types-and-memory

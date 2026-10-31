@@ -45,7 +45,7 @@ Reads dominate (boards, issue views, search) — perhaps 50:1. Writes ≈ a few 
 <CodeTabs id="tracker-model" title="Issues, data-driven workflows and transitions" />
 
 - A **workflow** is per project (or shared scheme): states, allowed transitions, and transition rules (required fields, who may transition, post-actions such as "assign to reviewer").
-- Transitions use **optimistic concurrency** (issue version) so two people dragging the same card don't silently overwrite each other.
+- Transitions use **<Term id="optimistic-locking">optimistic concurrency</Term>** (issue version) so two people dragging the same card don't silently overwrite each other.
 - Custom fields: typed definitions per project, values in a JSONB column or an entity-attribute table; indexed into search for filtering.
 - Every change appends to an **issue history** (field, old, new, actor, time) — the activity log, audit trail and source for notifications.
 
@@ -98,6 +98,6 @@ Interviewers almost always ask "what happens when X goes down?". Decide the degr
 - Clarify scope; model workflows, fields and permissions as data.
 - Change events feed history, notifications, search and live boards.
 - Boards: counts + paginated columns + rank keys.
-- Search index with permission filters; tenant-keyed data and sharding.
+- Search index with permission filters; tenant-keyed data and <Term id="sharding">sharding</Term>.
 
 </KeyTakeaways>

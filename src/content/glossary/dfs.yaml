@@ -1,0 +1,3 @@
+term: "DFS"
+short: "Depth-first search: follows one path as deep as possible before backtracking, using recursion or a stack."
+topic: dsa/graphs-bfs-dfs

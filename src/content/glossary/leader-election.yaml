@@ -1,0 +1,3 @@
+term: "Leader election"
+short: "Choosing one node to coordinate (accept writes, run a job) so that at most one acts at a time, and choosing a new one when it fails."
+topic: distributed-systems/consensus-and-leader-election

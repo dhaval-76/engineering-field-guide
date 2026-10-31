@@ -1,0 +1,3 @@
+term: "Timeout"
+short: "The maximum time to wait for a response before giving up. Every remote call needs one, or one slow dependency ties up all your threads."
+topic: distributed-systems/resilience-patterns

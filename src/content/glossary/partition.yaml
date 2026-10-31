@@ -1,0 +1,3 @@
+term: "Partition"
+short: "One ordered, append-only log within a Kafka topic. Order is guaranteed only within a partition, and partitions are the unit of parallelism."
+topic: distributed-systems/kafka-deep-dive

@@ -1,0 +1,3 @@
+term: "LSM tree"
+short: "Log-structured merge tree: writes go to memory and are flushed as sorted immutable files that are merged in the background. Fast writes; reads may check several files."
+topic: system-design/kv-store

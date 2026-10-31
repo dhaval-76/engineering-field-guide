@@ -1,0 +1,3 @@
+term: "Optimistic locking"
+short: "Read without locking, then update only if a version number is unchanged; on conflict, retry. Good when conflicts are rare."
+topic: databases/transactions-isolation

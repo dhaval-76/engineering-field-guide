@@ -21,7 +21,7 @@ lastReviewed: 2026-10-31
 
 ## Why it matters
 
-Payments are where "mostly correct" is not acceptable: a request retried after a timeout must not charge twice, money must never appear or vanish between accounts, and every rupee must be explainable months later in an audit. A payment system wraps unreliable external providers (card networks, UPI, banks) with idempotent APIs, a double-entry ledger, explicit state machines and daily reconciliation. Interviewers use it to test correctness under retries and failures more than raw scale.
+Payments are where "mostly correct" is not acceptable: a request retried after a timeout must not charge twice, money must never appear or vanish between accounts, and every rupee must be explainable months later in an audit. A payment system wraps unreliable external providers (card networks, UPI, banks) with <Term id="idempotency">idempotent</Term> APIs, a double-entry ledger, explicit state machines and daily reconciliation. Interviewers use it to test correctness under retries and failures more than raw scale.
 
 <Callout type="analogy">
 A bank branch's double-entry ledger. Every movement is written twice — out of one account, into another — so the books always balance, mistakes are fixed by new entries rather than erasing old ones, and at the end of the day the branch reconciles its ledger against the central bank's statement line by line.
@@ -41,7 +41,7 @@ A bank branch's double-entry ledger. Every movement is written twice — out of 
 ## Idempotency everywhere
 
 - Clients send an `Idempotency-Key` with every create/charge/refund/transfer; the server stores key → request hash → outcome and returns the stored outcome on retry ([Idempotency](../../backend/idempotency/)).
-- Calls to PSPs carry **our own** idempotency key, so retrying a timed-out charge can't charge twice.
+- Calls to PSPs carry **our own** <Term id="idempotency-key">idempotency key</Term>, so retrying a timed-out charge can't charge twice.
 - Webhook and event consumers de-duplicate on the provider's event id.
 
 ## The ledger
@@ -60,14 +60,14 @@ A bank branch's double-entry ledger. Every movement is written twice — out of 
 <CodeTabs id="psp-webhook" title="Charging through a PSP with timeouts and idempotent webhooks" />
 
 - A timeout from the PSP is **unknown**, not failure: mark the payment `PENDING_CONFIRMATION`, then resolve it by the webhook or by querying the PSP with the same idempotency key. Never retry a charge with a new key.
-- Webhooks are at-least-once and may arrive out of order: verify the signature, de-duplicate by event id, and apply only **valid state transitions**.
+- Webhooks are <Term id="at-least-once">at-least-once</Term> and may arrive out of order: verify the signature, de-duplicate by event id, and apply only **valid state transitions**.
 - Refunds and chargebacks are their own state machines and ledger transactions.
 
 ## Across services
 
-- Within one service: one database transaction updates the payment, writes ledger entries and inserts an **outbox** event — so state, money and notification never disagree ([Microservices](../../distributed-systems/microservices/)).
-- Across services (order, payment, inventory): an **orchestrated saga** — the payment step is explicit, its state stored, and compensations defined (refund if fulfilment fails). Two-phase commit doesn't work with external providers and couples availability.
-- Concurrency on hot accounts (a merchant receiving thousands of payments): lock rows in a consistent order, keep transactions short, or shard a hot account into sub-accounts and aggregate ([Payment thread-safety](../../concurrency/case-payment-thread-safety/)).
+- Within one service: one database <Term id="transaction">transaction</Term> updates the payment, writes ledger entries and inserts an **<Term id="outbox">outbox</Term>** event — so state, money and notification never disagree ([Microservices](../../distributed-systems/microservices/)).
+- Across services (order, payment, inventory): an **orchestrated <Term id="saga">saga</Term>** — the payment step is explicit, its state stored, and compensations defined (refund if fulfilment fails). <Term id="two-phase-commit">Two-phase commit</Term> doesn't work with external providers and couples availability.
+- Concurrency on hot accounts (a merchant receiving thousands of payments): lock rows in a consistent order, keep transactions short, or <Term id="sharding">shard</Term> a hot account into sub-accounts and aggregate ([Payment thread-safety](../../concurrency/case-payment-thread-safety/)).
 
 ## Reconciliation
 

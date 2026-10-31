@@ -1,0 +1,3 @@
+term: "Inverted index"
+short: "A map from each term to the list of documents containing it: the core structure behind full-text search."
+topic: system-design/search-engine

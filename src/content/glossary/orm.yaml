@@ -1,0 +1,3 @@
+term: "ORM"
+short: "Object-relational mapping: a library (Hibernate) that maps classes to tables and generates SQL, tracking changes to loaded objects."
+topic: backend/jpa-hibernate

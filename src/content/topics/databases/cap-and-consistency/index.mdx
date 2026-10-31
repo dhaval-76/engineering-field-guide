@@ -40,7 +40,7 @@ Two bank branches share one ledger over a phone line, and the line goes dead. A 
 
 > If there is a **P**artition, choose **A**vailability or **C**onsistency; **E**lse, choose **L**atency or **C**onsistency.
 
-Partitions are rare; latency is constant. A strongly consistent write must reach a quorum, perhaps in another zone or region, on every request. Systems that favour latency answer from the nearest replica and replicate asynchronously.
+Partitions are rare; latency is constant. A strongly consistent write must reach a <Term id="quorum">quorum</Term>, perhaps in another zone or region, on every request. Systems that favour latency answer from the nearest replica and replicate asynchronously.
 
 | System (default settings) | Partition | Else | Notes |
 |---|---|---|---|
@@ -73,9 +73,9 @@ Session guarantees (read-your-writes, monotonic reads, causal for one user) are 
 
 ## How strong consistency is achieved
 
-- **Single leader** for each piece of data: every read and write for that item goes through one node (one primary, or one leader per shard). Simple, but the leader must be chosen safely.
+- **Single leader** for each piece of data: every read and write for that item goes through one node (one primary, or one leader per <Term id="sharding">shard</Term>). Simple, but the leader must be chosen safely.
 - **Quorums**: with N replicas, writes to W and reads from R with W + R > N overlap ([Replication](../replication/)). Quorums alone don't give linearizability in every failure case; consensus does.
-- **Consensus** (Raft, Paxos, Zab): a majority of nodes agrees on each entry of a replicated log and on who the leader is. A cluster of 3 tolerates 1 failure, 5 tolerates 2; the minority side of a partition can't make progress, which is exactly the CAP "C" choice.
+- **Consensus** (<Term id="raft">Raft</Term>, Paxos, Zab): a majority of nodes agrees on each entry of a replicated log and on who the leader is. A cluster of 3 tolerates 1 failure, 5 tolerates 2; the minority side of a partition can't make progress, which is exactly the CAP "C" choice.
 
 <CodeTabs id="consistency-settings" title="Choosing consistency per operation — DynamoDB, MongoDB, Cassandra" />
 
@@ -89,7 +89,7 @@ Session guarantees (read-your-writes, monotonic reads, causal for one user) are 
 <Pitfalls>
 
 - **"Pick two of three"** — partitions aren't optional; the choice only applies during one.
-- **Confusing CAP's C with ACID's C** (constraint validity) or with isolation levels.
+- **Confusing CAP's C with <Term id="acid">ACID</Term>'s C** (constraint validity) or with isolation levels.
 - **Labelling whole products CP/AP** regardless of configuration.
 - **Strong consistency everywhere** — paying cross-zone latency on reads that could be stale.
 - **Eventual consistency for invariants** — double-spends and overbooking.

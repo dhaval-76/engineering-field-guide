@@ -1,0 +1,3 @@
+term: "Transaction"
+short: "A group of database operations that commit together or not at all, isolated from concurrent ones to the degree its isolation level allows."
+topic: databases/transactions-isolation

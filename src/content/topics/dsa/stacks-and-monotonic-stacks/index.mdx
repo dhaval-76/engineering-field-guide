@@ -21,7 +21,7 @@ lastReviewed: 2026-10-31
 
 ## Why it matters
 
-A stack answers one question perfectly: **"what is the most recent thing that hasn't been dealt with yet?"** That is exactly the question behind matching brackets, nested structures, undo, the call stack of every program, and depth-first search. Push when something opens, pop when it closes — O(1) each.
+A stack answers one question perfectly: **"what is the most recent thing that hasn't been dealt with yet?"** That is exactly the question behind matching brackets, nested structures, undo, the call stack of every program, and <Term id="dfs">depth-first</Term> search. Push when something opens, pop when it closes — O(1) each.
 
 A **monotonic stack** turns a family of O(n²) problems into O(n): "for each element, find the nearest element to its right (or left) that is larger (or smaller)". Brute force scans outward from every element. The monotonic stack instead keeps the elements that are *still waiting* for their answer, and resolves several of them the moment the answer arrives. Daily temperatures, stock spans, histogram rectangles and trapped rain water all reduce to it.
 
@@ -64,7 +64,7 @@ A stack of plates: you only ever take the top one. A monotonic stack is a line o
 
 **Problem.** `["2","1","+","3","*"]` → 9, i.e. `(2 + 1) × 3`.
 
-**Insight.** In postfix notation every operator applies to the two most recent results — the top two stack entries. Push numbers; on an operator pop `b` then `a`, push `a op b`. No parentheses or precedence rules are needed, which is why compilers and virtual machines (the JVM's bytecode is stack-based) evaluate expressions this way. To evaluate ordinary infix input, convert it to postfix first with Dijkstra's shunting-yard algorithm — itself a stack of operators.
+**Insight.** In postfix notation every operator applies to the two most recent results — the top two stack entries. Push numbers; on an operator pop `b` then `a`, push `a op b`. No parentheses or precedence rules are needed, which is why compilers and virtual machines (the JVM's bytecode is stack-based) evaluate expressions this way. To evaluate ordinary infix input, convert it to postfix first with <Term id="dijkstra">Dijkstra</Term>'s shunting-yard algorithm — itself a stack of operators.
 
 <CodeTabs id="dsa-eval-rpn" title="Evaluate RPN — a stack machine" />
 

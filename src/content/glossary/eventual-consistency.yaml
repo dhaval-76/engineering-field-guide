@@ -1,0 +1,3 @@
+term: "Eventual consistency"
+short: "Replicas may disagree for a while after a write, but converge to the same value if no new writes arrive."
+topic: databases/cap-and-consistency

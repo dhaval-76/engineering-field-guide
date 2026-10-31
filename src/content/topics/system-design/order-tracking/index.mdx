@@ -43,7 +43,7 @@ Status changes ≈ 50 M/day ≈ 600/s (peaks ~5,000/s) — modest. Watchers: 500
 
 <CodeTabs id="order-state-machine" title="Transitions validated in code and guarded in the database" />
 
-- Each transition writes the new status **and** a history row **and** an outbox event in one transaction, with a conditional update (`WHERE status = :expected`) so concurrent updates from two actors can't both apply.
+- Each transition writes the new status **and** a history row **and** an <Term id="outbox">outbox</Term> event in one <Term id="transaction">transaction</Term>, with a conditional update (`WHERE status = :expected`) so concurrent updates from two actors can't both apply.
 - Events from partners may arrive late or twice: de-duplicate by event id and ignore transitions that aren't valid from the current state (a late "packed" after "shipped").
 
 ## Live updates
@@ -57,7 +57,7 @@ Status changes ≈ 50 M/day ≈ 600/s (peaks ~5,000/s) — modest. Watchers: 500
 | WebSocket | both ways | needed when the client also sends (chat with the courier) |
 | Push notification | to the device | when the app isn't open |
 
-Connection servers subscribe to channels for the orders their clients are watching (e.g. Redis pub/sub `order:{id}`); a consumer of the status topic publishes to that channel. On reconnect, clients fetch the current status and recent history — live pushes are an optimisation, not the source of truth.
+Connection servers subscribe to channels for the orders their clients are watching (e.g. <Term id="redis">Redis</Term> pub/sub `order:{id}`); a consumer of the status topic publishes to that channel. On reconnect, clients fetch the current status and recent history — live pushes are an optimisation, not the source of truth.
 
 <CodeTabs id="order-sse" title="Streaming an order's status with SSE" />
 
@@ -90,7 +90,7 @@ Interviewers almost always ask "what happens when X goes down?". Decide the degr
 
 - State machine + conditional updates + append-only history.
 - Outbox events fan out to notifications, live updates and analytics.
-- SSE (or WebSocket) for watchers, with reconnect-and-fetch as the safety net.
+- <Term id="sse">SSE</Term> (or <Term id="websocket">WebSocket</Term>) for watchers, with reconnect-and-fetch as the safety net.
 - Location is a separate high-frequency stream: latest in memory, throttled, sampled.
 
 </KeyTakeaways>

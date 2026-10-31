@@ -58,13 +58,13 @@ A leak needs only one query without a tenant filter. Rely on several layers so a
 <CodeTabs id="tenancy-hibernate" title="Hibernate: discriminator column (@TenantId) or schema per tenant" />
 
 <Callout type="warning">
-With a connection pool, a tenant setting on a connection outlives the request. Use `SET LOCAL` / `set_config(…, true)` inside the transaction so it resets at commit — a plain `SET` would leak tenant A's id to the next request that borrows that connection.
+With a <Term id="connection-pool">connection pool</Term>, a tenant setting on a connection outlives the request. Use `SET LOCAL` / `set_config(…, true)` inside the <Term id="transaction">transaction</Term> so it resets at commit — a plain `SET` would leak tenant A's id to the next request that borrows that connection.
 </Callout>
 
 ## Performance and noisy neighbours
 
 - **Indexes start with `tenant_id`**: `(tenant_id, created_at)`, `(tenant_id, email)` — every query is within a tenant, and unique constraints are per tenant (`UNIQUE (tenant_id, email)`).
-- **Skew**: the largest tenant may be 1,000× the median, so the planner's averages mislead; check plans with a big tenant's id. Partition or shard by `tenant_id` ([Sharding](../sharding/)) when the shared database fills.
+- **Skew**: the largest tenant may be 1,000× the median, so the planner's averages mislead; check plans with a big tenant's id. Partition or <Term id="sharding">shard</Term> by `tenant_id` ([Sharding](../sharding/)) when the shared database fills.
 - **Contain heavy tenants**: per-tenant rate limits and quotas, separate worker queues, statement timeouts, and moving whales to their own database.
 - **Tenant-aware caching keys** (`tenant:42:product:7`) — a missing tenant in a cache key is a leak too.
 

@@ -51,7 +51,7 @@ Counting votes at a large election in real time. Tally clerks count ballots by d
 
 - **Event time** (when it happened) vs **processing time** (when it arrived): use event time for correct numbers; mobile clients may send events minutes or hours late.
 - A **watermark** says "we've probably seen everything up to time T". Windows emit when the watermark passes their end; **allowed lateness** updates results for stragglers; anything later goes to a side output (and is fixed in batch).
-- **Exactly-once results**: the processor checkpoints its state together with Kafka offsets (Flink checkpoints, Kafka Streams transactions), and sinks are idempotent (upsert by window + key).
+- **<Term id="exactly-once">Exactly-once</Term> results**: the processor checkpoints its state together with Kafka <Term id="offset">offsets</Term> (Flink checkpoints, Kafka Streams transactions), and sinks are <Term id="idempotency">idempotent</Term> (upsert by window + key).
 
 <CodeTabs id="windowed-aggregation" title="Windowed aggregation with watermarks — Kafka Streams and Flink" />
 
@@ -68,7 +68,7 @@ Counting votes at a large election in real time. Tally clerks count ballots by d
 
 ## Storage and serving
 
-- **Live**: the processor writes current window results to Redis or the OLAP store's real-time ingestion; dashboards read the latest few minutes.
+- **Live**: the processor writes current window results to <Term id="redis">Redis</Term> or the OLAP store's real-time ingestion; dashboards read the latest few minutes.
 - **Historical**: rollups (e.g. per minute → hour → day, by product, country, device) in a columnar OLAP store, partitioned by time and sorted by common filters; a 90-day revenue query reads a few thousand rows, not billions.
 - **Raw events** in Parquet on object storage for ad-hoc analysis and reprocessing.
 - **Reprocessing**: with logs retained (or the lake), fix a bug by replaying into new tables and switching — the **Kappa** approach. Lambda keeps a separate batch path that recomputes truth nightly, at the cost of two codebases.
@@ -90,7 +90,7 @@ Interviewers almost always ask "what happens when X goes down?". Decide the degr
 - **Processing-time windows** for business metrics — late or replayed events land in the wrong minute.
 - **Non-idempotent sinks** — reprocessing or failover double-counts.
 - **Exact distinct counts in memory** for billions of ids.
-- **Hot keys** (one viral product) overloading one partition — pre-aggregate locally before the shuffle, or split the key.
+- **<Term id="hot-partition">Hot keys</Term>** (one viral product) overloading one partition — pre-aggregate locally before the shuffle, or split the key.
 - **No schema for events** — fields drift and pipelines break silently; use a schema registry.
 
 </Pitfalls>

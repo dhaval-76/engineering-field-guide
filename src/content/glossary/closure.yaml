@@ -1,0 +1,3 @@
+term: "Closure"
+short: "A function together with the variables it captured from the scope where it was created; it can read them after that scope has returned."
+topic: concurrency/event-loop-and-async

@@ -1,0 +1,3 @@
+term: "Quorum"
+short: "A majority (or an R + W > N overlap) of replicas that must agree, so any two quorums share at least one node with the latest value."
+topic: distributed-systems/consensus-and-leader-election

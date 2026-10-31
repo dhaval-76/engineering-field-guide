@@ -85,7 +85,7 @@ Other techniques when basic retrieval falls short: rewrite the query (resolve "i
 ## Production concerns
 
 - **Permissions** — copy document ACLs onto chunks and filter in the query. Never retrieve everything and ask the model to hide what the user mustn't see.
-- **Freshness** — re-index on change events (CDC, webhooks) rather than nightly; delete chunks when documents are deleted; version documents to avoid citing outdated policies.
+- **Freshness** — re-index on change events (<Term id="cdc">CDC</Term>, webhooks) rather than nightly; delete chunks when documents are deleted; version documents to avoid citing outdated policies.
 - **Multi-tenancy** — a tenant filter on every query, or a separate index per large tenant ([Multi-tenant schemas](../../databases/multi-tenant-schema/)).
 - **Latency budget** — embedding the query ~20–50 ms, retrieval ~10–50 ms, reranking ~50–200 ms; generation dominates. Cache embeddings and frequent answers.
 - **Cost** — embedding is cheap per document but re-embedding a large corpus after a model change is a project; plan for it.

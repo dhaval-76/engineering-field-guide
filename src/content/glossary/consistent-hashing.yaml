@@ -1,0 +1,3 @@
+term: "Consistent hashing"
+short: "Places nodes and keys on a hash ring; each key belongs to the next node clockwise, so adding or removing a node moves only about 1/n of the keys."
+topic: distributed-systems/consistent-hashing

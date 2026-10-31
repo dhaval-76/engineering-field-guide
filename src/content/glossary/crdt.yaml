@@ -1,0 +1,3 @@
+term: "CRDT"
+short: "Conflict-free replicated data type: a structure whose concurrent edits on different replicas always merge to the same result, without coordination."
+topic: system-design/realtime-collaboration

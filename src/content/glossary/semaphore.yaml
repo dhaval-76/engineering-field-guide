@@ -1,0 +1,3 @@
+term: "Semaphore"
+short: "A counter of permits: acquire takes one (waiting if none are left), release returns one. Limits how many threads use a resource at once."
+topic: concurrency/executors-thread-pools

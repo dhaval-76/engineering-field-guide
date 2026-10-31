@@ -53,7 +53,7 @@ A `ThreadLocal` value is invisible to any other thread — including the executo
 
 <CodeTabs id="scoped-value" title="ScopedValue: bound for a call, cleared automatically" />
 
-`ScopedValue` is immutable, bound for a bounded scope and released automatically, which removes the leak and makes it cheap with virtual threads (a `ThreadLocal` per virtual thread multiplies memory). Prefer it for new code on Java 25+.
+`ScopedValue` is <Term id="immutable">immutable</Term>, bound for a bounded scope and released automatically, which removes the leak and makes it cheap with <Term id="virtual-thread">virtual threads</Term> (a `ThreadLocal` per virtual thread multiplies memory). Prefer it for new code on Java 25+.
 
 <Pitfalls>
 
@@ -62,7 +62,7 @@ A `ThreadLocal` value is invisible to any other thread — including the executo
 - **Assuming the value exists** in async callbacks or `@Async` methods.
 - **`InheritableThreadLocal` with pools** — stale values.
 - **Hidden dependencies** — business logic that reads ThreadLocals is harder to test; keep it to cross-cutting concerns.
-- **Classloader leaks** in app servers: a value whose class came from a redeployed web app pins the old classloader.
+- **<Term id="classloader">Classloader</Term> leaks** in app servers: a value whose class came from a redeployed web app pins the old classloader.
 
 </Pitfalls>
 

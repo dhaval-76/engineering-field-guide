@@ -1,0 +1,3 @@
+term: "TTL"
+short: "Time to live: how long a cached item, DNS record or message stays valid before it expires."
+topic: distributed-systems/caching-strategies

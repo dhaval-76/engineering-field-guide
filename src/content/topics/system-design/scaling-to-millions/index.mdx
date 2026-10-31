@@ -24,7 +24,7 @@ lastReviewed: 2026-10-30
 "How would you handle millions of requests?" isn't answered by "add more servers". Each layer of a system has a different limit — CPU on app servers, connections and writes on the database, bandwidth for media, latency across regions — and each scaling technique removes one specific bottleneck while adding complexity. A strong answer walks through the layers in order, tied to measurements.
 
 <Callout type="analogy">
-A popular café. First, hire more baristas (app servers) — easy, because any barista can serve any customer if the order slips are shared (stateless). Next, pre-bake the popular pastries (cache). Then the single till becomes the queue (database) — add a second till for takeaway orders only (read replicas). Finally, open branches in other neighbourhoods (regions, CDN) so customers don't all travel to one shop.
+A popular café. First, hire more baristas (app servers) — easy, because any barista can serve any customer if the order slips are shared (stateless). Next, pre-bake the popular pastries (cache). Then the single till becomes the queue (database) — add a second till for takeaway orders only (<Term id="read-replica">read replicas</Term>). Finally, open branches in other neighbourhoods (regions, <Term id="cdn">CDN</Term>) so customers don't all travel to one shop.
 </Callout>
 
 ## From one server to millions
@@ -59,25 +59,25 @@ A popular café. First, hire more baristas (app servers) — easy, because any b
 
 1. Look at the **golden signals** per component: traffic, errors, latency (p50/p99), saturation (CPU, connections, queue depth).
 2. Find the component nearest its limit; check what requests are spending time on (traces, slow-query logs).
-3. Fix the cheapest high-leverage thing first: a missing index, an N+1 query, a missing cache, a synchronous call that could be async ([Debugging a slow API](../../backend/debugging-slow-api/)).
+3. Fix the cheapest high-leverage thing first: a missing index, an <Term id="n-plus-one">N+1</Term> query, a missing cache, a synchronous call that could be async ([Debugging a slow API](../../backend/debugging-slow-api/)).
 4. **Load test** at expected peak before the event, not during it.
 
 <Pitfalls>
 
 - **Scaling app servers when the database is the bottleneck** — more instances just open more connections.
-- **Server-side session state** without a shared store — sticky sessions break on scale-down and failover.
+- **Server-side session state** without a shared store — <Term id="sticky-session">sticky sessions</Term> break on scale-down and failover.
 - **Caching without measuring hit rate** or without invalidation.
 - **Doing slow work inside requests** (emails, PDFs, image processing, third-party calls).
 - **No rate limits** — one client or bot can take everyone down.
 - **Autoscaling on CPU** for I/O-bound services — scale on concurrency, latency or queue lag.
-- **Sharding before exhausting indexes, replicas and vertical scaling.**
+- **<Term id="sharding">Sharding</Term> before exhausting indexes, replicas and vertical scaling.**
 
 </Pitfalls>
 
 <KeyTakeaways>
 
 - Measure, find the saturated layer, and apply the technique that removes that bottleneck.
-- Stateless app tier + load balancer + autoscaling is the foundation.
+- Stateless app tier + <Term id="load-balancer">load balancer</Term> + autoscaling is the foundation.
 - Cache read-heavy data; replicate, then partition, the database; push slow work to queues.
 - Protect the system with rate limits and load shedding; add regions when latency or availability demands it.
 

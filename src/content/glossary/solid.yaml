@@ -1,0 +1,3 @@
+term: "SOLID"
+short: "Five design principles: single responsibility, open/closed, Liskov substitution, interface segregation, dependency inversion."
+topic: oop-patterns/solid

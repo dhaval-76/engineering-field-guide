@@ -64,7 +64,7 @@ In a dump, look for threads in `BLOCKED` (`waiting to lock <0x…>`) or `WAITING
 
 <CodeTabs id="livelock-starvation" title="Livelock with symmetric backoff; fair vs unfair locks" />
 
-- **Livelock** fix: random jitter in backoff (the same reason network retries use jittered exponential backoff), or a deterministic tie-breaker.
+- **Livelock** fix: random <Term id="jitter">jitter</Term> in backoff (the same reason network retries use jittered <Term id="exponential-backoff">exponential backoff</Term>), or a deterministic tie-breaker.
 - **Starvation** fixes: fair locks or queues where ordering matters, bounded work per holder, separate pools or queues per tenant or priority. Fair locks cost throughput, so use them only when bounded waiting is a requirement.
 
 <Pitfalls>

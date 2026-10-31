@@ -1,0 +1,3 @@
+term: "Split brain"
+short: "A partition leaves two nodes each believing it is the leader, and both accept writes. Prevented by requiring a majority quorum."
+topic: distributed-systems/consensus-and-leader-election

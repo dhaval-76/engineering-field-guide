@@ -1,0 +1,3 @@
+term: "Token bucket"
+short: "A rate limiter: tokens refill at a fixed rate up to a capacity, and each request spends one. Allows bursts up to the capacity, then the steady rate."
+topic: low-level-design/rate-limiter

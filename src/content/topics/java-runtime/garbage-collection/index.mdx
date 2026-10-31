@@ -108,7 +108,7 @@ The pattern is always the same: something long-lived (a static field, a singleto
 
 - Reachability from GC roots decides what's garbage.
 - Generational collection makes short-lived objects nearly free; G1 by default, ZGC for low latency, Parallel for throughput.
-- Leaks are unintended reachability — bounded caches, ThreadLocal cleanup, unsubscribing.
+- Leaks are unintended reachability — bounded caches, <Term id="threadlocal">ThreadLocal</Term> cleanup, unsubscribing.
 - Measure (GC logs, histograms, heap dumps, JFR) before tuning.
 
 </KeyTakeaways>

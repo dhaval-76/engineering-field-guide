@@ -56,7 +56,7 @@ Details that matter in real code:
 | **Push** | All the data observers need (`symbol, old, new`) | Simple for observers; the event shape is a contract that can grow |
 | **Pull** | Just "I changed" (or a reference to itself) | Observers fetch what they need; more calls, and they may read a newer state than the one that triggered them |
 
-Most modern code pushes an **immutable event object** (`record OrderPlaced(...)`) — it's both the message and the contract.
+Most modern code pushes an **<Term id="immutable">immutable</Term> event object** (`record OrderPlaced(...)`) — it's both the message and the contract.
 
 ## Observer in Spring: application events
 
@@ -64,7 +64,7 @@ Spring ships the pattern: publish any object with `ApplicationEventPublisher`, l
 
 <CodeTabs id="observer-spring-events" title="OrderService publishes; listeners react after commit" />
 
-- `@EventListener` runs **synchronously, inside** the publisher's transaction. If it throws, the order rolls back.
+- `@EventListener` runs **synchronously, inside** the publisher's <Term id="transaction">transaction</Term>. If it throws, the order rolls back.
 - `@TransactionalEventListener(phase = AFTER_COMMIT)` runs only after a successful commit — no confirmation email for an order that was rolled back.
 - Adding `@Async` moves the listener to another thread, so slow work doesn't delay the response — but its exceptions no longer reach the caller (see pitfalls).
 
@@ -80,7 +80,7 @@ Both decouple publishers from subscribers. The difference is **where the subscri
 | Ordering & back-pressure | Whatever your threads do | Partitions/queues, consumer lag |
 | Use for | Decoupling modules inside one service | Communication between services; work that must not be lost |
 
-A common production pattern combines them: persist the event to an **outbox** table in the same transaction as the order, and a relay publishes it to Kafka — so "order saved" and "event published" can't disagree.
+A common production pattern combines them: persist the event to an **<Term id="outbox">outbox</Term>** table in the same transaction as the order, and a relay publishes it to Kafka — so "order saved" and "event published" can't disagree.
 
 ## A tiny event bus
 
@@ -90,7 +90,7 @@ Implementing one is a good exercise: typed subscriptions, asynchronous delivery,
 
 <Pitfalls>
 
-- **Lost failures with async listeners.** An exception in an `@Async` listener is logged (at best) and the order is already committed. For must-happen side effects use a durable mechanism (outbox + broker, or a job table) with retries, and make handlers **idempotent**.
+- **Lost failures with async listeners.** An exception in an `@Async` listener is logged (at best) and the order is already committed. For must-happen side effects use a durable mechanism (outbox + <Term id="message-broker">broker</Term>, or a job table) with retries, and make handlers **<Term id="idempotency">idempotent</Term>**.
 - **Memory leaks from forgotten subscriptions.** Long-lived subjects keep short-lived observers alive. Unsubscribe, or use weak references in UI code.
 - **Hidden control flow.** Ten listeners on one event make "what happens when an order is placed?" hard to answer. Name events clearly, keep listeners small, and document who listens.
 - **Cascading events.** Listener A publishes an event that triggers listener B that publishes… Keep chains short and avoid cycles.

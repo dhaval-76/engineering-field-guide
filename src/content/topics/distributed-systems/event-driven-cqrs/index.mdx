@@ -44,11 +44,11 @@ Separate **domain events** (internal, fine-grained) from **integration events** 
 
 ## CQRS
 
-One model rarely serves both well: writes need validation and invariants on a normalised model; reads want denormalised, query-shaped data (search, dashboards, feeds). CQRS splits them: commands go to a write model; events update one or more **read models** (SQL tables, a search index, a cache).
+One model rarely serves both well: writes need validation and invariants on a <Term id="normalization">normalised</Term> model; reads want <Term id="denormalization">denormalised</Term>, query-shaped data (search, dashboards, feeds). CQRS splits them: commands go to a write model; events update one or more **read models** (SQL tables, a search index, a cache).
 
 <Diagram id="cqrs-es" caption="Commands are validated against the write model and append events; projectors turn those events into read models shaped for each query, which the query API serves. A publisher can also forward selected events to other services as integration events." />
 
-CQRS doesn't require event sourcing — a plain table plus an outbox feeding a search index is CQRS. The cost is **eventual consistency**: a read right after a write may not see it. Handle it with read-your-own-writes (return the new state from the command, or wait for the projection to reach the write's position), or UI cues ("processing…").
+CQRS doesn't require event sourcing — a plain table plus an <Term id="outbox">outbox</Term> feeding a search index is CQRS. The cost is **<Term id="eventual-consistency">eventual consistency</Term>**: a read right after a write may not see it. Handle it with read-your-own-writes (return the new state from the command, or wait for the projection to reach the write's position), or UI cues ("processing…").
 
 ## Event sourcing
 
@@ -68,7 +68,7 @@ What you gain:
 What it costs:
 
 - **Event schema evolution** — events are stored forever. Add fields with defaults; for bigger changes write a new event type and **upcast** old events when reading.
-- **Projection operations** — idempotent projectors, checkpoints, rebuild tooling, and lag monitoring. With a `bigserial` position, a later number can commit before an earlier one; projectors must handle such gaps (or use a store that guarantees commit order).
+- **Projection operations** — <Term id="idempotency">idempotent</Term> projectors, checkpoints, rebuild tooling, and lag monitoring. With a `bigserial` position, a later number can commit before an earlier one; projectors must handle such gaps (or use a store that guarantees commit order).
 - **Deleting personal data** — you can't edit events; use **crypto-shredding** (encrypt personal fields with a per-user key, delete the key) or keep personal data outside the events.
 - **Querying current state** needs projections — there is no "SELECT * WHERE balance > 100" on the event log.
 - A learning curve for the whole team.

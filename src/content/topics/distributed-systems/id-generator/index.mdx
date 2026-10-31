@@ -50,7 +50,7 @@ Ticket numbers at a deli counter work with one dispenser. With ten counters, eit
 
 ## The hard parts
 
-**Assigning worker ids.** Two generators with the same worker id produce duplicates. Options: the ordinal of a Kubernetes StatefulSet pod (`orders-3` → 3); a lease from etcd/ZooKeeper/Consul or a database row claimed at startup and renewed; or static configuration. Leases must expire safely — a paused process must not keep generating after its lease is reassigned.
+**Assigning worker ids.** Two generators with the same worker id produce duplicates. Options: the ordinal of a Kubernetes StatefulSet <Term id="pod">pod</Term> (`orders-3` → 3); a <Term id="lease">lease</Term> from etcd/ZooKeeper/Consul or a database row claimed at startup and renewed; or static configuration. Leases must expire safely — a paused process must not keep generating after its lease is reassigned.
 
 **Clocks going backwards.** NTP corrections can move the clock back. If the current time is before the last timestamp used, generating ids risks duplicates. Wait if the gap is small (a few ms); refuse and alert if it's large. Use a monotonic clock source for elapsed time where possible.
 

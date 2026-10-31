@@ -1,0 +1,3 @@
+term: "Thundering herd"
+short: "Many clients waking or retrying at once and overwhelming a resource, e.g. all of them refetching a cache entry the moment it expires."
+topic: distributed-systems/caching-strategies

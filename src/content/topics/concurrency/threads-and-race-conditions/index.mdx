@@ -36,9 +36,9 @@ Two people updating the same shared spreadsheet cell from their own printed copi
 | Heap | **Yes** | Objects, their fields, arrays, collection contents |
 | Static fields | **Yes** | Singletons, caches, counters |
 
-Only shared **and** mutable state can race. That's why immutable objects and thread-confined data are safe by construction.
+Only shared **and** mutable state can race. That's why <Term id="immutable">immutable</Term> objects and thread-confined data are safe by construction.
 
-**Platform threads** map one-to-one to OS threads (expensive: about a megabyte of stack, kernel scheduling). **Virtual threads** (Java 21) are scheduled by the JVM and cheap enough to create one per task. Node runs JavaScript on a single event-loop thread (parallel CPU work uses worker threads), and CPython's GIL runs one thread's bytecode at a time — but **races still happen in both** wherever an operation spans several steps and something can interleave.
+**Platform threads** map one-to-one to OS threads (expensive: about a megabyte of stack, kernel scheduling). **<Term id="virtual-thread">Virtual threads</Term>** (Java 21) are scheduled by the JVM and cheap enough to create one per task. Node runs JavaScript on a single event-loop thread (parallel CPU work uses worker threads), and CPython's <Term id="gil">GIL</Term> runs one thread's bytecode at a time — but **races still happen in both** wherever an operation spans several steps and something can interleave.
 
 ## The lost update
 
@@ -84,7 +84,7 @@ Read the chart as advice, not as a ranking: a counter touched once per request b
 
 <CodeTabs id="thr-withdraw" title="Fixing check-then-act on a balance: lock, CAS loop, database" />
 
-The same rule scales up: when several application instances share data, an in-process lock protects nothing. Push the atomic step into the shared store — a conditional `UPDATE … WHERE balance >= :amt`, a Redis `INCRBY`/Lua script, or a database lock.
+The same rule scales up: when several application instances share data, an in-process lock protects nothing. Push the atomic step into the shared store — a conditional `UPDATE … WHERE balance >= :amt`, a <Term id="redis">Redis</Term> `INCRBY`/Lua script, or a database lock.
 
 ## Thread safety vs atomicity
 

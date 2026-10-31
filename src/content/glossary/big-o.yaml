@@ -1,0 +1,3 @@
+term: "Big-O"
+short: "An upper bound on how cost grows with input size n, ignoring constants. O(n log n) means doubling n roughly doubles the work, plus a little."
+topic: cs-foundations/complexity

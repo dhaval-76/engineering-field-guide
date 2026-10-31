@@ -1,0 +1,3 @@
+term: "Redis"
+short: "An in-memory data store with rich types (strings, hashes, sorted sets, streams), commonly used as a cache, rate limiter, lock or leaderboard."
+topic: distributed-systems/caching-strategies

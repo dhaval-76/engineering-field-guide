@@ -1,0 +1,3 @@
+term: "Service discovery"
+short: "How a service finds the current addresses of another service's instances (DNS, a registry, or the platform as in Kubernetes Services)."
+topic: distributed-systems/microservices

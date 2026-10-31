@@ -86,7 +86,7 @@ Spring Boot exposes `/actuator/health/liveness` and `/actuator/health/readiness`
 
 - **Requests** reserve capacity and drive scheduling; **limits** cap usage. Exceeding the memory limit → OOMKilled; exceeding a CPU limit → throttling (latency spikes).
 - Common guidance: memory request = limit (predictable), CPU request set from measurements, CPU limit often omitted or generous to avoid throttling — teams differ, so measure.
-- JVM services need CPU at startup (JIT, class loading): too-tight CPU makes startup slow and probes fail.
+- JVM services need CPU at startup (<Term id="jit">JIT</Term>, class loading): too-tight CPU makes startup slow and probes fail.
 
 ### Rollouts and graceful shutdown
 

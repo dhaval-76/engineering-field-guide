@@ -1,0 +1,3 @@
+term: "Snapshot isolation"
+short: "Each transaction reads from a consistent snapshot taken at its start. Prevents dirty and non-repeatable reads but still allows write skew."
+topic: databases/transactions-isolation

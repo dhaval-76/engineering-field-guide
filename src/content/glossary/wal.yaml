@@ -1,0 +1,3 @@
+term: "Write-ahead log (WAL)"
+short: "Changes are appended to a durable log before data pages are modified, so a crash can be recovered by replaying the log; replicas also stream it."
+topic: databases/replication

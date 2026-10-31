@@ -1,0 +1,3 @@
+term: "Keyset (cursor) pagination"
+short: "Paging by \"rows after the last key seen\" (WHERE id > ?) instead of OFFSET, so each page is an index seek and stays stable while rows are inserted."
+topic: backend/pagination

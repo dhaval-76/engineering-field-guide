@@ -1,0 +1,3 @@
+term: "Fan-out"
+short: "One item or request spreading to many recipients or downstream calls. Fan-out on write pushes a post to every follower's feed; fan-out on read gathers at view time."
+topic: system-design/news-feed

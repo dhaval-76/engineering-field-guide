@@ -20,7 +20,7 @@ lastReviewed: 2026-10-31
 
 ## Why it matters
 
-Creating a platform thread is expensive (an OS thread and about a megabyte of stack), and unbounded concurrency is how services fall over: every slow request ties up a thread, threads pile up, memory runs out. A thread pool reuses a fixed set of threads and — configured properly — gives you **backpressure**: when you're overloaded you reject or slow down instead of collapsing. Most production incidents involving executors come from the defaults.
+Creating a platform thread is expensive (an OS thread and about a megabyte of stack), and unbounded concurrency is how services fall over: every slow request ties up a thread, threads pile up, memory runs out. A thread pool reuses a fixed set of threads and — configured properly — gives you **<Term id="backpressure">backpressure</Term>**: when you're overloaded you reject or slow down instead of collapsing. Most production incidents involving executors come from the defaults.
 
 <Callout type="analogy">
 A restaurant kitchen with a set number of cooks and an order rail. Orders wait on the rail when the cooks are busy; when the rail is full the manager calls in extra cooks; when even they're busy, the host stops seating people. A kitchen that hires a new cook for every order — or lets the rail grow down the street — isn't a working kitchen.
@@ -57,8 +57,8 @@ The counter-intuitive part: extra threads above core are created **only when the
 />
 
 - **CPU-bound** work: about one thread per core; more just adds context switching.
-- **I/O-bound** work: threads mostly wait, so more threads keep the CPU busy — the formula above, or **Little's law** (`concurrency = throughput × latency`).
-- **Downstream limits** usually matter more: a pool of 200 threads hitting a database pool of 20 connections just queues 180 threads inside the connection pool.
+- **I/O-bound** work: threads mostly wait, so more threads keep the CPU busy — the formula above, or **<Term id="little-law">Little's law</Term>** (`concurrency = throughput × latency`).
+- **Downstream limits** usually matter more: a pool of 200 threads hitting a database pool of 20 connections just queues 180 threads inside the <Term id="connection-pool">connection pool</Term>.
 - **Waiting work needs either many threads or cheap ones.** Measured: 10,000 tasks that each block for 100 ms (a stand-in for a database or HTTP call), JDK 22 on 8 cores:
 
 <Chart
@@ -94,7 +94,7 @@ The counter-intuitive part: extra threads above core are created **only when the
 
 - **Unbounded queues and thread counts** from the `Executors` factories.
 - **Blocking I/O on the common ForkJoinPool** (parallel streams, default `CompletableFuture.supplyAsync`).
-- **Tasks that wait for other tasks in the same bounded pool** — thread-starvation deadlock.
+- **Tasks that wait for other tasks in the same bounded pool** — thread-starvation <Term id="deadlock">deadlock</Term>.
 - **Never shutting down** custom pools — non-daemon threads keep the JVM alive; leaked pools in redeploys.
 - **Silent failures** with `execute` and no uncaught-exception handling.
 

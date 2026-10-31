@@ -23,10 +23,10 @@ lastReviewed: 2026-10-31
 
 A graph is the most general way to describe **things and the connections between them**: users and follows, services and calls, cities and roads, packages and dependencies, web pages and links, states of a puzzle and the moves between them. Once a problem is drawn as a graph, a small toolbox answers a huge range of questions — *is B reachable from A? what is the fewest number of steps? how many separate groups are there? is there a cycle?*
 
-**Breadth-first search** and **depth-first search** are that toolbox's foundation. Both visit every vertex and edge once — O(V + E) — and differ only in order: BFS fans out by distance (a queue), DFS dives as deep as possible first (a stack or recursion). Dijkstra, topological sort, cycle detection, flood fill and web crawlers are all built on them.
+**Breadth-first search** and **depth-first search** are that toolbox's foundation. Both visit every vertex and edge once — O(V + E) — and differ only in order: BFS fans out by distance (a queue), DFS dives as deep as possible first (a stack or recursion). <Term id="dijkstra">Dijkstra</Term>, <Term id="topological-sort">topological sort</Term>, cycle detection, flood fill and web crawlers are all built on them.
 
 <Callout type="analogy">
-BFS is a stone dropped in a pond: ripples reach everything at distance 1, then 2, then 3 — so the first time a ripple touches the shore is the shortest distance. DFS is a maze explorer who follows one corridor to its end before backtracking to try the next turning.
+BFS is a stone dropped in a pond: ripples reach everything at distance 1, then 2, then 3 — so the first time a ripple touches the shore is the shortest distance. DFS is a maze explorer who follows one corridor to its end before <Term id="backtracking">backtracking</Term> to try the next turning.
 </Callout>
 
 ## Recognise it
@@ -34,7 +34,7 @@ BFS is a stone dropped in a pond: ripples reach everything at distance 1, then 2
 - Things connected to other things: friends, cities, courses with prerequisites, words that differ by one letter.
 - A **grid** where you can move up/down/left/right: islands, mazes, flood fill, spreading processes.
 - "**Minimum number of steps/moves**" where every move costs the same → BFS.
-- "Count groups", "is X reachable", "does a cycle exist", "list all paths" → DFS (or BFS; for groups, also union-find).
+- "Count groups", "is X reachable", "does a cycle exist", "list all paths" → DFS (or BFS; for groups, also <Term id="union-find">union-find</Term>).
 - A puzzle with **states and moves** (word ladder, open the lock, sliding puzzle) → BFS over an implicit graph.
 
 <DecisionGuide

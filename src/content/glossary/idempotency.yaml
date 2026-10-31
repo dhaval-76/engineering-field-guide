@@ -1,0 +1,3 @@
+term: "Idempotency"
+short: "An operation is idempotent if doing it twice has the same effect as doing it once, which makes retries safe."
+topic: backend/idempotency

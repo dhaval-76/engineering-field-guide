@@ -38,7 +38,7 @@ A shopping basket holds items, not price stickers. At the till, the cashier scan
 
 <CodeTabs id="cart-model" title="Cart lines as SKU + quantity, with guest merge" />
 
-Store **intent**, not prices. Prices change, promotions expire and the client can't be trusted to send prices — so the server prices the cart from the catalogue whenever it's displayed, and authoritatively at checkout. Persist logged-in carts in a database (they survive devices); guest carts can live in Redis with a TTL keyed by a session id, merged into the user's cart at login.
+Store **intent**, not prices. Prices change, promotions expire and the client can't be trusted to send prices — so the server prices the cart from the catalogue whenever it's displayed, and authoritatively at checkout. Persist logged-in carts in a database (they survive devices); guest carts can live in <Term id="redis">Redis</Term> with a <Term id="ttl">TTL</Term> keyed by a session id, merged into the user's cart at login.
 
 ## Pricing pipeline
 
@@ -64,10 +64,10 @@ Expand the eligible units, sort by price, and make the **cheapest** ones free. O
 
 <Steps>
 
-1. **Idempotency** — the client sends a `checkoutId`; a repeat returns the existing order instead of charging again.
+1. **<Term id="idempotency">Idempotency</Term>** — the client sends a `checkoutId`; a repeat returns the existing order instead of charging again.
 2. **Re-price** the cart on the server with currently active promotions; if the total changed since the user saw it, show the new total before charging.
 3. **Reserve stock** for every line atomically (`UPDATE … SET available = available - qty WHERE available >= qty`, SKUs in sorted order). If any line fails, roll back and tell the user which items are short.
-4. **Charge** with the checkout id as the payment idempotency key.
+4. **Charge** with the checkout id as the payment <Term id="idempotency-key">idempotency key</Term>.
 5. **Create the order** with the price breakdown; **commit** the reservation; clear the cart.
 6. On any failure, **release** the reservation. Reservations also expire on their own.
 

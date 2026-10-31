@@ -47,12 +47,12 @@ Server-to-server pushes use **webhooks** instead — the receiver exposes an HTT
 <CodeTabs id="sse-endpoint" title="An SSE endpoint with authorization, catch-up from Last-Event-ID, live pub/sub events and heartbeats" />
 
 - Each event has an `id`; after a drop the browser reconnects and sends `Last-Event-ID`, so the server can replay what was missed.
-- Disable response buffering in proxies (nginx `X-Accel-Buffering: no`), and send heartbeat comments so idle-timeouts don't close the stream.
-- Over HTTP/1.1 browsers allow ~6 connections per host, which SSE tabs can exhaust; HTTP/2 multiplexes them on one connection.
+- Disable response buffering in proxies (nginx `X-Accel-Buffering: no`), and send <Term id="heartbeat">heartbeat</Term> comments so idle-timeouts don't close the stream.
+- Over HTTP/1.1 browsers allow ~6 connections per host, which SSE tabs can exhaust; <Term id="http2">HTTP/2</Term> multiplexes them on one connection.
 
 ## WebSockets
 
-The client sends an HTTP `Upgrade: websocket` request; after `101 Switching Protocols` the TCP connection carries small frames in both directions. You define the message protocol (JSON with a `type` field, or STOMP, or a library like Socket.IO that adds rooms and fallbacks).
+The client sends an HTTP `Upgrade: websocket` request; after `101 Switching Protocols` the <Term id="tcp">TCP</Term> connection carries small frames in both directions. You define the message protocol (JSON with a `type` field, or STOMP, or a library like Socket.IO that adds rooms and fallbacks).
 
 <CodeTabs id="ws-fanout" title="WebSocket rooms fanned out across instances through Redis pub/sub, with heartbeats and slow-client handling" />
 
@@ -63,19 +63,19 @@ The client sends an HTTP `Upgrade: websocket` request; after `101 Switching Prot
 <Steps>
 
 1. **Separate connection servers** from business logic — they hold sockets, authenticate, subscribe and forward. They scale on connection count and memory.
-2. **Pub/sub between them** — a message for room X is published once; each server with members in X delivers locally. Redis pub/sub is fire-and-forget; use Redis Streams, NATS JetStream or Kafka when messages must not be lost.
-3. **No sticky sessions needed** for correctness if state lives in pub/sub and storage — any server can take a reconnect.
+2. **Pub/sub between them** — a message for room X is published once; each server with members in X delivers locally. <Term id="redis">Redis</Term> pub/sub is fire-and-forget; use Redis Streams, NATS JetStream or Kafka when messages must not be lost.
+3. **No <Term id="sticky-session">sticky sessions</Term> needed** for correctness if state lives in pub/sub and storage — any server can take a reconnect.
 4. **Durability through ids** — persist messages first, push second; on reconnect the client asks "everything after id 1234".
-5. **Capacity** — an idle connection costs tens of KB of memory plus a file descriptor; one well-tuned server can hold 100k+ mostly idle connections. Raise `ulimit -n` ([Operating systems](../../cs-foundations/operating-systems/)) and load balancer idle timeouts.
+5. **Capacity** — an idle connection costs tens of KB of memory plus a file descriptor; one well-tuned server can hold 100k+ mostly idle connections. Raise `ulimit -n` ([Operating systems](../../cs-foundations/operating-systems/)) and <Term id="load-balancer">load balancer</Term> idle timeouts.
 
 </Steps>
 
 ## Operating long-lived connections
 
 - **Heartbeats** — ping/pong every 15–30 s to detect dead peers (mobile networks drop silently) and keep NATs and proxies from timing out.
-- **Reconnect with exponential backoff and jitter** — after a deploy or outage, thousands of clients reconnecting at once is a self-inflicted DDoS.
+- **Reconnect with <Term id="exponential-backoff">exponential backoff</Term> and <Term id="jitter">jitter</Term>** — after a deploy or outage, thousands of clients reconnecting at once is a self-inflicted DDoS.
 - **Deploys** — drain gracefully: stop accepting, tell clients to reconnect elsewhere, close over a few minutes.
-- **Backpressure** — a slow client's buffer grows without bound; cap it and disconnect (it will resume from its last id).
+- **<Term id="backpressure">Backpressure</Term>** — a slow client's buffer grows without bound; cap it and disconnect (it will resume from its last id).
 - **Auth** — authenticate at connect (token in a cookie or the first message — avoid long-lived tokens in URLs, which get logged); re-check authorization per subscription; close or re-auth when the token expires.
 - **Ordering and delivery** — a single connection is ordered, but across reconnects and servers you need ids and de-duplication on the client.
 

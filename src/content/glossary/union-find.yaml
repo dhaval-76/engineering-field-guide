@@ -1,0 +1,3 @@
+term: "Union-find"
+short: "A structure tracking which items are in the same group, with near-constant-time union and find using path compression and union by rank."
+topic: dsa/union-find

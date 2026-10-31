@@ -77,7 +77,7 @@ They look identical in a class diagram — an interface with several implementat
 They combine well: an order's `Paid` state might use a `RefundPolicy` strategy when cancelled.
 
 <Callout type="insight">
-In LLD rounds, call out the state machine explicitly: list the states, the events, and the allowed transitions (draw it), then say where illegal transitions are rejected and how concurrent updates are prevented (e.g. optimistic locking on a version column, or `UPDATE … WHERE status = 'PAID'`).
+In LLD rounds, call out the state machine explicitly: list the states, the events, and the allowed transitions (draw it), then say where illegal transitions are rejected and how concurrent updates are prevented (e.g. <Term id="optimistic-locking">optimistic locking</Term> on a version column, or `UPDATE … WHERE status = 'PAID'`).
 </Callout>
 
 ## In production

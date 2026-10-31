@@ -1,0 +1,3 @@
+term: "Sliding window"
+short: "Two indices bounding a contiguous range that moves forward, updating a running state as elements enter and leave instead of rescanning."
+topic: dsa/sliding-window

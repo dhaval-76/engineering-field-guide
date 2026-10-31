@@ -21,7 +21,7 @@ lastReviewed: 2026-10-31
 
 ## Why it matters
 
-Replication scales reads, but every write still goes through one primary, and every replica stores everything. When writes or data size outgrow one machine, you split the data so each machine owns a part. Sharding gives near-linear capacity — and takes away things a single database gives for free: joins and transactions across all data, globally unique sequences, simple backups and schema changes. It's the most consequential and least reversible scaling step, so it's worth knowing both how and when not to.
+Replication scales reads, but every write still goes through one primary, and every replica stores everything. When writes or data size outgrow one machine, you split the data so each machine owns a part. Sharding gives near-linear capacity — and takes away things a single database gives for free: joins and <Term id="transaction">transactions</Term> across all data, globally unique sequences, simple backups and schema changes. It's the most consequential and least reversible scaling step, so it's worth knowing both how and when not to.
 
 <Callout type="analogy">
 A library that outgrows its building opens branches. Splitting by the first letter of the author's surname (range) keeps shelves browsable but the "S" branch is overloaded. Splitting by a hash of the ISBN spreads books evenly, but "all books by Smith" now means visiting every branch. Whatever rule you pick, readers should usually find what they need in one branch.
@@ -67,7 +67,7 @@ PostgreSQL and MySQL can split one logical table into partitions by range, list 
   caption="Modulo reassigns almost every key when N changes. Consistent hashing and fixed virtual shards move only the share the new node takes over (≈ 1/5)."
 />
 
-Fixed **virtual shards** (say 1,024 logical buckets, `hash(key) % 1024`, with a small map from bucket to physical database) are the most common practical answer: adding a machine means moving some buckets, not rehashing keys. Consistent hashing (a hash ring) does the same job and is covered in system design.
+Fixed **virtual shards** (say 1,024 logical buckets, `hash(key) % 1024`, with a small map from bucket to physical database) are the most common practical answer: adding a machine means moving some buckets, not rehashing keys. <Term id="consistent-hashing">Consistent hashing</Term> (a hash ring) does the same job and is covered in system design.
 
 ## Choosing a shard key
 
@@ -92,7 +92,7 @@ A good shard key:
 ## Living with shards
 
 - **Cross-shard queries** become scatter-gather: send to all shards, merge, sort, paginate — latency of the slowest shard. Keep a separate read model (search index, warehouse) for global queries.
-- **Cross-shard transactions** need two-phase commit or a saga; design aggregates so a business transaction touches one shard.
+- **Cross-shard transactions** need <Term id="two-phase-commit">two-phase commit</Term> or a <Term id="saga">saga</Term>; design aggregates so a business transaction touches one shard.
 - **Unique ids** can't come from one sequence: use UUID v7, Snowflake-style ids (time + machine + sequence), or per-shard ranges.
 - **Uniqueness across shards** ("username is unique") needs a separate global table or service.
 - **Schema changes** run on every shard; automate them.

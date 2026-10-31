@@ -1,0 +1,3 @@
+term: "OAuth 2.0"
+short: "A framework for granting an app limited access to a user's resources via access tokens, without sharing the password. OpenID Connect adds login on top."
+topic: backend/authn-authz

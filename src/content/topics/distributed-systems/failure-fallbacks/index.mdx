@@ -50,13 +50,13 @@ The class also decides the **degraded behaviour users see**: an order confirmati
 
 ## The strongest answer: keep Kafka out of the request
 
-For must-not-lose events, the best design doesn't need a fallback at all. With the [transactional outbox](../saga-and-outbox/), the request writes the order **and** an outbox row in one database transaction. A separate relay process reads the outbox and publishes to Kafka.
+For must-not-lose events, the best design doesn't need a fallback at all. With the [transactional outbox](../saga-and-outbox/), the request writes the order **and** an <Term id="outbox">outbox</Term> row in one database <Term id="transaction">transaction</Term>. A separate relay process reads the outbox and publishes to Kafka.
 
 - If Kafka is down, the relay can't publish — rows simply pile up in the outbox table. **Requests are unaffected**, nothing is lost, and when Kafka returns the relay catches up.
 - There is one code path, used all the time. Nothing about the outage is special, so nothing special can break.
-- The cost: every event is a database write (extra load and storage), and the relay adds latency (typically milliseconds with change data capture, up to the polling interval otherwise).
+- The cost: every event is a database write (extra load and storage), and the relay adds latency (typically milliseconds with <Term id="cdc">change data capture</Term>, up to the polling interval otherwise).
 
-This is why "use the outbox" is usually the first thing to say in an interview. The rest of this page is for the cases where the outbox doesn't fit: high-volume events you don't want in the database, services without a database, or dependencies other than a message broker.
+This is why "use the outbox" is usually the first thing to say in an interview. The rest of this page is for the cases where the outbox doesn't fit: high-volume events you don't want in the database, services without a database, or dependencies other than a <Term id="message-broker">message broker</Term>.
 
 ## When you publish from the request path: layers of fallback
 
@@ -64,7 +64,7 @@ This is why "use the outbox" is usually the first thing to say in an interview. 
 
 ### Layer 1: the client's own buffer — and how it can hang your threads
 
-The Kafka producer already buffers. `send()` puts the record in an in-memory buffer (`buffer.memory`, 32 MiB by default) and returns; a background thread sends batches and retries. That rides out short blips (a leader election, a broker restart) with no code at all. But during a longer outage two settings decide what happens to *your* threads:
+The Kafka producer already buffers. `send()` puts the record in an in-memory buffer (`buffer.memory`, 32 MiB by default) and returns; a background thread sends batches and retries. That rides out short blips (a <Term id="leader-election">leader election</Term>, a broker restart) with no code at all. But during a longer outage two settings decide what happens to *your* threads:
 
 - **`max.block.ms`** (default **60 s**): how long `send()` may *block* the caller — waiting for topic metadata, or for buffer space once the buffer is full. On a request path that's a minute per request: a hung service. Set it to something like 0.5–1 s.
 - **`delivery.timeout.ms`** (default **2 min**): how long a record may sit in the buffer and be retried before the producer gives up and fails it. Lower it (say 10 s) so your code learns about the failure while it can still do something useful with the event.
@@ -75,7 +75,7 @@ Anything only in this buffer is **lost if the process dies** — a deploy, an OO
 
 ### Layer 2: a circuit breaker around the send
 
-Even with short timeouts, every request during an outage would pay the timeout before falling back. A [circuit breaker](../resilience-patterns/) fixes that: after a few failures (or slow calls) it **opens**, and publishing goes straight to the fallback without touching Kafka. After a cool-down it lets trial calls through (**half-open**); success closes it.
+Even with short <Term id="timeout">timeouts</Term>, every request during an outage would pay the timeout before falling back. A [circuit breaker](../resilience-patterns/) fixes that: after a few failures (or slow calls) it **opens**, and publishing goes straight to the fallback without touching Kafka. After a cool-down it lets trial calls through (**half-open**); success closes it.
 
 We measured this with the code below against a real Kafka 4.1 broker that was frozen mid-run (`docker pause`, which makes the broker hang rather than refuse connections — the harder case):
 
@@ -114,21 +114,21 @@ A fallback must be **simpler and more reliable** than the thing it replaces and 
 
 ## The code
 
-The publisher below combines the pieces: a breaker, a durable file spool (an append-only log plus a committed offset), per-key ordering and a rate-limited drainer. It was tested with a simulated flapping broker (8 threads, 3,200 events, no loss, per-key order intact) and against a real Kafka that was frozen and resumed.
+The publisher below combines the pieces: a breaker, a durable file spool (an append-only log plus a committed <Term id="offset">offset</Term>), per-key ordering and a rate-limited drainer. It was tested with a simulated flapping broker (8 threads, 3,200 events, no loss, per-key order intact) and against a real Kafka that was frozen and resumed.
 
 <CodeTabs id="resilient-publisher" title="Circuit breaker + durable spool + ordered, rate-limited replay" />
 
 A few details that matter:
 
 - **Append before you acknowledge.** The request only returns success after the event is either acknowledged by Kafka or written to the spool.
-- **Remove after the ack.** The drainer advances the spool's offset only after Kafka acknowledges the send. A crash in between re-sends the event on restart — at-least-once, never at-most-once.
+- **Remove after the ack.** The drainer advances the spool's offset only after Kafka acknowledges the send. A crash in between re-sends the event on restart — <Term id="at-least-once">at-least-once</Term>, never <Term id="at-most-once">at-most-once</Term>.
 - **Order of the bookkeeping writes.** When the spool empties, the offset is reset *before* the log file is deleted. The opposite order has a crash window where the old offset would skip new events — a loss. (This was a real bug in the first draft of the code above.)
 - **One drainer.** A single thread replays, so the spool's order is the replay order.
 - **Rebuild state on start.** After a restart the publisher re-reads the spool to learn which keys still have a backlog.
 
 ## Ordering during replay
 
-Kafka guarantees order **per partition**, and a partition is chosen by the event's **key** (say, the order id). Consumers rely on that: `OrderPlaced` must come before `OrderCancelled` for the same order.
+Kafka guarantees order **per <Term id="partition">partition</Term>**, and a partition is chosen by the event's **key** (say, the order id). Consumers rely on that: `OrderPlaced` must come before `OrderCancelled` for the same order.
 
 A naive fallback breaks it. Suppose `A2` and `A3` are spooled during the outage; Kafka comes back; a new event `A4` is published directly — and arrives **before** `A2` and `A3`, which are still waiting in the spool. Shipping now sees a cancellation for an order it has never heard of.
 

@@ -57,12 +57,12 @@ Decisions worth saying aloud:
 
 - The conditional `UPDATE … WHERE on_hand - reserved >= qty` is both check and reservation in one statement — no race window, no explicit lock.
 - `CHECK (reserved <= on_hand)` catches bugs.
-- `UNIQUE (order_id, sku)` makes retried checkouts idempotent.
-- Reservations fit in the order saga: reserve → pay → confirm, or compensate by releasing ([Sagas](../../distributed-systems/saga-and-outbox/)).
+- `UNIQUE (order_id, sku)` makes retried checkouts <Term id="idempotency">idempotent</Term>.
+- Reservations fit in the order <Term id="saga">saga</Term>: reserve → pay → confirm, or compensate by releasing ([Sagas](../../distributed-systems/saga-and-outbox/)).
 
 ## Flash sales and hot SKUs
 
-When thousands of buyers hit one SKU at once, every reservation updates one row — a hotspot. Options: split the stock into N buckets (rows) and reserve from a random bucket; pre-load the count into Redis and decrement atomically (`DECRBY` and check ≥ 0, or a Lua script), writing reservations to the database asynchronously; queue purchase requests and process them sequentially; and show "sold out" early from a cached counter.
+When thousands of buyers hit one SKU at once, every reservation updates one row — a hotspot. Options: split the stock into N buckets (rows) and reserve from a random bucket; pre-load the count into <Term id="redis">Redis</Term> and decrement atomically (`DECRBY` and check ≥ 0, or a Lua script), writing reservations to the database asynchronously; queue purchase requests and process them sequentially; and show "sold out" early from a cached counter.
 
 <Pitfalls>
 

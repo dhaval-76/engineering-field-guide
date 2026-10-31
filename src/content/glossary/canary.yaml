@@ -1,0 +1,3 @@
+term: "Canary release"
+short: "Sending a small share of traffic to a new version and widening it only if error and latency metrics stay healthy."
+topic: devops/ci-cd-and-cloud

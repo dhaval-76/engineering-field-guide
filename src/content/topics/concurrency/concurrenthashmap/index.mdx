@@ -31,8 +31,8 @@ A supermarket with one checkout lane versus one with a lane per aisle. In the fi
 
 <Diagram id="chm-bins" caption="A synchronized map serialises everything; ConcurrentHashMap lets readers and writers on different bins proceed together." />
 
-- **Reads** (`get`, iteration) use volatile reads of the table and nodes — no locking.
-- **Insert into an empty bin**: one compare-and-swap of the bin slot.
+- **Reads** (`get`, iteration) use <Term id="volatile">volatile</Term> reads of the table and nodes — no locking.
+- **Insert into an empty bin**: one <Term id="cas">compare-and-swap</Term> of the bin slot.
 - **Update a non-empty bin**: `synchronized` on that bin's first node; other bins are unaffected. Long chains become trees, as in `HashMap`.
 - **Resize**: when the table grows, threads that write during the resize **help** move bins, so no single thread stalls everyone.
 - **Counting**: `size()` sums striped counters (like `LongAdder`), so it's fast but only an estimate while writes are happening.
@@ -89,7 +89,7 @@ In a concurrent map, `get(k) == null` must mean "absent". If `null` values were 
 
 - **get-then-put sequences** — each call is safe, the sequence isn't.
 - **Slow or blocking work inside `compute`/`computeIfAbsent`** — blocks other writers of that bin.
-- **Recursive updates** — calling `computeIfAbsent` on the same map from inside its own function can deadlock or throw.
+- **Recursive updates** — calling `computeIfAbsent` on the same map from inside its own function can <Term id="deadlock">deadlock</Term> or throw.
 - **Mutating objects stored as values** without synchronisation — the map protects the entry, not the object's fields.
 - **Relying on `size()`** for exact logic under concurrent writes.
 

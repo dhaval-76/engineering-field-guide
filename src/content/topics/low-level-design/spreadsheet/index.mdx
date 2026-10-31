@@ -57,7 +57,7 @@ A recursive-descent parser turns `A1 + B1 * 2` into a tree that respects operato
 1. **Parse** the input; collect references.
 2. **Cycle check before any change**: walk from the new references through what they read; if you reach the edited cell, the formula would create a loop — reject and leave the sheet untouched. (Mutating the graph first and then discovering the cycle leaves it in a broken half-updated state.)
 3. **Update edges**: remove the cell from its old inputs' dependents, add it to the new ones.
-4. **Recalculate downstream** in topological order.
+4. **Recalculate downstream** in <Term id="topological-sort">topological order</Term>.
 
 </Steps>
 
@@ -65,7 +65,7 @@ A recursive-descent parser turns `A1 + B1 * 2` into a tree that respects operato
 
 <Walkthrough id="sheet-kahn" />
 
-Kahn's algorithm, restricted to the affected cells, guarantees each cell is evaluated only after all of its inputs in the affected set have their new values. Breadth-first order from the changed cell **does not** guarantee this when paths of different lengths meet (C1 is one hop from A1 directly and two hops via B1).
+Kahn's algorithm, restricted to the affected cells, guarantees each cell is evaluated only after all of its inputs in the affected set have their new values. <Term id="bfs">Breadth-first</Term> order from the changed cell **does not** guarantee this when paths of different lengths meet (C1 is one hop from A1 directly and two hops via B1).
 
 ## Eager vs lazy recalculation
 
@@ -92,7 +92,7 @@ Real spreadsheets combine both: they recompute visible and volatile cells eagerl
 - **Detecting cycles after mutating the graph** — leaves corrupted edges when rejecting.
 - **Not removing old edges** when a formula changes — cells keep recomputing for inputs they no longer read.
 - **Recomputing the whole sheet** on every edit.
-- **Recursive evaluation without memoisation** — the same cell recomputed once per path.
+- **Recursive evaluation without <Term id="memoization">memoisation</Term>** — the same cell recomputed once per path.
 
 </Pitfalls>
 

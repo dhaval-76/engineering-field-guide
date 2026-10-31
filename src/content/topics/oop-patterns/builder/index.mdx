@@ -27,7 +27,7 @@ Objects with many parameters are everywhere: HTTP requests, queries, configurati
 - **Long constructors** are unreadable at the call site and easy to get wrong silently — swap two `String` arguments and it still compiles.
 - **Setters** let the object exist in a half-built state, make immutability impossible, and spread validation across many calls.
 
-A builder gives you named parameters, defaults, one place to validate, and an immutable result.
+A builder gives you named parameters, defaults, one place to validate, and an <Term id="immutable">immutable</Term> result.
 
 <Callout type="analogy">
 Configuring a laptop online: you pick the CPU, then memory, then storage, then the keyboard layout — each choice clearly labelled, some with defaults. Only when you press "Order" is the configuration checked ("this CPU doesn't support that much memory") and the laptop actually built.

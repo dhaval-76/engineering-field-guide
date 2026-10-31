@@ -59,7 +59,7 @@ Use odd sizes. More nodes means more fault tolerance but slower writes (more ack
 Real-world points:
 
 - Consensus needs timeouts: in a fully asynchronous network no algorithm can guarantee progress (the FLP result), so Raft stays **safe** always and makes **progress** when the network behaves well enough.
-- Reads must go through the leader with a check that it's still leader (or a lease) to be linearizable — a deposed leader may not know yet.
+- Reads must go through the leader with a check that it's still leader (or a <Term id="lease">lease</Term>) to be linearizable — a deposed leader may not know yet.
 - These algorithms assume crash failures, not malicious nodes; Byzantine fault tolerance is a different, costlier family (blockchains).
 
 ## Partitions and split brain

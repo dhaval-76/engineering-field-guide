@@ -2,3 +2,4 @@ term: W-TinyLFU
 short: "Admission/eviction policy used by Caffeine: a small LRU window for new
   entries plus a compact frequency sketch that decides which entries are worth
   keeping."
+topic: low-level-design/lfu-cache

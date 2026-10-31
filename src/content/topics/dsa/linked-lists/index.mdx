@@ -21,7 +21,7 @@ lastReviewed: 2026-10-31
 
 ## Why it matters
 
-A linked list stores each element in its own node with a pointer to the next one. That costs memory and cache locality — an `ArrayList` is usually faster in practice — but it gives two abilities arrays don't: **O(1) insertion and removal anywhere you already hold a pointer**, and **re-linking in place** without copying. That's why linked lists sit inside an LRU cache, a free list in a memory allocator, the buckets of a hash map and the queue of runnable threads in an OS scheduler.
+A linked list stores each element in its own node with a pointer to the next one. That costs memory and cache locality — an `ArrayList` is usually faster in practice — but it gives two abilities arrays don't: **O(1) insertion and removal anywhere you already hold a pointer**, and **re-linking in place** without copying. That's why linked lists sit inside an <Term id="lru">LRU</Term> cache, a free list in a memory allocator, the buckets of a hash map and the queue of runnable threads in an OS scheduler.
 
 In interviews, linked lists test something specific: careful pointer manipulation under the constraint of **O(1) extra space**. The problems are rarely deep algorithmically; they are about never losing a node and handling the head, the tail and empty lists correctly. A handful of techniques — dummy heads, three-pointer reversal, fast/slow pointers and gap pointers — combine to solve nearly all of them.
 
@@ -74,7 +74,7 @@ The same algorithm finds the duplicate in an array of n + 1 values in `[1, n]` w
 
 <CodeTabs id="dsa-merge-two-lists" title="Merge two sorted lists — dummy head" />
 
-Merging **k** sorted lists uses a min-heap of the current heads — O(N log k) for N total nodes ([Heaps](../heaps-and-top-k/)).
+Merging **k** sorted lists uses a <Term id="heap">min-heap</Term> of the current heads — O(N log k) for N total nodes ([Heaps](../heaps-and-top-k/)).
 
 ### Remove the nth node from the end
 

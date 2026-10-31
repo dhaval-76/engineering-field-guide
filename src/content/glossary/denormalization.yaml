@@ -1,0 +1,3 @@
+term: "Denormalization"
+short: "Storing copies of data in several places to make reads faster, at the cost of keeping the copies in sync on writes."
+topic: databases/joins-normalization-window-functions

@@ -1,0 +1,3 @@
+term: "Dependency injection"
+short: "Passing an object its collaborators (through the constructor) instead of letting it create them, so they can be swapped, configured and mocked."
+topic: backend/spring-di-ioc

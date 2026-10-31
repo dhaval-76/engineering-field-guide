@@ -61,14 +61,14 @@ Common team setup: rebase (or merge) `main` into your feature branch while worki
 | **GitHub flow** | branch → PR → merge → deploy from `main` | similar, slightly longer branches |
 | **GitFlow** | `develop`, `release/*`, `hotfix/*` branches around `main` | versioned software with scheduled releases, multiple supported versions |
 
-Long-lived branches are the main source of painful merges; feature flags let unfinished work merge safely without being visible.
+Long-lived branches are the main source of painful merges; <Term id="feature-flag">feature flags</Term> let unfinished work merge safely without being visible.
 
 ## Pull requests and commits
 
 - **Small and focused** — one change per PR; reviewers can actually review 200 lines, not 2,000.
 - **The description explains *why*** and the trade-offs; the diff shows *what*. Link the ticket; add screenshots for UI.
 - **CI green before review**: build, tests, lint, security scans.
-- **Commit messages**: imperative summary under ~72 characters ("Add idempotency keys to payment API"), a body explaining why. Many teams use Conventional Commits (`feat:`, `fix:`) to generate changelogs.
+- **Commit messages**: imperative summary under ~72 characters ("Add <Term id="idempotency">idempotency</Term> keys to payment API"), a body explaining why. Many teams use Conventional Commits (`feat:`, `fix:`) to generate changelogs.
 - **Review kindly and specifically**: ask questions, distinguish blocking issues from nits, approve when it's better than before.
 
 <CodeTabs id="git-cleanup" title="Cleaning up a branch before review: fixup commits and interactive rebase" />

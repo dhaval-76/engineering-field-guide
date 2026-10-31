@@ -1,0 +1,3 @@
+term: "Load balancer"
+short: "Spreads incoming requests over healthy servers (round robin, least connections, hashing) and removes failed ones using health checks."
+topic: distributed-systems/load-balancing

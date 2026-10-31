@@ -67,7 +67,7 @@ Keeping transitions in a table (rather than `if` chains across services) makes t
 
 ## Robustness
 
-- **Idempotent status updates**: partner apps on mobile networks retry; "DELIVERED twice" must be a no-op.
+- **<Term id="idempotency">Idempotent</Term> status updates**: partner apps on mobile networks retry; "DELIVERED twice" must be a no-op.
 - **Timeouts**: restaurant doesn't accept in N minutes → reject and refund; no partner found → widen radius, raise incentive, or notify the customer.
 - **Payments**: authorise at checkout, capture on delivery (or on accept), refund on rejection ([Digital wallet](../digital-wallet/) covers holds).
 
