@@ -9,10 +9,14 @@ interface Props {
 }
 const { id, caption, wide = false } = Astro.props;
 const svg = getDiagram(id);
+// Diagrams up to ~560px wide shrink to fit a phone with text still legible;
+// wider ones keep their natural size and scroll (or open full screen with Expand).
+const natural = Number(/--w:(\d+)px/.exec(svg)?.[1] ?? 0);
+const fits = natural > 0 && natural <= 560;
 ---
 
 <figure class:list={['diagram', { wide }]} data-diagram>
-  <div class="canvas" role="img" aria-label={caption} tabindex="0" set:html={svg} />
+  <div class:list={['canvas', { fits }]} role="img" aria-label={caption} tabindex="0" set:html={svg} />
   <figcaption>
     <span>{caption}</span>
     <button type="button" class="expand" data-diagram-expand aria-label={`Open diagram full screen: ${caption}`}>
@@ -42,6 +46,9 @@ const svg = getDiagram(id);
     min-width: min(var(--w, 520px), 520px);
     max-width: 100%;
     font-family: var(--font-sans);
+  }
+  .canvas.fits :global(svg) {
+    min-width: 0;
   }
   .canvas :global(svg text) {
     font-family: var(--font-sans);

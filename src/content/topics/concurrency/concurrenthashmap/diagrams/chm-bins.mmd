@@ -1,0 +1,15 @@
+flowchart TD
+  subgraph S["synchronizedMap: one lock for everything"]
+    direction TB
+    T1[A: get] --> L{{one lock}}
+    T2[B: put] --> L
+    T3[C: get] --> L
+    L --> M[(table)]
+  end
+  S ~~~ C
+  subgraph C["ConcurrentHashMap: work per bin"]
+    direction TB
+    R1[A: get] -->|no lock| B0[(bin 0)]
+    W1[B: put] -->|CAS| B1[(bin 1)]
+    W2[C: put] -->|lock bin 5| B5[(bin 5)]
+  end
