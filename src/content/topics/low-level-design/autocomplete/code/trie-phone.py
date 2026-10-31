@@ -1,14 +1,17 @@
 from dataclasses import dataclass, field
 
+
 @dataclass(frozen=True)
 class Contact:
     name: str
     number: str
 
+
 @dataclass
 class _Node:
     next: list = field(default_factory=lambda: [None] * 10)
     contacts: list = field(default_factory=list)
+
 
 class PhoneDirectory:
     """Digits-only trie with contacts stored at the end node; prefix search returns contacts in digit order."""

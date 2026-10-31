@@ -50,4 +50,8 @@ class FileSystem:
 
     def ls(self, path: str = ".") -> list[str]:
         n = self.resolve(path)
-        return [c.name + ("/" if c.type == "dir" else "") for c in n.children] if n.type == "dir" else [n.name]
+        return (
+            [c.name + ("/" if c.type == "dir" else "") for c in n.children]
+            if n.type == "dir"
+            else [n.name]
+        )

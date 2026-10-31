@@ -1,5 +1,6 @@
 import threading
 
+
 class WaitingRoom:
     """Virtual waiting room: a place in line for everyone, admission at a controlled rate, expiring sessions."""
 
@@ -9,12 +10,12 @@ class WaitingRoom:
         self._seq_of: dict[str, int] = {}
         self._admitted_at: dict[int, float] = {}
         self._next_seq = 0
-        self._admitted_up_to = 0          # seq < admitted_up_to are admitted
+        self._admitted_up_to = 0  # seq < admitted_up_to are admitted
         self._lock = threading.Lock()
 
     def join(self, user_id: str) -> int:
         with self._lock:
-            if user_id not in self._seq_of:              # refreshing keeps your place
+            if user_id not in self._seq_of:  # refreshing keeps your place
                 self._seq_of[user_id] = self._next_seq
                 self._next_seq += 1
             return self._seq_of[user_id]

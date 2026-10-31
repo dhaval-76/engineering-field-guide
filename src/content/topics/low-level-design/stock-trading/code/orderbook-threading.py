@@ -2,6 +2,7 @@
 import zlib
 from concurrent.futures import Future, ThreadPoolExecutor
 
+
 class MatchingEngine:
     """Each symbol is owned by exactly one single-threaded shard: no locks in the book, deterministic order."""
 
@@ -27,8 +28,11 @@ class MatchingEngine:
         for s in self._shards:
             s.shutdown(wait=True)
 
+
 def risk_allows(o: "Order", available_cash: int, sellable_qty: int, last_price: int) -> bool:
     """Pre-trade risk check before an order ever reaches the book."""
     # 5% buffer for market buys
     price = -(-last_price * 105 // 100) if o.type is OrderType.MARKET else o.limit_ticks
-    return available_cash >= price * o.remaining if o.side is Side.BUY else sellable_qty >= o.remaining
+    return (
+        available_cash >= price * o.remaining if o.side is Side.BUY else sellable_qty >= o.remaining
+    )

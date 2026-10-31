@@ -3,7 +3,7 @@ import pg from 'pg';
 const pool = new pg.Pool();
 
 export async function placeOrder(customerId, productId, qty) {
-  const client = await pool.connect();          // a transaction needs ONE connection
+  const client = await pool.connect(); // a transaction needs ONE connection
   try {
     await client.query('BEGIN');
     const reserved = await client.query(
@@ -22,7 +22,7 @@ export async function placeOrder(customerId, productId, qty) {
     await client.query('ROLLBACK');
     throw err;
   } finally {
-    client.release();                           // always give the connection back
+    client.release(); // always give the connection back
   }
 }
 

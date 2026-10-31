@@ -22,7 +22,8 @@ export class PieceTable {
         const parts = [];
         if (split > 0) parts.push({ ...p, length: split });
         parts.push(inserted);
-        if (split < p.length) parts.push({ ...p, start: p.start + split, length: p.length - split });
+        if (split < p.length)
+          parts.push({ ...p, start: p.start + split, length: p.length - split });
         this.#pieces.splice(i, 1, ...parts);
         return;
       }
@@ -39,9 +40,11 @@ export class PieceTable {
     const end = pos + len;
     const kept = [];
     for (const p of this.#pieces) {
-      const pStart = offset, pEnd = offset + p.length;
+      const pStart = offset,
+        pEnd = offset + p.length;
       offset = pEnd;
-      const from = Math.max(pos, pStart), to = Math.min(end, pEnd);
+      const from = Math.max(pos, pStart),
+        to = Math.min(end, pEnd);
       if (from >= to) {
         kept.push(p);
         continue;
@@ -56,6 +59,8 @@ export class PieceTable {
   }
 
   text() {
-    return this.#pieces.map((p) => (p.fromAdd ? this.#add : this.#original).slice(p.start, p.start + p.length)).join('');
+    return this.#pieces
+      .map((p) => (p.fromAdd ? this.#add : this.#original).slice(p.start, p.start + p.length))
+      .join('');
   }
 }

@@ -1,17 +1,36 @@
-/**
- * Each find option is a small predicate; and/or/not compose them (Specification pattern).
- */
+/** Each find option is a small predicate; and/or/not compose them (Specification pattern). */
 @FunctionalInterface
 interface Filter {
     boolean test(Node n);
-    default Filter and(Filter o) { return n -> test(n) && o.test(n); }
-    default Filter or(Filter o)  { return n -> test(n) || o.test(n); }
-    default Filter negate()      { return n -> !test(n); }
 
-    static Filter name(String glob)   { Pattern p = Glob.toRegex(glob); return n -> p.matcher(n.name).matches(); }
-    static Filter type(boolean dirs)  { return n -> (n instanceof DirNode) == dirs; }
-    static Filter sizeAtLeast(long b) { return n -> n instanceof FileNode && n.size() >= b; }
-    static Filter modifiedWithin(Duration d, Clock c) { return n -> n.modified.isAfter(c.instant().minus(d)); }
+    default Filter and(Filter o) {
+        return n -> test(n) && o.test(n);
+    }
+
+    default Filter or(Filter o) {
+        return n -> test(n) || o.test(n);
+    }
+
+    default Filter negate() {
+        return n -> !test(n);
+    }
+
+    static Filter name(String glob) {
+        Pattern p = Glob.toRegex(glob);
+        return n -> p.matcher(n.name).matches();
+    }
+
+    static Filter type(boolean dirs) {
+        return n -> (n instanceof DirNode) == dirs;
+    }
+
+    static Filter sizeAtLeast(long b) {
+        return n -> n instanceof FileNode && n.size() >= b;
+    }
+
+    static Filter modifiedWithin(Duration d, Clock c) {
+        return n -> n.modified.isAfter(c.instant().minus(d));
+    }
 }
 
 final class Glob {
@@ -22,7 +41,7 @@ final class Glob {
             switch (ch) {
                 case '*' -> re.append("[^/]*");
                 case '?' -> re.append("[^/]");
-                default  -> re.append(Pattern.quote(String.valueOf(ch)));
+                default -> re.append(Pattern.quote(String.valueOf(ch)));
             }
         }
         return Pattern.compile(re.toString());
@@ -46,5 +65,10 @@ final class Find {
 }
 
 // find /src -name "*.java" -size +1k ! -name "*Test*"
-List<Node> hits = Find.find(fs.resolve("/src"),
-        Filter.name("*.java").and(Filter.sizeAtLeast(1024)).and(Filter.name("*Test*").negate()), Integer.MAX_VALUE);
+List<Node> hits =
+        Find.find(
+                fs.resolve("/src"),
+                Filter.name("*.java")
+                        .and(Filter.sizeAtLeast(1024))
+                        .and(Filter.name("*Test*").negate()),
+                Integer.MAX_VALUE);

@@ -10,13 +10,15 @@ const RULES = [
   ['PICKED_UP', 'DELIVERED', ['PARTNER']],
 ];
 
-export const allowed = (from, to, actor) => RULES.some(([f, t, who]) => f === from && t === to && who.includes(actor));
+export const allowed = (from, to, actor) =>
+  RULES.some(([f, t, who]) => f === from && t === to && who.includes(actor));
 
 export function km(a, b) {
   const rad = (d) => (d * Math.PI) / 180;
   const dLat = rad(b.lat - a.lat);
   const dLng = rad(b.lng - a.lng);
-  const h = Math.sin(dLat / 2) ** 2 + Math.cos(rad(a.lat)) * Math.cos(rad(b.lat)) * Math.sin(dLng / 2) ** 2;
+  const h =
+    Math.sin(dLat / 2) ** 2 + Math.cos(rad(a.lat)) * Math.cos(rad(b.lat)) * Math.sin(dLng / 2) ** 2;
   return 6371 * 2 * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h));
 }
 
@@ -31,7 +33,8 @@ export class Order {
   }
 
   moveTo(next, actor) {
-    if (!allowed(this.status, next, actor)) throw new Error(`${actor} cannot move ${this.id} from ${this.status} to ${next}`);
+    if (!allowed(this.status, next, actor))
+      throw new Error(`${actor} cannot move ${this.id} from ${this.status} to ${next}`);
     if (next === 'PICKED_UP' && !this.partnerId) throw new Error('no partner assigned');
     const prev = this.status;
     this.status = next;

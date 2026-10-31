@@ -11,11 +11,22 @@ export async function save(c, { pageId, expectedHead, content, authorId, message
   if (!(await blobs.exists(hash))) {
     const parent = await blobs.get((await versions.get(expectedHead)).contentHash);
     if (parent.chainLength + 1 >= SNAPSHOT_EVERY) await blobs.putFull(hash, bytes);
-    else await blobs.putDelta(hash, parent.hash, delta(await read(parent.hash), bytes), parent.chainLength + 1);
+    else
+      await blobs.putDelta(
+        hash,
+        parent.hash,
+        delta(await read(parent.hash), bytes),
+        parent.chainLength + 1,
+      );
   }
   const id = await versions.insert(c, { pageId, parent: expectedHead, hash, authorId, message });
-  const moved = await c.query('UPDATE pages SET head_id = $1 WHERE id = $2 AND head_id = $3', [id, pageId, expectedHead]);
-  if (moved.rowCount === 0) throw Object.assign(new Error('concurrent edit — rebase or merge'), { status: 409 });
+  const moved = await c.query('UPDATE pages SET head_id = $1 WHERE id = $2 AND head_id = $3', [
+    id,
+    pageId,
+    expectedHead,
+  ]);
+  if (moved.rowCount === 0)
+    throw Object.assign(new Error('concurrent edit — rebase or merge'), { status: 409 });
   return id;
 }
 
@@ -23,7 +34,10 @@ export async function save(c, { pageId, expectedHead, content, authorId, message
 export async function read(hash) {
   const chain = [];
   let b = await blobs.get(hash);
-  while (b.isDelta) { chain.push(b); b = await blobs.get(b.baseHash); }
+  while (b.isDelta) {
+    chain.push(b);
+    b = await blobs.get(b.baseHash);
+  }
   let content = b.data;
   while (chain.length) content = applyDelta(content, chain.pop().data);
   return content.toString('utf8');

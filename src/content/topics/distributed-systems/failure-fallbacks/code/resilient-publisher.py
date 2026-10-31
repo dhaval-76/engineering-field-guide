@@ -7,7 +7,7 @@ from typing import Callable, Optional
 
 @dataclass(frozen=True)
 class Event:
-    id: str        # lets consumers drop the duplicates a replay can produce
+    id: str  # lets consumers drop the duplicates a replay can produce
     key: str
     payload: str
 
@@ -28,9 +28,11 @@ class FileSpool:
         self.log = os.path.join(directory, "spool.log")
         self.offset_file = os.path.join(directory, "spool.offset")
         self.done = int(open(self.offset_file).read()) if os.path.exists(self.offset_file) else 0
-        lines = open(self.log, encoding="utf-8").read().splitlines() if os.path.exists(self.log) else []
+        lines = (
+            open(self.log, encoding="utf-8").read().splitlines() if os.path.exists(self.log) else []
+        )
         self.queue: list[Event] = []
-        for line in lines[self.done:]:
+        for line in lines[self.done :]:
             id_, key, payload = line.split("\t", 2)
             self.queue.append(Event(id_, key, payload))
         self.head = 0
@@ -38,7 +40,7 @@ class FileSpool:
     def append(self, e: Event) -> None:
         with open(self.log, "a", encoding="utf-8") as f:
             f.write(f"{e.id}\t{e.key}\t{e.payload.replace(chr(10), ' ')}\n")
-            f.flush()   # production code would also os.fsync(f.fileno()) per batch
+            f.flush()  # production code would also os.fsync(f.fileno()) per batch
         self.queue.append(e)
 
     def peek(self) -> Optional[Event]:
@@ -61,19 +63,21 @@ class FileSpool:
         tmp = self.offset_file + ".tmp"
         with open(tmp, "w") as f:
             f.write(str(value))
-        os.replace(tmp, self.offset_file)   # atomic replace
+        os.replace(tmp, self.offset_file)  # atomic replace
 
     def size(self) -> int:
         return len(self.queue) - self.head
 
     def pending(self) -> list[Event]:
-        return self.queue[self.head:]
+        return self.queue[self.head :]
 
 
 class Breaker:
     """Minimal breaker: opens after N consecutive failures, lets traffic try again after a cool-down."""
 
-    def __init__(self, threshold: int, cool_down_s: float, clock: Callable[[], float] = time.monotonic):
+    def __init__(
+        self, threshold: int, cool_down_s: float, clock: Callable[[], float] = time.monotonic
+    ):
         self.threshold, self.cool_down_s, self.clock = threshold, cool_down_s, clock
         self.failures, self.opened_at, self.state = 0, 0.0, "CLOSED"
         self._lock = threading.Lock()
@@ -101,13 +105,19 @@ class ResilientPublisher:
     While a key has spooled events, new events for that key queue behind them (per-key order).
     As with Kafka itself, a caller must publish same-key events one after another."""
 
-    def __init__(self, broker: Broker, spool: FileSpool, breaker: Breaker, drain_per_second: float,
-                 clock: Callable[[], float] = time.monotonic):
+    def __init__(
+        self,
+        broker: Broker,
+        spool: FileSpool,
+        breaker: Breaker,
+        drain_per_second: float,
+        clock: Callable[[], float] = time.monotonic,
+    ):
         self.broker, self.spool, self.breaker, self.clock = broker, spool, breaker, clock
         self.drain_per_second, self.tokens, self.last_refill = drain_per_second, 0.0, clock()
         self.spooled_per_key: dict[str, int] = {}
         self._lock = threading.Lock()
-        for e in spool.pending():                       # after a restart
+        for e in spool.pending():  # after a restart
             self.spooled_per_key[e.key] = self.spooled_per_key.get(e.key, 0) + 1
 
     def publish(self, e: Event) -> str:
@@ -132,7 +142,10 @@ class ResilientPublisher:
         """Run on a schedule (e.g. every 100 ms) from one background thread."""
         with self._lock:
             now = self.clock()
-            self.tokens = min(self.drain_per_second, self.tokens + (now - self.last_refill) * self.drain_per_second)
+            self.tokens = min(
+                self.drain_per_second,
+                self.tokens + (now - self.last_refill) * self.drain_per_second,
+            )
             self.last_refill = now
             sent = 0
             while self.tokens >= 1 and self.spool.size() > 0 and self.breaker.allow():

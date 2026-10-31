@@ -48,7 +48,8 @@ export class DirNode extends Node {
     return this.#children.get(name) ?? null;
   }
   add(node) {
-    if (!node.name || node.name.includes('/') || node.name === '.' || node.name === '..') throw new Error(`bad name: ${node.name}`);
+    if (!node.name || node.name.includes('/') || node.name === '.' || node.name === '..')
+      throw new Error(`bad name: ${node.name}`);
     if (this.#children.has(node.name)) throw new Error(`${node.name} already exists`);
     this.#children.set(node.name, node);
     node.parent = this;

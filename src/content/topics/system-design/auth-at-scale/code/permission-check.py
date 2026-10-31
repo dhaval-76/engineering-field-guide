@@ -4,8 +4,10 @@
 # Model: a document's editors include editors of its parent folder.
 from cachetools import TTLCache
 
+
 class AccessDenied(Exception):
     pass
+
 
 class DocumentAccess:
     def __init__(self, permissions):
@@ -18,14 +20,19 @@ class DocumentAccess:
         key = (user_id, "edit", doc_id)
         allowed = self._recent.get(key)
         if allowed is None:
-            allowed = self._recent[key] = self.permissions.check(f"user:{user_id}", "editor", f"document:{doc_id}")
+            allowed = self._recent[key] = self.permissions.check(
+                f"user:{user_id}", "editor", f"document:{doc_id}"
+            )
         if not allowed:
             raise AccessDenied(f"document {doc_id}")
 
     def visible(self, user_id: str, candidates: list) -> list:
         """List pages: one batched call, not one check per row."""
-        allowed = set(self.permissions.batch_check(f"user:{user_id}", "viewer",
-                                                   [f"document:{d.id}" for d in candidates]))
+        allowed = set(
+            self.permissions.batch_check(
+                f"user:{user_id}", "viewer", [f"document:{d.id}" for d in candidates]
+            )
+        )
         return [d for d in candidates if f"document:{d.id}" in allowed]
 
     def share(self, doc_id: str, with_user_id: str) -> None:

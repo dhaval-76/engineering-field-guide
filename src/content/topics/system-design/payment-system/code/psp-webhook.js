@@ -3,7 +3,10 @@
 export async function charge(payments, psp, paymentId) {
   const p = await payments.get(paymentId);
   try {
-    const r = await psp.capture(p.pspToken, p.amount, p.currency, { idempotencyKey: p.id, signal: AbortSignal.timeout(10_000) });
+    const r = await psp.capture(p.pspToken, p.amount, p.currency, {
+      idempotencyKey: p.id,
+      signal: AbortSignal.timeout(10_000),
+    });
     return payments.transition(p.id, r.succeeded ? 'CAPTURED' : 'DECLINED', r.reference);
   } catch (e) {
     if (!(e.name === 'TimeoutError' || e.status >= 500)) throw e;
@@ -20,8 +23,11 @@ app.post('/webhooks/psp', express.raw({ type: 'application/json' }), async (req,
   const e = verifyAndParse(req.get('X-Signature'), req.body);
   if (!e) return res.status(400).end();
   await inTx(pool, async (c) => {
-    const fresh = await c.query('INSERT INTO processed_psp_events (event_id) VALUES ($1) ON CONFLICT DO NOTHING', [e.id]);
-    if (fresh.rowCount === 0) return;                          // duplicate delivery
+    const fresh = await c.query(
+      'INSERT INTO processed_psp_events (event_id) VALUES ($1) ON CONFLICT DO NOTHING',
+      [e.id],
+    );
+    if (fresh.rowCount === 0) return; // duplicate delivery
     // + ledger entries + outbox row
     await paymentStateMachine.apply(c, e.paymentId, e.type, e.amount, e.reference);
   });

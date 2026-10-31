@@ -14,15 +14,22 @@ RULES = {
     ("PICKED_UP", "DELIVERED"): {"PARTNER"},
 }
 
+
 @dataclass(frozen=True)
 class Location:
     lat: float
     lng: float
 
-    def km(self, o: "Location") -> float:          # haversine distance
+    def km(self, o: "Location") -> float:  # haversine distance
         d_lat, d_lng = math.radians(o.lat - self.lat), math.radians(o.lng - self.lng)
-        a = math.sin(d_lat / 2) ** 2 + math.cos(math.radians(self.lat)) * math.cos(math.radians(o.lat)) * math.sin(d_lng / 2) ** 2
+        a = (
+            math.sin(d_lat / 2) ** 2
+            + math.cos(math.radians(self.lat))
+            * math.cos(math.radians(o.lat))
+            * math.sin(d_lng / 2) ** 2
+        )
         return 6371 * 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+
 
 @dataclass
 class Order:

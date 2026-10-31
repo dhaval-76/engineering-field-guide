@@ -1,6 +1,7 @@
 import threading
 import time
 
+
 class KvNode:
     """A single node's in-memory store with TTL. Value and expiry live together, so overwrites can't leave stale TTLs."""
 
@@ -16,7 +17,7 @@ class KvNode:
             if e is None:
                 return None
             if e[1] and self._clock() >= e[1]:
-                del self._data[key]                          # lazy expiry
+                del self._data[key]  # lazy expiry
                 return None
             return e[0]
 
@@ -33,7 +34,9 @@ class KvNode:
         """Active expiry: check a bounded number of keys per pass (Redis samples similarly)."""
         with self._lock:
             now = self._clock()
-            expired = [k for k, (_, exp) in list(self._data.items())[:max_checks] if exp and now >= exp]
+            expired = [
+                k for k, (_, exp) in list(self._data.items())[:max_checks] if exp and now >= exp
+            ]
             for k in expired:
                 del self._data[k]
             return len(expired)

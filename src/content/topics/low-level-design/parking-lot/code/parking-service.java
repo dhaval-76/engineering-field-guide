@@ -9,19 +9,26 @@ final class NearestSmallestFit implements SpotSelector {
         List<SpotSize> fits = SpotRules.fitsIn(v.type());
         return spots.stream()
                 .filter(s -> fits.contains(s.size()) && s.isFree())
-                .sorted(Comparator.comparingInt(ParkingSpot::floor).thenComparingInt(s -> fits.indexOf(s.size())));
+                .sorted(
+                        Comparator.comparingInt(ParkingSpot::floor)
+                                .thenComparingInt(s -> fits.indexOf(s.size())));
     }
 }
 
 // Strategy: how much to charge
-interface PricingPolicy { Money feeFor(Ticket t, Instant exit); }
+interface PricingPolicy {
+    Money feeFor(Ticket t, Instant exit);
+}
 
 final class HourlyWithDailyCap implements PricingPolicy {
     private final Map<VehicleType, Money> hourly;
     private final Map<VehicleType, Money> dailyCap;
+
     HourlyWithDailyCap(Map<VehicleType, Money> hourly, Map<VehicleType, Money> dailyCap) {
-        this.hourly = hourly; this.dailyCap = dailyCap;
+        this.hourly = hourly;
+        this.dailyCap = dailyCap;
     }
+
     public Money feeFor(Ticket t, Instant exit) {
         long minutes = Math.max(1, Duration.between(t.entry(), exit).toMinutes());
         // started hours are charged
@@ -34,7 +41,9 @@ final class HourlyWithDailyCap implements PricingPolicy {
 }
 
 // Observer: display boards
-interface SpotListener { void spotChanged(ParkingSpot spot, boolean nowFree); }
+interface SpotListener {
+    void spotChanged(ParkingSpot spot, boolean nowFree);
+}
 
 final class ParkingLot {
     private final List<ParkingSpot> spots;
@@ -45,10 +54,15 @@ final class ParkingLot {
     private final List<SpotListener> listeners = new CopyOnWriteArrayList<>();
 
     ParkingLot(List<ParkingSpot> spots, SpotSelector selector, PricingPolicy pricing, Clock clock) {
-        this.spots = List.copyOf(spots); this.selector = selector; this.pricing = pricing; this.clock = clock;
+        this.spots = List.copyOf(spots);
+        this.selector = selector;
+        this.pricing = pricing;
+        this.clock = clock;
     }
 
-    void addListener(SpotListener l) { listeners.add(l); }
+    void addListener(SpotListener l) {
+        listeners.add(l);
+    }
 
     /** Tries candidates in order; a lost CAS race just moves on to the next spot. */
     public Optional<Ticket> park(Vehicle v) {

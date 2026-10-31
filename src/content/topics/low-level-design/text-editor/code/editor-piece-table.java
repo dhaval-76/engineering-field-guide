@@ -1,7 +1,6 @@
 /**
- * Piece table: the original text is never modified; inserted text is appended to an "add"
- * buffer; the document is a list of pieces pointing into either buffer. Edits only
- * split/insert pieces.
+ * Piece table: the original text is never modified; inserted text is appended to an "add" buffer;
+ * the document is a list of pieces pointing into either buffer. Edits only split/insert pieces.
  */
 final class PieceTable implements Buffer {
     private record Piece(boolean fromAdd, int start, int length) {}
@@ -22,7 +21,10 @@ final class PieceTable implements Buffer {
         add.append(text);
         int offset = 0;
         for (int i = 0; i <= pieces.size(); i++) {
-            if (i == pieces.size()) { pieces.add(inserted); return; }
+            if (i == pieces.size()) {
+                pieces.add(inserted);
+                return;
+            }
             Piece p = pieces.get(i);
             if (pos <= offset + p.length()) {
                 // split p into [left][inserted][right]
@@ -30,7 +32,8 @@ final class PieceTable implements Buffer {
                 List<Piece> replacement = new ArrayList<>();
                 if (split > 0) replacement.add(new Piece(p.fromAdd(), p.start(), split));
                 replacement.add(inserted);
-                if (split < p.length()) replacement.add(new Piece(p.fromAdd(), p.start() + split, p.length() - split));
+                if (split < p.length())
+                    replacement.add(new Piece(p.fromAdd(), p.start() + split, p.length() - split));
                 pieces.remove(i);
                 pieces.addAll(i, replacement);
                 return;
@@ -40,8 +43,7 @@ final class PieceTable implements Buffer {
     }
 
     /**
-     * Keep the parts of each piece outside [pos, pos + len); return the removed text (for
-     * undo).
+     * Keep the parts of each piece outside [pos, pos + len); return the removed text (for undo).
      */
     public String delete(int pos, int len) {
         StringBuilder removed = new StringBuilder();
@@ -51,13 +53,17 @@ final class PieceTable implements Buffer {
             int pStart = offset, pEnd = offset + p.length();
             offset = pEnd;
             int cutFrom = Math.max(pos, pStart), cutTo = Math.min(end, pEnd);
-            if (cutFrom >= cutTo) { kept.add(p); continue; }                  // untouched
+            if (cutFrom >= cutTo) {
+                kept.add(p);
+                continue;
+            } // untouched
             CharSequence buf = p.fromAdd() ? add : original;
             removed.append(buf, p.start() + cutFrom - pStart, p.start() + cutTo - pStart);
             // left part
             if (cutFrom > pStart) kept.add(new Piece(p.fromAdd(), p.start(), cutFrom - pStart));
             // right part
-            if (cutTo < pEnd) kept.add(new Piece(p.fromAdd(), p.start() + cutTo - pStart, pEnd - cutTo));
+            if (cutTo < pEnd)
+                kept.add(new Piece(p.fromAdd(), p.start() + cutTo - pStart, pEnd - cutTo));
         }
         pieces.clear();
         pieces.addAll(kept);
@@ -66,7 +72,8 @@ final class PieceTable implements Buffer {
 
     public String text() {
         StringBuilder sb = new StringBuilder();
-        for (Piece p : pieces) sb.append(p.fromAdd() ? add : original, p.start(), p.start() + p.length());
+        for (Piece p : pieces)
+            sb.append(p.fromAdd() ? add : original, p.start(), p.start() + p.length());
         return sb.toString();
     }
 }

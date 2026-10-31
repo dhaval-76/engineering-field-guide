@@ -2,12 +2,22 @@ record Product(String code, String name, int price) {}
 
 /** Either a vended product with change, or a message and nothing taken. */
 record Result(Product product, List<Integer> change, String message) {
-    static Result vended(Product p, List<Integer> change) { return new Result(p, change, "Enjoy your " + p.name()); }
-    static Result refused(String message) { return new Result(null, List.of(), message); }
+    static Result vended(Product p, List<Integer> change) {
+        return new Result(p, change, "Enjoy your " + p.name());
+    }
+
+    static Result refused(String message) {
+        return new Result(null, List.of(), message);
+    }
 }
 
 class VendingMachine {
-    enum State { IDLE, HAS_CREDIT, OUT_OF_SERVICE }
+    enum State {
+        IDLE,
+        HAS_CREDIT,
+        OUT_OF_SERVICE
+    }
+
     // coin denominations (₹)
     static final Set<Integer> ACCEPTED = Set.of(1, 2, 5, 10, 20);
 
@@ -45,10 +55,12 @@ class VendingMachine {
         // Commit: everything below happens together.
         inserted.forEach(c -> coinBox.merge(c, 1, Integer::sum));
         List<Integer> coinsOut = new ArrayList<>();
-        change.get().forEach((coin, n) -> {
-            coinBox.merge(coin, -n, Integer::sum);
-            for (int i = 0; i < n; i++) coinsOut.add(coin);
-        });
+        change.get()
+                .forEach(
+                        (coin, n) -> {
+                            coinBox.merge(coin, -n, Integer::sum);
+                            for (int i = 0; i < n; i++) coinsOut.add(coin);
+                        });
         stock.merge(code, -1, Integer::sum);
         inserted.clear();
         state = State.IDLE;
@@ -64,16 +76,25 @@ class VendingMachine {
         return refund;
     }
 
-    synchronized int credit() { return inserted.stream().mapToInt(Integer::intValue).sum(); }
+    synchronized int credit() {
+        return inserted.stream().mapToInt(Integer::intValue).sum();
+    }
 
     // ---- operator actions ----
-    synchronized void addProduct(Product p, int quantity) { products.put(p.code(), p); stock.merge(p.code(), quantity, Integer::sum); }
-    synchronized void loadCoins(int coin, int count) { coinBox.merge(coin, count, Integer::sum); }
-    synchronized void setOutOfService(boolean off) { state = off ? State.OUT_OF_SERVICE : State.IDLE; }
+    synchronized void addProduct(Product p, int quantity) {
+        products.put(p.code(), p);
+        stock.merge(p.code(), quantity, Integer::sum);
+    }
 
-    /**
-     * Fewest coins for `amount` from a box with limited counts (greedy can fail here).
-     */
+    synchronized void loadCoins(int coin, int count) {
+        coinBox.merge(coin, count, Integer::sum);
+    }
+
+    synchronized void setOutOfService(boolean off) {
+        state = off ? State.OUT_OF_SERVICE : State.IDLE;
+    }
+
+    /** Fewest coins for `amount` from a box with limited counts (greedy can fail here). */
     static Optional<Map<Integer, Integer>> makeChange(int amount, Map<Integer, Integer> box) {
         List<Map.Entry<Integer, Integer>> coins = new ArrayList<>(box.entrySet());
         int d = coins.size(), inf = Integer.MAX_VALUE / 2;

@@ -4,10 +4,13 @@ final class TokenBucketLimiter implements RateLimiter {
     private final double tokensPerNano;
     private final Ticker ticker;
     // Per-key buckets; expire idle ones so the map can't grow forever.
-    private final Cache<String, Bucket> buckets = Caffeine.newBuilder().expireAfterAccess(Duration.ofMinutes(10)).build();
+    private final Cache<String, Bucket> buckets =
+            Caffeine.newBuilder().expireAfterAccess(Duration.ofMinutes(10)).build();
 
     TokenBucketLimiter(long capacity, double perSecond, Ticker ticker) {
-        this.capacity = capacity; this.tokensPerNano = perSecond / 1e9; this.ticker = ticker;
+        this.capacity = capacity;
+        this.tokensPerNano = perSecond / 1e9;
+        this.ticker = ticker;
     }
 
     public boolean tryAcquire(String key) {
@@ -17,7 +20,11 @@ final class TokenBucketLimiter implements RateLimiter {
     private final class Bucket {
         private double tokens;
         private long last;
-        Bucket(double tokens, long now) { this.tokens = tokens; this.last = now; }
+
+        Bucket(double tokens, long now) {
+            this.tokens = tokens;
+            this.last = now;
+        }
 
         // one lock per key, not one global lock
         synchronized boolean tryTake() {

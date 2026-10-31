@@ -1,10 +1,12 @@
-/**
- * Digits-only trie with the contact stored at the end node; prefix search returns
- * contacts.
- */
+/** Digits-only trie with the contact stored at the end node; prefix search returns contacts. */
 final class PhoneDirectory {
-    private static final class Node { final Node[] next = new Node[10]; final List<Contact> contacts = new ArrayList<>(); }
+    private static final class Node {
+        final Node[] next = new Node[10];
+        final List<Contact> contacts = new ArrayList<>();
+    }
+
     record Contact(String name, String number) {}
+
     private final Node root = new Node();
 
     void add(Contact c) {
@@ -19,7 +21,10 @@ final class PhoneDirectory {
 
     List<Contact> byPrefix(String digits, int limit) {
         Node n = root;
-        for (char d : digits.toCharArray()) { n = n.next[d - '0']; if (n == null) return List.of(); }
+        for (char d : digits.toCharArray()) {
+            n = n.next[d - '0'];
+            if (n == null) return List.of();
+        }
         List<Contact> out = new ArrayList<>();
         Deque<Node> stack = new ArrayDeque<>(List.of(n));
         while (!stack.isEmpty() && out.size() < limit) {

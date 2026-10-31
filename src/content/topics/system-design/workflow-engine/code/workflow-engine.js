@@ -11,12 +11,17 @@ export async function executeStep(task, { runs, connectors, inTx }) {
     return;
   }
   if (step.condition && !evaluate(step.condition, run.context)) {
-    await inTx(async (tx) => { await runs.recordSkipped(tx, run.id, step.id); await runs.outboxNext(tx, run, step); });
+    await inTx(async (tx) => {
+      await runs.recordSkipped(tx, run.id, step.id);
+      await runs.outboxNext(tx, run, step);
+    });
     return;
   }
 
-  const input = render(step.input, run.context);              // safe templating, no eval
-  const outcome = await connectors[step.type].call(step.connection, input, { idempotencyKey: `${run.id}:${step.id}` });
+  const input = render(step.input, run.context); // safe templating, no eval
+  const outcome = await connectors[step.type].call(step.connection, input, {
+    idempotencyKey: `${run.id}:${step.id}`,
+  });
 
   await inTx(async (tx) => {
     if (outcome.kind === 'done') {
@@ -24,9 +29,9 @@ export async function executeStep(task, { runs, connectors, inTx }) {
       // next step task(s) in the SAME transaction
       await runs.outboxNext(tx, run, step);
     } else if (outcome.kind === 'retryLater') {
-      await runs.park(tx, run.id, step.id, outcome.wakeAt);    // e.g. 429 Retry-After
+      await runs.park(tx, run.id, step.id, outcome.wakeAt); // e.g. 429 Retry-After
     } else {
-      await runs.fail(tx, run.id, step.id, outcome.error);     // owner notified
+      await runs.fail(tx, run.id, step.id, outcome.error); // owner notified
     }
   });
 }

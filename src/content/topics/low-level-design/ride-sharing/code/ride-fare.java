@@ -1,14 +1,22 @@
-interface FarePolicy { Money estimate(TripEstimate t, double surge); }
+interface FarePolicy {
+    Money estimate(TripEstimate t, double surge);
+}
 
 record TripEstimate(VehicleClass vehicle, double km, Duration duration) {}
 
 final class StandardFare implements FarePolicy {
     private final Map<VehicleClass, Rates> rates;
-    StandardFare(Map<VehicleClass, Rates> rates) { this.rates = rates; }
+
+    StandardFare(Map<VehicleClass, Rates> rates) {
+        this.rates = rates;
+    }
 
     public Money estimate(TripEstimate t, double surge) {
         Rates r = rates.get(t.vehicle());
-        Money raw = r.base().plus(r.perKm().times(t.km())).plus(r.perMinute().times(t.duration().toMinutes()));
+        Money raw =
+                r.base()
+                        .plus(r.perKm().times(t.km()))
+                        .plus(r.perMinute().times(t.duration().toMinutes()));
         return raw.times(surge).max(r.minimumFare());
     }
 }

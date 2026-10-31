@@ -3,7 +3,9 @@ import { createHmac, timingSafeEqual } from 'node:crypto';
 // Signed URLs let the CDN serve private files (paid videos, invoices) without calling the
 // origin.
 export function sign(path, expiresEpochSeconds, secret) {
-  const sig = createHmac('sha256', secret).update(`${path}?expires=${expiresEpochSeconds}`).digest('base64url');
+  const sig = createHmac('sha256', secret)
+    .update(`${path}?expires=${expiresEpochSeconds}`)
+    .digest('base64url');
   return `${path}?expires=${expiresEpochSeconds}&sig=${sig}`;
 }
 

@@ -22,10 +22,13 @@ export async function getProduct(id) {
 // Shed load early, keep the request path fast; slow work goes to consumers of the outbox
 // event.
 app.post('/orders', async (req, res) => {
-  if (!(await perClient.tryAcquire(req.get('X-Api-Key')))) return res.status(429).set('Retry-After', '1').end();
+  if (!(await perClient.tryAcquire(req.get('X-Api-Key'))))
+    return res.status(429).set('Retry-After', '1').end();
   // DB transaction + outbox row only
   res.status(201).json(await orders.place(req.body));
 });
 
 // Worker: retried independently; never slows checkout.
-await consumer.run({ eachMessage: async ({ message }) => emails.sendConfirmation(JSON.parse(message.value)) });
+await consumer.run({
+  eachMessage: async ({ message }) => emails.sendConfirmation(JSON.parse(message.value)),
+});

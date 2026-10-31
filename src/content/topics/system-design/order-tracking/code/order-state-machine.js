@@ -16,23 +16,35 @@ export async function applyEvent(pool, orderId, eventId, next, actor) {
   const c = await pool.connect();
   try {
     await c.query('BEGIN');
-    const fresh = await c.query('INSERT INTO processed_events (event_id) VALUES ($1) ON CONFLICT DO NOTHING', [eventId]);
+    const fresh = await c.query(
+      'INSERT INTO processed_events (event_id) VALUES ($1) ON CONFLICT DO NOTHING',
+      [eventId],
+    );
     // duplicate delivery
     if (fresh.rowCount === 0) return rollback(c, false);
 
-    const { rows: [o] } = await c.query('SELECT status FROM orders WHERE id = $1', [orderId]);
+    const {
+      rows: [o],
+    } = await c.query('SELECT status FROM orders WHERE id = $1', [orderId]);
     // late or invalid: ignore (and log)
     if (!canMove(o.status, next)) return rollback(c, false);
 
     // conditional update
     const moved = await c.query(
-      'UPDATE orders SET status = $1, updated_at = now() WHERE id = $2 AND status = $3', [next, orderId, o.status]);
+      'UPDATE orders SET status = $1, updated_at = now() WHERE id = $2 AND status = $3',
+      [next, orderId, o.status],
+    );
     // caller retries
     if (moved.rowCount === 0) throw new ConcurrentStatusChange(String(orderId));
 
-    await c.query('INSERT INTO order_status_history (order_id, status, actor, at) VALUES ($1, $2, $3, now())', [orderId, next, actor]);
-    await c.query(`INSERT INTO outbox (id, type, aggregate_id, payload) VALUES (gen_random_uuid(), 'OrderStatusChanged', $1, $2)`,
-      [String(orderId), { orderId, status: next }]);
+    await c.query(
+      'INSERT INTO order_status_history (order_id, status, actor, at) VALUES ($1, $2, $3, now())',
+      [orderId, next, actor],
+    );
+    await c.query(
+      `INSERT INTO outbox (id, type, aggregate_id, payload) VALUES (gen_random_uuid(), 'OrderStatusChanged', $1, $2)`,
+      [String(orderId), { orderId, status: next }],
+    );
     await c.query('COMMIT');
     return true;
   } catch (e) {

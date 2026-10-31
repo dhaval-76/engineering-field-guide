@@ -20,7 +20,13 @@ export class BookingService {
       }
       taken.push(s);
     }
-    return { id: holdId, showId, userId, seatIds: [...seatIds], expiresAt: this.now() + HOLD_TTL_MS };
+    return {
+      id: holdId,
+      showId,
+      userId,
+      seatIds: [...seatIds],
+      expiresAt: this.now() + HOLD_TTL_MS,
+    };
   }
 
   // Step 2 — pay (idempotently, keyed by the hold), then confirm. The await is where
@@ -31,7 +37,9 @@ export class BookingService {
       this.release(hold);
       throw new Error(`payment failed: ${result.reason}`);
     }
-    const allConfirmed = hold.seatIds.every((id) => this.seats.get(hold.showId, id).confirm(hold.id, this.now()));
+    const allConfirmed = hold.seatIds.every((id) =>
+      this.seats.get(hold.showId, id).confirm(hold.id, this.now()),
+    );
     if (!allConfirmed) {
       await this.payments.refund(result.paymentId, 'hold expired');
       this.release(hold);

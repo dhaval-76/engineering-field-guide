@@ -16,7 +16,7 @@ quickRef:
     - 'Per key (user/API key/IP), lock per key not globally, evict idle keys; across servers keep state in Redis with an atomic Lua script.'
   complexity: 'Token bucket, fixed and sliding-window counters: O(1) time and memory per key. Sliding log: O(limit) memory per key.'
   useWhen: Protecting an API or downstream dependency from overload and abuse, or enforcing plan quotas.
-lastReviewed: 2026-10-30
+lastReviewed: 2026-10-31
 ---
 
 ## Why it matters

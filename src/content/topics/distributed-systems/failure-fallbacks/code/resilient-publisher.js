@@ -15,8 +15,12 @@ export class FileSpool {
     fs.mkdirSync(dir, { recursive: true });
     this.log = path.join(dir, 'spool.log');
     this.offsetFile = path.join(dir, 'spool.offset');
-    this.done = fs.existsSync(this.offsetFile) ? Number(fs.readFileSync(this.offsetFile, 'utf8')) : 0;
-    const lines = fs.existsSync(this.log) ? fs.readFileSync(this.log, 'utf8').split('\n').filter(Boolean) : [];
+    this.done = fs.existsSync(this.offsetFile)
+      ? Number(fs.readFileSync(this.offsetFile, 'utf8'))
+      : 0;
+    const lines = fs.existsSync(this.log)
+      ? fs.readFileSync(this.log, 'utf8').split('\n').filter(Boolean)
+      : [];
     this.queue = lines.slice(this.done).map((line) => {
       const [id, key, ...rest] = line.split('\t');
       return { id, key, payload: rest.join('\t') };
@@ -67,10 +71,18 @@ export class FileSpool {
  */
 export class Breaker {
   constructor(threshold, coolDownMs, clock = Date.now) {
-    Object.assign(this, { threshold, coolDownMs, clock, failures: 0, openedAt: 0, state: 'CLOSED' });
+    Object.assign(this, {
+      threshold,
+      coolDownMs,
+      clock,
+      failures: 0,
+      openedAt: 0,
+      state: 'CLOSED',
+    });
   }
   allow() {
-    if (this.state === 'OPEN' && this.clock() - this.openedAt >= this.coolDownMs) this.state = 'HALF_OPEN';
+    if (this.state === 'OPEN' && this.clock() - this.openedAt >= this.coolDownMs)
+      this.state = 'HALF_OPEN';
     return this.state !== 'OPEN';
   }
   success() {
@@ -135,7 +147,10 @@ export class ResilientPublisher {
     this.#draining = true;
     try {
       const now = this.clock();
-      this.#tokens = Math.min(this.drainPerSecond, this.#tokens + ((now - this.lastRefill) / 1000) * this.drainPerSecond);
+      this.#tokens = Math.min(
+        this.drainPerSecond,
+        this.#tokens + ((now - this.lastRefill) / 1000) * this.drainPerSecond,
+      );
       this.lastRefill = now;
       let sent = 0;
       while (this.#tokens >= 1 && this.spool.size > 0 && this.breaker.allow()) {

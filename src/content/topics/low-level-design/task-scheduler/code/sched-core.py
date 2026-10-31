@@ -5,6 +5,7 @@ import threading
 import time
 from concurrent.futures import ThreadPoolExecutor
 
+
 class TaskScheduler:
     """A min-heap of (run_at, seq, task) watched by one dispatcher thread; tasks run on a worker pool."""
 
@@ -18,7 +19,14 @@ class TaskScheduler:
         self._running = True
         threading.Thread(target=self._dispatch, daemon=True).start()
 
-    def schedule(self, fn, delay_s: float, every_s: float | None = None, max_attempts: int = 3, base_s: float = 0.2) -> int:
+    def schedule(
+        self,
+        fn,
+        delay_s: float,
+        every_s: float | None = None,
+        max_attempts: int = 3,
+        base_s: float = 0.2,
+    ) -> int:
         task_id = next(self._seq)
         self._push(self._clock() + delay_s, task_id, (fn, every_s, max_attempts, base_s, 1))
         return task_id
@@ -43,7 +51,7 @@ class TaskScheduler:
                 run_at, task_id, task = self._heap[0]
                 wait = run_at - self._clock()
                 if wait > 0:
-                    self._cv.wait(timeout=wait)   # an earlier task may arrive meanwhile
+                    self._cv.wait(timeout=wait)  # an earlier task may arrive meanwhile
                     continue
                 heapq.heappop(self._heap)
                 if task_id in self._cancelled:
@@ -58,9 +66,12 @@ class TaskScheduler:
             if every_s is not None:
                 self._push(self._clock() + every_s, task_id, (fn, every_s, max_attempts, base_s, 1))
         except Exception:
-            if attempt < max_attempts:            # full jitter between retries
-                self._push(self._clock() + random.uniform(0, base_s * 2 ** attempt), task_id,
-                           (fn, every_s, max_attempts, base_s, attempt + 1))
+            if attempt < max_attempts:  # full jitter between retries
+                self._push(
+                    self._clock() + random.uniform(0, base_s * 2**attempt),
+                    task_id,
+                    (fn, every_s, max_attempts, base_s, attempt + 1),
+                )
             # else: dead-letter / alert here
 
     def close(self) -> None:
@@ -68,5 +79,7 @@ class TaskScheduler:
             self._running = False
             self._cv.notify()
         self._pool.shutdown(wait=True)
+
+
 # In-memory: a restart loses scheduled tasks. Durable schedules belong in a database or
 # queue.

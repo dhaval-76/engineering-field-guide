@@ -32,7 +32,8 @@ export class RaftNode {
   advanceCommitIndex(matchIndex, commitIndex) {
     const sorted = [...matchIndex].sort((a, b) => a - b);
     const majorityIndex = sorted[Math.floor((sorted.length - 1) / 2)];
-    if (majorityIndex > commitIndex && this.logTerms[majorityIndex - 1] === this.currentTerm) return majorityIndex;
+    if (majorityIndex > commitIndex && this.logTerms[majorityIndex - 1] === this.currentTerm)
+      return majorityIndex;
     return commitIndex;
   }
 }

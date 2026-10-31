@@ -26,7 +26,8 @@ export class InventoryService {
   reserve(orderId, sku, qty, now, ttlMs) {
     this.#expire(now);
     const available = new Map();
-    for (const l of this.#levels.values()) if (l.sku === sku) available.set(l.warehouse, l.onHand - l.reserved);
+    for (const l of this.#levels.values())
+      if (l.sku === sku) available.set(l.warehouse, l.onHand - l.reserved);
     const warehouse = this.strategy(sku, qty, available);
     if (!warehouse) return null; // never oversell
     this.#level(warehouse, sku).reserved += qty;
@@ -68,7 +69,8 @@ export class InventoryService {
   }
 
   #expire(now) {
-    for (const r of [...this.#reservations.values()]) if (r.expiresAt <= now) this.#release(r, 'EXPIRE');
+    for (const r of [...this.#reservations.values()])
+      if (r.expiresAt <= now) this.#release(r, 'EXPIRE');
   }
 
   #release(r, why) {

@@ -1,22 +1,38 @@
-/**
- * A task due at `runAtNanos`. DelayQueue orders by remaining delay and only releases due
- * tasks.
- */
+/** A task due at `runAtNanos`. DelayQueue orders by remaining delay and only releases due tasks. */
 final class ScheduledTask implements Delayed {
     final String id;
     final Runnable body;
     final long runAtNanos;
-    final Duration repeatEvery;      // null = one-shot
+    final Duration repeatEvery; // null = one-shot
     final int attempt;
     private final Ticker ticker;
 
-    ScheduledTask(String id, Runnable body, long runAtNanos, Duration repeatEvery, int attempt, Ticker ticker) {
-        this.id = id; this.body = body; this.runAtNanos = runAtNanos; this.repeatEvery = repeatEvery;
-        this.attempt = attempt; this.ticker = ticker;
+    ScheduledTask(
+            String id,
+            Runnable body,
+            long runAtNanos,
+            Duration repeatEvery,
+            int attempt,
+            Ticker ticker) {
+        this.id = id;
+        this.body = body;
+        this.runAtNanos = runAtNanos;
+        this.repeatEvery = repeatEvery;
+        this.attempt = attempt;
+        this.ticker = ticker;
     }
-    public long getDelay(TimeUnit unit) { return unit.convert(runAtNanos - ticker.nanos(), TimeUnit.NANOSECONDS); }
-    public int compareTo(Delayed o) { return Long.compare(runAtNanos, ((ScheduledTask) o).runAtNanos); }
-    ScheduledTask next(long at, int attempt) { return new ScheduledTask(id, body, at, repeatEvery, attempt, ticker); }
+
+    public long getDelay(TimeUnit unit) {
+        return unit.convert(runAtNanos - ticker.nanos(), TimeUnit.NANOSECONDS);
+    }
+
+    public int compareTo(Delayed o) {
+        return Long.compare(runAtNanos, ((ScheduledTask) o).runAtNanos);
+    }
+
+    ScheduledTask next(long at, int attempt) {
+        return new ScheduledTask(id, body, at, repeatEvery, attempt, ticker);
+    }
 }
 
 final class TaskScheduler implements AutoCloseable {
@@ -29,14 +45,23 @@ final class TaskScheduler implements AutoCloseable {
 
     TaskScheduler(int workerThreads, RetryPolicy retry, Ticker ticker) {
         this.workers = Executors.newFixedThreadPool(workerThreads);
-        this.retry = retry; this.ticker = ticker;
+        this.retry = retry;
+        this.ticker = ticker;
         this.dispatcher = Thread.ofPlatform().name("scheduler-dispatch").start(this::dispatchLoop);
     }
 
-    String schedule(Runnable body, Duration delay)                   { return add(body, delay, null); }
-    String scheduleRepeating(Runnable body, Duration first, Duration every) { return add(body, first, every); }
+    String schedule(Runnable body, Duration delay) {
+        return add(body, delay, null);
+    }
+
+    String scheduleRepeating(Runnable body, Duration first, Duration every) {
+        return add(body, first, every);
+    }
+
     // lazy: skipped when it comes due
-    void cancel(String id) { cancelled.add(id); }
+    void cancel(String id) {
+        cancelled.add(id);
+    }
 
     private String add(Runnable body, Duration delay, Duration every) {
         String id = UUID.randomUUID().toString();
@@ -65,13 +90,20 @@ final class TaskScheduler implements AutoCloseable {
             // fixed rate
             if (t.repeatEvery != null) queue.put(t.next(t.runAtNanos + t.repeatEvery.toNanos(), 1));
         } catch (RuntimeException e) {
-            retry.delayFor(t.attempt, e).ifPresentOrElse(
-                    d -> queue.put(t.next(ticker.nanos() + d.toNanos(), t.attempt + 1)),
-                    () -> deadLetter(t, e));
+            retry.delayFor(t.attempt, e)
+                    .ifPresentOrElse(
+                            d -> queue.put(t.next(ticker.nanos() + d.toNanos(), t.attempt + 1)),
+                            () -> deadLetter(t, e));
         }
     }
 
-    private void deadLetter(ScheduledTask t, Exception e) { /* persist for inspection / alert */ }
+    private void deadLetter(ScheduledTask t, Exception e) {
+        /* persist for inspection / alert */
+    }
 
-    @Override public void close() { dispatcher.interrupt(); workers.shutdown(); }
+    @Override
+    public void close() {
+        dispatcher.interrupt();
+        workers.shutdown();
+    }
 }

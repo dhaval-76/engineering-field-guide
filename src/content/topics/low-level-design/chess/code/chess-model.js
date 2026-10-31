@@ -1,7 +1,17 @@
 // Pieces differ only in how they generate moves, so a table of move generators replaces
 // subclasses.
-const ORTHO = [[1, 0], [-1, 0], [0, 1], [0, -1]];
-const DIAG = [[1, 1], [1, -1], [-1, 1], [-1, -1]];
+const ORTHO = [
+  [1, 0],
+  [-1, 0],
+  [0, 1],
+  [0, -1],
+];
+const DIAG = [
+  [1, 1],
+  [1, -1],
+  [-1, 1],
+  [-1, -1],
+];
 const onBoard = ([f, r]) => f >= 0 && f < 8 && r >= 0 && r < 8;
 
 function slide(board, [f, r], color, dirs) {
@@ -10,7 +20,10 @@ function slide(board, [f, r], color, dirs) {
     for (let s = [f + df, r + dr]; onBoard(s); s = [s[0] + df, s[1] + dr]) {
       const p = board.at(s);
       if (!p) out.push(s);
-      else { if (p.color !== color) out.push(s); break; }
+      else {
+        if (p.color !== color) out.push(s);
+        break;
+      }
     }
   }
   return out;
@@ -26,10 +39,22 @@ export const moveGenerators = {
   rook: (b, sq, c) => slide(b, sq, c, ORTHO),
   bishop: (b, sq, c) => slide(b, sq, c, DIAG),
   queen: (b, sq, c) => slide(b, sq, c, [...ORTHO, ...DIAG]),
-  knight: (b, sq, c) => steps(b, sq, c, [[1, 2], [2, 1], [-1, 2], [-2, 1], [1, -2], [2, -1], [-1, -2], [-2, -1]]),
+  knight: (b, sq, c) =>
+    steps(b, sq, c, [
+      [1, 2],
+      [2, 1],
+      [-1, 2],
+      [-2, 1],
+      [1, -2],
+      [2, -1],
+      [-1, -2],
+      [-2, -1],
+    ]),
   king: (b, sq, c) => steps(b, sq, c, [...ORTHO, ...DIAG]),
   pawn: (b, [f, r], c) => {
-    const dir = c === 'WHITE' ? 1 : -1, start = c === 'WHITE' ? 1 : 6, out = [];
+    const dir = c === 'WHITE' ? 1 : -1,
+      start = c === 'WHITE' ? 1 : 6,
+      out = [];
     if (onBoard([f, r + dir]) && !b.at([f, r + dir])) {
       out.push([f, r + dir]);
       if (r === start && !b.at([f, r + 2 * dir])) out.push([f, r + 2 * dir]);

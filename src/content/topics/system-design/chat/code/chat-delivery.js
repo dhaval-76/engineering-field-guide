@@ -7,13 +7,23 @@ export async function accept(cmd) {
 
   // strongly consistent per-conversation counter
   const seq = await sequences.next(cmd.conversationId);
-  const m = { conversationId: cmd.conversationId, seq, id: crypto.randomUUID(), clientMsgId: cmd.clientMsgId,
-              senderId: cmd.senderId, body: cmd.body, at: new Date() };
+  const m = {
+    conversationId: cmd.conversationId,
+    seq,
+    id: crypto.randomUUID(),
+    clientMsgId: cmd.clientMsgId,
+    senderId: cmd.senderId,
+    body: cmd.body,
+    at: new Date(),
+  };
   // durable BEFORE anyone is told
   await store.append(m);
   await dedup.put(cmd.senderId, cmd.clientMsgId, seq);
   // key keeps order
-  await producer.send({ topic: 'messages', messages: [{ key: cmd.conversationId, value: JSON.stringify(m) }] });
+  await producer.send({
+    topic: 'messages',
+    messages: [{ key: cmd.conversationId, value: JSON.stringify(m) }],
+  });
   return { clientMsgId: cmd.clientMsgId, seq };
 }
 
@@ -24,7 +34,8 @@ export async function onDelivered(m) {
     if (member === m.senderId) continue;
     // [{ deviceId, gatewayId }], TTL refreshed by heartbeats
     const online = await sessions.devicesOf(member);
-    for (const s of online) await gateways.publish(s.gatewayId, { deviceId: s.deviceId, message: m });
+    for (const s of online)
+      await gateways.publish(s.gatewayId, { deviceId: s.deviceId, message: m });
     // batched, respects mute settings
     if (online.length === 0) await push.notifyLater(member, preview(m));
   }

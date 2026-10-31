@@ -15,7 +15,10 @@ List<String> chunk(String text, int maxWords, int overlap) {
             List<String> piece = words.subList(i, Math.min(words.size(), i + step));
             if (!current.isEmpty() && current.size() + piece.size() > maxWords) {
                 chunks.add(String.join(" ", current));
-                current = new ArrayList<>(current.subList(Math.max(0, current.size() - overlap), current.size()));
+                current =
+                        new ArrayList<>(
+                                current.subList(
+                                        Math.max(0, current.size() - overlap), current.size()));
             }
             current.addAll(piece);
         }

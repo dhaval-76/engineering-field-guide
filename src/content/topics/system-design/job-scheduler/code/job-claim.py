@@ -5,8 +5,10 @@ import threading
 
 LEASE_SECONDS = 60
 
+
 class Retryable(Exception):
     pass
+
 
 def claim(conn, worker_id: str, partitions: list[int], batch: int) -> list:
     with conn.transaction():
@@ -20,16 +22,22 @@ def claim(conn, worker_id: str, partitions: list[int], batch: int) -> list:
                  ORDER BY priority DESC, run_at LIMIT %s
                  FOR UPDATE SKIP LOCKED)
                RETURNING id, type, payload, attempts, max_attempts, fence""",
-            (worker_id, LEASE_SECONDS, partitions, batch)).fetchall()
+            (worker_id, LEASE_SECONDS, partitions, batch),
+        ).fetchall()
+
 
 def run(pool, job, handlers) -> None:
     job_id, job_type, payload, attempts, max_attempts, fence = job
     stop = threading.Event()
+
     def heartbeat():
         while not stop.wait(20):
             with pool.connection() as c:
-                c.execute("UPDATE jobs SET lease_until = now() + make_interval(secs => %s) WHERE id = %s AND fence = %s",
-                          (LEASE_SECONDS, job_id, fence))
+                c.execute(
+                    "UPDATE jobs SET lease_until = now() + make_interval(secs => %s) WHERE id = %s AND fence = %s",
+                    (LEASE_SECONDS, job_id, fence),
+                )
+
     threading.Thread(target=heartbeat, daemon=True).start()
     try:
         # idempotent; fence passed to resources
@@ -37,12 +45,20 @@ def run(pool, job, handlers) -> None:
         finish(pool, job_id, fence, "SUCCEEDED", None, None)
     except Retryable as e:
         exhausted = attempts >= max_attempts
-        backoff = min(3600, 2 ** attempts * (0.5 + random.random()))
-        finish(pool, job_id, fence, "DEAD" if exhausted else "PENDING", str(e), None if exhausted else backoff)
+        backoff = min(3600, 2**attempts * (0.5 + random.random()))
+        finish(
+            pool,
+            job_id,
+            fence,
+            "DEAD" if exhausted else "PENDING",
+            str(e),
+            None if exhausted else backoff,
+        )
     except Exception as e:
         finish(pool, job_id, fence, "DEAD", repr(e), None)
     finally:
         stop.set()
+
 
 def finish(pool, job_id, fence, status, error, retry_in_seconds) -> None:
     """Only the current lease holder (matching fence) may record the outcome."""
@@ -50,6 +66,8 @@ def finish(pool, job_id, fence, status, error, retry_in_seconds) -> None:
         updated = c.execute(
             """UPDATE jobs SET status = %s, last_error = %s, lease_owner = NULL, lease_until = NULL,
                                run_at = COALESCE(now() + make_interval(secs => %s), run_at)
-               WHERE id = %s AND fence = %s""", (status, error, retry_in_seconds, job_id, fence)).rowcount
+               WHERE id = %s AND fence = %s""",
+            (status, error, retry_in_seconds, job_id, fence),
+        ).rowcount
     if updated == 0:
         print(f"lost lease on {job_id} (fence {fence}); result discarded")

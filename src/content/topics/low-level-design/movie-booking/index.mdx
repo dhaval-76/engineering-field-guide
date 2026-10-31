@@ -15,7 +15,7 @@ quickRef:
     - '**Pay with an idempotency key** (the hold id); confirm only if the hold is still valid, else refund.'
     - 'At scale: conditional `UPDATE … WHERE status=''AVAILABLE''` per seat, or Redis `SET NX PX` holds; a **virtual waiting room** smooths launch spikes.'
   useWhen: Cinema, concert, flight-seat or any "choose specific seats, then pay" flow.
-lastReviewed: 2026-10-30
+lastReviewed: 2026-10-31
 ---
 
 ## Why it matters

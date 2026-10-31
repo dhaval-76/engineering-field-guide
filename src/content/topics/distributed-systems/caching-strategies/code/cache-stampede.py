@@ -5,6 +5,7 @@ import time
 import uuid
 from concurrent.futures import Future
 
+
 # 1. Single-flight inside one process: concurrent misses for the same key share ONE load.
 class SingleFlight:
     def __init__(self):
@@ -18,7 +19,7 @@ class SingleFlight:
             if mine:
                 fut = self._in_flight[key] = Future()
         if not mine:
-            return fut.result()                          # someone is already loading
+            return fut.result()  # someone is already loading
         try:
             value = loader(key)
             fut.set_result(value)
@@ -30,9 +31,11 @@ class SingleFlight:
             with self._lock:
                 self._in_flight.pop(key, None)
 
+
 # 2. Across instances (redis-py): a short Redis lock so only one instance rebuilds a hot
 # key.
 RELEASE_IF_OWNER = "if redis.call('GET', KEYS[1]) == ARGV[1] then return redis.call('DEL', KEYS[1]) else return 0 end"
+
 
 def get_with_lock(r, product_id: int, load, ttl: int = 300):
     key, lock_key = f"product:v1:{product_id}", f"lock:product:v1:{product_id}"
@@ -40,7 +43,7 @@ def get_with_lock(r, product_id: int, load, ttl: int = 300):
         cached = r.get(key)
         if cached is not None:
             return json.loads(cached)
-        token = str(uuid.uuid4())                        # identifies OUR lock
+        token = str(uuid.uuid4())  # identifies OUR lock
         if r.set(lock_key, token, nx=True, ex=5):
             try:
                 value = load(product_id)
@@ -54,6 +57,7 @@ def get_with_lock(r, product_id: int, load, ttl: int = 300):
         time.sleep(0.05)
     # give up waiting; protect latency
     return load(product_id)
+
 
 # 3. Stale-while-revalidate: store {"value", "soft_expiry"} with a longer real TTL. After
 # soft_expiry,

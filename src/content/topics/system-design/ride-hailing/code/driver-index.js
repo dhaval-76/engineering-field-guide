@@ -5,7 +5,9 @@ const cellKey = (lat, lon) => `${Math.floor(lat / CELL)}:${Math.floor(lon / CELL
 
 export function km(lat1, lon1, lat2, lon2) {
   const rad = (d) => (d * Math.PI) / 180;
-  const a = Math.sin(rad(lat2 - lat1) / 2) ** 2 + Math.cos(rad(lat1)) * Math.cos(rad(lat2)) * Math.sin(rad(lon2 - lon1) / 2) ** 2;
+  const a =
+    Math.sin(rad(lat2 - lat1) / 2) ** 2 +
+    Math.cos(rad(lat1)) * Math.cos(rad(lat2)) * Math.sin(rad(lon2 - lon1) / 2) ** 2;
   return 6371 * 2 * Math.asin(Math.sqrt(a));
 }
 
@@ -19,7 +21,8 @@ export class DriverIndex {
 
   update(id, lat, lon, available, now) {
     const old = this.#drivers.get(id);
-    if (old && cellKey(old.lat, old.lon) !== cellKey(lat, lon)) this.#cells.get(cellKey(old.lat, old.lon)).delete(id);
+    if (old && cellKey(old.lat, old.lon) !== cellKey(lat, lon))
+      this.#cells.get(cellKey(old.lat, old.lon)).delete(id);
     this.#drivers.set(id, { lat, lon, seenAt: now, available });
     const key = cellKey(lat, lon);
     if (!this.#cells.has(key)) this.#cells.set(key, new Set());

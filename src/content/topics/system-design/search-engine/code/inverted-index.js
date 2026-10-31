@@ -1,15 +1,21 @@
 // In-memory inverted index with BM25 ranking — the core of every search engine.
 const STOP = new Set(['the', 'a', 'an', 'and', 'of', 'on', 'to', 'in']);
-const K1 = 1.2, B = 0.75;
+const K1 = 1.2,
+  B = 0.75;
 
 export const analyse = (text) =>
-  text.toLowerCase().split(/[^\p{L}\p{N}_]+/u).filter((t) => t && !STOP.has(t))
+  text
+    .toLowerCase()
+    .split(/[^\p{L}\p{N}_]+/u)
+    .filter((t) => t && !STOP.has(t))
     // crude stemming
-    .map((t) => (t.endsWith('ing') && t.length > 5 ? t.slice(0, -3) : t.length > 3 ? t.replace(/s+$/, '') : t));
+    .map((t) =>
+      t.endsWith('ing') && t.length > 5 ? t.slice(0, -3) : t.length > 3 ? t.replace(/s+$/, '') : t,
+    );
 
 export class InvertedIndex {
   postings = new Map(); // term -> Map(doc -> term frequency)
-  lengths = new Map();  // doc -> number of terms
+  lengths = new Map(); // doc -> number of terms
 
   index(docId, text) {
     const terms = analyse(text);
@@ -31,7 +37,7 @@ export class InvertedIndex {
       const idf = Math.log(1 + (n - docs.size + 0.5) / (docs.size + 0.5));
       for (const [doc, tf] of docs) {
         // saturating tf, length-normalised
-        const norm = tf * (K1 + 1) / (tf + K1 * (1 - B + (B * this.lengths.get(doc)) / avg));
+        const norm = (tf * (K1 + 1)) / (tf + K1 * (1 - B + (B * this.lengths.get(doc)) / avg));
         scores.set(doc, (scores.get(doc) ?? 0) + idf * norm);
       }
     }

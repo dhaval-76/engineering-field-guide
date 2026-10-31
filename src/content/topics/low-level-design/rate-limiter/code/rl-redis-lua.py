@@ -24,6 +24,12 @@ r = redis.Redis()
 # EVALSHA with automatic fallback to EVAL
 token_bucket = r.register_script(TOKEN_BUCKET_LUA)
 
+
 def try_acquire(client_id: str, capacity: int = 100, per_second: float = 50) -> bool:
     # Lua runs atomically on the Redis server — no race between app servers
-    return token_bucket(keys=[f"rl:{client_id}"], args=[capacity, per_second / 1000, int(time.time() * 1000)]) == 1
+    return (
+        token_bucket(
+            keys=[f"rl:{client_id}"], args=[capacity, per_second / 1000, int(time.time() * 1000)]
+        )
+        == 1
+    )

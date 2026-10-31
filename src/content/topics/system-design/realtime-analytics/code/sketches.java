@@ -2,17 +2,17 @@
 // cardinality.
 void track(String userId, Instant at) {
     String key = "uv:" + at.truncatedTo(ChronoUnit.HOURS);
-    redis.opsForHyperLogLog().add(key, userId);                         // PFADD
+    redis.opsForHyperLogLog().add(key, userId); // PFADD
     redis.expire(key, Duration.ofDays(2));
 }
+
 long uniqueToday(List<String> hourKeys) {
     // PFCOUNT merges hours
     return redis.opsForHyperLogLog().size(hourKeys.toArray(String[]::new));
 }
 
 /**
- * Approximate top-K: Count-Min Sketch estimates counts; a small heap keeps the current
- * leaders.
+ * Approximate top-K: Count-Min Sketch estimates counts; a small heap keeps the current leaders.
  */
 final class TopK {
     private final int depth = 4, width = 1 << 16;
@@ -20,7 +20,9 @@ final class TopK {
     private final int k;
     private final Map<String, Long> leaders = new HashMap<>();
 
-    TopK(int k) { this.k = k; }
+    TopK(int k) {
+        this.k = k;
+    }
 
     void add(String item) {
         long estimate = Long.MAX_VALUE;
@@ -32,14 +34,18 @@ final class TopK {
         leaders.put(item, estimate);
         // drop the smallest leader
         if (leaders.size() > k) {
-            leaders.entrySet().stream().min(Map.Entry.comparingByValue())
-                .ifPresent(min -> leaders.remove(min.getKey()));
+            leaders.entrySet().stream()
+                    .min(Map.Entry.comparingByValue())
+                    .ifPresent(min -> leaders.remove(min.getKey()));
         }
     }
 
     List<Map.Entry<String, Long>> top() {
-        return leaders.entrySet().stream().sorted(Map.Entry.<String, Long>comparingByValue().reversed()).toList();
+        return leaders.entrySet().stream()
+                .sorted(Map.Entry.<String, Long>comparingByValue().reversed())
+                .toList();
     }
 }
 // Per partition: keep a TopK each; every few seconds merge the partitions' candidates for
 // the global top-K.
+

@@ -10,9 +10,19 @@ final class Geohash {
         while (out.length() < precision) {
             double[] r = even ? lonR : latR;
             double v = even ? lon : lat, mid = (r[0] + r[1]) / 2;
-            if (v >= mid) { ch = (ch << 1) | 1; r[0] = mid; } else { ch <<= 1; r[1] = mid; }
+            if (v >= mid) {
+                ch = (ch << 1) | 1;
+                r[0] = mid;
+            } else {
+                ch <<= 1;
+                r[1] = mid;
+            }
             even = !even;
-            if (++bits == 5) { out.append(BASE32.charAt(ch)); bits = 0; ch = 0; }
+            if (++bits == 5) {
+                out.append(BASE32.charAt(ch));
+                bits = 0;
+                ch = 0;
+            }
         }
         return out.toString();
     }
@@ -26,7 +36,8 @@ final class Geohash {
             for (int shift = 4; shift >= 0; shift--) {
                 double[] r = even ? lonR : latR;
                 double mid = (r[0] + r[1]) / 2;
-                if (((v >> shift) & 1) == 1) r[0] = mid; else r[1] = mid;
+                if (((v >> shift) & 1) == 1) r[0] = mid;
+                else r[1] = mid;
                 even = !even;
             }
         }
@@ -50,18 +61,27 @@ final class Geohash {
     }
 
     static double km(double lat1, double lon1, double lat2, double lon2) {
-        double p1 = Math.toRadians(lat1), p2 = Math.toRadians(lat2), dl = Math.toRadians(lon2 - lon1);
-        double a = Math.pow(Math.sin((p2 - p1) / 2), 2) + Math.cos(p1) * Math.cos(p2) * Math.pow(Math.sin(dl / 2), 2);
+        double p1 = Math.toRadians(lat1),
+                p2 = Math.toRadians(lat2),
+                dl = Math.toRadians(lon2 - lon1);
+        double a =
+                Math.pow(Math.sin((p2 - p1) / 2), 2)
+                        + Math.cos(p1) * Math.cos(p2) * Math.pow(Math.sin(dl / 2), 2);
         return 6371 * 2 * Math.asin(Math.sqrt(a));
     }
 
     record Place(String id, double lat, double lon) {}
 
     /**
-     * index: geohash cell → places. Cells must be at least radiusKm wide for 9 cells to
-     * cover the circle.
+     * index: geohash cell → places. Cells must be at least radiusKm wide for 9 cells to cover the
+     * circle.
      */
-    static List<String> nearby(Map<String, List<Place>> index, double lat, double lon, double radiusKm, int precision) {
+    static List<String> nearby(
+            Map<String, List<Place>> index,
+            double lat,
+            double lon,
+            double radiusKm,
+            int precision) {
         List<Map.Entry<Double, String>> hits = new ArrayList<>();
         for (String cell : neighbours(encode(lat, lon, precision)))
             for (Place p : index.getOrDefault(cell, List.of())) {

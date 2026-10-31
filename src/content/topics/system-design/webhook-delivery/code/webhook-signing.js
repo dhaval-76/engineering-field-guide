@@ -3,7 +3,8 @@ import { createHmac, timingSafeEqual } from 'node:crypto';
 const hmacHex = (data, secret) => createHmac('sha256', secret).update(data).digest('hex');
 
 // Sender: sign "timestamp.body".
-export const signatureHeader = (body, timestamp, secret) => `t=${timestamp},v1=${hmacHex(`${timestamp}.${body}`, secret)}`;
+export const signatureHeader = (body, timestamp, secret) =>
+  `t=${timestamp},v1=${hmacHex(`${timestamp}.${body}`, secret)}`;
 
 // Receiver: verify the RAW body (before JSON parsing), constant-time compare, reject
 // stale timestamps.

@@ -1,11 +1,13 @@
 import threading
 from dataclasses import dataclass, field
 
+
 @dataclass(frozen=True)
 class Message:
     offset: int
     key: str
     payload: str
+
 
 @dataclass
 class _Topic:
@@ -14,6 +16,7 @@ class _Topic:
     base_offset: int = 0
     committed: dict[str, int] = field(default_factory=dict)
     lock: threading.Lock = field(default_factory=threading.Lock)
+
 
 class Broker:
     """In-memory log-based pub/sub: each topic is an append-only log; each consumer group has its own offset."""
@@ -36,7 +39,9 @@ class Broker:
     def subscribe(self, topic: str, group: str, from_beginning: bool = False) -> None:
         t = self._topic(topic)
         with t.lock:
-            t.committed.setdefault(group, t.base_offset if from_beginning else t.base_offset + len(t.log))
+            t.committed.setdefault(
+                group, t.base_offset if from_beginning else t.base_offset + len(t.log)
+            )
 
     def poll(self, topic: str, group: str, max_messages: int) -> list[Message]:
         t = self._topic(topic)
@@ -44,7 +49,7 @@ class Broker:
             if group not in t.committed:
                 raise KeyError(f"not subscribed: {group}")
             start = t.committed[group] - t.base_offset
-            return t.log[start:start + max_messages]
+            return t.log[start : start + max_messages]
 
     def commit(self, topic: str, group: str, next_offset: int) -> None:
         t = self._topic(topic)

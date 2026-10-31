@@ -18,8 +18,12 @@ while (true) {
     // epoll_wait: sleep until something is ready
     selector.select();
     for (Iterator<SelectionKey> it = selector.selectedKeys().iterator(); it.hasNext(); ) {
-        SelectionKey key = it.next(); it.remove();
-        if (key.isAcceptable()) server.accept().configureBlocking(false).register(selector, SelectionKey.OP_READ);
+        SelectionKey key = it.next();
+        it.remove();
+        if (key.isAcceptable())
+            server.accept()
+                    .configureBlocking(false)
+                    .register(selector, SelectionKey.OP_READ);
         else if (key.isReadable()) readWithoutBlocking((SocketChannel) key.channel());
     }
 }
@@ -27,7 +31,7 @@ while (true) {
 // 3. Java 21 virtual threads: blocking-style code, but a blocked virtual thread releases
 // its carrier.
 try (var executor = Executors.newVirtualThreadPerTaskExecutor();
-     ServerSocket ss = new ServerSocket(8080)) {
+        ServerSocket ss = new ServerSocket(8080)) {
     while (true) {
         Socket s = ss.accept();
         // 10,000 clients ≈ 10,000 cheap virtual threads

@@ -24,7 +24,13 @@ export class DocumentAccess {
 
   // List pages: one batched call, not one check per row.
   async visible(userId, candidates) {
-    const allowed = new Set(await this.permissions.batchCheck(`user:${userId}`, 'viewer', candidates.map((d) => `document:${d.id}`)));
+    const allowed = new Set(
+      await this.permissions.batchCheck(
+        `user:${userId}`,
+        'viewer',
+        candidates.map((d) => `document:${d.id}`),
+      ),
+    );
     return candidates.filter((d) => allowed.has(`document:${d.id}`));
   }
 

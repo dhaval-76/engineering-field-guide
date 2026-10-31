@@ -18,27 +18,37 @@ class StepWorker {
             return;
         }
         if (step.condition() != null && !Expressions.evaluate(step.condition(), run.context())) {
-            tx.executeWithoutResult(s -> { runs.recordSkipped(run.id(), step.id()); runs.outboxNext(run, step); });
+            tx.executeWithoutResult(
+                    s -> {
+                        runs.recordSkipped(run.id(), step.id());
+                        runs.outboxNext(run, step);
+                    });
             return;
         }
 
         // safe templating
         Map<String, Object> input = Templates.render(step.input(), run.context());
-        StepOutcome outcome = connectors.get(step.type()).call(
-            step.connection(), input, /* idempotency key */ run.id() + ":" + step.id());
+        StepOutcome outcome =
+                connectors
+                        .get(step.type())
+                        .call(
+                                step.connection(),
+                                input, /* idempotency key */
+                                run.id() + ":" + step.id());
 
-        tx.executeWithoutResult(s -> {
-            switch (outcome) {
-                case StepOutcome.Done d -> {
-                    runs.recordDone(run.id(), step.id(), d.output());
-                    // next step task(s) in the SAME transaction
-                    runs.outboxNext(run, step);
-                }
-                // e.g. 429 Retry-After
-                case StepOutcome.RetryLater r -> runs.park(run.id(), step.id(), r.wakeAt());
-                // owner notified
-                case StepOutcome.Failed f -> runs.fail(run.id(), step.id(), f.error());
-            }
-        });
+        tx.executeWithoutResult(
+                s -> {
+                    switch (outcome) {
+                        case StepOutcome.Done d -> {
+                            runs.recordDone(run.id(), step.id(), d.output());
+                            // next step task(s) in the SAME transaction
+                            runs.outboxNext(run, step);
+                        }
+                        // e.g. 429 Retry-After
+                        case StepOutcome.RetryLater r -> runs.park(run.id(), step.id(), r.wakeAt());
+                        // owner notified
+                        case StepOutcome.Failed f -> runs.fail(run.id(), step.id(), f.error());
+                    }
+                });
     }
 }

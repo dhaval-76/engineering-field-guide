@@ -1,19 +1,26 @@
 // amount: + credit, − debit (paise)
 record Entry(String txnId, String account, long amount, String type) {}
 
-class InsufficientFunds extends RuntimeException { InsufficientFunds(String a) { super("insufficient funds in " + a); } }
+class InsufficientFunds extends RuntimeException {
+    InsufficientFunds(String a) {
+        super("insufficient funds in " + a);
+    }
+}
 
-/**
- * Double-entry wallet: every money movement is a balanced set of entries; balances are
- * derived.
- */
+/** Double-entry wallet: every money movement is a balanced set of entries; balances are derived. */
 class WalletService {
     private static final class Account {
         final String id;
-        long balance;               // cached sum of entries
-        long held;                  // reserved by authorisations, not yet captured
-        Account(String id) { this.id = id; }
-        long available() { return balance - held; }
+        long balance; // cached sum of entries
+        long held; // reserved by authorisations, not yet captured
+
+        Account(String id) {
+            this.id = id;
+        }
+
+        long available() {
+            return balance - held;
+        }
     }
 
     private final Map<String, Account> accounts = new ConcurrentHashMap<>();
@@ -25,14 +32,26 @@ class WalletService {
     private final Map<String, long[]> holds = new ConcurrentHashMap<>();
     private final Map<String, String> holdAccount = new ConcurrentHashMap<>();
 
-    void open(String id) { accounts.putIfAbsent(id, new Account(id)); }
+    void open(String id) {
+        accounts.putIfAbsent(id, new Account(id));
+    }
 
-    long balance(String id) { Account a = accounts.get(id); synchronized (a) { return a.balance; } }
-    long available(String id) { Account a = accounts.get(id); synchronized (a) { return a.available(); } }
+    long balance(String id) {
+        Account a = accounts.get(id);
+        synchronized (a) {
+            return a.balance;
+        }
+    }
+
+    long available(String id) {
+        Account a = accounts.get(id);
+        synchronized (a) {
+            return a.available();
+        }
+    }
 
     /**
-     * Top-up from an external payment: money enters through a system account so the books
-     * balance.
+     * Top-up from an external payment: money enters through a system account so the books balance.
      */
     String deposit(String id, long amount, String idempotencyKey) {
         return transfer("system:bank-in", id, amount, idempotencyKey, true, 0);
@@ -42,11 +61,14 @@ class WalletService {
         return transfer(from, to, amount, idempotencyKey, false, 0);
     }
 
-    /**
-     * releaseHeld: a hold on `from` released in the same critical section (used by
-     * capture).
-     */
-    private String transfer(String from, String to, long amount, String key, boolean allowNegativeSource, long releaseHeld) {
+    /** releaseHeld: a hold on `from` released in the same critical section (used by capture). */
+    private String transfer(
+            String from,
+            String to,
+            long amount,
+            String key,
+            boolean allowNegativeSource,
+            long releaseHeld) {
         if (amount <= 0) throw new IllegalArgumentException("amount must be positive");
         if (from.equals(to)) throw new IllegalArgumentException("same account");
         String txnId = UUID.randomUUID().toString();
@@ -62,7 +84,8 @@ class WalletService {
         try {
             synchronized (first) {
                 synchronized (second) {
-                    if (!allowNegativeSource && a.available() + releaseHeld < amount) throw new InsufficientFunds(from);
+                    if (!allowNegativeSource && a.available() + releaseHeld < amount)
+                        throw new InsufficientFunds(from);
                     a.held -= releaseHeld;
                     a.balance -= amount;
                     b.balance += amount;
@@ -78,9 +101,7 @@ class WalletService {
         return txnId;
     }
 
-    /**
-     * Authorise: reserve funds (e.g. a ride's estimated fare) without moving them yet.
-     */
+    /** Authorise: reserve funds (e.g. a ride's estimated fare) without moving them yet. */
     String hold(String account, long amount) {
         Account a = accounts.get(account);
         synchronized (a) {
@@ -94,8 +115,8 @@ class WalletService {
     }
 
     /**
-     * Capture up to the held amount to a merchant and release the rest — atomically,
-     * under the same locks.
+     * Capture up to the held amount to a merchant and release the rest — atomically, under the same
+     * locks.
      */
     String capture(String holdId, String merchant, long amount, String idempotencyKey) {
         // claim the hold: a second capture finds nothing
@@ -118,12 +139,14 @@ class WalletService {
         // already captured/released: idempotent
         if (h == null) return;
         Account a = accounts.get(holdAccount.remove(holdId));
-        synchronized (a) { a.held -= h[0]; }
+        synchronized (a) {
+            a.held -= h[0];
+        }
     }
 
     /**
-     * Invariant check: every transaction's entries sum to zero, and balances equal the
-     * sum of entries.
+     * Invariant check: every transaction's entries sum to zero, and balances equal the sum of
+     * entries.
      */
     boolean booksBalance() {
         synchronized (ledger) {
@@ -133,7 +156,8 @@ class WalletService {
                 byAccount.merge(e.account(), e.amount(), Long::sum);
             }
             return byTxn.values().stream().allMatch(v -> v == 0)
-                    && accounts.values().stream().allMatch(acc -> byAccount.getOrDefault(acc.id, 0L) == balance(acc.id));
+                    && accounts.values().stream()
+                            .allMatch(acc -> byAccount.getOrDefault(acc.id, 0L) == balance(acc.id));
         }
     }
 }

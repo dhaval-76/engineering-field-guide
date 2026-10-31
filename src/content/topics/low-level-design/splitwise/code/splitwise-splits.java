@@ -1,8 +1,6 @@
 /** Amounts are in the smallest currency unit (paise) as long — never double. */
 interface SplitStrategy {
-    /**
-     * Returns how much each participant owes; the values must add up to exactly `total`.
-     */
+    /** Returns how much each participant owes; the values must add up to exactly `total`. */
     Map<String, Long> shares(long total, List<String> participants);
 }
 
@@ -20,10 +18,15 @@ final class EqualSplit implements SplitStrategy {
 
 final class ExactSplit implements SplitStrategy {
     private final Map<String, Long> amounts;
-    ExactSplit(Map<String, Long> amounts) { this.amounts = Map.copyOf(amounts); }
+
+    ExactSplit(Map<String, Long> amounts) {
+        this.amounts = Map.copyOf(amounts);
+    }
+
     public Map<String, Long> shares(long total, List<String> people) {
         long sum = amounts.values().stream().mapToLong(Long::longValue).sum();
-        if (sum != total) throw new IllegalArgumentException("exact amounts add up to " + sum + ", not " + total);
+        if (sum != total)
+            throw new IllegalArgumentException("exact amounts add up to " + sum + ", not " + total);
         return amounts;
     }
 }
@@ -31,20 +34,28 @@ final class ExactSplit implements SplitStrategy {
 final class PercentSplit implements SplitStrategy {
     // e.g. 33.34, 33.33, 33.33
     private final Map<String, BigDecimal> percent;
+
     PercentSplit(Map<String, BigDecimal> percent) {
-        if (percent.values().stream().reduce(BigDecimal.ZERO, BigDecimal::add).compareTo(BigDecimal.valueOf(100)) != 0)
-            throw new IllegalArgumentException("percentages must add up to 100");
+        if (percent.values().stream()
+                        .reduce(BigDecimal.ZERO, BigDecimal::add)
+                        .compareTo(BigDecimal.valueOf(100))
+                != 0) throw new IllegalArgumentException("percentages must add up to 100");
         this.percent = Map.copyOf(percent);
     }
+
     public Map<String, Long> shares(long total, List<String> people) {
         Map<String, Long> out = new LinkedHashMap<>();
         long assigned = 0;
         for (int i = 0; i < people.size(); i++) {
             String p = people.get(i);
-            long share = i == people.size() - 1
-                    // last person absorbs rounding
-                    ? total - assigned
-                    : percent.get(p).multiply(BigDecimal.valueOf(total)).divide(BigDecimal.valueOf(100), RoundingMode.HALF_UP).longValue();
+            long share =
+                    i == people.size() - 1
+                            // last person absorbs rounding
+                            ? total - assigned
+                            : percent.get(p)
+                                    .multiply(BigDecimal.valueOf(total))
+                                    .divide(BigDecimal.valueOf(100), RoundingMode.HALF_UP)
+                                    .longValue();
             out.put(p, share);
             assigned += share;
         }

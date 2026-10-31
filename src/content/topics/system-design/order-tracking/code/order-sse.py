@@ -4,8 +4,11 @@ import asyncio, json
 from fastapi import Depends, Header, Request
 from fastapi.responses import StreamingResponse
 
+
 @app.get("/orders/{order_id}/events")
-async def order_events(order_id: int, request: Request, last_event_id: int = Header(0), user=Depends(current_user)):
+async def order_events(
+    order_id: int, request: Request, last_event_id: int = Header(0), user=Depends(current_user)
+):
     await orders.require_owner(order_id, user)
 
     async def stream():
@@ -31,4 +34,6 @@ async def order_events(order_id: int, request: Request, last_event_id: int = Hea
         finally:
             await pubsub.unsubscribe()
 
-    return StreamingResponse(stream(), media_type="text/event-stream", headers={"Cache-Control": "no-cache"})
+    return StreamingResponse(
+        stream(), media_type="text/event-stream", headers={"Cache-Control": "no-cache"}
+    )

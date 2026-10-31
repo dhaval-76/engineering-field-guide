@@ -2,6 +2,7 @@
 import threading
 import time
 
+
 class Dispatcher:
     """Push delivery for one group: poll, hand to the handler, retry with backoff, dead-letter, then commit."""
 
@@ -33,7 +34,7 @@ class Dispatcher:
                     self.broker.publish(f"{self.topic}.dlq", m.key, m.payload)
                     return
                 # exponential backoff
-                time.sleep(0.1 * 2 ** attempt)
+                time.sleep(0.1 * 2**attempt)
 
     def stop(self) -> None:
         self._stop.set()

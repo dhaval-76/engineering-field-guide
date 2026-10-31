@@ -1,9 +1,19 @@
-const TRACKING = new Set(['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content', 'gclid', 'fbclid']);
+const TRACKING = new Set([
+  'utm_source',
+  'utm_medium',
+  'utm_campaign',
+  'utm_term',
+  'utm_content',
+  'gclid',
+  'fbclid',
+]);
 
 // One canonical form per page (the URL class lower-cases host and drops default ports).
 export function normalise(url) {
   const u = new URL(url.trim());
-  const params = [...u.searchParams].filter(([k]) => !TRACKING.has(k)).sort(([a, av], [b, bv]) => (a + '=' + av < b + '=' + bv ? -1 : 1));
+  const params = [...u.searchParams]
+    .filter(([k]) => !TRACKING.has(k))
+    .sort(([a, av], [b, bv]) => (a + '=' + av < b + '=' + bv ? -1 : 1));
   u.search = new URLSearchParams(params).toString();
   u.hash = '';
   return u.toString();
@@ -38,7 +48,13 @@ export class PoliteFrontier {
   next(now) {
     let best = null;
     for (const [host, at] of this.readyAt)
-      if (at <= now && (best === null || at < this.readyAt.get(best) || (at === this.readyAt.get(best) && host < best))) best = host;
+      if (
+        at <= now &&
+        (best === null ||
+          at < this.readyAt.get(best) ||
+          (at === this.readyAt.get(best) && host < best))
+      )
+        best = host;
     if (best === null) return null;
     const q = this.queues.get(best);
     const url = q.shift();

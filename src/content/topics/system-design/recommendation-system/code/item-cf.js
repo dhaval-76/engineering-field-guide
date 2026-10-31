@@ -25,7 +25,8 @@ export function itemNeighbours(interactions, topN = 50) {
 export function recommend(history, neighbours, k) {
   const score = new Map();
   for (const i of history)
-    for (const { item, sim } of neighbours.get(i) ?? []) if (!history.has(item)) score.set(item, (score.get(item) ?? 0) + sim);
+    for (const { item, sim } of neighbours.get(i) ?? [])
+      if (!history.has(item)) score.set(item, (score.get(item) ?? 0) + sim);
   const r = (x) => Math.round(x * 1e12) / 1e12;
   return [...score]
     .sort((a, b) => r(b[1]) - r(a[1]) || (a[0] < b[0] ? -1 : 1))

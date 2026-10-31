@@ -17,11 +17,12 @@ const RELEASE_IF_OWNER = `if redis.call('GET', KEYS[1]) == ARGV[1] then return r
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 export async function getWithLock(redis, id, load, ttlSeconds = 300) {
-  const key = `product:v1:${id}`, lockKey = `lock:${key}`;
+  const key = `product:v1:${id}`,
+    lockKey = `lock:${key}`;
   for (let attempt = 0; attempt < 50; attempt++) {
     const cached = await redis.get(key);
     if (cached !== null) return JSON.parse(cached);
-    const token = crypto.randomUUID();                          // identifies OUR lock
+    const token = crypto.randomUUID(); // identifies OUR lock
     if ((await redis.set(lockKey, token, 'EX', 5, 'NX')) === 'OK') {
       try {
         const value = await load(id);

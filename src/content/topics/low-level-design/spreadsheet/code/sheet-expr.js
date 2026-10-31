@@ -2,16 +2,30 @@
 // eval(get), refs }.
 const num = (v) => ({ eval: () => v, refs: [] });
 const ref = (id) => ({ eval: (get) => get(id), refs: [id] });
-const OPS = { '+': (a, b) => a + b, '-': (a, b) => a - b, '*': (a, b) => a * b, '/': (a, b) => a / b };
-const bin = (op, l, r) => ({ eval: (get) => OPS[op](l.eval(get), r.eval(get)), refs: [...new Set([...l.refs, ...r.refs])] });
+const OPS = {
+  '+': (a, b) => a + b,
+  '-': (a, b) => a - b,
+  '*': (a, b) => a * b,
+  '/': (a, b) => a / b,
+};
+const bin = (op, l, r) => ({
+  eval: (get) => OPS[op](l.eval(get), r.eval(get)),
+  refs: [...new Set([...l.refs, ...r.refs])],
+});
 const sum = (cells) => ({ eval: (get) => cells.reduce((s, c) => s + get(c), 0), refs: cells });
 
 // 'A1', 'B3' → A1 A2 A3 B1 B2 B3 (single-letter columns for brevity)
 export function expandRange(a, b) {
-  const [, c1, r1] = a.match(/^([A-Z])(\d+)$/), [, c2, r2] = b.match(/^([A-Z])(\d+)$/);
+  const [, c1, r1] = a.match(/^([A-Z])(\d+)$/),
+    [, c2, r2] = b.match(/^([A-Z])(\d+)$/);
   const out = [];
-  for (let c = Math.min(c1.charCodeAt(0), c2.charCodeAt(0)); c <= Math.max(c1.charCodeAt(0), c2.charCodeAt(0)); c++)
-    for (let r = Math.min(+r1, +r2); r <= Math.max(+r1, +r2); r++) out.push(String.fromCharCode(c) + r);
+  for (
+    let c = Math.min(c1.charCodeAt(0), c2.charCodeAt(0));
+    c <= Math.max(c1.charCodeAt(0), c2.charCodeAt(0));
+    c++
+  )
+    for (let r = Math.min(+r1, +r2); r <= Math.max(+r1, +r2); r++)
+      out.push(String.fromCharCode(c) + r);
   return out;
 }
 

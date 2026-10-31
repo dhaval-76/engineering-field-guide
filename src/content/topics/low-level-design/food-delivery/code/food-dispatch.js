@@ -4,14 +4,19 @@ import { km } from './food-order.js';
 export const nearestAvailable = (maxKm) => (order, partners) =>
   partners
     .filter((p) => p.available && p.activeOrders === 0 && km(p.location, order.pickup) <= maxKm)
-    .sort((a, b) => km(a.location, order.pickup) - km(b.location, order.pickup) || b.rating - a.rating)[0] ?? null;
+    .sort(
+      (a, b) => km(a.location, order.pickup) - km(b.location, order.pickup) || b.rating - a.rating,
+    )[0] ?? null;
 
 // Listener: assign when the restaurant accepts; free the partner when the order ends.
 export function dispatcher(strategy, partnersNearby) {
   const busy = new Set();
   return (order, from, to) => {
     if (to === 'ACCEPTED') {
-      const p = strategy(order, partnersNearby().filter((x) => !busy.has(x.id)));
+      const p = strategy(
+        order,
+        partnersNearby().filter((x) => !busy.has(x.id)),
+      );
       if (p) {
         busy.add(p.id);
         order.partnerId = p.id;

@@ -16,7 +16,7 @@ quickRef:
     - 'Notifications: **broadcast** to all preferred channels, or a **fallback chain** (push → SMS → email); dedupe with a per-(notification, channel) delivery log.'
   complexity: 'Schedule O(log n), dispatch O(log n) per task; the dispatcher wakes only when the earliest task is due.'
   useWhen: Reminders, delayed jobs, retries and recurring maintenance inside one service; LLD rounds on schedulers and notification systems.
-lastReviewed: 2026-10-30
+lastReviewed: 2026-10-31
 ---
 
 ## Why it matters

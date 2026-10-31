@@ -1,6 +1,5 @@
 /**
- * One order book per symbol. Called from a single thread per symbol, so no locks are
- * needed inside.
+ * One order book per symbol. Called from a single thread per symbol, so no locks are needed inside.
  */
 final class OrderBook {
     final String symbol;
@@ -12,7 +11,9 @@ final class OrderBook {
     private final Map<String, Order> byId = new HashMap<>();
     private long tradeSeq;
 
-    OrderBook(String symbol) { this.symbol = symbol; }
+    OrderBook(String symbol) {
+        this.symbol = symbol;
+    }
 
     List<Trade> submit(Order incoming) {
         List<Trade> trades = new ArrayList<>();
@@ -27,12 +28,15 @@ final class OrderBook {
 
             // Trade happens at the RESTING order's price (the one that was in the book
             // first).
-            trades.add(incoming.side == Side.BUY
-                    ? new Trade(symbol, incoming.id, resting.id, bestPrice, qty, ++tradeSeq)
-                    : new Trade(symbol, resting.id, incoming.id, bestPrice, qty, ++tradeSeq));
+            trades.add(
+                    incoming.side == Side.BUY
+                            ? new Trade(symbol, incoming.id, resting.id, bestPrice, qty, ++tradeSeq)
+                            : new Trade(
+                                    symbol, resting.id, incoming.id, bestPrice, qty, ++tradeSeq));
             incoming.remaining -= qty;
             resting.remaining -= qty;
-            resting.status = resting.remaining == 0 ? OrderStatus.FILLED : OrderStatus.PARTIALLY_FILLED;
+            resting.status =
+                    resting.remaining == 0 ? OrderStatus.FILLED : OrderStatus.PARTIALLY_FILLED;
             if (resting.remaining == 0) {
                 level.pollFirst();
                 byId.remove(resting.id);
@@ -68,10 +72,17 @@ final class OrderBook {
     }
 
     private void rest(Order o) {
-        (o.side == Side.BUY ? bids : asks).computeIfAbsent(o.limitTicks, p -> new ArrayDeque<>()).addLast(o);
+        (o.side == Side.BUY ? bids : asks)
+                .computeIfAbsent(o.limitTicks, p -> new ArrayDeque<>())
+                .addLast(o);
         byId.put(o.id, o);
     }
 
-    OptionalLong bestBid() { return bids.isEmpty() ? OptionalLong.empty() : OptionalLong.of(bids.firstKey()); }
-    OptionalLong bestAsk() { return asks.isEmpty() ? OptionalLong.empty() : OptionalLong.of(asks.firstKey()); }
+    OptionalLong bestBid() {
+        return bids.isEmpty() ? OptionalLong.empty() : OptionalLong.of(bids.firstKey());
+    }
+
+    OptionalLong bestAsk() {
+        return asks.isEmpty() ? OptionalLong.empty() : OptionalLong.of(asks.firstKey());
+    }
 }

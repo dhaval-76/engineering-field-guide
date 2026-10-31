@@ -1,6 +1,7 @@
 # uses Piece from the model above; squares are (file, rank)
 from dataclasses import dataclass
 
+
 class Board:
     def __init__(self):
         self._grid: dict[tuple[int, int], "Piece"] = {}
@@ -21,11 +22,16 @@ class Board:
         return next(sq for sq, p in self._grid.items() if p.kind == "king" and p.color == color)
 
     def is_attacked(self, target, by: str) -> bool:
-        return any(p.color == by and target in p.candidate_moves(self, sq) for sq, p in list(self._grid.items()))
+        return any(
+            p.color == by and target in p.candidate_moves(self, sq)
+            for sq, p in list(self._grid.items())
+        )
+
 
 @dataclass(frozen=True)
 class Move:
     """A Command: it knows how to apply and fully revert itself."""
+
     frm: tuple
     to: tuple
     moved: "Piece"
@@ -39,8 +45,10 @@ class Move:
         b.put(self.frm, self.moved)
         b.put(self.to, self.captured)
 
+
 def other(color: str) -> str:
     return "BLACK" if color == "WHITE" else "WHITE"
+
 
 class Game:
     def __init__(self, board: Board):
@@ -54,9 +62,9 @@ class Game:
         legal = []
         for to in p.candidate_moves(self.board, frm):
             m = Move(frm, to, p, self.board.at(to))
-            m.apply(self.board)                                        # simulate…
+            m.apply(self.board)  # simulate…
             safe = not self.board.is_attacked(self.board.king_of(self.turn), other(self.turn))
-            m.revert(self.board)                                       # …and undo
+            m.revert(self.board)  # …and undo
             if safe:
                 legal.append(m)
         return legal
@@ -77,7 +85,10 @@ class Game:
 
     def status(self) -> str:
         in_check = self.board.is_attacked(self.board.king_of(self.turn), other(self.turn))
-        any_move = any(p.color == self.turn and self.legal_moves(sq) for sq, p in list(self.board._grid.items()))
+        any_move = any(
+            p.color == self.turn and self.legal_moves(sq)
+            for sq, p in list(self.board._grid.items())
+        )
         if any_move:
             return "CHECK" if in_check else "ACTIVE"
         return "CHECKMATE" if in_check else "STALEMATE"

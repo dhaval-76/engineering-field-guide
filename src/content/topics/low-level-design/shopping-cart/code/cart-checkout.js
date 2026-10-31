@@ -16,9 +16,17 @@ export class CheckoutService {
     // all-or-nothing
     const hold = await this.inventory.reserveAll(cart.lines(), { minutes: 15 });
     try {
-      const paid = await this.payments.charge(price.payable, method, { idempotencyKey: checkoutId });
+      const paid = await this.payments.charge(price.payable, method, {
+        idempotencyKey: checkoutId,
+      });
       if (!paid.succeeded) throw new Error(`payment declined: ${paid.reason}`);
-      const order = await this.orders.save({ checkoutId, cartId, lines: cart.lines(), price, payment: paid.reference });
+      const order = await this.orders.save({
+        checkoutId,
+        cartId,
+        lines: cart.lines(),
+        price,
+        payment: paid.reference,
+      });
       await this.inventory.commit(hold);
       await this.carts.clear(cartId);
       return order;

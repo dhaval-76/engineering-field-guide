@@ -4,7 +4,8 @@ export class Broker {
   #topics = new Map(); // name -> { log: [], baseOffset, committed: Map(group -> offset) }
 
   #topic(name) {
-    if (!this.#topics.has(name)) this.#topics.set(name, { log: [], baseOffset: 0, committed: new Map() });
+    if (!this.#topics.has(name))
+      this.#topics.set(name, { log: [], baseOffset: 0, committed: new Map() });
     return this.#topics.get(name);
   }
 
@@ -17,7 +18,8 @@ export class Broker {
 
   subscribe(topicName, group, fromBeginning = false) {
     const t = this.#topic(topicName);
-    if (!t.committed.has(group)) t.committed.set(group, fromBeginning ? t.baseOffset : t.baseOffset + t.log.length);
+    if (!t.committed.has(group))
+      t.committed.set(group, fromBeginning ? t.baseOffset : t.baseOffset + t.log.length);
   }
 
   poll(topicName, group, max) {

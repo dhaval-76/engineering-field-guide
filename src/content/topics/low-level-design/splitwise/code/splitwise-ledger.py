@@ -3,6 +3,7 @@ import uuid
 from collections import defaultdict
 from dataclasses import dataclass
 
+
 @dataclass(frozen=True)
 class Expense:
     id: str
@@ -10,6 +11,7 @@ class Expense:
     amount: int
     owed: dict
     description: str
+
 
 class Group:
     """Net balance per member: + is owed money, − owes money. Always sums to zero."""
@@ -20,7 +22,9 @@ class Group:
         self._net: defaultdict[str, int] = defaultdict(int)
         self._lock = threading.Lock()
 
-    def add_expense(self, paid_by: str, amount: int, participants: list[str], split, description: str) -> Expense:
+    def add_expense(
+        self, paid_by: str, amount: int, participants: list[str], split, description: str
+    ) -> Expense:
         owed = split(amount, participants)
         e = Expense(str(uuid.uuid4()), paid_by, amount, owed, description)
         with self._lock:

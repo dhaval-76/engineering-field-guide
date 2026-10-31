@@ -9,18 +9,27 @@ class DocumentAccess {
     private final PermissionClient permissions;
     // short TTL: revocations take effect within seconds
     private final Cache<String, Boolean> recent =
-        Caffeine.newBuilder().expireAfterWrite(Duration.ofSeconds(5)).maximumSize(100_000).build();
+            Caffeine.newBuilder()
+                    .expireAfterWrite(Duration.ofSeconds(5))
+                    .maximumSize(100_000)
+                    .build();
 
     public void requireEdit(String userId, String docId) {
         String cacheKey = userId + "|edit|" + docId;
-        boolean allowed = recent.get(cacheKey, k -> permissions.check("user:" + userId, "editor", "document:" + docId));
+        boolean allowed =
+                recent.get(
+                        cacheKey,
+                        k -> permissions.check("user:" + userId, "editor", "document:" + docId));
         if (!allowed) throw new AccessDeniedException("document " + docId);
     }
 
     /** List pages: one batched call, not one check per row. */
     public List<Document> visible(String userId, List<Document> candidates) {
-        Set<String> allowed = permissions.batchCheck("user:" + userId, "viewer",
-                candidates.stream().map(d -> "document:" + d.id()).toList());
+        Set<String> allowed =
+                permissions.batchCheck(
+                        "user:" + userId,
+                        "viewer",
+                        candidates.stream().map(d -> "document:" + d.id()).toList());
         return candidates.stream().filter(d -> allowed.contains("document:" + d.id())).toList();
     }
 

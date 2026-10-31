@@ -13,9 +13,15 @@ export async function relayOnce(pool, producer) {
       await producer.send({
         topic: 'orders',
         acks: -1, // wait for all in-sync replicas
-        messages: rows.map((r) => ({ key: r.aggregate_id, value: r.payload, headers: { 'event-id': String(r.id) } })),
+        messages: rows.map((r) => ({
+          key: r.aggregate_id,
+          value: r.payload,
+          headers: { 'event-id': String(r.id) },
+        })),
       });
-      await client.query('UPDATE outbox SET published_at = now() WHERE id = ANY($1)', [rows.map((r) => r.id)]);
+      await client.query('UPDATE outbox SET published_at = now() WHERE id = ANY($1)', [
+        rows.map((r) => r.id),
+      ]);
     }
     await client.query('COMMIT');
     return rows.length;

@@ -2,6 +2,7 @@
 # key.
 import httpx
 
+
 def charge(payments, psp, payment_id):
     p = payments.get(payment_id)
     try:
@@ -15,6 +16,7 @@ def charge(payments, psp, payment_id):
         confirmations.schedule_lookup(p.id, seconds=30)
         return payments.get(p.id)
 
+
 # Webhook (FastAPI): verify, de-duplicate, apply a valid transition — all in one
 # transaction.
 @app.post("/webhooks/psp")
@@ -24,8 +26,10 @@ async def psp_webhook(request: Request, x_signature: str = Header(...)):
     if e is None:
         raise HTTPException(400)
     async with pool.connection() as conn, conn.transaction():
-        fresh = await conn.execute("INSERT INTO processed_psp_events (event_id) VALUES (%s) ON CONFLICT DO NOTHING",
-                                   (e.id,))
+        fresh = await conn.execute(
+            "INSERT INTO processed_psp_events (event_id) VALUES (%s) ON CONFLICT DO NOTHING",
+            (e.id,),
+        )
         # duplicate deliveries do nothing
         if fresh.rowcount == 1:
             await payment_state_machine.apply(conn, e.payment_id, e.type, e.amount, e.reference)

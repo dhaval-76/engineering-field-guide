@@ -19,7 +19,12 @@ export class Driver {
 
 // Strategy: closer is better, rating breaks near-ties.
 export const nearestGoodDriver = (ride, candidates) =>
-  [...candidates].sort((a, b) => distanceKm(a.location, ride.pickup) - 0.3 * a.rating - (distanceKm(b.location, ride.pickup) - 0.3 * b.rating));
+  [...candidates].sort(
+    (a, b) =>
+      distanceKm(a.location, ride.pickup) -
+      0.3 * a.rating -
+      (distanceKm(b.location, ride.pickup) - 0.3 * b.rating),
+  );
 
 export class Dispatcher {
   constructor({ index, strategy, offers }) {
@@ -30,7 +35,9 @@ export class Dispatcher {
   // Widen the radius until someone accepts or we give up.
   async match(ride, wanted) {
     for (const radius of [1, 2, 4, 8]) {
-      const candidates = this.index.near(ride.pickup, radius).filter((d) => d.vehicle === wanted && d.status === 'AVAILABLE');
+      const candidates = this.index
+        .near(ride.pickup, radius)
+        .filter((d) => d.vehicle === wanted && d.status === 'AVAILABLE');
       for (const d of this.strategy(ride, candidates)) {
         // another ride got this driver first
         if (!d.tryReserve()) continue;
@@ -38,7 +45,7 @@ export class Dispatcher {
           ride.driverId = d.id;
           return d;
         }
-        d.release();                                       // declined or timed out
+        d.release(); // declined or timed out
       }
     }
     return null;

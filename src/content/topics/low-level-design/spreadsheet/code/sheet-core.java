@@ -3,12 +3,12 @@ final class Sheet {
     // A1 → {B1, C1}: who reads A1
     private final Map<String, Set<String>> dependents = new HashMap<>();
 
-    /**
-     * Set a value ("42") or formula ("=A1+B1*2"). Rejects cycles without changing
-     * anything.
-     */
+    /** Set a value ("42") or formula ("=A1+B1*2"). Rejects cycles without changing anything. */
     public void set(String id, String input) {
-        Expr expr = input.startsWith("=") ? Parser.parse(input.substring(1)) : new Expr.Num(Double.parseDouble(input));
+        Expr expr =
+                input.startsWith("=")
+                        ? Parser.parse(input.substring(1))
+                        : new Expr.Num(Double.parseDouble(input));
         Set<String> refs = expr.references();
 
         // check BEFORE mutating
@@ -25,11 +25,13 @@ final class Sheet {
         recalculateFrom(id);
     }
 
-    public double get(String id) { Cell c = cells.get(id); return c == null ? 0 : c.value; }
+    public double get(String id) {
+        Cell c = cells.get(id);
+        return c == null ? 0 : c.value;
+    }
 
     /**
-     * Would `id` (directly or indirectly) end up depending on itself? DFS from its new
-     * references.
+     * Would `id` (directly or indirectly) end up depending on itself? DFS from its new references.
      */
     private boolean createsCycle(String id, Set<String> refs) {
         Deque<String> stack = new ArrayDeque<>(refs);
@@ -67,7 +69,10 @@ final class Sheet {
 
         // 3. evaluate cells whose inputs are all fresh
         Deque<String> ready = new ArrayDeque<>();
-        inDegree.forEach((c, deg) -> { if (deg == 0) ready.add(c); });
+        inDegree.forEach(
+                (c, deg) -> {
+                    if (deg == 0) ready.add(c);
+                });
         while (!ready.isEmpty()) {
             String c = ready.poll();
             Cell cell = cells.get(c);
@@ -83,5 +88,8 @@ final class Cell {
     Expr expr = new Expr.Num(0);
     Set<String> refs = Set.of();
     double value;
-    Cell(String id) { this.id = id; }
+
+    Cell(String id) {
+        this.id = id;
+    }
 }

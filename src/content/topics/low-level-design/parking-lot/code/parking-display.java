@@ -10,15 +10,25 @@ final class DisplayBoard implements SpotListener {
 
     @Override
     public void spotChanged(ParkingSpot s, boolean nowFree) {
-        if (nowFree) counter(s).incrementAndGet(); else counter(s).decrementAndGet();
+        if (nowFree) counter(s).incrementAndGet();
+        else counter(s).decrementAndGet();
         render(s.floor());
     }
 
-    int freeOn(int floor, SpotSize size) { return counter(floor, size).get(); }
-
-    private AtomicInteger counter(ParkingSpot s) { return counter(s.floor(), s.size()); }
-    private AtomicInteger counter(int floor, SpotSize size) {
-        return free.computeIfAbsent(floor, f -> new ConcurrentHashMap<>()).computeIfAbsent(size, z -> new AtomicInteger());
+    int freeOn(int floor, SpotSize size) {
+        return counter(floor, size).get();
     }
-    private void render(int floor) { /* push to the physical board / websocket */ }
+
+    private AtomicInteger counter(ParkingSpot s) {
+        return counter(s.floor(), s.size());
+    }
+
+    private AtomicInteger counter(int floor, SpotSize size) {
+        return free.computeIfAbsent(floor, f -> new ConcurrentHashMap<>())
+                .computeIfAbsent(size, z -> new AtomicInteger());
+    }
+
+    private void render(int floor) {
+        /* push to the physical board / websocket */
+    }
 }

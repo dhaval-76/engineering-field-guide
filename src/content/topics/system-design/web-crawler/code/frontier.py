@@ -2,17 +2,33 @@ import heapq
 from collections import deque
 from urllib.parse import urlsplit, urlunsplit, parse_qsl, urlencode
 
-TRACKING = {"utm_source", "utm_medium", "utm_campaign", "utm_term", "utm_content", "gclid", "fbclid"}
+TRACKING = {
+    "utm_source",
+    "utm_medium",
+    "utm_campaign",
+    "utm_term",
+    "utm_content",
+    "gclid",
+    "fbclid",
+}
+
 
 def normalise(url: str) -> str:
     """One canonical form per page, so the same page isn't crawled under many URLs."""
     p = urlsplit(url.strip())
     scheme, host = p.scheme.lower(), (p.hostname or "").lower()
     port = p.port
-    netloc = host if port is None or (scheme, port) in (("http", 80), ("https", 443)) else f"{host}:{port}"
-    query = urlencode(sorted((k, v) for k, v in parse_qsl(p.query, keep_blank_values=True) if k not in TRACKING))
+    netloc = (
+        host
+        if port is None or (scheme, port) in (("http", 80), ("https", 443))
+        else f"{host}:{port}"
+    )
+    query = urlencode(
+        sorted((k, v) for k, v in parse_qsl(p.query, keep_blank_values=True) if k not in TRACKING)
+    )
     # drop the #fragment
     return urlunsplit((scheme, netloc, p.path or "/", query, ""))
+
 
 class PoliteFrontier:
     """Per-host FIFO queues plus a heap of (next time this host may be fetched, host)."""
@@ -22,10 +38,10 @@ class PoliteFrontier:
         self.queues: dict[str, deque[str]] = {}
         # from robots.txt Crawl-delay, or adaptive
         self.delay: dict[str, float] = {}
-        self.ready: list[tuple[float, str]] = []      # heap of hosts with queued URLs
+        self.ready: list[tuple[float, str]] = []  # heap of hosts with queued URLs
         # earliest time each host may be contacted again
         self.next_allowed: dict[str, float] = {}
-        self.seen: set[str] = set()                   # a Bloom filter at web scale
+        self.seen: set[str] = set()  # a Bloom filter at web scale
 
     def add(self, url: str, now: float) -> bool:
         u = normalise(url)
