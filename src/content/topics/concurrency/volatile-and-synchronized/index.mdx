@@ -15,7 +15,7 @@ quickRef:
     - '**Happens-before**: unlock → later lock (same monitor); volatile write → later read; `start()` → thread''s actions; thread''s actions → `join()`.'
     - 'Use `ReentrantLock` for `tryLock`/timeouts/interruptibility; `ReadWriteLock` for read-mostly data; volatile reference to an immutable object for config swaps.'
   useWhen: Stop flags, publishing objects to other threads, guarding multi-field state, or explaining "why does this loop never end?"
-lastReviewed: 2026-10-30
+lastReviewed: 2026-10-31
 ---
 
 ## Why it matters
@@ -29,6 +29,8 @@ Two colleagues working from their own notes. Without an agreed sync point, one m
 ## Visibility: the loop that never ends
 
 <CodeTabs id="jmm-flag" title="A stop flag with and without volatile" />
+
+This is not theoretical. With a tight loop (`while (running) n++;`) on JDK 22 and an Apple M2, the plain-flag version was **still running two seconds after the flag was cleared in 3 out of 3 runs**; the `volatile` version stopped immediately every time. (With a heavier loop body — I/O, a lock — the bug may hide, which is exactly why it reaches production.)
 
 Without a happens-before relationship between the write and the read, the JIT may hoist `running` out of the loop as a constant. Nothing is wrong with CPU caches here (they're coherent on modern hardware); the problem is that the **program** is allowed to never re-read the field. `volatile` forbids that and orders memory around the access.
 
