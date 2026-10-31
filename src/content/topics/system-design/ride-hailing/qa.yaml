@@ -1,0 +1,37 @@
+questions:
+  - q: Design Uber's backend for matching riders and drivers.
+    think: The location write rate, the matching flow, and correctness of assignment.
+    answer: |
+      **Location**: driver apps send positions every ~4 s over WebSockets (≈ 250 k/s at 1 M drivers) to a location service that keeps the latest position per driver in memory, bucketed by geo cell and sharded by city; stale drivers expire; the stream also goes to Kafka. **Request**: the trip service creates a trip with an idempotency key and authorises the estimated fare. **Dispatch**: fetch the k nearest available drivers via a cell ring search, re-rank by ETA from the routing service, atomically claim the best (available → offered), send an offer with a 15 s timeout, move to the next on decline. **Trip**: state machine in a durable store; one active trip per driver enforced by the claim and a DB constraint. **Tracking**: forward driver positions to the rider over WebSocket. **Pricing**: surge from supply/demand per cell over sliding windows. **Payments**: capture on completion. **Resilience**: per-city isolation, replicated location shards rebuilt from the stream.
+  - q: 'How do you guarantee that a driver is never assigned to two riders at the same time?'
+    think: Two dispatch decisions racing for one driver.
+    answer: |
+      Make selection a compare-and-set: the location/dispatch service changes the driver's state from AVAILABLE to OFFERED for a specific trip in one atomic operation (a lock-protected update in the shard owning that driver, or Redis `SET driver:{id}:trip {tripId} NX EX 20`). Only the winner sends an offer; the loser picks the next candidate. On decline or timeout, release the claim. Back it with a unique constraint on (driver, active trip) in the trips database so even a bug can't persist two active trips.
+followUps:
+  - q: Why not store driver locations in a database?
+    intuition: 250,000 overwrites per second of tiny, short-lived data.
+    approach: |
+      Each update replaces the previous one and is useless after seconds; durability adds cost without value. A relational database would spend its capacity on write-ahead logging and index maintenance for data that's immediately obsolete. In-memory indexes sharded by city handle the rate easily; the stream to Kafka provides history for analytics.
+  - q: How is surge pricing computed?
+    intuition: Supply and demand per area, recently.
+    approach: |
+      Stream ride requests and available-driver counts into per-cell aggregates over sliding windows (e.g. last 2–5 minutes). When the demand/supply ratio crosses thresholds, compute a multiplier, smooth it over time and across neighbouring cells to avoid flicker and gaming, cap it, and show it to riders before booking; the accepted price is stored with the trip.
+  - q: Why rank by ETA instead of distance?
+    intuition: Roads aren't straight lines.
+    approach: |
+      Straight-line distance ignores road networks, one-way streets, rivers, turn restrictions and traffic. A driver 400 m away across a divided highway can be 10 minutes out. Fetch a handful of nearest candidates cheaply, then ask the routing service for ETAs and pick by ETA (plus factors like driver rating or acceptance rate).
+practice:
+  - task: Build an in-memory driver index supporting location updates, stale expiry, atomic claims and nearest-k search, and verify it against brute force.
+    hint: Bucket drivers by grid cell; search rings of cells outward; stop when the k-th result is closer than any unvisited ring.
+    solution: |
+      Keep driver → (lat, lon, lastSeen, available) and cell → driver ids. Update moves a driver between cells when it crosses a boundary. Nearest: expand rings around the query cell, collect available fresh drivers within the radius, sort by distance, and stop once k results are closer than the distance to the next ring (ring × cell width). Claim flips available to false atomically; evictStale removes drivers not seen recently. Compare results with sorting all drivers by distance.
+    solutionCode: driver-index
+quiz:
+  - q: 'About how many location writes per second do 1 M drivers reporting every 4 s generate?'
+    options: ['4,000', '25,000', '250,000', '4,000,000']
+    correct: 2
+    why: 1,000,000 / 4 = 250,000 updates per second.
+  - q: What prevents two riders from being matched with the same driver?
+    options: [Faster servers, An atomic claim on the driver before sending the offer, Ranking by ETA, Sharding by city]
+    correct: 1
+    why: Only one compare-and-set can succeed, so only one offer goes out.

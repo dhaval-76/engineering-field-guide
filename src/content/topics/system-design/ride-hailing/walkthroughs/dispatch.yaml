@@ -1,0 +1,27 @@
+title: Matching a rider with a driver
+frames:
+  - caption: 'A rider requests a car at MG Road. The trip service creates trip T (status REQUESTED) with an idempotency key, so a double-tap doesn''t book twice, and authorises the estimated fare.'
+    panels:
+      - kind: kv
+        label: trip T
+        pairs: [[status, { v: REQUESTED, tone: accent }], [pickup, 'MG Road'], [fare hold, '₹240']]
+  - caption: 'Dispatch asks the location service for the nearest available drivers — an in-memory ring search over cells around the pickup, skipping drivers whose last update is older than 30 s.'
+    panels:
+      - kind: kv
+        label: candidates (straight-line)
+        pairs: [[d17, '0.4 km'], [d03, '0.6 km'], [d88, '0.9 km']]
+  - caption: 'Straight-line distance isn''t driving time: a driver across a flyover may be 10 minutes away. The routing service re-ranks candidates by **ETA**.'
+    panels:
+      - kind: kv
+        label: ranked by ETA
+        pairs: [[d03, { v: '3 min', tone: ok }], [d88, '4 min'], [d17, { v: '9 min (wrong side of the flyover)', tone: warn }]]
+  - caption: 'Dispatch **claims** d03 atomically (available → offered) so no other rider can get them, then sends an offer with a 15 s timeout. d03 declines; the claim is released and d88 is offered next.'
+    panels:
+      - kind: rows
+        label: offers
+        items: [{ v: 'd03 — declined', tone: bad }, { v: 'd88 — accepted', tone: ok }]
+  - caption: 'Trip T moves to ACCEPTED; the rider''s app receives d88''s position over WebSocket until pickup. Trip states then continue: ARRIVED → IN_PROGRESS → COMPLETED, and the fare is captured.'
+    panels:
+      - kind: rows
+        label: trip T
+        items: ['REQUESTED', { v: 'ACCEPTED (d88)', tone: ok }, 'ARRIVED', 'IN_PROGRESS', 'COMPLETED → capture fare']

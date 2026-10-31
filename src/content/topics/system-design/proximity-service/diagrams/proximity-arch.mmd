@@ -1,0 +1,9 @@
+flowchart TD
+  APP[Mobile / web] --> GW[API gateway]
+  GW -- search nearby --> LBS[Location search service<br/>stateless · read-only]
+  GW -- create / update business --> BIZ[Business service]
+  LBS --> GI[(Geo index replicas<br/>geohash → business ids<br/>in memory / Redis)]
+  LBS --> BC[(Business details cache)]
+  BIZ --> DB[(Business DB<br/>primary + replicas)]
+  DB -- change events / nightly rebuild --> GI
+  BC -. miss .-> DB

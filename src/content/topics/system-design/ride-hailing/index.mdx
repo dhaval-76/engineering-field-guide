@@ -1,0 +1,86 @@
+---
+title: 'Design: Ride-Hailing (Uber, Ola)'
+summary: Matching riders with nearby drivers in real time — high-rate location updates into an in-memory index sharded by city, ETA-based dispatch with atomic offers, trip state machine, live tracking, surge pricing and payments.
+track: system-design
+order: 270
+tags: [system-design, case-study, geospatial, realtime, dispatch]
+aliases: [design uber, design ola, design lyft, ride sharing system design, driver location updates, dispatch, driver matching, nearest drivers, eta, surge pricing, trip state machine, live tracking, h3, geospatial index, websocket location stream]
+prerequisites: [system-design/proximity-service, backend/realtime-communication]
+related: [low-level-design/ride-sharing, system-design/maps-navigation, system-design/payment-system, system-design/realtime-analytics]
+quickRef:
+  points:
+    - '**Write-heavy location stream**: ~1 M active drivers every 4 s ≈ 250,000 updates/s — keep live positions **in memory**, sharded by city/region, not in a database.'
+    - '**Dispatch**: nearest available drivers (cell ring search) → re-rank by **ETA** → **claim atomically** → offer with timeout → next.'
+    - 'Trips are a **state machine** in a durable store; one driver, one active trip.'
+    - '**Live tracking** pushes driver positions to the rider over WebSocket; history goes to a stream for analytics.'
+    - '**Surge** = demand vs supply per cell over the last minutes; fares authorised at request, captured at completion.'
+  useWhen: '"Design Uber / Ola / a food or courier dispatch system" — any real-time matching of moving supply to demand.'
+lastReviewed: 2026-10-30
+---
+
+## Requirements
+
+**Functional**: riders request rides and see fare estimates; nearby drivers receive offers; both see each other's live location; trip lifecycle and payments; ratings.
+**Non-functional**: a match within seconds; location freshness within a few seconds; never assign one driver to two trips; highly available in each city; low latency for tracking.
+
+## Estimates
+
+| | |
+|---|---|
+| Active drivers | 1 M at peak, location every 4 s ⇒ **250,000 writes/s** |
+| Payload | ~100 B per update ⇒ 25 MB/s ingest; live state 1 M × ~100 B ≈ 100 MB — tiny, fits in memory |
+| Ride requests | 20 M trips/day ≈ 230/s average, ~1,000/s peak |
+| Tracking fan-out | each active trip pushes the driver position to one rider every few seconds |
+
+The data is small but changes constantly: optimise for update rate and freshness, not storage.
+
+## High-level design
+
+<Diagram id="ride-arch" caption="Drivers stream locations over WebSockets into an in-memory location service; dispatch combines nearest drivers, ETAs and atomic claims; the trip service owns state and payments; the stream feeds pricing and analytics." />
+
+## The location index
+
+Unlike [proximity search](../proximity-service/) over static businesses, drivers move every few seconds. Keep only the **latest** position per driver in memory, bucketed by cell, sharded by city (or by H3/S2 cell ranges) so each shard handles its own drivers. Drop drivers that stop reporting.
+
+<CodeTabs id="driver-index" title="Driver location index: cell buckets, moves between cells, expiry, atomic claim and nearest-k ring search" />
+
+- Updates are idempotent overwrites — losing one is harmless; the next arrives in 4 s.
+- Replicate each shard (or rebuild from the stream) for failover; a few seconds of stale positions is acceptable.
+- Publish the stream to Kafka for history, ETAs, fraud detection and surge.
+
+## Dispatch
+
+<Walkthrough id="dispatch" />
+
+- **Atomic claims** prevent double assignment: the location service flips a driver from available to offered in one operation (or Redis `SET driver:{id}:trip {trip} NX`).
+- **Offer timeouts** keep the flow moving; repeated declines widen the radius.
+- **Batch matching**: in busy areas, matching all waiting riders and free drivers every couple of seconds as an assignment problem beats greedy first-come matching on total pickup time.
+
+## Trips, tracking and payments
+
+- **Trip service**: a state machine (REQUESTED → ACCEPTED → ARRIVED → IN_PROGRESS → COMPLETED / CANCELLED) persisted in a durable store with optimistic concurrency; the same idea as the [LLD ride-sharing](../../low-level-design/ride-sharing/) model.
+- **Tracking**: during a trip the driver's updates are also forwarded to the rider's WebSocket; store the route for fare calculation and disputes.
+- **Payments**: authorise an estimate at request, capture the final fare at completion; idempotency keys on every call ([Payment system](../payment-system/)).
+
+## Pricing and surge
+
+Aggregate open requests and available drivers per cell over a sliding window ([Real-time analytics](../realtime-analytics/)); when demand outstrips supply, raise a multiplier (smoothed and capped) to attract drivers and dampen demand. Show the price before confirmation and lock it into the trip.
+
+<Pitfalls>
+
+- **Writing every location update to a relational database.**
+- **Straight-line distance for matching** — rivers, flyovers and one-way streets make ETA the real metric.
+- **Non-atomic driver selection** — two riders get the same car.
+- **No staleness check** — offers go to drivers who closed the app minutes ago.
+- **A single global index** — shard by geography; cities are natural boundaries.
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- Live driver positions are a small, write-heavy, in-memory dataset sharded by geography.
+- Dispatch = nearest candidates → ETA ranking → atomic claim → timed offer.
+- Trips are durable state machines; tracking is a WebSocket stream; payments authorise then capture.
+- Surge comes from streaming supply and demand per cell.
+
+</KeyTakeaways>

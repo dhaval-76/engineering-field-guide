@@ -1,0 +1,26 @@
+title: Finding cafés within 2 km with geohashes
+frames:
+  - caption: 'Geohash recursively halves longitude and latitude and spells the result in base 32. Each extra character is a smaller cell; places sharing a prefix are in the same cell.'
+    panels:
+      - kind: kv
+        label: Bengaluru centre
+        pairs: [['5 chars', 'tdr1v (≈ 4.8 × 4.9 km)'], ['6 chars', 'tdr1v9 (≈ 1.2 × 0.6 km)'], ['7 chars', 'tdr1v9q (≈ 150 × 150 m)']]
+  - caption: 'For a 2 km radius, pick a precision whose cells are at least 2 km wide (5 characters here) and look up the user''s cell.'
+    panels:
+      - kind: note
+        text: 'user at (12.9720, 77.5950) → cell tdr1v'
+  - caption: '**Boundary problem**: a café 100 m away can sit in the next cell with a completely different prefix. Searching only the user''s cell misses it.'
+    panels:
+      - kind: rows
+        label: user's cell only
+        items: [{ v: 'misses cafés just across the edge', tone: bad }]
+  - caption: 'So search the cell **and its 8 neighbours** — 9 prefix lookups — collecting candidates from each.'
+    panels:
+      - kind: array
+        label: cells searched
+        items: ['NW', 'N', 'NE', 'W', { v: 'user', tone: accent }, 'E', 'SW', 'S', 'SE']
+  - caption: 'Candidates are filtered by exact (haversine) distance, then ranked — distance, rating, open now — and paginated. Cells are only a fast pre-filter.'
+    panels:
+      - kind: rows
+        label: results
+        items: [{ v: 'cafe:1 — 0.06 km', tone: ok }, { v: 'cafe:2 — 1.68 km', tone: ok }, { v: 'cafe:3 — 5.2 km (filtered out)', tone: muted }]

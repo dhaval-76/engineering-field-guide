@@ -61,7 +61,7 @@ Keeping transitions in a table (rather than `if` chains across services) makes t
 
 <CodeTabs id="food-dispatch" title="Nearest-available dispatch strategy, a dispatcher listening for ACCEPTED, and a pricing function" />
 
-- **Dispatch strategy** variants: nearest to restaurant; minimise total ETA (partner → restaurant → customer, accounting for prep time); batch two orders from the same restaurant; prefer partners finishing a nearby delivery. In production, candidates come from a geospatial index.
+- **Dispatch strategy** variants: nearest to restaurant; minimise total ETA (partner → restaurant → customer, accounting for prep time); batch two orders from the same restaurant; prefer partners finishing a nearby delivery. In production, candidates come from a geospatial index ([Proximity service](../../system-design/proximity-service/)).
 - **Assignment races**: two orders must not grab the same partner — claim atomically (a set or a conditional DB update), and handle partner rejection by re-dispatching.
 - **Pricing**: base fee by distance, surge multiplier by demand/supply in the area, discounts, small-order fees — a pipeline of rules, each a strategy. Money in paise.
 

@@ -1,0 +1,37 @@
+questions:
+  - q: Design Yelp's "restaurants near me" search.
+    think: Read/write ratio and index size drive the design.
+    answer: |
+      **Split** a business service (CRUD, reviews; SQL with replicas) from a stateless **location search service**. **Index**: geohash (or S2/quadtree) cell → business ids, ~5 GB for 200 M places, held in memory on every search node or in Redis replicas; rebuilt nightly plus change events. **Query**: pick a precision whose cells exceed the radius, look up the user's cell and 8 neighbours, filter candidates by haversine distance, fetch details from a cache, rank by distance, rating and open-now, paginate; widen the radius if results are few. **Scale**: ~20 k QPS peak served by horizontally scaled stateless nodes; cache popular (cell, filter) results; multi-region deployment. **Writes**: updates propagate asynchronously — acceptable for business listings.
+  - q: 'Users near cell edges report missing results right next to them. What''s wrong?'
+    think: Prefixes and boundaries.
+    answer: |
+      The search only uses the user's own geohash cell. Two points metres apart can fall in adjacent cells with different prefixes, so nearby places in neighbouring cells are never examined. Fix by querying the cell plus its 8 neighbours (with the right precision for the radius), then filtering by exact distance. Libraries like S2/H3 provide region coverings that do this precisely.
+followUps:
+  - q: Geohash or quadtree?
+    intuition: Fixed vs adaptive cells.
+    approach: |
+      Geohash cells have fixed sizes per precision and map onto plain string keys, so they work with any database and are easy to shard and cache. Quadtrees subdivide only where places are dense, giving similar candidate counts per query in cities and countryside, but need an in-memory structure to build and maintain. For mostly static places and moderate density variance, geohash is simpler; for very uneven density, quadtrees (or adaptive radius) help.
+  - q: Why replicate the index instead of sharding it?
+    intuition: 5 GB.
+    approach: |
+      The whole index is a few gigabytes, so every node can hold it; replication gives low latency (no scatter-gather), simple scaling (add replicas) and high availability. Sharding adds cross-shard queries for searches near shard boundaries. Shard only when the index or update rate outgrows a single machine.
+  - q: How would you support "show places in this map viewport"?
+    intuition: Rectangle instead of circle.
+    approach: |
+      Compute the set of cells covering the bounding box at a precision suited to the zoom level (S2/H3 coverings or geohash prefixes), fetch candidates, filter to the box, and rank or cluster markers. Cache by (cells, zoom, filters) and return aggregated clusters at low zoom levels rather than thousands of points.
+practice:
+  - task: Implement geohash encoding, cell neighbours and a radius search over a geohash-bucketed index, and verify it against brute force.
+    hint: Encode by bisecting longitude and latitude alternately; neighbours by encoding points one cell-width away.
+    solution: |
+      Encode alternates longitude and latitude bisection, emitting a base-32 character every 5 bits. Decode bounds the same way. Neighbours: take the cell centre and size, encode the 8 points offset by ±width/±height (wrapping longitude), plus the cell itself. Radius search: bucket places by geohash at a precision whose cells exceed the radius, read the 9 buckets, filter by haversine distance and sort. Compare with a scan over all places.
+    solutionCode: geohash
+quiz:
+  - q: Why search the 8 neighbouring geohash cells?
+    options: [To rank results, Nearby places can lie in adjacent cells with different prefixes, Geohash is approximate, To shard the index]
+    correct: 1
+    why: Cell boundaries split nearby points into different prefixes.
+  - q: 'The geo index for 200 M places is ~5 GB. Best scaling approach for 20,000 reads/s?'
+    options: [Shard by business id, Replicate the in-memory index across stateless search nodes, One big SQL database, Store it only on disk]
+    correct: 1
+    why: Small, read-heavy data scales best by replication.

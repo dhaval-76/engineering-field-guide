@@ -1,0 +1,89 @@
+---
+title: 'Design: Proximity Service (Nearby Search)'
+summary: Finding businesses near a location (Yelp, Google Maps "near me") — geohash, quadtree and S2/H3 indexes, the cell-boundary problem, a read-optimised geo index with caching, Redis GEO and PostGIS, ranking and scale.
+track: system-design
+order: 265
+tags: [system-design, case-study, geospatial, search, caching]
+aliases: [design yelp, nearby search, proximity search, near me, location based service, lbs, geohash, geohash precision, quadtree, s2 geometry, h3 hexagons, r-tree, postgis, redis geo, geosearch, haversine, radius search, k nearest neighbours, points of interest]
+prerequisites: [system-design/approach-and-estimation, databases/indexing]
+related: [system-design/ride-hailing, system-design/maps-navigation, system-design/distributed-cache, system-design/search-engine]
+quickRef:
+  points:
+    - 'Read-heavy, write-light: businesses rarely move, so build a **read-optimised geo index** and replicate it widely.'
+    - '**Geohash**: base-32 cells; shared prefix ⇒ same cell. Search the cell **plus 8 neighbours**, then filter by exact distance.'
+    - '**Quadtree** adapts cell size to density; **S2/H3** give uniform cells and coverings; **PostGIS/R-trees** for arbitrary shapes.'
+    - 'Redis `GEOSEARCH` and PostGIS `ST_DWithin` implement this for you at moderate scale.'
+    - 'Cache results by (cell, filters); separate the location search service from the business CRUD service.'
+  complexity: 'Lookup ≈ 9 cell reads + O(candidates) distance checks.'
+  useWhen: '"Design Yelp / nearby restaurants / find stores near me", or the static-places half of maps and ride-hailing.'
+lastReviewed: 2026-10-30
+---
+
+## Requirements
+
+**Functional**: given a location and radius (or map viewport), return nearby businesses ranked by distance and relevance; view business details; owners add and update businesses (visible within hours is fine).
+**Non-functional**: search latency < 200 ms; 100 M daily users; highly available; reads vastly outnumber writes.
+
+## Estimates
+
+| | |
+|---|---|
+| Businesses | 200 M worldwide × ~1 KB details ≈ 200 GB |
+| Geo index | id (8 B) + geohash/coordinates (~16 B) ≈ 24 B × 200 M ≈ **5 GB** — fits in memory on every replica |
+| Search QPS | 100 M users × 5 searches/day ≈ 5,800/s average, ~20,000/s peak |
+| Writes | thousands per hour — negligible |
+
+The index fitting in memory is the key insight: replicate it rather than shard it.
+
+## High-level design
+
+<Diagram id="proximity-arch" caption="Search is a stateless, read-only service over replicated in-memory geo indexes and a details cache; the business service owns writes and refreshes the index through change events or periodic rebuilds." />
+
+## Indexing locations
+
+<Walkthrough id="geohash-search" />
+
+<CodeTabs id="geohash" title="Geohash encoding, cell bounds, the 8 neighbours, and a radius search over prefix buckets" />
+
+| Index | Idea | Strengths | Weaknesses |
+|---|---|---|---|
+| Geohash | Interleaved bits as a string; prefix = containing cell | Simple, works in any key-value store or B-tree (prefix/range scans) | Fixed cell sizes; edge and pole distortions; must query neighbours |
+| Quadtree | Split a cell into 4 when it holds > N places | Adapts to density (Manhattan vs desert) | In-memory tree to build and rebalance |
+| S2 / H3 | Hierarchical cells on a sphere (squares / hexagons) | Uniform cells, efficient region coverings, H3 neighbours equidistant | Library dependency |
+| R-tree (PostGIS) | Bounding-box tree | Arbitrary shapes and polygons, SQL | Single database scaling limits |
+
+Choose precision by radius: cells should be at least as wide as the search radius so 9 cells cover the circle. With a user-chosen radius, start fine and widen (shorter prefix) until enough results are found.
+
+<CodeTabs id="geo-redis" title="Redis GEO: add places, radius and box search, geohash and distance" />
+
+At smaller scale a single PostGIS database (`ST_DWithin` on a GiST index) or Redis GEO is the whole answer; the custom design matters at hundreds of millions of places and tens of thousands of QPS.
+
+## Ranking and results
+
+Distance is rarely the only factor: combine distance, rating, popularity, open-now, price and personalisation, then paginate. Fetch candidate ids from the geo index, details from the cache, and rank in the search service ([Search engine](../search-engine/) covers text relevance when users also type a query).
+
+## Scale and freshness
+
+- **Replicate** the in-memory index to every search node (or a Redis replica set per region); rebuild nightly and apply change events between rebuilds.
+- **Cache** popular queries by (geohash cell, filters) — many users in the same area search the same thing.
+- **Shard** only if the index or write rate outgrows memory — by region or by geohash prefix.
+- **Moving objects** (drivers, couriers) are a different problem: frequent writes, short-lived data — see [Ride-hailing](../ride-hailing/).
+
+<Pitfalls>
+
+- **Searching only the user's cell** — misses nearby results across boundaries.
+- **Treating cells as distance** — always filter by exact distance.
+- **Sharding a 5 GB index** that could simply be replicated.
+- **One precision for all densities** — too many candidates downtown, too few in rural areas (quadtrees or adaptive radius help).
+- **Coupling business CRUD and search** in one service and database.
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- Geo indexes turn "near" into cell lookups: geohash, quadtree, S2/H3 or R-trees.
+- Search the user's cell plus neighbours, then filter and rank by exact distance and relevance.
+- Read-heavy, small index: replicate in memory, cache popular cells, update asynchronously.
+- Use Redis GEO or PostGIS until scale demands a custom service.
+
+</KeyTakeaways>

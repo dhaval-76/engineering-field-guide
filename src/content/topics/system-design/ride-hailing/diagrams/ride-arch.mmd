@@ -1,0 +1,14 @@
+flowchart TD
+  DA[Driver app<br/>location every 4 s] -- WebSocket --> GWD[Connection gateway]
+  RA[Rider app] -- request ride / track --> GWR[API + WebSocket gateway]
+  GWD --> LOC[Location service<br/>in-memory index, sharded by city]
+  GWD -. location stream .-> K{{Kafka}}
+  GWR --> DIS[Dispatch service<br/>nearest → ETA rank → offer → claim]
+  DIS --> LOC
+  DIS --> ETA[Routing / ETA service]
+  DIS --> TRIP[Trip service<br/>state machine]
+  TRIP --> TDB[(Trips DB)]
+  TRIP --> PAY[Payments<br/>authorise → capture]
+  K --> PRICE[Pricing / surge<br/>supply vs demand per cell]
+  K --> ANA[(Analytics · history)]
+  TRIP -- driver position to rider --> GWR
