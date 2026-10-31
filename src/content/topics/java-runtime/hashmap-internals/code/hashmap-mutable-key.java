@@ -1,7 +1,9 @@
 final class MutableKey {
     String id;
     MutableKey(String id) { this.id = id; }
-    @Override public boolean equals(Object o) { return o instanceof MutableKey k && k.id.equals(id); }
+    @Override public boolean equals(Object o) {
+        return o instanceof MutableKey k && k.id.equals(id);
+    }
     @Override public int hashCode() { return id.hashCode(); }
 }
 

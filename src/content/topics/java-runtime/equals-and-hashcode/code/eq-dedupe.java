@@ -6,7 +6,9 @@ public record User(String email, String name) {
     }
     // A record's equals/hashCode use ALL components — here that includes name.
     // If identity is "email only", override both to use only email:
-    @Override public boolean equals(Object o) { return o instanceof User u && u.email.equals(email); }
+    @Override public boolean equals(Object o) {
+        return o instanceof User u && u.email.equals(email);
+    }
     @Override public int hashCode() { return email.hashCode(); }
 }
 

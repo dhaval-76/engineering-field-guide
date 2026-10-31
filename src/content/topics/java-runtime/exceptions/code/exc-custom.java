@@ -13,7 +13,9 @@ public class InsufficientFundsException extends Exception {
 
 /** Unchecked: a broken invariant / programming error — callers can't sensibly recover. */
 public class AccountFrozenException extends IllegalStateException {
-    public AccountFrozenException(String accountId) { super("account " + accountId + " is frozen"); }
+    public AccountFrozenException(String accountId) {
+        super("account " + accountId + " is frozen");
+    }
 }
 
 public void withdraw(long paise) throws InsufficientFundsException {

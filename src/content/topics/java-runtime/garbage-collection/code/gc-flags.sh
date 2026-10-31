@@ -4,7 +4,8 @@ java -Xms4g -Xmx4g -jar app.jar                 # fixed-size heap: no resize pau
 
 # Choosing a collector
 java -XX:+UseG1GC -XX:MaxGCPauseMillis=200 ...   # default: balanced, pause-time goal
-java -XX:+UseZGC ...                             # sub-millisecond pauses (generational by default since JDK 23)
+# sub-millisecond pauses (generational by default since JDK 23)
+java -XX:+UseZGC ...
 java -XX:+UseParallelGC ...                      # maximum throughput for batch jobs
 
 # Evidence before tuning
@@ -15,4 +16,5 @@ java -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/dumps ...  # dump on OOM
 jcmd <pid> GC.heap_info
 jcmd <pid> GC.class_histogram | head -30      # which classes use the most memory right now
 jcmd <pid> GC.heap_dump /tmp/heap.hprof       # analyse with Eclipse MAT / VisualVM
-jcmd <pid> JFR.start duration=60s filename=rec.jfr   # Java Flight Recorder: allocation + GC profiling
+# Java Flight Recorder: allocation + GC profiling
+jcmd <pid> JFR.start duration=60s filename=rec.jfr

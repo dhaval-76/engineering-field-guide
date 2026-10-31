@@ -5,7 +5,12 @@
 public final class MiniHashMap<K, V> {
     private static final class Node<K, V> {
         final int hash; final K key; V value; Node<K, V> next;
-        Node(int hash, K key, V value, Node<K, V> next) { this.hash = hash; this.key = key; this.value = value; this.next = next; }
+        Node(int hash, K key, V value, Node<K, V> next) {
+            this.hash = hash;
+            this.key = key;
+            this.value = value;
+            this.next = next;
+        }
     }
 
     private Node<K, V>[] table = newTable(16);
@@ -29,7 +34,11 @@ public final class MiniHashMap<K, V> {
     public V put(K key, V value) {
         int h = hash(key), i = h & (table.length - 1);
         for (Node<K, V> n = table[i]; n != null; n = n.next) {
-            if (n.hash == h && Objects.equals(n.key, key)) { V old = n.value; n.value = value; return old; }
+            if (n.hash == h && Objects.equals(n.key, key)) {
+                V old = n.value;
+                n.value = value;
+                return old;
+            }
         }
         table[i] = new Node<>(h, key, value, table[i]);
         if (++size > table.length * LOAD_FACTOR) resize();

@@ -8,7 +8,12 @@ catch (IOException e) { throw new RuntimeException("email failed"); }
 catch (IOException e) { log.error("failed", e); throw new EmailException(e); }
 
 // ✓ Translate at a boundary, keep the cause, log once where it is finally handled
-catch (IOException e) { throw new EmailDeliveryException("sending welcome email to " + user.id(), e); }
+catch (IOException e) {
+    throw new EmailDeliveryException("sending welcome email to " + user.id(), e);
+}
 
 // ✓ Restore the interrupt flag if you catch InterruptedException and can't rethrow it
-catch (InterruptedException e) { Thread.currentThread().interrupt(); throw new CancellationException("interrupted"); }
+catch (InterruptedException e) {
+    Thread.currentThread().interrupt();
+    throw new CancellationException("interrupted");
+}

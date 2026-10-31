@@ -7,7 +7,9 @@ public record Money(long minorUnits, Currency currency) {
         if (minorUnits < 0) throw new IllegalArgumentException("negative amount");
     }
     public Money plus(Money other) {
-        if (!currency.equals(other.currency)) throw new IllegalArgumentException("currency mismatch");
+        if (!currency.equals(other.currency)) {
+            throw new IllegalArgumentException("currency mismatch");
+        }
         return new Money(minorUnits + other.minorUnits, currency);
     }
 }

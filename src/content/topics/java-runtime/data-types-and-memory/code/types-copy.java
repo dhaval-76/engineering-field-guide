@@ -15,6 +15,8 @@ final class Order {
 
 // When elements are mutable (e.g. int[]), copy them too:
 static List<int[]> deepCopy(List<int[]> src) {
-    return src.stream().map(a -> Arrays.copyOf(a, a.length)).collect(Collectors.toCollection(ArrayList::new));
+    return src.stream()
+            .map(a -> Arrays.copyOf(a, a.length))
+            .collect(Collectors.toCollection(ArrayList::new));
 }
 // Prefer immutable data (records, List.copyOf) so copies are rarely needed at all.

@@ -8,7 +8,8 @@ static String toCsvRow(List<String> fields) {
         if (i > 0) sb.append(',');
         String f = fields.get(i);
         if (f == null) continue;                                   // null → empty field
-        boolean quote = f.indexOf(',') >= 0 || f.indexOf('"') >= 0 || f.indexOf('\n') >= 0 || f.indexOf('\r') >= 0;
+        boolean quote = f.indexOf(',') >= 0 || f.indexOf('"') >= 0
+                || f.indexOf('\n') >= 0 || f.indexOf('\r') >= 0;
         if (!quote) { sb.append(f); continue; }
         sb.append('"').append(f.replace("\"", "\"\"")).append('"');
     }

@@ -1,5 +1,6 @@
 // Frequency count
-Map<String, Long> freq = words.stream().collect(Collectors.groupingBy(w -> w, Collectors.counting()));
+Map<String, Long> freq = words.stream()
+        .collect(Collectors.groupingBy(w -> w, Collectors.counting()));
 
 // Group by a key
 Map<Status, List<Order>> byStatus = orders.stream().collect(Collectors.groupingBy(Order::status));
@@ -20,5 +21,8 @@ static List<Integer> topK(int[] nums, int k) {
 static Optional<Character> firstUnique(String s) {
     Map<Character, Integer> counts = new LinkedHashMap<>();
     for (char c : s.toCharArray()) counts.merge(c, 1, Integer::sum);
-    return counts.entrySet().stream().filter(e -> e.getValue() == 1).map(Map.Entry::getKey).findFirst();
+    return counts.entrySet().stream()
+            .filter(e -> e.getValue() == 1)
+            .map(Map.Entry::getKey)
+            .findFirst();
 }

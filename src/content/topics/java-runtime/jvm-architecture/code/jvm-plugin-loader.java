@@ -3,14 +3,17 @@
  * while the shared API and the JDK always come from the host (so types are compatible).
  */
 final class PluginClassLoader extends URLClassLoader {
-    private static final List<String> HOST_FIRST = List.of("java.", "javax.", "com.myapp.plugin.api.");
+    private static final List<String> HOST_FIRST =
+            List.of("java.", "javax.", "com.myapp.plugin.api.");
 
     PluginClassLoader(URL[] jars, ClassLoader host) { super(jars, host); }
 
     @Override
     protected Class<?> loadClass(String name, boolean resolve) throws ClassNotFoundException {
         synchronized (getClassLoadingLock(name)) {
-            if (HOST_FIRST.stream().anyMatch(name::startsWith)) return super.loadClass(name, resolve);
+            if (HOST_FIRST.stream().anyMatch(name::startsWith)) {
+                return super.loadClass(name, resolve);
+            }
             Class<?> c = findLoadedClass(name);
             if (c == null) {
                 try { c = findClass(name); }                       // plugin JAR first

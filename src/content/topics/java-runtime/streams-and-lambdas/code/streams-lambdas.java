@@ -9,7 +9,8 @@ Consumer<String>          print     = System.out::println;     // T → void
 Supplier<List<String>>    newList   = ArrayList::new;          // () → T
 
 // Composition
-Function<String, String> normalise = ((Function<String, String>) String::strip).andThen(s -> s.toLowerCase(Locale.ROOT));
+Function<String, String> normalise =
+        ((Function<String, String>) String::strip).andThen(s -> s.toLowerCase(Locale.ROOT));
 Predicate<Order> paidAndLarge = isPaid.and(o -> o.totalPaise() > 100_000);
 
 // Method reference forms
