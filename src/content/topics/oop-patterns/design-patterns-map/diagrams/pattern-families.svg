@@ -1,0 +1,23 @@
+<svg viewBox="0 0 340 300" xmlns="http://www.w3.org/2000/svg" font-family="var(--font-sans)" font-size="12">
+  <g stroke-width="1.5">
+    <rect x="6" y="6" width="328" height="88" rx="8" fill="var(--d-info-soft)" stroke="var(--d-info)"/>
+    <rect x="6" y="102" width="328" height="88" rx="8" fill="var(--d-ok-soft)" stroke="var(--d-ok)"/>
+    <rect x="6" y="198" width="328" height="96" rx="8" fill="var(--d-plum-soft)" stroke="var(--d-plum)"/>
+  </g>
+  <g font-weight="700" letter-spacing=".04em" font-size="11.5">
+    <text x="18" y="28" fill="var(--d-info)">CREATIONAL — how objects are made</text>
+    <text x="18" y="124" fill="var(--d-ok)">STRUCTURAL — how objects are wrapped and combined</text>
+    <text x="18" y="220" fill="var(--d-plum)">BEHAVIOURAL — how objects share work</text>
+  </g>
+  <g fill="var(--d-text)" font-size="12">
+    <text x="18" y="50">Factory · Builder · Singleton</text>
+    <text x="18" y="146">Decorator · Adapter · Facade · Proxy · Composite</text>
+    <text x="18" y="242">Strategy · State · Observer · Command</text>
+    <text x="18" y="260">Chain of Responsibility · Template Method · Iterator</text>
+  </g>
+  <g fill="var(--d-muted)" font-size="11">
+    <text x="18" y="74">hide which class is built, and how it's assembled</text>
+    <text x="18" y="170">change what an object looks like or adds, not what it is</text>
+    <text x="18" y="282">vary the algorithm, the reaction or the order of steps</text>
+  </g>
+</svg>

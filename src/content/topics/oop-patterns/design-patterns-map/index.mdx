@@ -14,7 +14,7 @@ quickRef:
     - Start from the **problem** ("I need undo", "many ways to price") and the pattern follows; never start from a pattern.
     - Most patterns are applications of "program to an interface" and "prefer composition".
   useWhen: Naming a design in a review or interview, or looking for a proven shape for a recurring problem.
-lastReviewed: 2026-10-30
+lastReviewed: 2026-10-31
 ---
 
 ## Why it matters
@@ -22,6 +22,12 @@ lastReviewed: 2026-10-30
 Design patterns give names to shapes of code that keep recurring. Saying "wrap the client in a retrying decorator" or "orders are a state machine" communicates a whole design in a sentence, and the pattern carries known trade-offs with it.
 
 They come from the 1994 *Gang of Four* book, which catalogued 23 patterns for object-oriented languages. Some are now built into languages (Iterator → `for…of`, Strategy → lambdas); a handful dominate day-to-day backend work and LLD interviews.
+
+<Callout type="analogy">
+A carpenter's vocabulary. "Dovetail joint" names a design that solves a specific problem — two boards that must not pull apart — and every carpenter knows its strengths and costs. Nobody uses a dovetail where two nails would do. Pattern names work the same way: a shared, precise word for a proven solution, used only when the problem calls for it.
+</Callout>
+
+<Diagram id="pattern-families" caption="The Gang of Four grouped patterns by what they help with: creating objects, combining them, or dividing behaviour between them." />
 
 <Callout type="warning" title="Problem first">
 Patterns are answers. Reaching for one before you have the question produces needless interfaces, factories for single classes and singletons everywhere. Describe the force first — "this varies", "this must be undoable", "callers shouldn't know about this vendor" — then name the pattern that resolves it.
@@ -94,6 +100,16 @@ Backend systems lean on patterns that came after the GoF book; each has its own 
 - **Repository** — a collection-like interface over persistence.
 - **Circuit breaker, retry, bulkhead** — resilience patterns for remote calls.
 - **Saga, outbox, CQRS, event sourcing** — patterns for consistency across services.
+
+<Pitfalls>
+
+- **Pattern first, problem second** — interfaces with one implementation, factories that build one class, abstractions nobody needs.
+- **Singletons as global variables** — hidden dependencies and tests that leak state into each other; let the DI container own lifetimes.
+- **Deep decorator or chain stacks** that nobody can follow in a stack trace — keep them short and named.
+- **Observer without ownership** — listeners that are never unsubscribed leak memory and fire on dead objects.
+- **Re-implementing what the language already has** — a hand-written Iterator or Strategy class where a `for` loop or a lambda is clearer.
+
+</Pitfalls>
 
 <KeyTakeaways>
 

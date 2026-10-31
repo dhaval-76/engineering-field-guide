@@ -15,7 +15,7 @@ quickRef:
     - 'Spring: `@TransactionalEventListener(AFTER_COMMIT)` so side effects run only if the transaction commits.'
     - In-process observers are **not durable** — use a message broker (Kafka, RabbitMQ) when reactions live in other services or must survive crashes.
   useWhen: One event triggers several independent reactions (email, invoice, analytics) that shouldn't be hard-wired into the code that raised it.
-lastReviewed: 2026-10-30
+lastReviewed: 2026-10-31
 ---
 
 ## Why it matters
