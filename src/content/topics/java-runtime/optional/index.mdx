@@ -15,7 +15,7 @@ quickRef:
     - 'Avoid `get()`, Optional fields, Optional parameters and `Optional<List<…>>` (return an empty list).'
     - 'JS: `a?.b ?? fallback`. Python: `Optional[T]` type hints and explicit `is None` checks.'
   useWhen: Designing lookups that can find nothing (findById, parse, first match), or removing chains of null checks.
-lastReviewed: 2026-10-30
+lastReviewed: 2026-10-31
 ---
 
 ## Why it matters
@@ -41,6 +41,18 @@ A parcel delivery that might be empty. A plain return value is a parcel you assu
 | `orElseThrow(...)` | Treat absence as an error |
 | `ifPresent` / `ifPresentOrElse` | Side effects |
 | `stream()` | 0 or 1 elements — handy for `flatMap(Optional::stream)` in streams |
+
+<DecisionGuide
+  title="What should happen when the value is missing?"
+  steps={[
+    ['Is absence a bug or an invalid request?', '`orElseThrow(() -> new NotFoundException(id))` — fail loudly, with a useful error.'],
+    ['Is there a cheap, already-computed default?', '`orElse(defaultValue)` — note the default is evaluated even when a value is present.'],
+    ['Is the default expensive (a query, an allocation)?', '`orElseGet(() -> loadDefault())` — computed only when needed.'],
+    ['Do you need to transform the value first?', '`map(f)`, or `flatMap(f)` when f itself returns an Optional.'],
+    ['Do you only need a side effect?', '`ifPresent(...)` or `ifPresentOrElse(..., ...)`.'],
+  ]}
+  otherwise="Return the Optional to your caller and let them decide — but never call get() without checking."
+/>
 
 ## Replacing nested null checks
 

@@ -1,0 +1,29 @@
+title: How a shared list breaks an "immutable" object
+frames:
+  - caption: 'A caller builds a list and passes it to `new Order(id, items)`. The constructor stores the **same** list object — now two variables point to it.'
+    panels:
+      - kind: kv
+        label: References
+        pairs: [['caller: items', '● → list A'], ['order.items', { v: '● → list A', tone: warn }]]
+      - kind: array
+        label: list A
+        items: [pen, book]
+  - caption: 'Later the caller reuses its list: `items.add("laptop")`. The order was never touched, yet its contents changed — and if its total was validated in the constructor, that check no longer holds.'
+    panels:
+      - kind: kv
+        label: References
+        pairs: [['caller: items', '● → list A'], ['order.items', { v: '● → list A', tone: bad }]]
+      - kind: array
+        label: list A
+        items: [pen, book, { v: laptop, tone: bad }]
+  - caption: 'Fix: copy on the way in — `this.items = List.copyOf(items)`. The order holds its own unmodifiable list, so the caller''s later changes can''t reach it, and nobody can change it through the accessor either.'
+    panels:
+      - kind: kv
+        label: References
+        pairs: [['caller: items', '● → list A'], ['order.items', { v: '● → list B (unmodifiable)', tone: ok }]]
+      - kind: array
+        label: list A (caller's)
+        items: [pen, book, laptop]
+      - kind: array
+        label: list B (order's)
+        items: [{ v: pen, tone: ok }, { v: book, tone: ok }]

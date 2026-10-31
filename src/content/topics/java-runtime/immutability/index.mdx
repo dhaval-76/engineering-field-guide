@@ -15,7 +15,7 @@ quickRef:
     - '`final` fields give **safe publication**: other threads see fully constructed values without extra synchronisation.'
     - 'JS: `Object.freeze` (shallow) and non-mutating methods (`toSorted`). Python: `@dataclass(frozen=True)` with tuples.'
   useWhen: Value objects (Money, Email, Range), DTOs, configuration, events, cache keys, anything shared between threads.
-lastReviewed: 2026-10-30
+lastReviewed: 2026-10-31
 ---
 
 ## Why it matters
@@ -25,6 +25,10 @@ Most bugs in shared state come from something changing when you didn't expect it
 <Callout type="analogy">
 A printed receipt versus a whiteboard. Anyone can read a receipt at the same time and it will always say the same thing — to "change" it you print a new one. A whiteboard is cheaper to update, but two people writing at once make a mess, and what you read depends on when you looked.
 </Callout>
+
+## The bug immutability prevents
+
+<Walkthrough id="aliasing" />
 
 ## Making a class immutable
 

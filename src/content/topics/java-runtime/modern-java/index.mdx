@@ -15,7 +15,7 @@ quickRef:
     - '**Virtual threads** (21): blocking code that scales to huge concurrency for I/O-bound work.'
     - '**Stream gatherers** (24) and **scoped values** (25) round out streams and per-request context.'
   useWhen: Writing new Java code, modernising a Java 8 codebase, or answering "what's new in Java 17/21?"
-lastReviewed: 2026-10-30
+lastReviewed: 2026-10-31
 ---
 
 ## Why it matters
@@ -25,6 +25,18 @@ Java changed more between 8 and 21 than in the decade before. Interviews for Jav
 <Callout type="analogy">
 Upgrading from a manual toolbox to power tools. The old tools still work, and you can build the same things — but jobs that took a page of careful work now take a line, and the new tools have safety guards built in.
 </Callout>
+
+<DecisionGuide
+  title="Which modern feature fits the problem?"
+  steps={[
+    ['A class that only carries data (DTO, event, value)?', 'A record (16): final, immutable fields, equals/hashCode/toString generated.'],
+    ['A fixed set of variants (Success | Failure, Card | Upi | Wallet)?', 'A sealed interface of records + an exhaustive pattern-matching switch (21).'],
+    ['Thousands of concurrent blocking calls (HTTP, JDBC)?', 'Virtual threads (21): one cheap thread per task, plain blocking code.'],
+    ['Per-request context that must not leak between requests?', 'ScopedValue (25) instead of ThreadLocal.'],
+    ['Multi-line SQL, JSON or HTML in code?', 'Text blocks (15).'],
+  ]}
+  otherwise="Keep ordinary classes and methods — modern features are tools, not goals."
+/>
 
 ## Modelling data: records, sealed types, pattern matching
 
