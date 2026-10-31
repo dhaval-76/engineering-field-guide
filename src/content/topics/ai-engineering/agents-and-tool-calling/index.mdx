@@ -15,7 +15,7 @@ quickRef:
     - '**MCP** standardises how apps expose tools, resources and prompts to models: JSON-RPC over stdio (local) or Streamable HTTP (remote, OAuth).'
     - 'Security lives in code: **authorize every tool call** as the user, least-privilege tools, confirmation for writes, treat tool output as untrusted.'
   useWhen: Letting an LLM look things up or take actions, building on MCP, or "design an AI agent" interview questions.
-lastReviewed: 2026-10-30
+lastReviewed: 2026-10-31
 ---
 
 ## Why it matters
@@ -58,7 +58,7 @@ MCP is an open protocol for connecting LLM applications to tools and data, so a 
 
 - **Servers** expose **tools** (actions the model can call), **resources** (readable data such as files or records) and **prompts** (reusable templates).
 - Messages are **JSON-RPC 2.0**. Transports: **stdio** for local servers launched as subprocesses, and **Streamable HTTP** for remote servers, secured with <Term id="oauth2">OAuth</Term>.
-- The **2026-07-28** revision made the protocol **stateless**: no initialisation handshake or sessions — each request carries its protocol version and capabilities in `_meta`, which makes remote servers easy to load-balance like any HTTP API. Older SDKs may still speak 2025-11-25; check what your host supports.
+- The **2026-07-28** revision made the protocol **stateless**: no initialisation handshake or sessions — each request carries its protocol version and capabilities in `_meta`, which makes remote servers easy to load-balance like any HTTP API. When a server needs something from the client in the middle of a call (a user confirmation, a model completion), it uses **multi round-trip requests** instead of a held-open session. The same revision added routable headers, cacheable list results and stricter authorization rules ([changelog](https://modelcontextprotocol.io/specification/2026-07-28/changelog)). Older SDKs may still speak 2025-11-25; check what your host supports.
 
 <CodeTabs id="mcp-messages" title="MCP over JSON-RPC: list tools, then call one" />
 

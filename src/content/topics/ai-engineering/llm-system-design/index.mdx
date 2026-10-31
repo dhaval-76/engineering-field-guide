@@ -4,7 +4,7 @@ summary: System design for LLM features at scale — an LLM gateway with budgets
 track: ai-engineering
 order: 40
 tags: [ai-engineering, system-design, case-study, llm]
-aliases: [llm system design, genai system design, design chatgpt, design an ai assistant, llm gateway, ai gateway, model router, model routing, fallback provider, semantic cache, prompt cache, llm serving, vllm, tgi, continuous batching, kv cache, paged attention, quantization, gpu inference, guardrails, llm evaluation, llm as judge, evals, llm observability, token budget, cost per request]
+aliases: [llm system design, genai system design, design chatgpt, design an ai assistant, llm gateway, ai gateway, model router, model routing, fallback provider, semantic cache, prompt cache, llm serving, vllm, sglang, tgi, continuous batching, kv cache, paged attention, quantization, gpu inference, guardrails, llm evaluation, llm as judge, evals, llm observability, token budget, cost per request]
 prerequisites: [ai-engineering/llm-fundamentals, ai-engineering/rag, system-design/approach-and-estimation]
 related: [ai-engineering/agents-and-tool-calling, system-design/api-gateway, system-design/distributed-rate-limiter, distributed-systems/resilience-patterns]
 quickRef:
@@ -88,7 +88,7 @@ Use hosted APIs by default. Self-host when data can't leave, volume makes it che
 <Walkthrough id="continuous-batching" />
 
 - **Memory**: weights ≈ parameters × bytes per parameter — an 8 B-parameter model is ~16 GB in 16-bit, ~5 GB in 4-bit; a 70 B model is ~140 GB in 16-bit (multiple GPUs). The **KV cache** grows with context length × concurrent requests.
-- **Throughput**: serving engines (vLLM, TGI, TensorRT-LLM) use continuous batching and paged KV caches; quantization trades a little quality for memory and speed.
+- **Throughput**: serving engines (vLLM, SGLang, TensorRT-LLM; Hugging Face's TGI has been [in maintenance mode since December 2025](https://huggingface.co/docs/text-generation-inference/index)) use continuous batching and paged KV caches; quantization trades a little quality for memory and speed.
 - **Scaling**: autoscale on queue depth and GPU utilisation, not CPU; cold starts (loading weights) take minutes, so keep warm capacity.
 
 ## Quality: guardrails and evaluation
