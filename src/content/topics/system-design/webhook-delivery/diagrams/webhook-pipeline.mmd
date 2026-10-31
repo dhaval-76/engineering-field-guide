@@ -1,0 +1,10 @@
+flowchart TD
+  SVC[Payments / orders services] -- outbox --> EV{{Event stream}}
+  EV --> FAN[Fan-out<br/>match subscriptions per event type]
+  FAN --> DQ[(Delivery jobs<br/>per-endpoint queues)]
+  DQ --> W[Delivery workers<br/>sign · SSRF-safe egress · timeout 10 s]
+  W -- 2xx --> OK[(Delivery log)]
+  W -- error / timeout --> RS[Retry scheduler<br/>backoff + jitter, ~3 days]
+  RS --> DQ
+  RS -- exhausted --> DLQ[(Failed deliveries<br/>dashboard · replay)]
+  W --> CB[Per-endpoint health<br/>circuit breaker · auto-disable]

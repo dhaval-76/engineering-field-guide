@@ -80,7 +80,7 @@ Production concerns:
 
 ## Asynchronous APIs
 
-When the caller doesn't need the result now, or several services react to the same fact, publish an **event** ("OrderPlaced") to a broker ([Kafka vs RabbitMQ](../../system-design/kafka-vs-rabbitmq/)). For external consumers, **webhooks** push events over HTTP — signed, retried with backoff, idempotent on the receiver. Async APIs need schemas and versioning too (a schema registry), and consumers must tolerate duplicates and reordering.
+When the caller doesn't need the result now, or several services react to the same fact, publish an **event** ("OrderPlaced") to a broker ([Kafka vs RabbitMQ](../../system-design/kafka-vs-rabbitmq/)). For external consumers, **webhooks** push events over HTTP — signed, retried with backoff, idempotent on the receiver ([Webhook delivery](../../system-design/webhook-delivery/)). Async APIs need schemas and versioning too (a schema registry), and consumers must tolerate duplicates and reordering.
 
 ## Choosing
 

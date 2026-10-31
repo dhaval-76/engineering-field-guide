@@ -1,0 +1,94 @@
+---
+title: 'Design: Webhook Delivery'
+summary: Reliably pushing events to thousands of customer endpoints — fan-out, signed payloads, at-least-once delivery with backoff and jitter, per-endpoint isolation and circuit breakers, SSRF-safe egress, replay and idempotent receivers.
+track: system-design
+order: 105
+tags: [system-design, case-study, webhooks, messaging, reliability, security]
+aliases: [design webhooks, webhook delivery system, webhook service, stripe webhooks, github webhooks, event notifications to customers, webhook signature, hmac signature, webhook retries, exponential backoff, jitter, dead letter, webhook replay, ssrf, idempotent receiver, webhook id, svix]
+prerequisites: [architecture/saga-and-outbox, backend/idempotency]
+related: [system-design/notification-system, backend/api-styles, architecture/resilience-patterns, system-design/job-scheduler]
+quickRef:
+  points:
+    - 'Events → **fan-out** to subscribed endpoints → **one delivery job per (event, endpoint)** with its own retries.'
+    - '**Sign** `timestamp.body` with a per-endpoint secret (HMAC-SHA256); receivers verify raw bytes and reject stale timestamps.'
+    - '**At-least-once**: retry with exponential backoff + jitter for ~3 days; include an event id so receivers de-duplicate.'
+    - '**Isolate** endpoints: per-endpoint queues/concurrency, timeouts, circuit breakers, auto-disable after sustained failure.'
+    - '**SSRF-safe** egress (block private IPs, resolve-then-connect), delivery logs, and **replay** from a dashboard.'
+  useWhen: '"Design webhooks for a payments/SaaS platform", or any system that notifies external systems over HTTP.'
+lastReviewed: 2026-10-30
+---
+
+## Requirements
+
+**Functional**: customers register HTTPS endpoints and choose event types; every matching event is POSTed to each endpoint; customers can see delivery attempts, rotate secrets, and replay events.
+**Non-functional**: never lose an event; deliver within seconds normally; tolerate customer endpoints being slow or down for days; one bad endpoint must not delay others; secure (authentic payloads, no SSRF into our network).
+
+## Estimates
+
+| | |
+|---|---|
+| Events | 50 M/day ≈ 600/s average, ~3,000/s peak |
+| Fan-out | ~2 endpoints per event ⇒ ~6,000 deliveries/s at peak |
+| Concurrency | at 300 ms average response, ~1,800 requests in flight; slow endpoints (10 s timeouts) need per-endpoint caps so they can't occupy all workers |
+| Retry backlog | if 1% of endpoints are down for a day: ~1 M pending jobs — store them durably, not in memory |
+
+## High-level design
+
+<Diagram id="webhook-pipeline" caption="Events arrive through an outbox-fed stream, fan out into per-endpoint delivery jobs, and are sent by workers that sign, time out, retry with backoff, and eventually give up into a replayable failed list." />
+
+<Steps>
+
+1. **Capture events reliably** with the transactional outbox ([Sagas and outbox](../../architecture/saga-and-outbox/)) — an order committed always produces its event.
+2. **Fan out**: look up subscriptions by event type and tenant; create one delivery job per endpoint, stored durably (a jobs table or a queue with delayed delivery).
+3. **Deliver**: workers pick due jobs, POST with a short timeout, record the status code, latency and response snippet.
+4. **Retry**: on non-2xx or timeout, compute the next attempt with backoff + jitter; after the retry window, mark failed.
+5. **Observe and control**: delivery logs, per-endpoint success rate, a dashboard with replay, automatic disabling and customer alerts.
+
+</Steps>
+
+<Walkthrough id="webhook-retries" />
+
+## Signing and verification
+
+<CodeTabs id="webhook-signing" title="HMAC signatures with timestamps, constant-time verification, and the retry delay function" />
+
+- Sign `timestamp.rawBody` with a per-endpoint secret; send `Webhook-Signature: t=…,v1=…` and `Webhook-Id`.
+- Receivers verify over the **raw bytes** (re-serialised JSON differs), compare in constant time, and reject timestamps older than a few minutes to stop replays.
+- Support **secret rotation**: sign with both old and new secrets (`v1=…,v1=…`) during a grace period.
+
+<CodeTabs id="webhook-receiver" title="A receiver that verifies, de-duplicates by event id, and acknowledges quickly" />
+
+## Isolation and fairness
+
+- **Per-endpoint queues or concurrency limits** — a customer whose endpoint takes 10 s gets, say, 5 concurrent deliveries, not all workers.
+- **Circuit breaker per endpoint** — after repeated failures, pause deliveries and probe occasionally instead of hammering a dead server ([Resilience patterns](../../architecture/resilience-patterns/)).
+- **Fair scheduling across tenants** — round robin over tenants with due jobs so a burst from one doesn't starve others.
+
+## Ordering
+
+Ordering isn't guaranteed: retries and parallel workers reorder events. Include a creation timestamp and a per-object version or sequence so receivers can ignore older updates, or keep deliveries per (endpoint, object) sequential when ordering truly matters — at the cost of head-of-line blocking. Thin events ("order 42 changed — fetch it") sidestep ordering by making receivers read current state.
+
+## Security
+
+- **SSRF**: customer-supplied URLs could target internal services or cloud metadata. Resolve DNS, reject private, loopback and link-local ranges, connect to the resolved IP (no re-resolution), disallow redirects to internal addresses, and send from dedicated egress IPs customers can allow-list.
+- HTTPS only; no secrets in URLs; payload size limits; redact sensitive fields per event type.
+
+<Pitfalls>
+
+- **Sending webhooks inside the business transaction** — slow customers slow your API, and failures roll back orders.
+- **One shared queue for all endpoints** — one slow customer delays everyone.
+- **Retrying without jitter** — synchronized retry storms after an outage.
+- **No event id** — receivers can't de-duplicate at-least-once delivery.
+- **Following customer URLs to internal addresses** (SSRF).
+- **Silently dropping** after retries — customers need a failed list and replay.
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- Outbox → fan-out → one durable delivery job per endpoint, with backoff, jitter and a long retry window.
+- Sign timestamp + raw body; receivers verify and de-duplicate by event id.
+- Isolate endpoints with per-endpoint limits and circuit breakers; disable dead ones.
+- Guard egress against SSRF; give customers logs and replay.
+
+</KeyTakeaways>

@@ -1,0 +1,27 @@
+title: Delivering one event to a flaky endpoint
+frames:
+  - caption: '`payment.succeeded` evt_1 is created. Two customers subscribe to it, so two **delivery jobs** are enqueued — each with its own retries, so one slow customer never delays the other.'
+    panels:
+      - kind: rows
+        label: jobs
+        items: ['evt_1 → acme.example/hooks', 'evt_1 → shopco.example/webhooks']
+  - caption: 'The worker POSTs the JSON with headers `Webhook-Id: evt_1` and `Webhook-Signature: t=…,v1=…` and a 10 s timeout. Acme answers 200 → done. Shopco times out.'
+    panels:
+      - kind: kv
+        label: attempt 1
+        pairs: [[acme, { v: '200 OK', tone: ok }], [shopco, { v: 'timeout', tone: bad }]]
+  - caption: 'Shopco''s job is rescheduled with **exponential backoff + jitter**: ~30 s, 1 min, 2 min, … up to 6 h apart, for about three days. Jitter stops thousands of retries landing at the same second after an outage.'
+    panels:
+      - kind: rows
+        label: shopco attempts
+        items: [{ v: '#2 after ~25 s — 503', tone: bad }, { v: '#3 after ~50 s — 503', tone: bad }, { v: '#4 after ~2 min — 200', tone: ok }]
+  - caption: 'Shopco''s server had actually processed attempt 1 before timing out. Attempt 4 is a **duplicate** — the receiver de-duplicates by `Webhook-Id`. At-least-once delivery means receivers must be idempotent.'
+    panels:
+      - kind: rows
+        label: receiver inbox
+        items: ['evt_1 processed (attempt 1)', { v: 'evt_1 again → already seen, 200', tone: muted }]
+  - caption: 'If an endpoint keeps failing for days, retries stop, the event goes to a **failed** list the customer can inspect and replay, and the endpoint is disabled with an email — so dead URLs don''t consume capacity forever.'
+    panels:
+      - kind: rows
+        label: after ~3 days of failures
+        items: [{ v: 'mark failed, keep for replay', tone: warn }, 'disable endpoint, notify customer']

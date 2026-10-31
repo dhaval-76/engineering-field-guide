@@ -1,0 +1,37 @@
+questions:
+  - q: Design a webhook system for a payments platform that notifies merchants about payment events.
+    think: Reliability, isolation, security, and what the merchant sees.
+    answer: |
+      **Events**: payment services write events through a transactional outbox to a stream. **Fan-out**: a service matches each event to merchant endpoints subscribed to its type and inserts one delivery job per endpoint (durable table or delayed queue). **Delivery**: workers POST JSON with `Webhook-Id` and an HMAC signature over timestamp + raw body, 10 s timeout, from fixed egress IPs through an SSRF-safe client. **Retries**: exponential backoff with jitter for ~3 days, then mark failed; merchants can replay from a dashboard showing every attempt. **Isolation**: per-endpoint concurrency caps, circuit breakers, fair scheduling across merchants, automatic disabling after sustained failure with email alerts. **Receivers**: documented verification, de-duplication by event id, fast 2xx and async processing; events include versions so out-of-order arrivals can be ignored. **Scale**: partition jobs by endpoint; monitor delivery latency, success rate per endpoint and backlog.
+  - q: 'One merchant''s endpoint started taking 30 seconds to respond, and now all merchants receive webhooks late. Why, and how do you fix the design?'
+    think: Shared workers, head-of-line blocking.
+    answer: |
+      Workers are shared, so slow requests to that endpoint tie them up and the global queue backs up behind them. Fix: short timeouts (≈10 s), per-endpoint concurrency limits so one endpoint can only use a few workers, per-endpoint queues or fair scheduling so other endpoints' jobs keep flowing, and a circuit breaker that pauses deliveries to the struggling endpoint (moving its jobs to delayed retry) until probes succeed. Alert on per-endpoint latency.
+followUps:
+  - q: Why sign the timestamp as well as the body?
+    intuition: A valid old request can be replayed.
+    approach: |
+      Signing only the body proves authenticity, but an attacker who captured one request could resend it later. Including the timestamp in the signed content and rejecting requests outside a tolerance window (e.g. 5 minutes) prevents replay, while event-id de-duplication handles legitimate retries.
+  - q: Why add jitter to retries?
+    intuition: Synchronised retries are a self-made spike.
+    approach: |
+      After an outage, many failed deliveries share the same schedule; pure exponential backoff makes them all retry at the same instants, overwhelming the recovering endpoint (and your workers). Randomising each delay — e.g. between half and the full backoff — spreads retries out over time.
+  - q: How do you prevent SSRF through webhook URLs?
+    intuition: Customer-controlled destinations.
+    approach: |
+      Validate at registration and at send time: resolve the hostname, reject private (10/8, 172.16/12, 192.168/16), loopback, link-local (169.254/16, including cloud metadata) and IPv6 equivalents; connect to the vetted IP directly so DNS can't change in between; don't follow redirects (or re-validate each hop); send from an isolated network segment with egress rules.
+practice:
+  - task: Implement webhook signing and verification with timestamp tolerance, plus a jittered exponential backoff function.
+    hint: HMAC-SHA256 over "timestamp.body"; parse t= and v1=; constant-time compare.
+    solution: |
+      `signatureHeader(body, t, secret)` returns `t=<t>,v1=<hex HMAC of "t.body">`. `verify` parses the header, rejects missing parts or |now − t| beyond the tolerance, recomputes the HMAC over the raw body and compares in constant time. `nextDelaySeconds(attempt)` doubles a 30 s base per attempt up to a 6 h cap and returns a random value between half and the full delay.
+    solutionCode: webhook-signing
+quiz:
+  - q: What delivery guarantee do webhook systems usually provide?
+    options: [Exactly once, At most once, At least once, Ordered exactly once]
+    correct: 2
+    why: Retries after timeouts can duplicate deliveries; receivers de-duplicate by event id.
+  - q: Why must receivers verify the signature over the raw request body?
+    options: [It's faster, Parsing and re-serialising JSON can change bytes and break the signature, Raw bodies are encrypted, Frameworks require it]
+    correct: 1
+    why: Whitespace and key order changes produce different bytes and a different HMAC.
