@@ -56,6 +56,12 @@ const reviewed = data.lastReviewed.toLocaleDateString('en-GB', { month: 'short',
         {track.data.short}
       </span>
       <p class="summary">{data.summary}</p>
+      {/* Aliases are search terms only: indexed with a high weight, never shown. */}
+      {data.aliases?.length ? (
+        <p hidden data-pagefind-weight="7">
+          {data.aliases.join(', ')}
+        </p>
+      ) : null}
 
       <div class="meta" data-pagefind-ignore>
         <span>{minutes} min read</span>

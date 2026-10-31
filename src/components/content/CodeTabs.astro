@@ -12,6 +12,9 @@ const { id, title } = Astro.props;
 const variants = await Promise.all(
   getSnippet(id).map(async (v) => ({ ...v, html: await highlight(v.code, v.lang) })),
 );
+// Line-number gutter wide enough for the longest variant (2 digits minimum, so tabs don't jump).
+const lines = Math.max(...variants.map((v) => v.code.replace(/\n$/, '').split('\n').length));
+const gutter = `--ln-w:${Math.max(2, String(lines).length)}ch`;
 const uid = `code-${id}`;
 ---
 
@@ -20,6 +23,7 @@ const uid = `code-${id}`;
   data-code-tabs
   data-copy-scope
   data-langs={variants.map((v) => v.tab).join(',')}
+  style={gutter}
 >
   <div class="bar">
     {title && <figcaption class="title">{title}</figcaption>}

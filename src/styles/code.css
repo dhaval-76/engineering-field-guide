@@ -58,3 +58,44 @@ pre.astro-code {
     color: var(--shiki-dark);
   }
 }
+
+/* Line numbers in code tabs: CSS counters, so copy (innerText) and selection never include them. */
+.code-tabs pre.shiki {
+  --ln-gap: 16px;
+  padding-left: 0;
+}
+.code-tabs pre.shiki code {
+  counter-reset: ln;
+}
+.code-tabs pre.shiki .line::before {
+  counter-increment: ln;
+  content: counter(ln);
+  content: counter(ln) / '';
+  display: inline-block;
+  box-sizing: content-box;
+  width: var(--ln-w, 2ch);
+  padding: 0 1.5ch 0 var(--ln-gap);
+  text-align: right;
+  /* mixed rather than opacity, so the background still hides code scrolled underneath */
+  color: color-mix(in srgb, var(--ink-3) 75%, var(--code-bg));
+  user-select: none;
+  /* stays in view when a long line is scrolled sideways */
+  position: sticky;
+  left: 0;
+  background: var(--code-bg);
+}
+/* Wrap mode: the number sits in the gutter of the line's first row; continuation rows keep the hanging indent. */
+:root[data-wrap='on'] .code-tabs pre.shiki .line {
+  position: relative;
+  --hang: min(calc(var(--i, 0ch) + 4ch), 12ch);
+  padding-left: calc(var(--ln-gap) + var(--ln-w, 2ch) + 1.5ch + var(--hang));
+  text-indent: calc(-1 * var(--hang));
+  /* a blank line still needs its height, or its number overlaps the next one */
+  min-height: 1lh;
+}
+:root[data-wrap='on'] .code-tabs pre.shiki .line::before {
+  position: absolute;
+  top: 0;
+  left: 0;
+  text-indent: 0;
+}
