@@ -42,10 +42,29 @@ Counting the ways to climb a 10-step staircase taking 1 or 2 steps at a time. Th
 
 ## Recognise it
 
+<Callout type="spot">
+
+**Wording clues**
+
 - "**How many ways**…", "**minimum/maximum**…", "**is it possible**…" over a sequence, string, grid or budget.
-- A <Term id="backtracking">backtracking</Term> solution would reach the **same state by different paths** (same index and same remaining amount).
 - Each step is a small choice: take/skip, which coin, match/insert/delete, which split point.
-- **Two properties** make DP valid: *optimal substructure* (the best answer is built from best answers to subproblems) and *overlapping subproblems* (the same subproblems recur). Without overlap, plain recursion or divide and conquer is enough.
+- A <Term id="backtracking">backtracking</Term> solution would reach the **same state by different paths** (same index, same remaining amount).
+- "Longest increasing / common subsequence", "edit distance", "partition into equal sums".
+
+**Constraint clues**
+
+- "Answer modulo 10⁹ + 7" → counting ways; the count is too large for anything but DP or combinatorics.
+- Two strings of length ≤ ~5,000 → an O(n · m) table is intended.
+- A budget or target up to ~10⁴ (amount, capacity) → it can be a dimension of the table.
+- n ≤ 20 with "choose a subset" → bitmask DP over 2ⁿ states.
+
+**Looks like it, but isn't**
+
+- No subproblem ever repeats (each branch sees different data) → plain recursion or divide and conquer.
+- A local choice is provably safe → [greedy](../greedy/) is simpler and faster.
+- "List every solution" → [backtracking](../backtracking/); DP counts them but doesn't list them cheaply.
+
+</Callout>
 
 ## The recipe
 
@@ -81,6 +100,8 @@ The state must capture **everything the future depends on** — and nothing more
 
 **Problem.** Fewest coins to make an amount, each coin usable any number of times; also the number of ways.
 
+<Clues>"**fewest** coins" / "**how many ways**" + each coin reusable → 1-D DP over amounts. Greedy fails for coins like 1, 3, 4.</Clues>
+
 **Insight.** `dp[a]` = fewest coins for amount `a` = `1 + min(dp[a − c])` over coins `c ≤ a`. For **counting combinations** (order doesn't matter), loop over coins on the **outside** so each combination is built in one order only; with amounts outside you'd count permutations.
 
 <Walkthrough id="coin-change-table" />
@@ -91,6 +112,8 @@ The state must capture **everything the future depends on** — and nothing more
 
 **Problem.** Items with weights and values, each usable **at most once**; maximise value within a capacity. Variants: can a subset reach an exact sum? Can the array be split into two equal halves?
 
+<Clues>each item used **at most once** + a capacity or target sum → DP over capacity, iterating capacities downward.</Clues>
+
 **Insight.** For each item: skip it (`best[c]` unchanged) or take it once (`best[c − w] + v`). With a single 1-D array, iterate capacity **downward**: then `best[c − w]` still holds the value *before* this item was considered, so the item can't be taken twice. Iterating upward turns it into the unbounded version. Partition equal subset sum is the same loop with booleans: is `total / 2` reachable?
 
 <CodeTabs id="dsa-knapsack" title="0/1 knapsack and partition equal subset sum — capacity downward" />
@@ -99,11 +122,15 @@ The running time O(n · capacity) is **pseudo-polynomial**: fine for capacities 
 
 ## Longest increasing subsequence
 
+<Clues>"**subsequence**" (elements may be skipped) + "longest increasing" → DP ending at each index, or tails plus binary search for O(n log n).</Clues>
+
 **Insight.** `dp[i]` = length of the LIS **ending at** i = 1 + the best `dp[j]` over `j < i` with `nums[j] < nums[i]` → O(n²). The faster method keeps, for every length, the **smallest possible tail** of an increasing subsequence of that length; those tails are sorted, so each number binary-searches its place → O(n log n).
 
 <CodeTabs id="dsa-lis" title="Longest increasing subsequence — O(n²) DP and O(n log n) with binary search" />
 
 ## Two strings: LCS and edit distance
+
+<Clues>**two strings** + match/insert/delete choices + lengths ≤ ~1,000s → a 2-D table over prefixes.</Clues>
 
 **Insight.** `dp[i][j]` describes the prefixes `a[0..i)` and `b[0..j)`. If the last characters match, extend the diagonal `dp[i−1][j−1]`; otherwise take the best of dropping a character from either side — and, for edit distance, replacing one (`dp[i−1][j−1] + 1`). Row 0 and column 0 are the base cases (turning a prefix into the empty string).
 
@@ -113,6 +140,8 @@ The running time O(n · capacity) is **pseudo-polynomial**: fine for capacities 
 
 **Problem.** Can `"leetcode"` be split into dictionary words `[leet, code]`?
 
+<Clues>"can the string be **split** into dictionary words?" → `dp[i]` = the first i characters can be split.</Clues>
+
 **Insight.** `ok[i]` = "the first i characters can be split". It's true if some dictionary word ends exactly at i and the text before it can be split: `ok[i] = any(ok[j] and s[j..i) is a word)`. Only `j` within the longest word length of i needs checking.
 
 <CodeTabs id="dsa-word-break" title="Word break — can each prefix be split?" />
@@ -120,6 +149,8 @@ The running time O(n · capacity) is **pseudo-polynomial**: fine for capacities 
 ## Grid DP
 
 **Problem.** The cheapest path from the top-left to the bottom-right of a grid, moving only right or down.
+
+<Clues>"cheapest path" moving only **right or down** (no cycles) → each cell from its top and left neighbours.</Clues>
 
 **Insight.** A cell can only be entered from above or from the left, so `dp[r][c] = grid[r][c] + min(dp[r−1][c], dp[r][c−1])`. Each row only reads the row above, so one row of memory is enough. (If moves can go in all four directions, the grid has cycles and it becomes a shortest-path problem — [Dijkstra](../shortest-paths/).)
 

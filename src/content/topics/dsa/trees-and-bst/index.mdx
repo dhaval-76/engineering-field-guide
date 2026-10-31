@@ -32,11 +32,27 @@ A company asking "how many people work under each manager?" Every manager asks t
 
 ## Recognise it
 
-- Input is a tree, or a hierarchy (org charts, file systems, expression trees, nested JSON).
-- The answer for a node depends on its children's answers (height, size, sums, diameter) → **post-order recursion**.
+<Callout type="spot">
+
+**Wording clues**
+
+- A tree or a hierarchy (org charts, file systems, expression trees, nested JSON).
+- The answer for a node depends on its children (height, size, sums, diameter) → **post-order** recursion.
 - The answer depends on the path from the root (path sums, depth limits, BST bounds) → **pass state down** (pre-order).
 - "By level", "right side view", "minimum depth", "closest" → **<Term id="bfs">BFS</Term>** with a queue.
-- Sorted order, k-th smallest, range queries, predecessor/successor → **BST** properties.
+- Sorted order, k-th smallest, range queries, predecessor/successor → **BST** properties (in-order traversal is sorted).
+
+**Constraint clues**
+
+- n up to 10⁴–10⁵ nodes → visit each node once, O(n); a skewed tree can be 10⁵ deep, so recursion depth matters in Java and Python.
+- "Height is O(log n)" or "balanced" → operations from root to leaf are cheap.
+
+**Looks like it, but isn't**
+
+- Nodes can have **several parents** or cycles → a graph, not a tree: track visited nodes ([Graphs](../graphs-bfs-dfs/)).
+- Prefix lookups on strings → a trie ([Designing data structures](../design-data-structures/)), not a BST.
+
+</Callout>
 
 <CodeTabs id="dsa-tree-node" title="The tree node used in these examples" />
 
@@ -68,6 +84,8 @@ Recursion uses O(h) stack — fine for balanced trees (h ≈ log n), dangerous f
 
 ## Information flowing up: depth and diameter
 
+<Clues>a node's answer comes from its **children's** answers (heights) → post-order recursion that returns a value.</Clues>
+
 **Insight.** The longest path between any two nodes (the diameter) bends at some node, where its length is `height(left) + height(right)`. A single post-order pass returns heights and records the best bend. Computing the height separately at each node would be O(n²).
 
 <CodeTabs id="dsa-tree-depth-diameter" title="Max depth and diameter — post-order in one pass" />
@@ -75,6 +93,8 @@ Recursion uses O(h) stack — fine for balanced trees (h ≈ log n), dangerous f
 ### Binary tree maximum path sum
 
 **Problem.** The largest sum along any path (any start and end, values may be negative). `[-10,9,20,null,null,15,7]` → 42 (`15 → 20 → 7`).
+
+<Clues>a path can **bend** at any node + negative values → post-order: return the best downward path, record the best bend.</Clues>
 
 **Insight.** The same shape as diameter, with sums instead of lengths. The function returns the best path that **starts at this node and goes down one side** — that's the only kind a parent can extend. At the same node, the best path that **bends here** is `left + node + right`; record it globally. Drop a child's contribution when it's negative (`max(0, …)`): a path doesn't have to include it.
 
@@ -92,6 +112,8 @@ A **<Term id="binary-search">binary search</Term> tree** keeps every key in a no
 
 ## Lowest common ancestor
 
+<Clues>"lowest node that has **both** p and q below it" → recurse into both sides; in a BST, follow the values.</Clues>
+
 **Insight.** In a general binary tree, recurse into both children. If both return a non-null node, `p` and `q` are on different sides, so the current node is their LCA; otherwise pass up whichever side found something. In a **BST**, values tell you where to go: if both are smaller, go left; both larger, go right; otherwise you're at the split point — O(h).
 
 <CodeTabs id="dsa-lca" title="Lowest common ancestor — general tree and BST" />
@@ -99,6 +121,8 @@ A **<Term id="binary-search">binary search</Term> tree** keeps every key in a no
 ## Serialising a tree
 
 **Problem.** Turn a tree into a string and back, exactly.
+
+<Clues>rebuild the **exact** shape → a pre-order traversal that writes a marker for every null child.</Clues>
 
 **Insight.** A pre-order traversal alone is ambiguous — `1,2` could be 2 as a left or a right child. Writing a marker (`#`) for every **null** child makes the shape explicit, so a single pre-order pass is enough to rebuild it: read a value, then build its left subtree from the following tokens, then its right.
 

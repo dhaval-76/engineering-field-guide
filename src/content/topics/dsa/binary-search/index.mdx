@@ -44,10 +44,27 @@ Guessing a number between 1 and 1,000 with "higher/lower" hints. Always guess th
 
 ## Recognise it
 
-- The input is **sorted** (or sorted then rotated) and you need a position, the first/last occurrence, or an insertion point.
-- "Find the **minimum** X such that something is possible" or "the **maximum** X such that…" — and feasibility is **monotone** in X (if X works, every bigger X works).
-- A huge range (up to 10⁹ or 10¹⁸) but a cheap check for a single candidate → binary search over the value range.
-- A local property tells you which side must contain an answer (peak finding), even without full sortedness.
+<Callout type="spot">
+
+**Wording clues**
+
+- The input is **sorted** (or sorted then rotated): a position, first/last occurrence, insertion point.
+- "Find the **minimum** X such that…" or "the **maximum** X such that…", where feasibility is **monotone** in X (if X works, every bigger X works).
+- "Minimise the maximum" or "maximise the minimum" (split an array, ship in D days, eat in H hours).
+- A local property tells you which side must contain the answer (peak finding).
+
+**Constraint clues**
+
+- Values or answers up to 10⁹–10¹⁸ → you can't try them all, but log₂(10¹⁸) ≈ 60 checks is nothing.
+- n up to 10⁵ with a feasibility check that costs O(n) → O(n log range) total.
+- "Must run in O(log n)" → binary search, almost always.
+
+**Looks like it, but isn't**
+
+- Feasibility that is **not monotone** (works for 5, fails for 6, works for 7) → binary search gives wrong answers.
+- An unsorted array with a single lookup → sorting costs O(n log n); a linear scan or a hash set is cheaper.
+
+</Callout>
 
 ## The one template to remember
 
@@ -71,6 +88,8 @@ Think of every binary search as finding the **first index where a predicate beco
 
 **Problem.** A sorted array was rotated at an unknown point, e.g. `[4,5,6,7,0,1,2]`. Find a target in O(log n).
 
+<Clues>"**sorted**, then rotated" + "in **O(log n)**" → binary search; one half around `mid` is always sorted.</Clues>
+
 **Insight.** Cut at any `mid` and **one half is still sorted** — compare `nums[lo]` with `nums[mid]` to see which. If the target lies inside the sorted half's range, search there; otherwise it must be in the other half.
 
 | lo..hi | mid (value) | sorted half | target 0 is… | next |
@@ -85,6 +104,8 @@ Think of every binary search as finding the **first index where a predicate beco
 
 ### Find the minimum in a rotated sorted array
 
+<Clues>**rotated sorted** + "minimum" → binary search for the first index where `nums[i] ≤ nums[last]`.</Clues>
+
 **Insight.** Compare `nums[mid]` with `nums[hi]`. If `nums[mid] > nums[hi]`, the drop (and so the minimum) is right of `mid`; otherwise the minimum is at `mid` or to its left. That's the first-true template with the predicate `nums[i] ≤ nums[last]`.
 
 <CodeTabs id="dsa-rotated-min" title="Minimum of a rotated array — first index where nums[i] ≤ nums[last]" />
@@ -93,6 +114,8 @@ Think of every binary search as finding the **first index where a predicate beco
 
 **Problem.** Return any index whose value is larger than its neighbours (outside the array counts as −∞). `[1,2,1,3,5,6,4]` → 5 (or 1).
 
+<Clues>"return **any** peak" + O(log n) → binary search moving toward the larger neighbour, which must lead to a peak.</Clues>
+
 **Insight.** The array is **not sorted**, yet binary search works: if `nums[mid] < nums[mid + 1]` you are walking uphill, and following the slope to the right must reach a peak (either the values turn down, or the array ends — and the end counts as a peak). So discard the left half. Binary search needs a rule that tells you which half certainly contains *an* answer, not full sortedness.
 
 <CodeTabs id="dsa-find-peak" title="Find a peak — follow the uphill side" />
@@ -100,6 +123,8 @@ Think of every binary search as finding the **first index where a predicate beco
 ### Binary search on the answer: shipping capacity
 
 **Problem.** Packages must ship in order within D days; find the smallest ship capacity. weights `[1..10]`, D = 5 → 15.
+
+<Clues>"**smallest** capacity such that…" + bigger capacities always work (monotone) → binary search on the answer with an O(n) check.</Clues>
 
 **Insight.** We are not searching the array — we search the **capacity**. "Can we ship within D days at capacity C?" is monotone: if C works, C + 1 works. The smallest sensible C is the heaviest package (it must fit); the largest is the sum (everything in one day). Each guess is checked greedily in O(n) — fill a day until the next package doesn't fit.
 
@@ -110,6 +135,8 @@ Think of every binary search as finding the **first index where a predicate beco
 ### Median of two sorted arrays
 
 **Problem.** The median of two sorted arrays in O(log(min(m, n))). `[1,3]` and `[2]` → 2.
+
+<Clues>**two sorted** arrays + "O(log(min(m, n)))" → binary search on the split point of the shorter array.</Clues>
 
 **Insight.** The median splits the combined data into a left half and a right half where every left value ≤ every right value. Choose how many elements `i` come from the shorter array; then `j = half − i` come from the other. The split is valid when `a[i−1] ≤ b[j]` and `b[j−1] ≤ a[i]`. If `a[i−1] > b[j]`, we took too many from `a` (move left); otherwise too few (move right). The median is then the largest left value (odd total) or the average of the largest left and smallest right (even).
 

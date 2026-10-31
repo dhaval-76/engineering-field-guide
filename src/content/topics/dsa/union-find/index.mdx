@@ -31,11 +31,28 @@ Clubs merging. Every member knows who their club's president is — directly, or
 
 ## Recognise it
 
+<Callout type="spot">
+
+**Wording clues**
+
 - "Are x and y connected?" asked many times while connections keep being **added**.
 - Count **groups/components** after a list of merges (provinces, accounts with shared emails, islands added over time).
 - Find the edge that creates a **cycle** in an undirected graph ("redundant connection", "is this a valid tree?").
 - Build a **minimum spanning tree** (Kruskal).
-- Things that are "equal" by transitivity (`a == b`, `b == c` ⇒ `a == c`) — equations, synonyms.
+- Things "equal" by transitivity (`a == b`, `b == c` ⇒ `a == c`): equations, synonyms.
+
+**Constraint clues**
+
+- Up to 10⁵ merges and queries mixed together → near O(1) each; rerunning BFS after each merge would be O(n) per query.
+- Elements given as strings or emails → map each to an integer id first.
+
+**Looks like it, but isn't**
+
+- Connections are **removed** as well as added → plain union-find can't split groups; process in reverse or use another structure.
+- You need the **path** or its length → BFS/DFS; union-find only knows "same group".
+- **Directed** dependencies → [topological sort](../topological-sort/).
+
+</Callout>
 
 ## The structure
 
@@ -76,6 +93,8 @@ Measured on one million elements, linking them into a single group in the worst 
 
 **Problem.** A tree on n nodes had one extra edge added. Return that edge.
 
+<Clues>**undirected** + "the edge that creates a **cycle**" → union-find: the first edge whose ends are already joined.</Clues>
+
 **Insight.** Add edges one at a time with `union`. The first edge whose endpoints are **already connected** (`union` returns false) closes a cycle — it's the extra one.
 
 <CodeTabs id="dsa-redundant-connection" title="Redundant connection — the first edge that closes a cycle" />
@@ -83,6 +102,8 @@ Measured on one million elements, linking them into a single group in the worst 
 ### Accounts merge
 
 **Problem.** Each account is a name with emails; accounts sharing any email belong to the same person. Merge them.
+
+<Clues>"**shares any** email ⇒ same person" (transitive) → union-find over emails.</Clues>
 
 **Insight.** Treat each email as an element. Within an account, union every email with the account's first email. Then group emails by their root and attach the owner's name. Using union-find avoids building an explicit graph and is near-linear in the total number of emails (plus sorting each group's output).
 
@@ -92,6 +113,8 @@ Measured on one million elements, linking them into a single group in the worst 
 
 **Problem.** Cells of a water grid turn into land one at a time; after each addition, report the number of islands.
 
+<Clues>land is **added** one cell at a time + "count after **each** step" → union-find with a running component count.</Clues>
+
 **Insight.** Re-running a flood fill after every addition costs O(rows × cols) each time. With union-find, a new land cell is a new island (+1); then union it with each land neighbour, and every **successful** union merges two islands (−1). Each addition is near O(1). This is the problem where union-find clearly beats BFS: connectivity that grows **online**.
 
 <CodeTabs id="dsa-islands-online" title="Islands added over time — union with land neighbours" />
@@ -99,6 +122,8 @@ Measured on one million elements, linking them into a single group in the worst 
 ### Minimum spanning tree (Kruskal)
 
 **Problem.** Connect all points with the minimum total edge cost.
+
+<Clues>"connect **all** points with the **minimum** total cost" → sort edges, add each one that joins two different groups.</Clues>
 
 **Insight.** Sort all edges by weight and take each one that joins two **different** sets (a cheaper edge that would create a cycle is never needed). Stop after n − 1 edges. Union-find makes the "different sets?" check near O(1), so sorting dominates: O(E log E). (Prim's algorithm, a heap-based alternative, is better for dense graphs.)
 

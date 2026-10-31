@@ -31,14 +31,32 @@ A stack of plates: you only ever take the top one. A monotonic stack is a line o
 
 ## Recognise it
 
-- **Nesting and matching**: brackets, HTML tags, nested encodings (`3[a2[c]]`), function calls → plain stack.
-- **Expression evaluation**: postfix (RPN) directly; infix with an operator stack (shunting-yard) → stack.
-- "For each element, the **next/previous greater or smaller**" — temperatures, stock spans, "how far can this bar extend?" → monotonic stack.
-- **Iterative DFS** or undo/redo history → stack.
+<Callout type="spot">
+
+**Wording clues**
+
+- **Nesting and matching**: brackets, tags, nested encodings (`3[a2[c]]`) → a plain stack.
+- **Expression evaluation**: postfix (RPN) directly; infix with an operator stack.
+- "For each element, the **next/previous greater or smaller**": temperatures, stock spans, "how far can this bar extend?" → a monotonic stack.
+- **Undo/redo**, backtracking by hand, iterative DFS → a stack.
+
+**Constraint clues**
+
+- n up to 10⁵ and the brute force scans right from every element (O(n²)) → a monotonic stack makes it O(n).
+- A "min/max in O(1) alongside push and pop" requirement → a stack that stores the running minimum.
+
+**Looks like it, but isn't**
+
+- Max or min over a **sliding window** of fixed size → a monotonic **deque** ([Sliding window](../sliding-window/)), because old elements leave from the front.
+- "k-th largest" or "top k" → a [heap](../heaps-and-top-k/), not a stack.
+
+</Callout>
 
 ## Plain stack problems
 
 ### Valid parentheses
+
+<Clues>**matching** pairs where the most recent opener must close first → a stack.</Clues>
 
 **Insight.** Every closer must match the **most recent unmatched** opener — precisely the top of the stack. Push openers; on a closer, pop and compare. At the end the stack must be empty (no unclosed openers).
 
@@ -48,6 +66,8 @@ A stack of plates: you only ever take the top one. A monotonic stack is a line o
 
 **Problem.** A stack with `push`, `pop`, `top` and `getMin`, all O(1).
 
+<Clues>"getMin in **O(1)**" alongside push/pop → store the running minimum with each element.</Clues>
+
 **Insight.** Store with each entry the minimum of that entry and everything below it. Popping removes the entry and its minimum together, so the minimum of what remains is still right there — no need to search.
 
 <CodeTabs id="dsa-min-stack" title="Min stack — O(1) push, pop and getMin" />
@@ -56,6 +76,8 @@ A stack of plates: you only ever take the top one. A monotonic stack is a line o
 
 **Problem.** `"3[a2[c]]"` → `"accaccacc"`.
 
+<Clues>**nested** brackets (`3[a2[c]]`) → a stack of (count, partial string), or recursion.</Clues>
+
 **Insight.** Brackets nest, so each `[` starts a new level and each `]` ends the most recent one — a stack of levels. At `[`, save the text built so far and the repeat count, then start fresh; at `]`, repeat the inner text and append it to the saved outer text.
 
 <CodeTabs id="dsa-decode-string" title="Decode string — a stack of (text before, count)" />
@@ -63,6 +85,8 @@ A stack of plates: you only ever take the top one. A monotonic stack is a line o
 ### Evaluate reverse Polish notation
 
 **Problem.** `["2","1","+","3","*"]` → 9, i.e. `(2 + 1) × 3`.
+
+<Clues>**postfix** expression → push numbers, pop two on each operator.</Clues>
 
 **Insight.** In postfix notation every operator applies to the two most recent results — the top two stack entries. Push numbers; on an operator pop `b` then `a`, push `a op b`. No parentheses or precedence rules are needed, which is why compilers and virtual machines (the JVM's bytecode is stack-based) evaluate expressions this way. To evaluate ordinary infix input, convert it to postfix first with <Term id="dijkstra">Dijkstra</Term>'s shunting-yard algorithm — itself a stack of operators.
 
@@ -76,6 +100,8 @@ A stack of plates: you only ever take the top one. A monotonic stack is a line o
 
 **Problem.** For each day, how many days until a warmer one? `[73,74,75,71,69,72,76,73]` → `[1,1,4,2,1,1,0,0]`.
 
+<Clues>"days until a **warmer** day" is "**next greater** element" + n ≤ 10⁵ → monotonic decreasing stack of indices.</Clues>
+
 **Insight.** Keep the indices of days still waiting for a warmer day. Their temperatures are **decreasing** from bottom to top (a warmer day would already have resolved a colder one below it). When today is warmer than the top, the top's wait is over: answer `today − top`, pop, and repeat. Then push today.
 
 <CodeTabs id="dsa-daily-temperatures" title="Daily temperatures — next warmer day with a decreasing stack" />
@@ -85,6 +111,8 @@ A stack of plates: you only ever take the top one. A monotonic stack is a line o
 ### Largest rectangle in a histogram
 
 **Problem.** The largest rectangle under a histogram. `[2,1,5,6,2,3]` → 10.
+
+<Clues>"how far can each bar **extend**?" is "previous and next **smaller** bar" → monotonic increasing stack.</Clues>
 
 **Insight.** The best rectangle that uses bar `i` at full height extends left and right until the nearest **shorter** bar on each side. An **increasing** stack finds both: when a shorter bar arrives at index `i`, the popped bar's right boundary is `i`, and its left boundary is whatever is now on top of the stack. A sentinel height 0 at the end flushes every remaining bar.
 

@@ -31,9 +31,24 @@ A treasure hunt where each clue tells you where the next one is. You can't jump 
 
 ## Recognise it
 
-- The input is a linked list, or a sequence defined by "next" pointers (including functional graphs like `i → nums[i]`, as in "find the duplicate number").
-- O(1) extra space is required where an array copy would be easy.
-- The question mentions the middle, a cycle, the kth node from the end, merging, or reversing a section.
+<Callout type="spot">
+
+**Wording clues**
+
+- The input is a linked list, or a sequence defined by "next" pointers (including `i → nums[i]`, as in "find the duplicate number").
+- The middle, a cycle, the k-th node from the end, merging, reversing a section, reordering.
+
+**Constraint clues**
+
+- "O(1) extra space" where copying to an array would be easy → pointer manipulation (fast/slow, in-place reversal).
+- "Do not modify the values, only the links" → rewire `next` pointers.
+
+**Looks like it, but isn't**
+
+- Random access by index is needed often → an array or a deque; walking a list is O(n) per access.
+- An LRU cache → a linked list **plus** a hash map ([Designing data structures](../design-data-structures/)), not a list alone.
+
+</Callout>
 
 <CodeTabs id="dsa-list-node" title="The node type used in these examples" />
 
@@ -70,6 +85,8 @@ The same algorithm finds the duplicate in an array of n + 1 values in `[1, n]` w
 
 ### Merge two sorted lists
 
+<Clues>**two sorted** lists + merge → a dummy head and a tail pointer.</Clues>
+
 **Insight.** A dummy head plus a `tail` pointer: repeatedly attach the smaller head and advance. When one list runs out, attach the rest of the other in one step.
 
 <CodeTabs id="dsa-merge-two-lists" title="Merge two sorted lists — dummy head" />
@@ -77,6 +94,8 @@ The same algorithm finds the duplicate in an array of n + 1 values in `[1, n]` w
 Merging **k** sorted lists uses a <Term id="heap">min-heap</Term> of the current heads — O(N log k) for N total nodes ([Heaps](../heaps-and-top-k/)).
 
 ### Remove the nth node from the end
+
+<Clues>"n-th **from the end**" + one pass → two pointers n + 1 apart, from a dummy head.</Clues>
 
 **Insight.** Start `lead` n + 1 nodes ahead of `trail` (both from a dummy). Move both until `lead` falls off the end; `trail` is then just before the node to remove. One pass, and the dummy handles removing the head itself.
 
@@ -88,6 +107,8 @@ Merging **k** sorted lists uses a <Term id="heap">min-heap</Term> of the current
 
 **Problem.** Rearrange `L0 → L1 → … → Ln` into `L0 → Ln → L1 → Ln−1 → …`, in place. `[1,2,3,4,5]` → `[1,5,2,4,3]`.
 
+<Clues>"first, last, second, second-last…" + **in place** → find the middle (fast/slow), reverse the second half, merge.</Clues>
+
 **Insight.** Three techniques in sequence: **fast/slow** to find the middle, **reverse** the second half (`[4,5]` → `[5,4]`), then **weave** the two halves together one node at a time. Each step is O(n) with O(1) space; using an array of nodes would be simpler but O(n) space — say both and let the interviewer choose.
 
 <CodeTabs id="dsa-reorder-list" title="Reorder list — middle, reverse, weave" />
@@ -97,6 +118,8 @@ The same middle-and-reverse combination checks whether a list is a **palindrome*
 ### Add two numbers
 
 **Problem.** Two numbers are stored as lists of digits, ones digit first. Return their sum as a list. `[2,4,3] + [5,6,4]` (342 + 465) → `[7,0,8]` (807).
+
+<Clues>digits stored **ones first** → add digit by digit with a carry, like on paper, building the result behind a dummy head.</Clues>
 
 **Insight.** It's grade-school addition: walk both lists together with a carry. The loop continues while **either** list has nodes **or** a carry remains, which handles different lengths and a final carry (`999 + 1`) without special cases. Because nothing is converted to an integer, numbers of any length work — no overflow.
 

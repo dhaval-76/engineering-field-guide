@@ -31,11 +31,28 @@ A hospital emergency room: patients don't leave in arrival order but by urgency.
 
 ## Recognise it
 
+<Callout type="spot">
+
+**Wording clues**
+
 - "**K** largest / smallest / most frequent / closest" → a size-K heap (or quickselect).
-- Repeatedly take the **next earliest / cheapest** item while adding new ones → a priority queue (scheduling, simulations, Dijkstra).
-- **Merge sorted** streams or lists → a heap of the current head of each.
+- Repeatedly take the **next earliest / cheapest** item while new ones arrive → a priority queue (scheduling, simulations, Dijkstra).
+- **Merge sorted** lists or streams → a heap of the current head of each.
 - **Median or percentile of a stream** → two heaps.
 - "How many resources are busy at once?" (rooms, servers, CPUs) → a heap of end times.
+
+**Constraint clues**
+
+- k much smaller than n (k ≤ 100, n ≤ 10⁶) → a size-k heap, O(n log k), instead of sorting everything.
+- A **stream** or "data arrives over time" → a heap keeps the answer up to date; sorting would redo work.
+
+**Looks like it, but isn't**
+
+- Only one extreme value (the max) → a single pass, no heap.
+- You need the k-th element **once** and may reorder the array → quickselect averages O(n).
+- Max of each **sliding window** → a monotonic deque is O(n), better than a heap's O(n log n).
+
+</Callout>
 
 ## How a binary heap works
 
@@ -54,11 +71,15 @@ A binary heap is a **complete binary tree stored in an array** — no pointers. 
 
 ### Kth largest element / top-K
 
+<Clues>"**k-th largest**" / "top k" + k ≪ n → a min-heap of size k.</Clues>
+
 **Insight.** Keep a **min-heap of the K largest values seen so far**. Its root is the smallest of them — the Kth largest. Each new value larger than the root replaces it; smaller values are ignored after one comparison. O(n log K) time and only O(K) memory, so it works on a stream that doesn't fit in memory.
 
 <CodeTabs id="dsa-top-k" title="Kth largest and top-K frequent — size-K heaps" />
 
 ### Quickselect
+
+<Clues>the k-th element **once**, reordering allowed → quickselect, O(n) on average.</Clues>
 
 **Insight.** When all the data is in an array and you only need the Kth value, partition around a pivot as quicksort does: after one partition the pivot sits at its final sorted position. If that position is the target, done; otherwise continue in **one** side only. Expected work is n + n/2 + n/4 + … ≈ 2n: **O(n) on average**. A random pivot makes the O(n²) worst case vanishingly unlikely. It rearranges the array and doesn't return the top K in order.
 
@@ -80,6 +101,8 @@ How the options compare on 10 million random integers with K = 100 (JDK 22, medi
 
 ### Merge K sorted lists
 
+<Clues>**k sorted** lists + merge → a min-heap of the k current heads.</Clues>
+
 **Insight.** The next smallest element overall is the smallest of the K current heads. Keep those heads in a min-heap: pop the smallest, append it to the result, and push its successor. O(N log K) for N total elements — the same algorithm merges sorted runs in an external sort and merges SSTables in LSM databases.
 
 <CodeTabs id="dsa-merge-k-lists" title="Merge K sorted lists — heap of current heads" />
@@ -88,6 +111,8 @@ How the options compare on 10 million random integers with K = 100 (JDK 22, medi
 
 **Problem.** The minimum number of rooms so that overlapping meetings never share one. `[[0,30],[5,10],[15,20]]` → 2.
 
+<Clues>"how many **at the same time**?" over intervals → sort by start, min-heap of end times.</Clues>
+
 **Insight.** Process meetings by start time and keep a min-heap of **end times of rooms in use**. If the earliest-ending room is free by the time the next meeting starts, reuse it (pop); then push the new meeting's end. The heap's size is the number of rooms in use at once. (Without a heap, sorting the starts and the ends separately and sweeping gives the same count — the second function below. More interval techniques are in [Intervals](../intervals/).)
 
 <CodeTabs id="dsa-meeting-rooms" title="Meeting rooms — a heap of end times, and a sweep line" />
@@ -95,6 +120,8 @@ How the options compare on 10 million random integers with K = 100 (JDK 22, medi
 The same shape answers "how many servers are needed for these jobs?", "maximum concurrent calls" and "minimum platforms at a station".
 
 ### Find the median of a data stream
+
+<Clues>**median** + numbers keep **arriving** → two heaps (a max-heap of the lower half, a min-heap of the upper half).</Clues>
 
 **Insight.** Split the numbers into a lower half in a **max-heap** and an upper half in a **min-heap**, keeping sizes within one of each other. Every value in the lower half is ≤ every value in the upper half, so the median is the top of the larger heap, or the average of both tops. Each insert is O(log n); reading the median is O(1).
 

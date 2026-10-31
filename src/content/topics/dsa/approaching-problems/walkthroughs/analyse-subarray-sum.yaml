@@ -1,0 +1,37 @@
+title: 'Analysing "count subarrays that sum to k", step by step'
+frames:
+  - caption: '**Restate.** Given an integer array and k, count the contiguous subarrays whose sum is exactly k. Ask: can numbers be negative? (Yes.) Count, not list them.'
+    panels:
+      - kind: kv
+        label: Problem
+        pairs: [[input, 'nums, k'], [output, 'a count'], [contiguous, { v: 'yes', tone: accent }], [negatives, { v: 'allowed', tone: warn }]]
+  - caption: '**Examples by hand.** `[1, 1, 1]`, k = 2 → 2. Edge case with negatives and zero: `[1, −1, 0]`, k = 0 → 3 (`[1, −1]`, `[0]`, `[1, −1, 0]`).'
+    panels:
+      - kind: rows
+        label: '[1, −1, 0], k = 0'
+        items: [{ v: '[1, −1] = 0 ✓', tone: ok }, '[−1, 0] = −1', { v: '[0] = 0 ✓', tone: ok }, { v: '[1, −1, 0] = 0 ✓', tone: ok }]
+  - caption: '**Constraints → budget.** n ≤ 2 × 10⁴ gives about 2 × 10⁸ pairs for O(n²), borderline in Java and too slow in Python. Aim for O(n) or O(n log n).'
+    panels:
+      - kind: kv
+        label: Budget
+        pairs: [['n ≤ 2 × 10⁴', 'O(n²) ≈ 2 × 10⁸ — borderline'], [target, { v: 'O(n)', tone: ok }]]
+  - caption: '**Clues → candidates.** "Contiguous" + "sum" suggests a sliding window, but negatives break it: growing a window can make the sum smaller, so you never know which side to move.'
+    panels:
+      - kind: rows
+        label: Candidates
+        items: [{ v: 'sliding window — needs a monotone sum: ✗', tone: bad }, { v: 'prefix sums + hash map', tone: accent }]
+  - caption: '**Brute force and its repeated work.** Try every (i, j) and add up nums[i..j]. The repeated work is re-adding the same numbers. With prefix sums, sum(i..j) = prefix[j + 1] − prefix[i], so each check is O(1), but there are still O(n²) pairs.'
+    panels:
+      - kind: kv
+        label: Brute force
+        pairs: [[every start i, every end j], [repeated, { v: 're-adding ranges', tone: warn }]]
+  - caption: '**Remove the search.** For each end, we want how many earlier prefixes equal `prefix − k`. That is a lookup: keep a hash map of prefix counts as you go. One pass, O(n).'
+    panels:
+      - kind: kv
+        label: At each index
+        pairs: [[prefix, 'prefix + nums[i]'], [answer, 'answer + seen[prefix − k]'], [seen, 'seen[prefix] + 1'], [start, 'seen[0] = 1']]
+  - caption: '**Test.** Run `[1, −1, 0]`, k = 0: prefixes 0, 1, 0, 0. Each 0 after the start pairs with every earlier 0: 1 + 2 = 3 ✓. Then state the complexity: O(n) time, O(n) space.'
+    panels:
+      - kind: kv
+        label: Result
+        pairs: [[answer, { v: '3', tone: ok }], [time, 'O(n)'], [space, 'O(n)']]

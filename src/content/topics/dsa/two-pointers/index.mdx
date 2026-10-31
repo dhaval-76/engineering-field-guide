@@ -31,12 +31,27 @@ Two people searching a sorted bookshelf for two books whose page counts add up t
 
 ## Recognise it
 
+<Callout type="spot">
+
+**Wording clues**
+
 - **Sorted** array and a pair/triplet condition (sum, difference, closest) → converging pointers.
-- **Symmetry** (palindromes, reversing, comparing both ends) → converging pointers.
-- **Rearrange in place** with O(1) extra space (remove, deduplicate, move zeros, partition) → read/write pointers.
-- **Two limits that shrink toward each other** (container with most water, trapping rain water) → converging pointers, moving the side that limits the answer.
+- **Symmetry**: palindromes, reversing, comparing both ends → converging pointers.
+- **Rearrange in place**: remove, deduplicate, move zeros, partition into groups → read/write pointers.
+- **Two limits that shrink toward each other** (container with most water, trapping rain water) → move the side that limits the answer.
 - Linked-list cycles and middles → fast/slow pointers ([Linked lists](../linked-lists/)).
-- A **contiguous** range with a validity condition → that's a [sliding window](../sliding-window/), the same-direction cousin of this pattern.
+
+**Constraint clues**
+
+- "O(1) extra space" or "in place" → pointers instead of a copy or a map.
+- n up to 10⁵ with a sorted input → O(n) per scan; 3Sum allows O(n²) because n is usually ≤ 3,000.
+
+**Looks like it, but isn't**
+
+- **Unsorted** pair problems that need the original indices (Two Sum) → a hash map, O(n), without sorting.
+- A **contiguous** range with a validity condition → that is a [sliding window](../sliding-window/), the same-direction cousin.
+
+</Callout>
 
 <DecisionGuide
   title="Which pointer pattern?"
@@ -73,6 +88,8 @@ Each step permanently eliminates one index, and there are n of them: **O(n)**, w
 
 **Problem.** Is a string a palindrome, ignoring case and non-alphanumeric characters? `"A man, a plan, a canal: Panama"` → true.
 
+<Clues>**compare both ends** + O(1) space → converging pointers that skip characters that aren't letters or digits.</Clues>
+
 **Insight.** Compare from both ends inward, skipping characters that don't count. No need to build a cleaned copy: O(1) extra space.
 
 <CodeTabs id="dsa-valid-palindrome" title="Valid palindrome — converging pointers, O(1) space" />
@@ -82,6 +99,8 @@ Each step permanently eliminates one index, and there are n of them: **O(n)**, w
 ### 3Sum
 
 **Problem.** All unique triplets that sum to zero. `[-1,0,1,2,-1,-4]` → `[[-1,-1,2],[-1,0,1]]`.
+
+<Clues>**triplets** summing to a target + **unique** results + n ≤ 3,000 (O(n²) allowed) → sort, fix one number, converging pointers for the other two.</Clues>
 
 **Insight.** Sort. For each index `i`, the remaining problem is "pair in `nums[i+1..]` summing to `−nums[i]`" — converging pointers. Duplicates are the real difficulty: skip a value of `i` equal to the previous one, and after a match skip equal values at `l` and `r`.
 
@@ -102,6 +121,8 @@ Sorted array: `[-4,-1,-1,0,1,2]`.
 
 **Problem.** Given line heights, pick two lines that hold the most water: `area = (r − l) × min(h[l], h[r])`.
 
+<Clues>two lines, area limited by the **shorter** one → converging pointers, always moving the shorter side.</Clues>
+
 **Insight.** Start with the widest container. The **shorter** line limits the area. Moving the taller line inward makes the width smaller and can't raise the limit — that can never help. So always move the shorter line: it is the only move that might find a taller limit.
 
 <CodeTabs id="dsa-container-water" title="Container with most water — move the shorter side" />
@@ -109,6 +130,8 @@ Sorted array: `[-4,-1,-1,0,1,2]`.
 ### Trapping rain water
 
 **Problem.** Bars of given heights; how much rain is trapped between them? `[0,1,0,2,1,0,1,3,2,1,2,1]` → 6.
+
+<Clues>water over a bar depends on the **max to its left and right** → prefix/suffix maxima, or converging pointers moving the lower side.</Clues>
 
 **Insight.** Water above bar `i` is `min(tallest to its left, tallest to its right) − height[i]`. Computing both maxima for every bar costs O(n) extra space (two prefix arrays). Two pointers avoid that: if `height[l] < height[r]`, there is a bar on the right at least as tall as `height[l]`, so the **left maximum alone** decides how much water sits on bar `l`. Settle bar `l` and move on; otherwise settle bar `r` from the right maximum.
 
@@ -120,6 +143,8 @@ Sorted array: `[-4,-1,-1,0,1,2]`.
 
 **Problem.** Keep one copy of each value at the front of the array and return how many there are.
 
+<Clues>**sorted** + **in place** + "keep one of each" → a read pointer and a write pointer.</Clues>
+
 **Insight.** In a sorted array duplicates are adjacent, so compare each value with the last one written.
 
 <CodeTabs id="dsa-remove-duplicates" title="Read/write pointers — O(n) time, O(1) space" />
@@ -129,6 +154,8 @@ The same shape solves **move zeroes** (keep non-zeros, then fill zeros) and **re
 ### Sort colours (three-way partition)
 
 **Problem.** Sort an array of 0s, 1s and 2s in one pass, in place.
+
+<Clues>**three values** + **one pass** + **in place** → three pointers (low, mid, high): the Dutch national flag partition.</Clues>
 
 **Insight.** Three pointers split the array into four regions: `[0, low)` are 0s, `[low, mid)` are 1s, `[mid, high]` is still unknown, `(high, end]` are 2s. Look at `nums[mid]`: a 0 swaps to the `low` region, a 1 stays, a 2 swaps to the `high` region — and `mid` does **not** advance after that last swap, because the value that came back from the end hasn't been examined yet.
 

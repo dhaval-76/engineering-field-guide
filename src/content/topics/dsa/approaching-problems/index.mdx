@@ -1,0 +1,137 @@
+---
+title: 'Approaching a Problem: From Constraints to Pattern'
+summary: A repeatable way to read an unfamiliar coding problem — restate it, work examples, turn the constraints into a time budget, match wording clues to a pattern, then improve a brute force by finding its repeated work.
+track: dsa
+order: 5
+tags: [dsa, problem-solving, patterns, constraints, interviews]
+aliases: [how to approach dsa problems, problem solving method, identify pattern, which pattern, read constraints, constraints to complexity, input size, time limit, brute force to optimal, leetcode approach, pattern recognition, umpire method, how to think in coding interview]
+prerequisites: [cs-foundations/complexity]
+related: [interviews/how-interviews-work, dsa/arrays-and-hashing, dsa/sliding-window, dsa/binary-search, dsa/dynamic-programming]
+quickRef:
+  points:
+    - '**Restate** the input and output in your own words; ask what is guaranteed (sorted? unique? negatives? empty?).'
+    - 'Work **two examples by hand**, one normal and one edge case. Your hand method is often the first algorithm.'
+    - 'Turn **n** into a budget (~10⁸ simple steps/second): n ≤ 20 → 2ⁿ; n ≤ 5,000 → n²; n ≤ 10⁵ → n log n; n ≥ 10⁹ → log n.'
+    - 'Match **wording clues** to a pattern: contiguous → window or prefix sums; sorted → binary search or two pointers; k largest → heap; dependencies → topological sort.'
+    - 'Write the **brute force** first, find the work it repeats, and remove that with a data structure.'
+    - '**Test** with your examples and the edge cases before saying you are done.'
+  complexity: 'n ≤ 12: n! · ≤ 20: 2ⁿ · ≤ 500: n³ · ≤ 5,000: n² · ≤ 10⁶: n log n · larger: log n or O(1)'
+  useWhen: 'Any coding problem you have not seen before, or one you half-remember.'
+lastReviewed: 2026-11-01
+---
+
+## Why it matters
+
+Interview problems are new on purpose. Memorising five hundred solutions doesn't help when the problem is a slight variation, and the interviewer is grading how you get to an answer as much as the answer itself. What transfers is a **method**: a fixed order of questions that turns an unfamiliar statement into a known pattern, plus the habit of reading the **constraints**, which often give the intended complexity away.
+
+The patterns in this track (windows, binary search, heaps, graphs, DP…) are the toolbox. This page is how to pick the tool. Each pattern page starts with a **Spot it** box listing its clues, and every worked problem has a **Clues** line showing how that problem was recognised.
+
+<Callout type="analogy">
+A doctor diagnosing a patient. They don't memorise every patient; they ask the same questions in the same order (symptoms, history, test results), and particular combinations point to a short list of causes. The test results are the constraints: a fever of 39° rules some things out immediately, just as `n ≤ 10⁵` rules out O(n²).
+</Callout>
+
+## The method
+
+<Steps>
+
+1. **Restate.** Say the input, the output and the goal in one sentence. Ask about anything unstated: Is the input sorted? Can values be negative or repeated? Can it be empty? Return any answer or all of them? Indices or values?
+2. **Work examples by hand.** One ordinary example and one edge case (empty, one element, all equal, all negative). Watch what *you* do to solve it: that is often the first algorithm.
+3. **Read the constraints** and turn them into a time budget (table below). This tells you which complexities are worth looking for and which to rule out.
+4. **Match clues to patterns.** Look for the wording and constraint clues below. Usually one or two patterns fit; say them out loud and check each against the examples.
+5. **Brute force first.** State the obvious solution and its complexity, even if it's too slow. It proves you understand the problem and gives you something correct to improve.
+6. **Find the repeated work.** What does the brute force compute again and again? A sum it recalculates (prefix sums), a search it repeats (hash map), the best value it re-scans (heap, monotonic stack), a subproblem it re-solves (DP).
+7. **Code it**, with names that say what the variables hold.
+8. **Test** by running your examples through the code line by line, then the edge cases. State the final time and space complexity.
+
+</Steps>
+
+<Walkthrough id="analyse-subarray-sum" />
+
+## Constraints are hints
+
+A simple operation runs roughly 10⁸ times per second in Java, C++ or Go (about 10⁷ in Python). With a typical 1–2 second limit, the size of the input tells you the complexity the problem setter intended. The [complexity page](../../cs-foundations/complexity/) explains the arithmetic.
+
+| Constraint | What it suggests |
+|---|---|
+| n ≤ 10–12 | O(n!) is fine: try every permutation (backtracking). |
+| n ≤ 20–25 | O(2ⁿ · n): every subset, a bitmask over items, backtracking with pruning, bitmask DP. |
+| n ≤ 40 | Split in half: 2²⁰ per half, then combine ("meet in the middle"). |
+| n ≤ 500 | O(n³): interval DP, Floyd-Warshall, three nested loops. |
+| n ≤ 5,000 | O(n²): DP over pairs (two strings, i and j), checking every pair. |
+| n ≤ 10⁵–10⁶ | O(n log n) or O(n): sorting, a heap, binary search, a window, hashing, a single pass. |
+| n or values up to 10⁹–10¹⁸ | You can't touch every value: binary search on the answer, maths, O(log n) steps. |
+| values in a small range (letters, 0 ≤ x ≤ 10⁴) | A counting array instead of a hash map or a sort (bucket or counting sort). |
+| "values can be negative" | Plain sliding windows on sums break, and so does Dijkstra on edge weights. |
+| "the input is sorted" | Binary search or two pointers — you're expected to use the order. |
+| "answer modulo 10⁹ + 7" | You're counting ways, and the count is huge: DP or combinatorics. |
+| "O(1) extra space", "in place" | Two pointers, swapping into position, or reusing the input array as marks. |
+| many queries (q ≤ 10⁵) on one array | Precompute once: prefix sums, sorting plus binary search, a heap or a structure built up front. |
+| a grid of m × n cells | Each cell is a node: BFS/DFS in O(m · n), or a grid DP. |
+
+<Callout type="tip">
+Ask about the constraints if the interviewer doesn't give them: "Roughly how big can the input get?" The answer tells you whether an O(n²) solution is acceptable, and asking shows you think about it.
+</Callout>
+
+## Wording clues
+
+<PatternClues />
+
+Clues point to **candidates**, not answers. "Contiguous" suggests a window, but a window needs a monotone condition; "minimum" suggests greedy, but greedy needs a proof. Check each candidate against your examples.
+
+<DecisionGuide
+  title="A first pass at choosing a pattern"
+  steps={[
+    ['Must the answer list every combination, subset or arrangement?', 'Backtracking (check n is small enough).'],
+    ['Is it a contiguous range of an array or string?', 'Sliding window if the condition is monotone; otherwise prefix sums + a hash map.'],
+    ['Is the input sorted, or is the answer a number you could check for "big enough"?', 'Binary search, on the index or on the answer; or two pointers for pairs.'],
+    ['Are there things connected to other things (grid cells, dependencies, friendships, routes)?', 'A graph: BFS for fewest steps, DFS for reachability, topological sort for order, Dijkstra for weights, union-find for groups.'],
+    ['Do you repeatedly need the current smallest/largest, or the k best?', 'A heap.'],
+    ['Is it "how many ways" or "best total" over a sequence of choices?', 'Dynamic programming; try greedy only if you can prove the local choice is safe.'],
+  ]}
+  otherwise="Brute force it, then ask what work repeats: a recomputed sum (prefix sums), a repeated search (hash map), a re-scanned best (heap or monotonic stack)."
+/>
+
+## From brute force to optimal
+
+Most optimisations remove one kind of repeated work. Naming it tells you the data structure.
+
+| The brute force keeps… | Replace it with | Typical gain |
+|---|---|---|
+| searching the array for a value or complement | a hash map of what's been seen | O(n²) → O(n) |
+| re-adding the same range of numbers | prefix sums | O(n) per query → O(1) |
+| re-scanning a window after each step | window state updated in O(1) | O(n · k) → O(n) |
+| re-scanning for the next larger/smaller value | a monotonic stack | O(n²) → O(n) |
+| re-finding the minimum or maximum of a changing set | a heap | O(n) → O(log n) per step |
+| re-solving the same subproblem | memoisation or a DP table | exponential → polynomial |
+| trying every candidate answer in order | binary search over the answers | O(range) → O(log range) checks |
+
+## Two examples, start to finish
+
+**Ship packages within D days.** Weights in a fixed order, `n ≤ 5 × 10⁴`, each weight ≤ 500, and a ship that sails once a day; find the smallest capacity that delivers everything in D days.
+- *Clues:* "smallest capacity such that…". If capacity c works, every bigger capacity works too (monotone). The answer lies between the largest single weight and the total weight.
+- *Budget:* trying every capacity is up to 2.5 × 10⁷ capacities × n — too slow. Checking one capacity is a single greedy pass, O(n).
+- *Pattern:* binary search on the answer: O(n log(total)). Worked in full on the [binary search page](../binary-search/).
+
+**Course schedule.** `numCourses ≤ 2,000`, prerequisite pairs ≤ 5,000; can every course be finished?
+- *Clues:* "prerequisites", "can you finish" — things that depend on other things form a **directed graph**, and "can every course be taken in some order" is "does the graph have a cycle?".
+- *Budget:* V + E ≈ 7,000; anything linear is instant.
+- *Pattern:* topological sort (Kahn's algorithm): if the order contains every course, there's no cycle. O(V + E). See [Topological sort](../topological-sort/).
+
+<Pitfalls>
+
+- **Coding before restating** — solving a slightly different problem (indices vs values, any vs all answers).
+- **Ignoring the constraints** — spending ten minutes on an O(n log n) idea when n ≤ 20 invites brute force, or presenting O(n²) when n is 10⁵.
+- **Matching on one word** — "subarray" with negative numbers isn't a sliding window; "minimum" isn't automatically greedy.
+- **Skipping the brute force** — you lose a correct fallback and the clue to what repeats.
+- **Not testing** — off-by-one errors and empty inputs are the most common reasons a correct idea fails.
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- Use the same order every time: restate, examples, constraints, clues, brute force, optimise, code, test.
+- The input size tells you the intended complexity; ask for it if it's missing.
+- Wording clues give candidate patterns; confirm each against an example.
+- Optimising usually means removing one repeated piece of work with the right data structure.
+
+</KeyTakeaways>

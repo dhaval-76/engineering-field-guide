@@ -31,10 +31,26 @@ Packing for a flight with a weight limit when every item is equally useful: take
 
 ## Recognise it
 
+<Callout type="spot">
+
+**Wording clues**
+
 - A sort-then-scan feels natural: intervals by end, tasks by deadline, items by ratio, people by height.
-- You can track a single summary of the past ("farthest reachable index", "current fuel", "last occurrence") instead of all possibilities.
+- You can keep a single summary of the past ("farthest reachable index", "current fuel", "last occurrence of each letter").
 - Choosing the extreme option (earliest end, largest, most frequent) leaves the most freedom for the rest.
-- The constraints are local (each element vs its neighbours) and can be satisfied in passes.
+- Local constraints (each element against its neighbours) that can be satisfied in one or two passes.
+
+**Constraint clues**
+
+- n up to 10⁵–10⁶ → O(n) or O(n log n) is expected, which rules out DP over pairs; greedy usually fits.
+- "Return the minimum number of…" with a natural ordering of the input.
+
+**Looks like it, but isn't**
+
+- A small counterexample breaks the local choice (coins 1, 3, 4 for amount 6: greedy takes 4 + 1 + 1, the best is 3 + 3) → [dynamic programming](../dynamic-programming/).
+- "Return **all** ways" → [backtracking](../backtracking/).
+
+</Callout>
 
 ## How to justify a greedy choice
 
@@ -53,6 +69,8 @@ And one practical habit: **test the rule against an exact solver** on many small
 
 **Problem.** `nums[i]` is the maximum jump from index i. Can you reach the end (I)? With the fewest jumps (II)?
 
+<Clues>only "**how far** can I reach?" matters → track the farthest reachable index; for fewest jumps, count BFS-like levels.</Clues>
+
 **Insight.** For I, keep the **farthest index reachable so far**; if you ever stand on an index beyond it, you're stuck. For II, think in <Term id="bfs">BFS</Term> layers without a queue: all indices reachable with k jumps form a contiguous range; the next range ends at the farthest point reachable from it. Count how many times you must move to a new range.
 
 <Walkthrough id="jump-game" />
@@ -63,6 +81,8 @@ And one practical habit: **test the rule against an exact solver** on many small
 
 **Problem.** Stations on a circle with `gas[i]` and `cost[i]` to reach the next. Find the start that completes the loop.
 
+<Clues>**circular** route + "a start that completes the loop" → if the total gas ≥ total cost, start after the last point where the running tank went negative.</Clues>
+
 **Insight.** If total gas < total cost, no start works. Otherwise, run once with a tank; whenever it goes negative at station i, **no station from the current start up to i can be a valid start** (each would arrive at i with even less fuel), so restart after i. The last restart point is the answer — one pass instead of trying every start.
 
 <CodeTabs id="dsa-gas-station" title="Gas station — reset the start when the tank goes negative" />
@@ -70,6 +90,8 @@ And one practical habit: **test the rule against an exact solver** on many small
 ### Partition labels
 
 **Problem.** Split a string into as many parts as possible so each letter appears in only one part.
+
+<Clues>"each letter in **one part** only" → record each letter's **last** index; close a part when you reach the furthest last index seen.</Clues>
 
 **Insight.** Record each letter's **last** occurrence. Scan, extending the current part's end to the last occurrence of every letter seen; when the scan reaches that end, the part is closed. Cutting any earlier would split a letter; cutting later wastes a possible part.
 
@@ -79,6 +101,8 @@ And one practical habit: **test the rule against an exact solver** on many small
 
 **Problem.** Identical tasks must be at least n slots apart. Minimum total slots?
 
+<Clues>"minimum **slots** with a cooldown" → the most frequent task fixes the frame: `(maxCount − 1) × (n + 1) + tasksWithMaxCount`, or the number of tasks if that is larger.</Clues>
+
 **Insight.** The most frequent task dictates the frame: `(maxCount − 1)` gaps of size `n + 1`, plus the tasks tied for the maximum in the final slot. If there are enough other tasks to fill every gap, no idling is needed and the answer is just the number of tasks: `max(tasks, (maxCount − 1)(n + 1) + tiedCount)`.
 
 <CodeTabs id="dsa-task-scheduler" title="Task scheduler — counting formula from the most frequent task" />
@@ -86,6 +110,8 @@ And one practical habit: **test the rule against an exact solver** on many small
 ### Candy (two passes)
 
 **Problem.** Children in a row with ratings each get at least one candy, and a child rated higher than a neighbour gets more than that neighbour. Minimum total? `[1,0,2]` → 5.
+
+<Clues>each child compared only with **neighbours** → one left-to-right pass and one right-to-left pass, taking the maximum.</Clues>
 
 **Insight.** Each child has two constraints, one per neighbour, and satisfying both at once is awkward. So satisfy them **one direction at a time**: a left-to-right pass gives each child one more than its left neighbour when rated higher; a right-to-left pass does the same for right neighbours, taking the max so the first pass isn't undone. Each pass only raises values as much as forced, so the total is minimal.
 

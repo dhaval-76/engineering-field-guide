@@ -31,8 +31,25 @@ A shared calendar. To merge busy blocks, read them in order of start time and ex
 
 ## Recognise it
 
-- Input is a list of `[start, end]` pairs: meetings, reservations, ranges, time windows.
-- Questions: merge overlaps, insert a new range, minimum removals to avoid overlap, how many resources at once, free gaps, intersections of two schedules, accept or reject a booking as it arrives.
+<Callout type="spot">
+
+**Wording clues**
+
+- A list of `[start, end]` pairs: meetings, reservations, ranges, time windows.
+- Merge overlaps, insert a new range, minimum removals to avoid overlap, how many resources at once, free gaps, intersections of two schedules, accept or reject a booking as it arrives.
+
+**Constraint clues**
+
+- n up to 10⁵ intervals → sort once, O(n log n), then a single sweep; comparing every pair (O(n²)) is too slow.
+- Bookings arrive **one at a time** and must be answered immediately → a sorted map (TreeMap) of starts.
+- Coordinates up to 10⁹ → sort the endpoints; don't allocate an array over the whole range.
+
+**Looks like it, but isn't**
+
+- **Points** rather than ranges, or one sorted array → [binary search](../binary-search/) or [two pointers](../two-pointers/).
+- Ranges with **weights** and "maximise total value" of non-overlapping ones → dynamic programming plus binary search, not greedy.
+
+</Callout>
 
 ## Overlap, precisely
 
@@ -58,6 +75,8 @@ Two intervals `[a, b]` and `[c, d]` overlap exactly when **`a < d` and `c < b`**
 
 ### Merge intervals
 
+<Clues>"**merge** overlapping ranges" → sort by start, extend the current block.</Clues>
+
 **Insight.** After sorting by start, an interval can only overlap the **current merged block** (everything earlier ends before the block starts). So keep one current block: if the next interval starts at or before its end, extend the end to the larger of the two; otherwise close the block and start a new one.
 
 <Walkthrough id="merge-intervals" />
@@ -65,6 +84,8 @@ Two intervals `[a, b]` and `[c, d]` overlap exactly when **`a < d` and `c < b`**
 <CodeTabs id="dsa-merge-intervals" title="Merge overlapping intervals — sort by start" />
 
 ### Insert an interval
+
+<Clues>already **sorted and disjoint** + one new range → three passes (before, overlapping, after) in O(n), no sort.</Clues>
 
 **Insight.** The list is already sorted and disjoint, so no sort is needed: copy every interval that ends before the new one starts; merge every interval that overlaps it into one (min of starts, max of ends); copy the rest. Three phases, O(n).
 
@@ -74,11 +95,15 @@ Two intervals `[a, b]` and `[c, d]` overlap exactly when **`a < d` and `c < b`**
 
 **Problem.** Remove the fewest intervals so that the rest don't overlap.
 
+<Clues>"**fewest removals** so the rest don't overlap" → greedy: sort by **end**, keep each interval that starts after the last kept end.</Clues>
+
 **Insight.** Equivalent to keeping the most. Sort by **end** and greedily keep each interval that starts at or after the last kept one ends. Why it's safe: among all intervals that could come first, the one that **finishes earliest** leaves the most room for the others — swapping it into any optimal solution never makes that solution worse (an *exchange argument*, see [Greedy](../greedy/)). Sorting by start fails: one long early interval would block many short ones.
 
 <CodeTabs id="dsa-non-overlapping" title="Non-overlapping intervals — earliest end first" />
 
 ### How many rooms?
+
+<Clues>"how many **at once**?" → sort by start with a min-heap of end times, or sweep start and end events.</Clues>
 
 **Insight.** The number of rooms equals the **maximum number of meetings running at the same moment**. Sort by start and keep a <Term id="heap">min-heap</Term> of end times of rooms in use (reuse the earliest-ending room when it's free), or turn every meeting into two events, +1 at its start and −1 at its end, and sweep them in time order — processing ends before starts at equal times for half-open intervals.
 
@@ -88,6 +113,8 @@ Two intervals `[a, b]` and `[c, d]` overlap exactly when **`a < d` and `c < b`**
 
 **Problem.** Two people's free times, each a sorted list of disjoint intervals. When are both free?
 
+<Clues>two **sorted, disjoint** lists → two pointers, advancing whichever interval ends first.</Clues>
+
 **Insight.** Two pointers. The intersection of the current pair is `[max of starts, min of ends]`, if non-empty. Then advance the interval that **ends first** — it can't intersect anything further in the other list, while the longer one might.
 
 <CodeTabs id="dsa-interval-intersections" title="Interval list intersections — two pointers" />
@@ -95,6 +122,8 @@ Two intervals `[a, b]` and `[c, d]` overlap exactly when **`a < d` and `c < b`**
 ### A calendar that rejects double bookings
 
 **Problem.** Bookings `[start, end)` arrive one at a time; accept each only if it overlaps no accepted booking.
+
+<Clues>bookings arrive **one at a time** and need an immediate answer → a sorted map; check only the neighbours of the new start.</Clues>
 
 **Insight.** Checking every booking is O(n) per request. Keep bookings in a **sorted map keyed by start**. Only two existing bookings can clash: the one starting just before the new start (does it end after the new start?) and the one starting at or just after (does it start before the new end?). With a balanced tree (`TreeMap`) both lookups and the insert are O(log n). This is the core of a room- or seat-booking service ([Meeting room LLD](../../low-level-design/meeting-room/)); with concurrent requests, the check and the insert must happen atomically (a lock, or a database constraint).
 

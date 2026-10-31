@@ -1,5 +1,6 @@
 ---
 import BaseLayout from '~/layouts/BaseLayout.astro';
+import PatternClues from '~/components/content/PatternClues.astro';
 import { getNav } from '~/lib/nav';
 import { mdInline } from '~/lib/markdown';
 import { topicUrl } from '~/lib/url';
@@ -35,6 +36,12 @@ const cards = await Promise.all(
       Print
     </button>
   </header>
+  {track.id === 'dsa' && (
+    <section class="clues prose">
+      <h2>Which pattern? Clues in the problem</h2>
+      <PatternClues />
+    </section>
+  )}
   <div class="cards">
     {cards.map((c) => (
       <section class="card">
@@ -78,6 +85,12 @@ const cards = await Promise.all(
     font-size: var(--step-4);
     line-height: 1.1;
     margin: 0;
+  }
+  .clues {
+    margin-top: 24px;
+  }
+  .clues h2 {
+    margin-bottom: 8px;
   }
   .cards {
     columns: 2 360px;

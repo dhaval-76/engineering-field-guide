@@ -1,0 +1,35 @@
+---
+/** The wording-clue → pattern table (data in lib/dsa-clues.ts). Needs a .prose ancestor for table styles. */
+import { patternClues } from '~/lib/dsa-clues';
+import { mdInline } from '~/lib/markdown';
+import { topicUrl } from '~/lib/url';
+
+const rows = await Promise.all(
+  patternClues.map(async (r) => ({
+    ...r,
+    clue: await mdInline(r.clue),
+    pattern: await mdInline(r.pattern),
+  })),
+);
+---
+
+<table>
+  <thead>
+    <tr>
+      <th>The problem says…</th>
+      <th>Think of</th>
+      <th>Page</th>
+    </tr>
+  </thead>
+  <tbody>
+    {rows.map((r) => (
+      <tr>
+        <td set:html={r.clue} />
+        <td set:html={r.pattern} />
+        <td>
+          <a href={topicUrl(r.topic)}>{r.page}</a>
+        </td>
+      </tr>
+    ))}
+  </tbody>
+</table>

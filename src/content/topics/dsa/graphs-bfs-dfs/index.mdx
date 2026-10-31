@@ -31,11 +31,29 @@ BFS is a stone dropped in a pond: ripples reach everything at distance 1, then 2
 
 ## Recognise it
 
-- Things connected to other things: friends, cities, courses with prerequisites, words that differ by one letter.
-- A **grid** where you can move up/down/left/right: islands, mazes, flood fill, spreading processes.
+<Callout type="spot">
+
+**Wording clues**
+
+- Things connected to other things: friends, cities, courses, words that differ by one letter.
+- A **grid** where you move up/down/left/right: islands, mazes, flood fill, spreading (rotting oranges, fire).
 - "**Minimum number of steps/moves**" where every move costs the same → BFS.
-- "Count groups", "is X reachable", "does a cycle exist", "list all paths" → DFS (or BFS; for groups, also <Term id="union-find">union-find</Term>).
+- "Count groups", "is X reachable", "does a cycle exist", "list all paths" → DFS (or BFS).
 - A puzzle with **states and moves** (word ladder, open the lock, sliding puzzle) → BFS over an implicit graph.
+
+**Constraint clues**
+
+- A grid of m × n up to ~10⁶ cells → each cell is a node; BFS/DFS in O(m · n).
+- V and E up to 10⁵ → adjacency lists and O(V + E); an adjacency matrix (V²) would be too big.
+- Deep grids (10⁶ cells) → recursive DFS can overflow the stack; use an explicit stack or BFS.
+
+**Looks like it, but isn't**
+
+- Moves with **different costs** → [shortest paths](../shortest-paths/) (Dijkstra), not plain BFS.
+- "Valid order respecting dependencies" → [topological sort](../topological-sort/).
+- Only merging groups and asking "same group?" as edges arrive → [union-find](../union-find/).
+
+</Callout>
 
 <DecisionGuide
   title="Which traversal?"
@@ -80,6 +98,8 @@ Recursive DFS on a 1000 × 1000 grid can recurse a million levels deep and overf
 
 ## Multi-source BFS
 
+<Clues>"minutes until **all**…" spreading from **many** starting cells at once → BFS with every source in the queue at distance 0.</Clues>
+
 **Insight.** When there are many starting points (all rotten oranges, all exits, all servers), put **all of them** in the queue at distance 0. The BFS then computes, for every node, the distance to its **nearest** source in a single O(V + E) pass — instead of one BFS per source.
 
 <CodeTabs id="dsa-rotting-oranges" title="Rotting oranges — minutes until all rot, multi-source BFS" />
@@ -87,6 +107,8 @@ Recursive DFS on a 1000 × 1000 grid can recurse a million levels deep and overf
 ## Two-colouring: is the graph bipartite?
 
 **Problem.** Can the nodes be split into two groups so that every edge goes between groups? (Teams with no rivals in the same team; scheduling exams so no student has two at once in a two-slot day.)
+
+<Clues>"split into **two groups** so every edge crosses" → colour with BFS/DFS; an edge between two same-coloured nodes means no.</Clues>
 
 **Insight.** Colour the start node, give each neighbour the opposite colour, and continue by BFS. If an edge ever connects two nodes of the **same** colour, the graph contains an odd cycle and can't be split. Restart from every uncoloured node, because the graph may be disconnected.
 
@@ -96,6 +118,8 @@ Recursive DFS on a 1000 × 1000 grid can recurse a million levels deep and overf
 
 **Problem.** The fewest words in a chain from `hit` to `cog`, changing one letter at a time, using only words from a list. `[hot,dot,dog,lot,log,cog]` → 5 (`hit → hot → dot → dog → cog`).
 
+<Clues>"**fewest** changes from one word to another", each change costs the same → BFS over words, neighbours differ by one letter.</Clues>
+
 **Insight.** The graph isn't given — nodes are words and edges join words one letter apart. Building all edges up front compares every pair (O(N² · L)). Instead, **generate neighbours on the fly**: for each position, try all 26 letters and keep the results that are in the word set. BFS level by level gives the fewest steps. Removing a word from the set when it's enqueued doubles as the visited marker.
 
 <CodeTabs id="dsa-word-ladder" title="Word ladder — BFS over generated neighbours" />
@@ -104,11 +128,15 @@ Recursive DFS on a 1000 × 1000 grid can recurse a million levels deep and overf
 
 ## Copying a graph
 
+<Clues>"**deep copy**" of a graph that may have cycles → traverse with a map from original to copy.</Clues>
+
 **Insight.** Traverse the original graph (BFS or DFS) while keeping a map from each original node to its copy. The map does double duty: it's the visited set, and it lets cycles in the original connect to copies that already exist.
 
 <CodeTabs id="dsa-clone-graph" title="Clone graph — map original → copy while traversing" />
 
 ## Cycles
+
+<Clues>"does a **cycle** exist?" → undirected: a visited neighbour that isn't your parent; directed: a node still on the current DFS path.</Clues>
 
 - **Undirected graph:** during DFS, reaching an already-visited node that isn't the node you came from means a cycle (or use union-find: an edge whose ends are already in the same set closes a cycle — [Union-find](../union-find/)).
 - **Directed graph:** a cycle exists when DFS reaches a node that is still **on the current path** (colour it "in progress" until its DFS finishes) — the basis of [topological sort](../topological-sort/).

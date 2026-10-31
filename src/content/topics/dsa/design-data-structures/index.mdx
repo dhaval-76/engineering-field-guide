@@ -29,6 +29,29 @@ The skill being tested is not memorising designs but **deriving** one from the r
 A library: the catalogue (hash map) tells you exactly where a book is; the shelves (array) let you grab any book at random; when a book is removed, the last book on the shelf moves into its gap and the catalogue is updated — so neither the catalogue nor the shelf ever has holes.
 </Callout>
 
+## Recognise it
+
+<Callout type="spot">
+
+**Wording clues**
+
+- "Design a class that supports get / put / … in **O(1)**" (LRU cache, insert-delete-getRandom).
+- "Return the value **at time t**" or "the latest version before t" → a map of sorted lists plus binary search.
+- **Prefixes** of words: autocomplete, "starts with", word search over a dictionary → a trie.
+- "Hits in the last 5 minutes", rolling counters → a queue or a circular buffer of time buckets.
+
+**Constraint clues**
+
+- Each operation must be O(1) or O(log n) with up to 10⁵ calls → combine structures (a map for lookup plus a list, heap or array for order).
+- Timestamps arrive in increasing order → append-only lists that stay sorted for free.
+
+**Looks like it, but isn't**
+
+- A single operation on a fixed input → a normal algorithm problem; only reach for a class when the problem mixes several operations over time.
+- Exact-match lookups only → a hash map is simpler than a trie.
+
+</Callout>
+
 ## How to approach them
 
 <Steps>
@@ -43,6 +66,8 @@ A library: the catalogue (hash map) tells you exactly where a book is; the shelv
 
 ## Insert, delete and get-random in O(1)
 
+<Clues>"**random** element in O(1)" + "remove in O(1)" → an array (random index) plus a map from value to its index.</Clues>
+
 **Requirement.** `insert`, `remove` and a uniformly random `getRandom`, each average O(1).
 
 **Derivation.** A hash set gives O(1) insert/remove but no O(1) uniform random pick (you'd have to iterate). An array gives O(1) random pick but O(n) removal by value. Combine them: an **array** of values plus a **map from value to its index**. To remove, move the last element into the removed slot and update its index — the array stays dense, so a random index is always a valid, uniformly chosen element.
@@ -55,6 +80,8 @@ Redis does the same trick for `SRANDMEMBER` and `SPOP` on sets, which is why ran
 
 ## Time-based key-value store
 
+<Clues>"value **at or before** time t" + timestamps only increase → a map to an append-only list, then binary search.</Clues>
+
 **Requirement.** `set(key, value, timestamp)` with timestamps increasing per key; `get(key, t)` returns the value with the largest timestamp ≤ t.
 
 **Derivation.** A map gives the key's history in O(1). Because timestamps only grow, appending keeps each history **already sorted**, and "largest timestamp ≤ t" is a floor query: <Term id="binary-search">binary search</Term>, O(log h) for a history of length h. This is a tiny version of how multi-version databases answer "read as of snapshot t".
@@ -65,6 +92,8 @@ If timestamps could arrive out of order, use a sorted map per key (`TreeMap.floo
 
 ## Trie (prefix tree)
 
+<Clues>"**starts with** this prefix" over many words → a trie.</Clues>
+
 **Requirement.** Insert words, check whole words, and answer "does any word start with this prefix?" — fast even with millions of words.
 
 **Derivation.** A hash set answers whole-word lookups but needs a scan for prefixes. A trie stores words character by character along a path from the root; each node has children by character and an end-of-word flag. Every operation walks one path: **O(L)** for length L, independent of how many words are stored. Autocomplete builds on it by caching the top suggestions at each node ([Autocomplete](../../low-level-design/autocomplete/)).
@@ -74,6 +103,8 @@ If timestamps could arrive out of order, use a sorted map per key (`TreeMap.floo
 Memory is the trade-off: a node per character, each with a child table. Compressed tries (radix trees) merge single-child chains; they're used in IP routing tables and in the Linux kernel.
 
 ## Hit counter (sliding time window)
+
+<Clues>"count in the **last 300 seconds**" with unbounded traffic → 300 time buckets indexed by `second % 300`.</Clues>
 
 **Requirement.** Record hits and count those in the last 300 seconds.
 

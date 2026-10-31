@@ -1,0 +1,25 @@
+---
+/** One line before a worked problem: the wording and constraint clues that point to its pattern. */
+---
+
+<p class="clues">
+  <span class="label">Clues</span> <slot />
+</p>
+
+<style>
+  .clues {
+    margin: 0.75em 0;
+    padding: 6px 12px;
+    border-left: 3px solid var(--accent);
+    background: var(--accent-soft);
+    border-radius: 0 var(--radius) var(--radius) 0;
+  }
+  .label {
+    margin-right: 6px;
+    font-size: 0.75rem;
+    font-weight: 650;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--accent-ink);
+  }
+</style>

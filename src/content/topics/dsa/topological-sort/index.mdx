@@ -31,10 +31,26 @@ Getting dressed: socks before shoes, trousers before shoes and belt, shirt befor
 
 ## Recognise it
 
+<Callout type="spot">
+
+**Wording clues**
+
 - "X must happen before Y": courses and prerequisites, build targets, package installs, spreadsheet recalculation, task pipelines.
 - "Is it possible to finish everything?" → cycle detection in a **directed** graph.
 - "Give a valid order" → a topological order.
 - "Minimum number of rounds / semesters / total time if independent work runs in parallel" → Kahn's levels or the **critical path**.
+
+**Constraint clues**
+
+- Nodes and dependency pairs up to 10⁵ → O(V + E) with Kahn's algorithm.
+- "Return any valid order" → many answers exist; "the lexicographically smallest order" → a min-heap instead of a queue.
+
+**Looks like it, but isn't**
+
+- **Undirected** connections ("are these connected?") → BFS/DFS or [union-find](../union-find/); topological order only exists for directed graphs.
+- Weighted "cheapest route" → [shortest paths](../shortest-paths/), unless the graph is a DAG, where relaxing in topological order works.
+
+</Callout>
 
 ## What a topological order is
 
@@ -72,6 +88,8 @@ Draw an arrow `u → v` for "u must come before v". A topological order lists ev
 
 **Problem.** Words are sorted in an unknown alphabet: `["wrt","wrf","er","ett","rftt"]`. Find a letter order consistent with it (`wertf`).
 
+<Clues>"words are **sorted** in an unknown alphabet" → each adjacent pair gives one "letter before letter" edge; topological sort the letters.</Clues>
+
 **Insight.** Compare each pair of **adjacent** words: the first position where they differ gives one edge (`t → f` from `wrt`/`wrf`). Letters after that position tell you nothing. Then topologically sort the letters. Invalid input: a word followed by its own strict prefix (`"abc"` before `"ab"`) — no alphabet can sort that way.
 
 <CodeTabs id="dsa-alien-dictionary" title="Alien dictionary — derive letter order from sorted words" />
@@ -79,6 +97,8 @@ Draw an arrow `u → v` for "u must come before v". A topological order lists ev
 ### Critical path: minimum time with parallel work
 
 **Problem.** Each task has a duration and prerequisites; any number of workers can run independent tasks at once. What's the minimum total time? Tasks 0–3 (durations 1, 2, 3, 4) must all finish before task 4 (duration 5) → 4 + 5 = **9**.
+
+<Clues>**prerequisites** + durations + unlimited parallel workers → the longest path through the DAG, in topological order.</Clues>
 
 **Insight.** A task can start only when its **slowest** prerequisite finishes. Process tasks in topological order (Kahn's), and for each one set `start[v] = max(start[v], finish[u])` over its prerequisites `u`. The answer is the largest finish time — the length of the **longest path** in the DAG, weighted by durations. The tasks on that path form the **critical path**: speeding up anything else doesn't shorten the project.
 

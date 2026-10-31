@@ -29,6 +29,31 @@ The interview skill is **picking the right algorithm from the weights**: equal w
 Dijkstra is water flooding from the source through pipes of different lengths: it reaches nearby junctions first, and the moment water arrives at a junction, no other route can get it there sooner — every other route is still on its way through longer pipes. A pipe of negative length would break that guarantee: water could arrive later by a route that ends up "shorter".
 </Callout>
 
+## Recognise it
+
+<Callout type="spot">
+
+**Wording clues**
+
+- "**Cheapest / fastest / minimum cost** route" where edges have different weights: flight prices, travel times, network delays.
+- "Minimum effort / maximum probability path" → Dijkstra with a different way of combining edges.
+- "At most k stops / edges" → Bellman-Ford limited to k + 1 rounds.
+- "Detect an arbitrage / a negative cycle" → Bellman-Ford.
+
+**Constraint clues**
+
+- All weights **non-negative** and V, E up to 10⁵ → Dijkstra, O((V + E) log V).
+- Weights only **0 or 1** → 0-1 BFS with a deque, O(V + E).
+- V up to ~400 and every pair needed → Floyd-Warshall, O(V³).
+- Negative weights allowed → Dijkstra is unsafe; Bellman-Ford, O(V · E).
+
+**Looks like it, but isn't**
+
+- Every edge costs the same → plain [BFS](../graphs-bfs-dfs/) is enough and simpler.
+- Only "is there a path?" → BFS/DFS reachability; weights don't matter.
+
+</Callout>
+
 ## Choosing an algorithm
 
 <DecisionGuide
@@ -46,6 +71,8 @@ Dijkstra is water flooding from the source through pipes of different lengths: i
 
 ## Dijkstra
 
+<Clues>"time for a signal to reach **every** node" + **non-negative** delays → Dijkstra from the source; the answer is the largest distance.</Clues>
+
 <Walkthrough id="dijkstra" />
 
 <CodeTabs id="dsa-dijkstra" title="Network delay time — Dijkstra with a min-heap and lazy deletion" />
@@ -61,17 +88,23 @@ Dijkstra is water flooding from the source through pipes of different lengths: i
 
 ## Dijkstra with a custom cost
 
+<Clues>"**minimum effort**" where a path costs its **largest** step → Dijkstra with `max` in place of `+`.</Clues>
+
 "Path with minimum effort" — the cost of a path is its **largest** height difference between adjacent cells. Dijkstra still works because extending a path never makes its cost smaller (`max` is monotone just like `+` with non-negative weights). Any cost that never decreases along a path qualifies.
 
 <CodeTabs id="dsa-min-effort-path" title="Path with minimum effort — Dijkstra with max instead of sum" />
 
 ## 0-1 BFS
 
+<Clues>edge costs **only 0 or 1** → a deque: 0-cost edges to the front, 1-cost edges to the back.</Clues>
+
 **Insight.** When edges cost 0 or 1, a heap is overkill. Keep a **deque**: a 0-cost edge leads to a node at the *same* distance, so push it to the **front**; a 1-cost edge to the **back**. The deque then always holds nodes in distance order (only two distinct values at a time), which is all Dijkstra's heap was providing — in O(V + E). Typical uses: minimum walls to break, minimum direction changes in a grid, minimum edges to reverse to connect two nodes.
 
 <CodeTabs id="dsa-zero-one-bfs" title="0-1 BFS — a deque instead of a heap" />
 
 ## Bellman-Ford and "at most k stops"
+
+<Clues>"cheapest with **at most k stops**" → Bellman-Ford for k + 1 rounds, each from a copy of the previous round.</Clues>
 
 Bellman-Ford relaxes **every edge**, in rounds. After round i, every distance that uses at most i edges is correct, so V − 1 rounds suffice for any shortest path (a simple path has at most V − 1 edges). If a V-th round still improves something, there is a **negative cycle** — the cost can be lowered forever.
 
@@ -82,6 +115,8 @@ For "cheapest flight with at most k stops" (k + 1 edges), run k + 1 rounds, each
 Why not Dijkstra here? A cheap path with too many stops can settle a node first and block a slightly more expensive path with few enough stops. You'd have to put the stop count into the state `(node, stops)`, which multiplies the graph size.
 
 ## All pairs: Floyd-Warshall
+
+<Clues>**every pair** of nodes + V up to a few hundred → Floyd-Warshall, O(V³).</Clues>
 
 **Insight.** Let `dist[i][j]` be the shortest path using only nodes `0..k` as intermediate stops. Allowing node k as well, the best path either avoids k or goes `i → k → j`: `dist[i][j] = min(dist[i][j], dist[i][k] + dist[k][j])`. Repeat for every k — **k must be the outer loop**. Three nested loops, O(V³) time, O(V²) memory; negative edges are fine, and a negative `dist[i][i]` afterwards reveals a negative cycle.
 

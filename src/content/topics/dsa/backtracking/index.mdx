@@ -31,10 +31,25 @@ Finding your way through a maze by trying a corridor, and when it dead-ends, wal
 
 ## Recognise it
 
+<Callout type="spot">
+
+**Wording clues**
+
 - "Return **all** subsets / permutations / combinations / partitions / valid arrangements."
 - Constraint satisfaction: N-Queens, Sudoku, word search, placing items under rules.
-- Small n (≤ ~20) — a strong hint that an exponential search is intended.
-- If the question asks only for a **count** or the **best value** and subproblems repeat, prefer [dynamic programming](../dynamic-programming/) — backtracking would recompute the same subproblems exponentially often.
+- "Generate every valid…" (parentheses, IP addresses, phone-letter combinations).
+
+**Constraint clues**
+
+- **Small n** (≤ ~20 for subsets, ≤ ~10 for permutations) → an exponential search is intended.
+- The output itself is exponential (all subsets of 20 items is 10⁶ lists) → no algorithm can be faster than listing them.
+
+**Looks like it, but isn't**
+
+- Only a **count** or the **best value**, and subproblems repeat → [dynamic programming](../dynamic-programming/); backtracking would recompute them exponentially often.
+- A single valid choice at each step that never needs undoing → [greedy](../greedy/).
+
+</Callout>
 
 ## The template
 
@@ -59,6 +74,8 @@ Three questions define any backtracking solution: *what is one choice?*, *which 
 
 ### Subsets and permutations
 
+<Clues>"**all** subsets" (2ⁿ) or "**all** orderings" (n!) with small n → backtracking: include/exclude, or pick any unused element.</Clues>
+
 **Subsets**: at each element, include it or not — 2ⁿ leaves. Equivalently, every node of the "pick an element after the last one" tree is a subset. **Permutations**: at each position, any unused element — n! leaves; a `used[]` array makes "unused" O(1).
 
 <CodeTabs id="dsa-subsets-permutations" title="Subsets and permutations" />
@@ -66,6 +83,8 @@ Three questions define any backtracking solution: *what is one choice?*, *which 
 ### Subsets with duplicates
 
 **Problem.** `[1,2,2]` has 8 index-subsets but only 6 distinct ones.
+
+<Clues>"all **distinct** subsets" with **repeated** values → sort, then skip a value equal to the previous one at the same depth.</Clues>
 
 **Insight.** Sort, so equal values sit together. At one depth of the tree, choosing the first `2` or the second `2` as the next element produces exactly the same subtrees — so take only the **first** of equal siblings: skip `nums[i]` when `i > start` and `nums[i] == nums[i − 1]`. The same rule removes duplicates from permutations and combination sums.
 
@@ -75,6 +94,8 @@ Three questions define any backtracking solution: *what is one choice?*, *which 
 
 **Problem.** Combinations of candidates (each usable repeatedly) that sum to a target.
 
+<Clues>"**all** combinations that sum to target", values reusable → backtracking over sorted candidates, stopping once a value exceeds what remains.</Clues>
+
 **Insight.** Pass a start index so combinations are generated in non-decreasing order (no `[2,3]` and `[3,2]` duplicates), and recurse with the **same** index to allow reuse. Sort the candidates so that the loop can **stop** — not just skip — as soon as one exceeds the remaining target: every later candidate is bigger.
 
 <CodeTabs id="dsa-combination-sum" title="Combination sum — reuse allowed, prune on sorted input" />
@@ -83,11 +104,15 @@ Three questions define any backtracking solution: *what is one choice?*, *which 
 
 **Problem.** All balanced strings of n pairs of parentheses.
 
+<Clues>"**all** valid strings" → build character by character, adding `(` while some remain and `)` only when one is open.</Clues>
+
 **Insight.** Generating all 2²ⁿ strings and filtering is wasteful. Instead, only make choices that keep the prefix valid: add `(` while fewer than n are used, and `)` only while it would close an open one (`close < open`). Every leaf is then a valid answer — no dead ends at all. The count is the Catalan number (1, 1, 2, 5, 14, 42, …).
 
 <CodeTabs id="dsa-generate-parentheses" title="Generate parentheses — choices that keep the prefix valid" />
 
 ### Word search in a grid
+
+<Clues>"does a **path** in the grid spell the word?" + cells can't repeat → DFS from each cell, marking the current path and unmarking on return.</Clues>
 
 **Insight.** Start a DFS from every cell matching the first letter; from a cell, try the four neighbours for the next letter. Mark cells on the **current path** so a letter isn't reused, and unmark them when backtracking (the path may pass through that cell later along a different route). Prune immediately when a cell doesn't match the next letter.
 
@@ -96,6 +121,8 @@ Three questions define any backtracking solution: *what is one choice?*, *which 
 To search **many** words at once in the same grid, put the words in a <Term id="trie">trie</Term> and walk the trie alongside the DFS ([Autocomplete / tries](../../low-level-design/autocomplete/)).
 
 ### N-Queens
+
+<Clues>"**all** placements" under rules + n ≤ 9 → one queen per row; sets of used columns and diagonals make each check O(1).</Clues>
 
 **Insight.** Place one queen per row (so rows never clash) and keep sets of used **columns** and both **diagonals**: cells on the same "\" diagonal share `row − col`, on the same "/" diagonal share `row + col`. Each safety check becomes O(1), and an unsafe column is never entered.
 
