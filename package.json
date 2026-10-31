@@ -8,7 +8,7 @@
   },
   "scripts": {
     "dev": "astro dev",
-    "build": "astro build && pagefind --site dist",
+    "build": "astro build && pagefind --site dist && tsx scripts/pwa/build-sw.ts",
     "preview": "astro preview",
     "check": "astro check && tsc --noEmit -p tsconfig.scripts.json",
     "lint": "eslint .",
@@ -20,7 +20,8 @@
     "research:fetch": "tsx scripts/research/leetcode-discuss.ts",
     "research:analyze": "tsx scripts/research/analyze.ts",
     "research:apply": "tsx scripts/research/apply-reports.ts",
-    "og": "tsx scripts/og-images.ts"
+    "og": "tsx scripts/og-images.ts",
+    "icons": "tsx scripts/pwa/icons.ts"
   },
   "dependencies": {
     "@astrojs/mdx": "^8.0.3",

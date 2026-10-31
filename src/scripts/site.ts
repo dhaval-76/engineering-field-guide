@@ -4,6 +4,7 @@
  * progress/bookmarks and keyboard shortcuts.
  */
 import { broadcast, keys, read, write, type ProgressMap, type RecentList } from '~/lib/storage';
+import '~/scripts/offline';
 
 const root = document.documentElement;
 

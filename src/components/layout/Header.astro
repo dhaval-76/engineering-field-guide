@@ -68,6 +68,16 @@ const { hasSidebar } = Astro.props;
         <kbd>/</kbd>
       </span>
     </button>
+    <a
+      class="icon-btn offline"
+      href={url('offline/')}
+      data-offline-indicator
+      data-state="starting"
+      aria-label="Offline copy"
+    >
+      <Icon name="offline" />
+      <span class="dot" aria-hidden="true"></span>
+    </a>
     <button class="icon-btn" type="button" data-theme-toggle aria-label="Toggle dark theme">
       <Icon name="moon" class="when-light" />
       <Icon name="sun" class="when-dark" />
@@ -217,6 +227,53 @@ const { hasSidebar } = Astro.props;
     :global(html:not([data-theme='light']) .when-light) {
       display: none;
     }
+  }
+  /* Offline indicator: a ring fills while downloading, a dot shows the result. */
+  .offline {
+    position: relative;
+  }
+  .offline::before {
+    content: '';
+    position: absolute;
+    inset: 4px;
+    border-radius: 50%;
+    background: conic-gradient(var(--accent) var(--pct, 0%), transparent 0);
+    -webkit-mask: radial-gradient(circle, transparent 12px, #000 12.5px);
+    mask: radial-gradient(circle, transparent 12px, #000 12.5px);
+    opacity: 0;
+  }
+  .offline:is(
+      [data-state='installing'],
+      [data-state='updating'],
+      [data-state='repair'],
+      [data-state='resync']
+    )::before {
+    opacity: 1;
+  }
+  .dot {
+    position: absolute;
+    right: 6px;
+    bottom: 7px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    border: 1.5px solid var(--bg);
+    background: transparent;
+  }
+  .offline[data-state='ready'] .dot {
+    background: var(--ok);
+  }
+  .offline[data-state='offline'] .dot {
+    background: var(--warn);
+  }
+  .offline:is([data-state='update-ready'], [data-state='paused']) .dot {
+    background: var(--accent);
+  }
+  .offline[data-state='error'] .dot {
+    background: var(--bad);
+  }
+  .offline:is([data-state='unsupported'], [data-state='removed']) {
+    color: var(--ink-3);
   }
   @media (min-width: 960px) {
     .icon-btn.nav-toggle {

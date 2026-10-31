@@ -222,3 +222,43 @@ kbd {
   margin: 0 auto;
   font-family: var(--font-sans);
 }
+
+/* Shown by src/scripts/offline.ts when a new version has been downloaded. */
+.update-toast {
+  position: fixed;
+  z-index: 80;
+  left: 50%;
+  bottom: max(16px, env(safe-area-inset-bottom));
+  transform: translateX(-50%);
+  width: max-content;
+  max-width: calc(100vw - 2 * var(--gutter));
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  padding: 10px 12px 10px 16px;
+  border: 1px solid var(--rule-strong);
+  border-radius: var(--radius);
+  background: var(--bg-raised);
+  color: var(--ink);
+  font-size: 0.9375rem;
+  box-shadow: 0 6px 24px rgb(0 0 0 / 0.12);
+}
+.update-toast[hidden] {
+  display: none;
+}
+.update-toast button {
+  min-height: 32px;
+  padding: 0 12px;
+  border: 1px solid var(--rule-strong);
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--ink-2);
+  font: inherit;
+  cursor: pointer;
+}
+.update-toast [data-apply] {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--bg);
+}

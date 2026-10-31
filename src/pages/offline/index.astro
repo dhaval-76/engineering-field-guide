@@ -1,0 +1,298 @@
+---
+import BaseLayout from '~/layouts/BaseLayout.astro';
+import Icon from '~/components/Icon.astro';
+---
+
+<BaseLayout title="Offline and updates" noindex>
+  <div class="wrap">
+    <h1>Offline and updates</h1>
+    <p class="lede">
+      The first time you open the guide, this browser saves all of it: every topic, diagram,
+      walkthrough, code sample and the search index. After that it opens and searches with no
+      connection. Your progress and bookmarks are stored on this device too.
+    </p>
+
+    <section class="card" aria-labelledby="status-h" data-offline-page>
+      <h2 id="status-h" class="status" data-status>
+        Checking…
+      </h2>
+      <div class="bar" data-bar hidden>
+        <span data-bar-fill></span>
+      </div>
+      <dl class="facts">
+        <div>
+          <dt>Saved files</dt>
+          <dd data-f="files">—</dd>
+        </div>
+        <div>
+          <dt>Download size</dt>
+          <dd data-f="size">—</dd>
+        </div>
+        <div>
+          <dt>Storage used by this site</dt>
+          <dd data-f="usage">—</dd>
+        </div>
+        <div>
+          <dt>Protected from automatic clearing</dt>
+          <dd data-f="persisted">—</dd>
+        </div>
+        <div>
+          <dt>Version</dt>
+          <dd data-f="version">—</dd>
+        </div>
+        <div>
+          <dt>Last checked for updates</dt>
+          <dd data-f="checked">—</dd>
+        </div>
+      </dl>
+      <p class="note" data-note role="status" aria-live="polite"></p>
+      <div class="actions">
+        <button class="btn primary" type="button" data-act="apply" hidden>
+          Reload into the new version
+        </button>
+        <button class="btn primary" type="button" data-act="start" hidden>
+          Save for offline
+        </button>
+        <button class="btn" type="button" data-act="check">
+          <Icon name="refresh" /> Check for updates
+        </button>
+        <button class="btn" type="button" data-act="repair">
+          Repair missing files
+        </button>
+        <button class="btn" type="button" data-act="resync">
+          Re-download everything
+        </button>
+        <button class="btn danger" type="button" data-act="remove">
+          Remove offline copy
+        </button>
+      </div>
+    </section>
+
+    <h2>How updates work</h2>
+    <p>
+      Every published version has a list of its files and a fingerprint of each one. When you open
+      the guide online, it checks for a new list. If something changed, it downloads only the
+      changed files in the background and keeps serving the copy you have until you choose{' '}
+      <strong>Reload</strong>. Nothing is half updated: a page and the files it needs always come
+      from the same version.
+    </p>
+    <ul>
+      <li>
+        <strong>Check for updates</strong> looks for a new version now instead of waiting.
+      </li>
+      <li>
+        <strong>Repair missing files</strong> downloads only files the browser has deleted from the
+        saved copy.
+      </li>
+      <li>
+        <strong>Re-download everything</strong> fetches every file again from the server, skipping
+        all caches. Use it if a page looks wrong or out of date.
+      </li>
+      <li>
+        <strong>Remove offline copy</strong> deletes the saved files; the guide then only works
+        online. Progress and bookmarks are kept.
+      </li>
+    </ul>
+
+    <h2>Install it as an app</h2>
+    <p data-install-ready hidden>
+      <button class="btn primary" type="button" data-act="install">
+        Install Field Guide
+      </button>
+    </p>
+    <ul>
+      <li>
+        <strong>Android (Chrome):</strong> menu ⋮ → <em>Install app</em> or{' '}
+        <em>Add to Home screen</em>.
+      </li>
+      <li>
+        <strong>iPhone and iPad (Safari):</strong> Share → <em>Add to Home Screen</em>.
+      </li>
+      <li>
+        <strong>Desktop (Chrome or Edge):</strong> the install icon at the right of the address bar.
+      </li>
+    </ul>
+    <p class="muted">
+      Installed or not, the offline copy works the same; installing adds an icon and opens the guide
+      in its own window.
+    </p>
+  </div>
+</BaseLayout>
+
+<script>
+  import {
+    applyUpdate,
+    checkForUpdates,
+    describe,
+    removeOffline,
+    repair,
+    resync,
+    startDownload,
+    subscribe,
+    type OfflineState,
+  } from '~/scripts/offline';
+
+  const root = document.querySelector<HTMLElement>('[data-offline-page]')!;
+  const $ = <T extends HTMLElement>(sel: string) => root.querySelector<T>(sel)!;
+  const field = (name: string, value: string) => ($(`[data-f="${name}"]`).textContent = value);
+  const button = (act: string) => document.querySelector<HTMLButtonElement>(`[data-act="${act}"]`)!;
+  const mb = (n?: number) => (n == null ? '—' : `${(n / 1e6).toFixed(1)} MB`);
+  const busyPhases = ['installing', 'updating', 'repair', 'resync', 'starting'];
+
+  function render(s: OfflineState) {
+    $('[data-status]').textContent = describe(s);
+    const busy = busyPhases.includes(s.phase) && s.phase !== 'starting';
+    $('[data-bar]').hidden = !busy;
+    $('[data-bar-fill]').style.width = `${s.total ? (s.done / s.total) * 100 : 0}%`;
+
+    const saved = s.total && s.missing != null ? s.total - s.missing : busy ? s.done : undefined;
+    field('files', saved == null || !s.total ? '—' : `${saved} of ${s.total}`);
+    field('size', mb(s.bytes));
+    field('usage', mb(s.usage));
+    field(
+      'persisted',
+      s.persisted == null
+        ? '—'
+        : s.persisted
+          ? 'Yes'
+          : 'No (the browser may clear it if space runs low)',
+    );
+    field('version', s.version ?? '—');
+    field('checked', s.lastChecked ? new Date(s.lastChecked).toLocaleString() : 'Not yet');
+    $('[data-note]').textContent = s.error ? `${s.error}` : (s.note ?? '');
+
+    const working = s.phase === 'ready' || s.phase === 'update-ready' || s.phase === 'error';
+    button('apply').hidden = s.phase !== 'update-ready';
+    button('start').hidden = !(s.phase === 'paused' || s.phase === 'removed');
+    button('check').disabled = !working;
+    button('repair').disabled = !working || !s.missing;
+    button('resync').disabled = !working;
+    button('remove').disabled = !working;
+  }
+  subscribe(render);
+
+  button('apply').addEventListener('click', applyUpdate);
+  button('start').addEventListener('click', startDownload);
+  button('check').addEventListener('click', checkForUpdates);
+  button('repair').addEventListener('click', repair);
+  button('resync').addEventListener('click', resync);
+  button('remove').addEventListener('click', () => {
+    if (confirm('Delete the offline copy? Progress and bookmarks are kept.')) removeOffline();
+  });
+
+  // Chrome and Edge offer an install prompt the page can trigger from its own button.
+  type InstallPrompt = Event & { prompt: () => Promise<void> };
+  let deferred: InstallPrompt | null = null;
+  addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferred = e as InstallPrompt;
+    document.querySelector<HTMLElement>('[data-install-ready]')!.hidden = false;
+  });
+  button('install').addEventListener('click', async () => {
+    await deferred?.prompt();
+    deferred = null;
+    document.querySelector<HTMLElement>('[data-install-ready]')!.hidden = true;
+  });
+</script>
+
+<style>
+  .wrap {
+    max-width: 760px;
+  }
+  h1 {
+    font-family: var(--font-serif);
+    font-weight: 560;
+    font-size: var(--step-4);
+    margin: 0;
+  }
+  h2 {
+    font-family: var(--font-serif);
+    font-weight: 560;
+    font-size: var(--step-2);
+    margin: 32px 0 8px;
+  }
+  .lede {
+    color: var(--ink-2);
+  }
+  .card {
+    margin: 24px 0;
+    padding: 20px;
+    border: 1px solid var(--rule);
+    border-radius: var(--radius);
+    background: var(--bg-raised);
+  }
+  .card .status {
+    margin: 0 0 12px;
+    font-size: var(--step-1);
+  }
+  .bar {
+    height: 6px;
+    border-radius: 3px;
+    background: var(--rule);
+    overflow: hidden;
+    margin-bottom: 12px;
+  }
+  .bar span {
+    display: block;
+    height: 100%;
+    width: 0;
+    background: var(--accent);
+    transition: width 0.2s;
+  }
+  .facts {
+    display: grid;
+    gap: 6px;
+    margin: 0;
+    font-size: 0.9375rem;
+  }
+  .facts div {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 2px 16px;
+    padding: 4px 0;
+    border-bottom: 1px solid var(--rule);
+  }
+  .facts dt {
+    color: var(--ink-3);
+  }
+  .facts dd {
+    margin: 0;
+    font-variant-numeric: tabular-nums;
+  }
+  .note {
+    margin: 12px 0 0;
+    color: var(--ink-2);
+    font-size: 0.9375rem;
+  }
+  .actions {
+    margin-top: 16px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .actions .btn,
+  .btn.primary {
+    min-height: 36px;
+  }
+  .btn.primary {
+    border-color: var(--accent);
+    background: var(--accent);
+    color: var(--bg);
+  }
+  .btn.danger {
+    color: var(--bad);
+  }
+  .btn[hidden],
+  .note:empty {
+    display: none;
+  }
+  .btn:disabled {
+    opacity: 0.5;
+    cursor: default;
+  }
+  .muted {
+    color: var(--ink-3);
+    font-size: 0.9375rem;
+  }
+</style>
