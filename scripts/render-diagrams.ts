@@ -16,7 +16,7 @@ import { createRequire } from 'node:module';
 import { basename, dirname, join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
-const RENDERER_VERSION = '7';
+const RENDERER_VERSION = '7-compact';
 const root = new URL('../', import.meta.url).pathname;
 const args = new Set(process.argv.slice(2));
 
@@ -105,8 +105,20 @@ async function main() {
       mermaidConfig: {
         theme: 'base',
         fontFamily: '"Inter Tight Variable", sans-serif',
-        flowchart: { curve: 'basis', padding: 12, nodeSpacing: 36, rankSpacing: 44 },
-        sequence: { mirrorActors: false },
+        // Compact spacing: diagrams are read on phones first, where every 100 px of width
+        // is the difference between fitting and scrolling.
+        flowchart: { curve: 'basis', padding: 8, nodeSpacing: 22, rankSpacing: 34, wrappingWidth: 150 },
+        state: { nodeSpacing: 22, rankSpacing: 30 },
+        class: { nodeSpacing: 22, rankSpacing: 34 },
+        sequence: {
+          mirrorActors: false,
+          actorMargin: 18,
+          width: 110,
+          boxMargin: 6,
+          messageMargin: 28,
+          noteMargin: 8,
+          wrap: true,
+        },
       },
     },
   );
