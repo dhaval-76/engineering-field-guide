@@ -1,21 +1,17 @@
-<svg viewBox="0 0 720 190" xmlns="http://www.w3.org/2000/svg" font-family="var(--font-sans)" font-size="12">
-  <text x="20" y="18" fill="var(--d-muted)" font-weight="600" letter-spacing=".05em">FIXED WINDOW, LIMIT 100 PER MINUTE</text>
-  <line x1="40" y1="130" x2="700" y2="130" stroke="var(--d-stroke)" stroke-width="1.4"/>
-  <g fill="var(--d-muted)" font-size="11" text-anchor="middle">
-    <text x="40" y="150">12:00:00</text><text x="370" y="150">12:01:00</text><text x="700" y="150">12:02:00</text>
-  </g>
-  <line x1="370" y1="40" x2="370" y2="134" stroke="var(--d-line)" stroke-dasharray="4 3"/>
-  <rect x="40" y="40" width="330" height="20" fill="var(--d-fill)" stroke="var(--d-line)"/>
-  <text x="205" y="54" text-anchor="middle" fill="var(--d-muted)">window 1 — counter resets at 12:01:00</text>
-  <rect x="370" y="40" width="330" height="20" fill="var(--d-fill)" stroke="var(--d-line)"/>
-  <text x="535" y="54" text-anchor="middle" fill="var(--d-muted)">window 2</text>
-  <!-- bursts -->
-  <rect x="340" y="76" width="28" height="54" fill="var(--d-warn-soft)" stroke="var(--d-warn)"/>
-  <text x="354" y="72" text-anchor="middle" fill="var(--d-warn)" font-weight="600">100</text>
-  <rect x="372" y="76" width="28" height="54" fill="var(--d-warn-soft)" stroke="var(--d-warn)"/>
-  <text x="386" y="72" text-anchor="middle" fill="var(--d-warn)" font-weight="600">100</text>
-  <path d="M336 96 C 300 96, 270 100, 250 104" fill="none" stroke="var(--d-bad)" stroke-width="1.2"/>
-  <text x="246" y="100" text-anchor="end" fill="var(--d-bad)" font-weight="600">200 requests in 2 s —</text>
-  <text x="246" y="115" text-anchor="end" fill="var(--d-bad)">double the limit, all allowed</text>
-  <text x="20" y="176" fill="var(--d-text)">Each window's counter only sees its own requests. Sliding-window counters and token buckets don't have this blind spot.</text>
+<svg viewBox="0 0 340 220" xmlns="http://www.w3.org/2000/svg" font-family="var(--font-sans)" font-size="11.5">
+  <text x="10" y="16" fill="var(--d-muted)" font-weight="600" letter-spacing=".05em" font-size="12">FIXED WINDOW, LIMIT 100 PER MINUTE</text>
+  <rect x="20" y="30" width="150" height="30" rx="4" fill="var(--d-info-soft)" stroke="var(--d-info)"/>
+  <rect x="170" y="30" width="150" height="30" rx="4" fill="var(--d-plum-soft)" stroke="var(--d-plum)"/>
+  <text x="95" y="49" text-anchor="middle" fill="var(--d-text)">window 1</text>
+  <text x="245" y="49" text-anchor="middle" fill="var(--d-text)">window 2</text>
+  <g fill="var(--d-muted)" text-anchor="middle" font-size="11"><text x="20" y="76">12:00:00</text><text x="170" y="76">12:01:00</text><text x="312" y="76">12:02</text></g>
+  <rect x="150" y="90" width="18" height="60" rx="3" fill="var(--d-bad-soft)" stroke="var(--d-bad)"/>
+  <rect x="172" y="90" width="18" height="60" rx="3" fill="var(--d-bad-soft)" stroke="var(--d-bad)"/>
+  <text x="159" y="166" text-anchor="middle" fill="var(--d-bad)" font-weight="600">100</text>
+  <text x="181" y="166" text-anchor="middle" fill="var(--d-bad)" font-weight="600">100</text>
+  <text x="200" y="112" fill="var(--d-text)">200 requests in 2 s —</text>
+  <text x="200" y="128" fill="var(--d-text)">twice the limit,</text>
+  <text x="200" y="144" fill="var(--d-text)">all allowed</text>
+  <text x="10" y="192" fill="var(--d-muted)" font-size="11">Each window's counter only sees its own requests;</text>
+  <text x="10" y="208" fill="var(--d-muted)" font-size="11">sliding windows and token buckets close the gap.</text>
 </svg>

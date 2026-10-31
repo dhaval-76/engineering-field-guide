@@ -1,70 +1,34 @@
-<svg viewBox="0 0 680 300" xmlns="http://www.w3.org/2000/svg" font-size="14">
-  <defs>
-    <marker id="lru-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-      <path d="M0 0L10 5L0 10z" fill="var(--d-stroke)"/>
-    </marker>
-    <marker id="lru-dash" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
-      <path d="M0 0L10 5L0 10z" fill="var(--d-info)"/>
-    </marker>
-  </defs>
-
-  <!-- HashMap -->
-  <text x="190" y="22" fill="var(--d-muted)" font-size="12" font-weight="600" letter-spacing=".06em">HASHMAP · KEY → NODE</text>
-  <g>
-    <rect x="190" y="32" width="300" height="34" rx="5" fill="var(--d-fill)" stroke="var(--d-stroke)" stroke-width="1.4"/>
-    <line x1="290" y1="32" x2="290" y2="66" stroke="var(--d-line)"/>
-    <line x1="390" y1="32" x2="390" y2="66" stroke="var(--d-line)"/>
-    <text x="240" y="54" text-anchor="middle" fill="var(--d-text)" font-family="var(--font-mono)">"D"</text>
-    <text x="340" y="54" text-anchor="middle" fill="var(--d-text)" font-family="var(--font-mono)">"A"</text>
-    <text x="440" y="54" text-anchor="middle" fill="var(--d-text)" font-family="var(--font-mono)">"C"</text>
+<svg viewBox="0 0 340 260" xmlns="http://www.w3.org/2000/svg" font-family="var(--font-sans)" font-size="12">
+  <defs><marker id="lru-a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="var(--d-info)"/></marker></defs>
+  <text x="10" y="16" fill="var(--d-muted)" font-weight="600" letter-spacing=".05em">HASH MAP · KEY → NODE</text>
+  <g font-family="var(--font-mono)" fill="var(--d-text)">
+    <rect x="76" y="26" width="52" height="28" rx="5" fill="var(--d-info-soft)" stroke="var(--d-info)"/><text x="102" y="45" text-anchor="middle">"D"</text>
+    <rect x="144" y="26" width="52" height="28" rx="5" fill="var(--d-info-soft)" stroke="var(--d-info)"/><text x="170" y="45" text-anchor="middle">"A"</text>
+    <rect x="212" y="26" width="52" height="28" rx="5" fill="var(--d-info-soft)" stroke="var(--d-info)"/><text x="238" y="45" text-anchor="middle">"C"</text>
   </g>
-
-  <!-- map → node pointers -->
-  <path d="M240 66 C240 110, 230 120, 230 158" fill="none" stroke="var(--d-info)" stroke-width="1.4" stroke-dasharray="4 3" marker-end="url(#lru-dash)"/>
-  <path d="M340 66 C340 110, 340 120, 340 158" fill="none" stroke="var(--d-info)" stroke-width="1.4" stroke-dasharray="4 3" marker-end="url(#lru-dash)"/>
-  <path d="M440 66 C440 110, 450 120, 450 158" fill="none" stroke="var(--d-info)" stroke-width="1.4" stroke-dasharray="4 3" marker-end="url(#lru-dash)"/>
-  <text x="500" y="112" fill="var(--d-info)" font-size="12">O(1) jump to the node</text>
-
-  <!-- list label -->
-  <text x="20" y="150" fill="var(--d-muted)" font-size="12" font-weight="600" letter-spacing=".06em">DOUBLY LINKED LIST</text>
-
-  <!-- HEAD -->
-  <rect x="20" y="162" width="90" height="44" rx="22" fill="none" stroke="var(--d-line)" stroke-width="1.4" stroke-dasharray="4 3"/>
-  <text x="65" y="189" text-anchor="middle" fill="var(--d-muted)" font-family="var(--font-mono)" font-size="13">HEAD</text>
-
-  <!-- D -->
-  <rect x="180" y="162" width="100" height="44" rx="5" fill="var(--d-accent-soft)" stroke="var(--d-accent)" stroke-width="1.6"/>
-  <text x="230" y="189" text-anchor="middle" fill="var(--d-text)" font-family="var(--font-mono)" font-weight="600">D : 4</text>
-
-  <!-- A -->
-  <rect x="290" y="162" width="100" height="44" rx="5" fill="var(--d-fill)" stroke="var(--d-stroke)" stroke-width="1.4"/>
-  <text x="340" y="189" text-anchor="middle" fill="var(--d-text)" font-family="var(--font-mono)">A : 1</text>
-
-  <!-- C -->
-  <rect x="400" y="162" width="100" height="44" rx="5" fill="var(--d-warn-soft)" stroke="var(--d-warn)" stroke-width="1.6"/>
-  <text x="450" y="189" text-anchor="middle" fill="var(--d-text)" font-family="var(--font-mono)">C : 3</text>
-
-  <!-- TAIL -->
-  <rect x="570" y="162" width="90" height="44" rx="22" fill="none" stroke="var(--d-line)" stroke-width="1.4" stroke-dasharray="4 3"/>
-  <text x="615" y="189" text-anchor="middle" fill="var(--d-muted)" font-family="var(--font-mono)" font-size="13">TAIL</text>
-
-  <!-- prev/next links -->
-  <g stroke="var(--d-stroke)" stroke-width="1.3" fill="none">
-    <line x1="112" y1="178" x2="178" y2="178" marker-end="url(#lru-arrow)"/>
-    <line x1="178" y1="190" x2="112" y2="190" marker-end="url(#lru-arrow)"/>
-    <line x1="282" y1="178" x2="288" y2="178"/>
-    <line x1="392" y1="178" x2="398" y2="178"/>
-    <line x1="502" y1="178" x2="568" y2="178" marker-end="url(#lru-arrow)"/>
-    <line x1="568" y1="190" x2="502" y2="190" marker-end="url(#lru-arrow)"/>
+  <g fill="none" stroke="var(--d-info)" stroke-width="1.4" marker-end="url(#lru-a)">
+    <path d="M102 54 L102 104"/><path d="M170 54 L170 104"/><path d="M238 54 L238 104"/>
   </g>
-  <text x="145" y="172" text-anchor="middle" fill="var(--d-muted)" font-size="11">next</text>
-  <text x="145" y="204" text-anchor="middle" fill="var(--d-muted)" font-size="11">prev</text>
-
-  <!-- annotations -->
-  <path d="M230 214 L230 236" stroke="var(--d-accent)" stroke-width="1.3"/>
-  <text x="230" y="254" text-anchor="middle" fill="var(--d-accent)" font-size="12" font-weight="600">most recently used</text>
-  <text x="230" y="272" text-anchor="middle" fill="var(--d-muted)" font-size="12">get/put move nodes here</text>
-  <path d="M450 214 L450 236" stroke="var(--d-warn)" stroke-width="1.3"/>
-  <text x="450" y="254" text-anchor="middle" fill="var(--d-warn)" font-size="12" font-weight="600">least recently used</text>
-  <text x="450" y="272" text-anchor="middle" fill="var(--d-muted)" font-size="12">evicted next (tail.prev)</text>
+  <text x="250" y="82" fill="var(--d-muted)" font-size="11">O(1) jump</text>
+  <g font-family="var(--font-mono)" font-size="11.5" fill="var(--d-text)">
+    <rect x="8" y="106" width="56" height="34" rx="5" fill="var(--d-fill)" stroke="var(--d-stroke)" stroke-dasharray="3 3"/><text x="36" y="127" text-anchor="middle" fill="var(--d-muted)">HEAD</text>
+    <rect x="76" y="106" width="52" height="34" rx="5" fill="var(--d-ok-soft)" stroke="var(--d-ok)"/><text x="102" y="127" text-anchor="middle">D:4</text>
+    <rect x="144" y="106" width="52" height="34" rx="5" fill="var(--d-bg)" stroke="var(--d-stroke)"/><text x="170" y="127" text-anchor="middle">A:1</text>
+    <rect x="212" y="106" width="52" height="34" rx="5" fill="var(--d-bad-soft)" stroke="var(--d-bad)"/><text x="238" y="127" text-anchor="middle">C:3</text>
+    <rect x="276" y="106" width="56" height="34" rx="5" fill="var(--d-fill)" stroke="var(--d-stroke)" stroke-dasharray="3 3"/><text x="304" y="127" text-anchor="middle" fill="var(--d-muted)">TAIL</text>
+  </g>
+  <g stroke="var(--d-line)" stroke-width="1.3">
+    <line x1="64" y1="118" x2="76" y2="118"/><line x1="128" y1="118" x2="144" y2="118"/>
+    <line x1="196" y1="118" x2="212" y2="118"/><line x1="264" y1="118" x2="276" y2="118"/>
+    <line x1="64" y1="130" x2="76" y2="130"/><line x1="128" y1="130" x2="144" y2="130"/>
+    <line x1="196" y1="130" x2="212" y2="130"/><line x1="264" y1="130" x2="276" y2="130"/>
+  </g>
+  <text x="102" y="160" text-anchor="middle" fill="var(--d-ok)" font-size="11">most recent</text>
+  <text x="238" y="160" text-anchor="middle" fill="var(--d-bad)" font-size="11">least recent</text>
+  <g font-size="11.5">
+    <text x="10" y="194" fill="var(--d-text)">Below: a doubly linked list. get / put find the node</text>
+    <text x="10" y="210" fill="var(--d-text)">in the map and move it to the front — O(1).</text>
+    <text x="10" y="234" fill="var(--d-text)">Full on put: remove tail.prev (C) from the list</text>
+    <text x="10" y="250" fill="var(--d-text)">and from the map.</text>
+  </g>
 </svg>
