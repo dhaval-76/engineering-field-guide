@@ -1,0 +1,10 @@
+flowchart TD
+  TL["static ThreadLocal&lt;User&gt; CURRENT_USER<br/>(one shared key)"]
+  TL -. "get() on http-1" .-> M1
+  TL -. "get() on http-2" .-> M2
+  subgraph T1["Thread http-1"]
+    M1[("its ThreadLocalMap<br/>CURRENT_USER → alice")]
+  end
+  subgraph T2["Thread http-2"]
+    M2[("its ThreadLocalMap<br/>CURRENT_USER → bob")]
+  end

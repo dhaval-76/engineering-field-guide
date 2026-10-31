@@ -15,7 +15,7 @@ quickRef:
     - '`Semaphore` = limit concurrency; `CountDownLatch` = wait for N one-off events; `CyclicBarrier` = N threads meet repeatedly.'
     - Across processes or machines the same pattern becomes a message broker (Kafka, SQS, RabbitMQ).
   useWhen: Work arrives at a different rate than it can be processed, or a fixed number of workers should drain shared work.
-lastReviewed: 2026-10-30
+lastReviewed: 2026-10-31
 ---
 
 ## Why it matters
@@ -71,7 +71,7 @@ Compared with the `wait`/`notifyAll` version in [wait, sleep and join](../wait-s
 
 - **Shutdown:** stop producers first, let consumers drain, then interrupt (or send a "poison pill" sentinel per consumer).
 - **Failures:** catch exceptions per item so one bad message doesn't kill a consumer thread; route repeated failures to a dead-letter store.
-- **Durability:** an in-memory queue loses everything on a crash. If work must survive restarts or be shared across instances, use a broker or a database-backed queue (outbox, `SELECT … FOR UPDATE SKIP LOCKED`).
+- **Durability:** an in-memory queue loses everything on a crash. If work must survive restarts or be shared across instances, use a broker or a database-backed queue (outbox, `SELECT … FOR UPDATE SKIP LOCKED`). When the broker itself is down, see [Surviving dependency outages](../../distributed-systems/failure-fallbacks/).
 - **Monitoring:** queue depth and age of the oldest item are the best early-warning signals.
 
 <Pitfalls>
