@@ -59,7 +59,7 @@ That last row is why you rarely need `volatile` directly: concurrent collections
 
 <CodeTabs id="jmm-locks" title="synchronized, ReentrantLock with tryLock, and ReadWriteLock — plus Python and JS" />
 
-| | `synchronized` | `ReentrantLock` | `ReentrantReadWriteLock` | `StampedLock` |
+| Aspect | `synchronized` | `ReentrantLock` | `ReentrantReadWriteLock` | `StampedLock` |
 |---|---|---|---|---|
 | Mutual exclusion + visibility | Yes | Yes | Writers exclusive, readers shared | Yes + optimistic reads |
 | Re-entrant | Yes | Yes | Yes | **No** |
@@ -72,7 +72,7 @@ Both `synchronized` and `ReentrantLock` are fast in modern JVMs; choose by featu
 
 ## volatile vs synchronized vs atomics
 
-| | `volatile` | `synchronized` / `Lock` | `AtomicX` |
+| Aspect | `volatile` | `synchronized` / `Lock` | `AtomicX` |
 |---|---|---|---|
 | Visibility | Yes | Yes | Yes |
 | Atomic read-modify-write | No | Yes | Yes (single variable, CAS) |

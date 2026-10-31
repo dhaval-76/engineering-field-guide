@@ -89,7 +89,7 @@ Dynamo-style stores (Cassandra, ScyllaDB, Riak; DynamoDB's internal design is re
 
 ## Physical vs logical replication
 
-| | Physical (streaming WAL) | Logical (decoded changes) |
+| Aspect | Physical (streaming WAL) | Logical (decoded changes) |
 |---|---|---|
 | What's sent | page-level changes | rows inserted/updated/deleted per table |
 | Replica | exact copy, read-only, same major version | any subscriber; subset of tables; other versions |

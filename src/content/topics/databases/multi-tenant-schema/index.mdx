@@ -31,7 +31,7 @@ Tenants in a building. An apartment block (shared tables) is cheap per family, b
 
 <Diagram id="tenancy-models" caption="Pool, bridge and silo: isolation and cost rise from left to right." />
 
-| | Shared tables (pool) | Schema per tenant (bridge) | Database per tenant (silo) |
+| Aspect | Shared tables (pool) | Schema per tenant (bridge) | Database per tenant (silo) |
 |---|---|---|---|
 | Isolation | logical — every query filters by `tenant_id` | separate tables, shared server | separate database (or cluster) |
 | Cost per tenant | lowest | medium | highest |

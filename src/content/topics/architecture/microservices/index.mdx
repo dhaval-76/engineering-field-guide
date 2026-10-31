@@ -29,7 +29,7 @@ A large restaurant splits its kitchen into stations — grill, pastry, salad —
 
 ## Should you split at all?
 
-| | Modular monolith | Microservices |
+| Aspect | Modular monolith | Microservices |
 |---|---|---|
 | Deploy | one unit | each service independently |
 | Calls between parts | in-process, typed, transactional | network: latency, partial failure, versioning |
@@ -51,7 +51,7 @@ Signals that splitting pays off: teams blocked on each other's releases, parts w
 
 ## How services talk
 
-| | Synchronous (REST, gRPC) | Asynchronous (events, commands over Kafka/RabbitMQ) |
+| Aspect | Synchronous (REST, gRPC) | Asynchronous (events, commands over Kafka/RabbitMQ) |
 |---|---|---|
 | Caller waits? | yes | no |
 | Coupling | runtime: if B is down, A's request fails | B can be down; messages wait |

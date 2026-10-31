@@ -50,7 +50,7 @@ When the decision needs more than one statement — a transfer between two accou
 
 <CodeTabs id="payment-optimistic" title="@Version and a bounded retry" />
 
-| | Atomic update | Pessimistic (`FOR UPDATE`) | Optimistic (`@Version`) |
+| Aspect | Atomic update | Pessimistic (`FOR UPDATE`) | Optimistic (`@Version`) |
 |---|---|---|---|
 | How | Condition inside the `UPDATE` | Lock rows, then decide | Detect a changed version at write time |
 | Contention | Waits briefly on the row lock | Waiters queue on the lock | Conflicts → retries |

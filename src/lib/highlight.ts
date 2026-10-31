@@ -1,4 +1,5 @@
 import { createHighlighter, type Highlighter } from 'shiki';
+import { CONTRAST_FIXES } from './code-contrast';
 
 const langs = [
   'java',
@@ -15,6 +16,8 @@ const langs = [
   'properties',
   'dockerfile',
   'xml',
+  'proto',
+  'graphql',
 ];
 let highlighter: Promise<Highlighter> | undefined;
 
@@ -26,5 +29,6 @@ export async function highlight(code: string, lang: string): Promise<string> {
     lang: known,
     themes: { light: 'github-light', dark: 'github-dark-dimmed' },
     defaultColor: false,
+    colorReplacements: CONTRAST_FIXES as unknown as Record<string, Record<string, string>>,
   });
 }

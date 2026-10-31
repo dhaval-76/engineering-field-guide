@@ -29,7 +29,7 @@ A hotel. Showing your passport at check-in is **authentication**. The key card t
 
 ## Sessions or tokens
 
-| | Server session + cookie | Self-contained token (JWT) |
+| Aspect | Server session + cookie | Self-contained token (JWT) |
 |---|---|---|
 | Where state lives | Server (memory, Redis, DB) | In the token; server keeps only keys |
 | Per-request check | Look up the session id | Verify signature locally |

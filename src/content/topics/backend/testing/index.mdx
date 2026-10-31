@@ -71,7 +71,7 @@ A test reads best as **Arrange – Act – Assert** (given / when / then), with 
 
 <CodeTabs id="unit-test-mocks" title="A service test with mocks — JUnit + Mockito, Vitest, pytest" />
 
-| | Creates | Real code runs? | Use for |
+| Aspect | Creates | Real code runs? | Use for |
 |---|---|---|---|
 | `@Mock` | a fake; unstubbed methods return `null`, `0`, `false`, empty collections | no | collaborators you replace |
 | `@Spy` | a wrapper around a real object | yes, unless stubbed with `doReturn(…).when(spy)` | rarely — partial mocks usually mean the class does too much |

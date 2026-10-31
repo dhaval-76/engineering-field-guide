@@ -36,7 +36,7 @@ Feed reads ≈ 6 B/day ≈ 70,000/s (peaks 3–5×). Posts ≈ 1,200/s. If the a
 
 ## Fan-out strategies
 
-| | Push (on write) | Pull (on read) | Hybrid |
+| Aspect | Push (on write) | Pull (on read) | Hybrid |
 |---|---|---|---|
 | Post cost | O(followers) inserts | O(1) | O(followers) for normal accounts only |
 | Read cost | read one list | query every followee, merge | one list + a few celebrity timelines |

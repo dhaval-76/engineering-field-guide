@@ -60,7 +60,7 @@ Three behaviours follow from it:
 
 <CodeTabs id="jpa-find-vs-reference" title="Load the row, or just a handle to it" />
 
-| | `find()` | `getReference()` |
+| Aspect | `find()` | `getReference()` |
 |---|---|---|
 | SQL | `SELECT` now (unless already in the context) | none until you read a non-id field |
 | Missing row | returns `null` | `EntityNotFoundException` when the proxy is first used |

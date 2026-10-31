@@ -53,7 +53,7 @@ Adding UPI support means writing `UpiProcessor`. `CheckoutService` doesn't chang
 
 People mix these up constantly. They work together but answer different questions:
 
-| | Abstraction | Encapsulation |
+| Aspect | Abstraction | Encapsulation |
 |---|---|---|
 | Hides | **How** something works | **What** is stored inside |
 | Mechanism | Interfaces, abstract classes, function signatures | Access modifiers (`private`), methods that guard state |
@@ -89,7 +89,7 @@ Polymorphism is what lets you delete a growing `if (type == ...) else if ...` ch
 Say the relationship out loud. "A savings account **is a** bank account" — inheritance can work. "A logger **is a** file" — no, a logger **uses** a file, so compose. If the child would have to disable or throw from a parent method, the hierarchy is wrong.
 </Callout>
 
-| | Inheritance (IS-A) | Composition (HAS-A) |
+| Aspect | Inheritance (IS-A) | Composition (HAS-A) |
 |---|---|---|
 | Coupling | Tight — child sees parent internals | Loose — only the collaborator's public API |
 | Change at runtime | Fixed at compile time | Swap the collaborator (e.g. inject a different strategy) |

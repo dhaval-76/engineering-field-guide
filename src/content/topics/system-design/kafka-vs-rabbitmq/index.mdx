@@ -30,7 +30,7 @@ A queue is a pile of work orders on a counter: whichever worker is free takes th
 
 ## Side by side
 
-| | Kafka (log) | RabbitMQ (queue broker) |
+| Aspect | Kafka (log) | RabbitMQ (queue broker) |
 |---|---|---|
 | Unit | topic → partitions (ordered, append-only) | exchange → bindings → queues |
 | After consumption | message stays until retention/compaction | removed once acknowledged |

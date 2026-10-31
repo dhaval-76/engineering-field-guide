@@ -27,28 +27,29 @@ const letters = [...new Set(rows.map((r) => r.data.term[0]!.toUpperCase()))];
         <a href={`#letter-${l}`}>{l}</a>
       ))}
     </nav>
-    <dl>
-      {rows.map((r, i) => (
-        <>
-          {(i === 0 ||
-            rows[i - 1]!.data.term[0]!.toUpperCase() !== r.data.term[0]!.toUpperCase()) && (
-            <h2 id={`letter-${r.data.term[0]!.toUpperCase()}`}>{r.data.term[0]!.toUpperCase()}</h2>
-          )}
-          <div id={r.id} class="entry">
-            <dt>{r.data.term}</dt>
-            <dd>
-              {r.data.short}
-              {r.topic && (
-                <>
-                  {' '}
-                  <a href={topicUrl(r.topic.id)}>{r.topic.data.title} →</a>
-                </>
-              )}
-            </dd>
-          </div>
-        </>
-      ))}
-    </dl>
+    {letters.map((l) => (
+      <section class="letter-group" aria-labelledby={`letter-${l}`}>
+        <h2 id={`letter-${l}`}>{l}</h2>
+        <dl>
+          {rows
+            .filter((r) => r.data.term[0]!.toUpperCase() === l)
+            .map((r) => (
+              <div id={r.id} class="entry">
+                <dt>{r.data.term}</dt>
+                <dd>
+                  {r.data.short}
+                  {r.topic && (
+                    <>
+                      {' '}
+                      <a href={topicUrl(r.topic.id)}>{r.topic.data.title} →</a>
+                    </>
+                  )}
+                </dd>
+              </div>
+            ))}
+        </dl>
+      </section>
+    ))}
   </div>
 </BaseLayout>
 

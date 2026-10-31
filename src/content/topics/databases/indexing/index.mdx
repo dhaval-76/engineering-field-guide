@@ -123,7 +123,7 @@ Read the plan inside-out and look for: **estimated `rows` far from actual** (sta
 
 Relational databases store tables and indexes in **B-trees** updated in place. Many write-heavy stores (Cassandra, ScyllaDB, RocksDB, and engines built on it such as MyRocks) use **log-structured merge trees** instead: writes go to an in-memory table and a log, are flushed as sorted immutable files (SSTables), and background **compaction** merges those files.
 
-| | B-tree (PostgreSQL, InnoDB) | LSM tree (Cassandra, RocksDB) |
+| Aspect | B-tree (PostgreSQL, InnoDB) | LSM tree (Cassandra, RocksDB) |
 |---|---|---|
 | Write | find the page, modify it in place (random I/O) | append to memory + log; flush sequentially |
 | Read | one tree descent | check memtable and several files; Bloom filters skip most files |

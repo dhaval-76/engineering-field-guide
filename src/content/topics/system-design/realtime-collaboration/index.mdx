@@ -31,7 +31,7 @@ Two people edit the same text at the same time. Locking (one editor at a time) d
 
 ## OT or CRDT
 
-| | Operational transformation | CRDTs (e.g. Yjs, Automerge) |
+| Aspect | Operational transformation | CRDTs (e.g. Yjs, Automerge) |
 |---|---|---|
 | Idea | server orders ops; concurrent ops are rewritten against each other | each element has a unique position id; ops commute by construction |
 | Needs a central server? | yes — it defines the order | no — any order of delivery converges |

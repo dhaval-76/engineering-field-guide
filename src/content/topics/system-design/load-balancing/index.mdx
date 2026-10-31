@@ -30,7 +30,7 @@ A host at a busy restaurant seating guests. A naive host seats tables strictly i
 
 <Diagram id="lb-layers" caption="Global DNS or anycast picks a region; an L4 balancer spreads connections across L7 proxies; L7 proxies route requests to services; services call each other with client-side balancing." />
 
-| | L4 (transport) | L7 (application) |
+| Aspect | L4 (transport) | L7 (application) |
 |---|---|---|
 | Sees | IPs, ports, TCP/UDP | HTTP method, path, headers, cookies, gRPC methods |
 | Balances | connections | requests (important for HTTP/2 and gRPC, which multiplex many requests per connection) |

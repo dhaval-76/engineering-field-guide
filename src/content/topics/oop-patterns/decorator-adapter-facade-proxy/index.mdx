@@ -87,7 +87,7 @@ Spring adds `@Transactional`/`@Cacheable`/`@Async` by wrapping your bean in a pr
 
 ## Telling them apart
 
-| | Interface towards caller | Wraps | Purpose |
+| Aspect | Interface towards caller | Wraps | Purpose |
 |---|---|---|---|
 | Decorator | **Same** as wrapped | One object | Add behaviour; stackable |
 | Proxy | **Same** as wrapped | One object | Control access (cache, auth, lazy, remote) |

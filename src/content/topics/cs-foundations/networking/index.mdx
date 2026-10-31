@@ -45,7 +45,7 @@ Sending a parcel: the street address is the IP address, the flat number is the p
 
 ## TCP vs UDP
 
-| | TCP | UDP |
+| Aspect | TCP | UDP |
 |---|---|---|
 | Connection | handshake, then a stream | none — independent datagrams |
 | Reliability | retransmits lost data, ordered | none (the app decides) |
@@ -57,7 +57,7 @@ TCP keeps a connection per (source IP, source port, destination IP, destination 
 
 ## HTTP versions
 
-| | HTTP/1.1 | HTTP/2 | HTTP/3 |
+| Aspect | HTTP/1.1 | HTTP/2 | HTTP/3 |
 |---|---|---|---|
 | Transport | TCP | TCP | QUIC over UDP |
 | Requests per connection | one at a time (browsers open ~6) | many, multiplexed streams | many, independent streams |

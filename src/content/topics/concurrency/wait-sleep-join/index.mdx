@@ -32,7 +32,7 @@ Threads constantly have to pause: to back off, to wait until data is ready, or t
 
 ## The three pauses side by side
 
-| | `Thread.sleep(ms)` | `obj.wait()` | `t.join()` |
+| Aspect | `Thread.sleep(ms)` | `obj.wait()` | `t.join()` |
 |---|---|---|---|
 | Defined on | `Thread` (static, current thread) | `Object` | `Thread` (instance) |
 | Releases locks? | **No** | **Yes** — the monitor of `obj` | It calls `wait` on the thread object internally; your other locks stay held |

@@ -54,7 +54,7 @@ At-least-once delivery means duplicates. The consumer inserts `(consumer, messag
 
 <CodeTabs id="saga-orchestrator" title="A saga orchestrator: log each step, compensate completed steps in reverse, escalate if a compensation keeps failing" />
 
-| | Choreography | Orchestration |
+| Aspect | Choreography | Orchestration |
 |---|---|---|
 | How | Each service reacts to events and emits its own | A coordinator sends commands and tracks state |
 | Coupling | Services know each other's events | Services know only the orchestrator's commands |

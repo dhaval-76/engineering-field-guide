@@ -72,7 +72,7 @@ Spring ships the pattern: publish any object with `ApplicationEventPublisher`, l
 
 Both decouple publishers from subscribers. The difference is **where the subscribers live** and **what happens on failure**.
 
-| | In-process Observer (Spring events, EventEmitter) | Broker pub/sub (Kafka, RabbitMQ, SNS/SQS) |
+| Aspect | In-process Observer (Spring events, EventEmitter) | Broker pub/sub (Kafka, RabbitMQ, SNS/SQS) |
 |---|---|---|
 | Subscribers | Same process | Any service, any language |
 | Durability | Lost if the process dies mid-delivery | Persisted; consumers can retry or replay |

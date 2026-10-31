@@ -38,7 +38,7 @@ A newsroom's wire feed. Every story is appended to the feed with a number. Each 
 
 ## Observer vs pub/sub vs queue
 
-| | Observer | Pub/sub (log) | Work queue |
+| Aspect | Observer | Pub/sub (log) | Work queue |
 |---|---|---|---|
 | Coupling | Subject holds a list of observers | Broker in between; parties don't know each other | Broker in between |
 | Each message goes to | every observer, synchronously | every **group** (and one consumer within a group) | one consumer |

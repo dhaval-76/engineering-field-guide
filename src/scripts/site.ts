@@ -210,3 +210,25 @@ document.addEventListener('keydown', (e) => {
     if (link) location.href = link.href;
   }
 });
+
+/* ── Scrollable tables ─────────────────────────────────── */
+// Wide tables scroll inside themselves on narrow screens; keyboard users need to focus them to scroll.
+function markScrollableTables() {
+  document.querySelectorAll<HTMLTableElement>('.prose table').forEach((t) => {
+    if (t.scrollWidth > t.clientWidth + 1) {
+      t.tabIndex = 0;
+      if (!t.hasAttribute('aria-label')) {
+        const heading = t.closest('section, .prose')?.querySelector('h2, h3');
+        t.setAttribute('aria-label', `Table${heading ? `: ${heading.textContent?.trim()}` : ''} (scrolls sideways)`);
+      }
+    } else {
+      t.removeAttribute('tabindex');
+    }
+  });
+}
+markScrollableTables();
+let resizeTimer: number | undefined;
+addEventListener('resize', () => {
+  clearTimeout(resizeTimer);
+  resizeTimer = window.setTimeout(markScrollableTables, 200);
+});
