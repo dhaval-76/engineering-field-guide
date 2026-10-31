@@ -123,6 +123,11 @@ async function register() {
   if (reg.waiting && container.controller) set({ phase: 'update-ready' });
   else if (reg.installing) track(reg.installing);
   else askStatus();
+  // Opening a page online makes the browser fetch sw.js again (updateViaCache: 'none'), which is the check.
+  if (navigator.onLine) {
+    write(LAST_CHECK, Date.now());
+    set({ lastChecked: Date.now() });
+  }
   reg.addEventListener('updatefound', () => reg?.installing && track(reg.installing));
   // Ask the browser not to evict the saved copy when space runs low.
   try {
