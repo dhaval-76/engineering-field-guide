@@ -15,7 +15,7 @@ quickRef:
     - 'Complex logic: **pessimistic** `SELECT … FOR UPDATE` (lock rows in id order) or **optimistic** `@Version` + retry.'
     - Money as `BigDecimal`/integer minor units, a ledger row per movement, and an **idempotency key** per request.
   useWhen: Any shared counter or balance — wallets, inventory, seat booking, quotas — updated by concurrent requests.
-lastReviewed: 2026-10-30
+lastReviewed: 2026-10-31
 ---
 
 ## The question
@@ -33,6 +33,18 @@ Two cashiers at different branches both look up the same joint account on their 
 <CodeTabs id="payment-broken" title="The naive version" />
 
 <Walkthrough id="lost-update" />
+
+We ran it against a real PostgreSQL 14: an account with **500**, and **100 concurrent requests** each trying to debit **10** (20 database connections). Three runs of each:
+
+<Chart
+  type="bar"
+  title="Money paid out from a 500 balance by 100 concurrent debits of 10 (measured)"
+  bars={[
+    ['Read, check in code, write back', 1000, 'bad'],
+    ['One conditional UPDATE', 500, 'ok'],
+  ]}
+  caption="The read-then-write version approved all 100 debits in every run — twice the money in the account — and still left the balance at 410–440, because most writes overwrote each other. The conditional update approved exactly 50 and ended at 0."
+/>
 
 ## Fix 1: atomic conditional update (start here)
 
