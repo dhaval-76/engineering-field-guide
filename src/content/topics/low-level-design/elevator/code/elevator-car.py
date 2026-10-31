@@ -16,6 +16,10 @@ class ElevatorCar:
         if self.direction == "IDLE" and f != self.floor:
             self.direction = "UP" if f > self.floor else "DOWN"
 
+    @property
+    def pending_stops(self) -> int:
+        return len(self._stops)
+
     def tick(self) -> None:
         if self._door_open:
             self._door_open = False

@@ -12,6 +12,10 @@ export class ElevatorCar {
     if (this.direction === 'IDLE' && f !== this.floor) this.direction = f > this.floor ? 'UP' : 'DOWN';
   }
 
+  get pendingStops() {
+    return this.#stops.size;
+  }
+
   tick() {
     if (this.#doorOpen) { this.#doorOpen = false; return; }
     if (this.#stops.delete(this.floor)) { this.#doorOpen = true; return; }
