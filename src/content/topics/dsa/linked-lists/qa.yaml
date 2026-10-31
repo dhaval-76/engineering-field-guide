@@ -22,6 +22,16 @@ practice:
     solution: |
       Create a dummy node and a `tail` pointing to it. While both lists have nodes, attach the smaller head to `tail.next` and advance that list and `tail`. When one list runs out, attach the other's remainder in one step. Return `dummy.next`. O(n + m) time, O(1) extra space.
     solutionCode: dsa-merge-two-lists
+  - task: Reorder a list L0 → Ln → L1 → Ln−1 → … in place with O(1) extra space.
+    hint: Three steps you already know.
+    solution: |
+      Find the middle with fast/slow pointers (stop when `fast.next` or `fast.next.next` is null), reverse the list after the middle and cut it there, then weave: take one node from the first half, one from the reversed second half, and so on. O(n) time, O(1) space.
+    solutionCode: dsa-reorder-list
+  - task: Add two numbers stored as digit lists (ones digit first).
+    hint: Grade-school addition — what should the loop condition be so a final carry isn't lost?
+    solution: |
+      Use a dummy head and a carry. Loop while either list has nodes or the carry is non-zero; add the two digits (0 for a finished list) plus the carry, append `sum % 10`, keep `sum / 10` as the carry. O(max(m, n)) and no integer overflow for any length.
+    solutionCode: dsa-add-two-numbers
 quiz:
   - q: After reversing a list iteratively, which variable holds the new head?
     options: [head, cur, prev, next]

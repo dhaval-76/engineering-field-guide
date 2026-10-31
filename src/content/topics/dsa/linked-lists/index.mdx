@@ -4,7 +4,7 @@ summary: Pointer manipulation without losing nodes — dummy heads, reversing in
 track: dsa
 order: 60
 tags: [dsa, linked-list, pointers, patterns]
-aliases: [linked list, singly linked list, doubly linked list, reverse linked list, dummy node, sentinel, fast and slow pointers, floyd cycle detection, linked list cycle, middle of linked list, merge two sorted lists, remove nth node from end, reorder list, palindrome linked list, merge k sorted lists]
+aliases: [linked list, singly linked list, doubly linked list, reverse linked list, dummy node, sentinel, fast and slow pointers, floyd cycle detection, linked list cycle, middle of linked list, merge two sorted lists, remove nth node from end, reorder list, add two numbers, copy list with random pointer, palindrome linked list, merge k sorted lists]
 prerequisites: [dsa/two-pointers]
 related: [low-level-design/lru-cache, dsa/heaps-and-top-k]
 quickRef:
@@ -16,55 +16,129 @@ quickRef:
     - 'Draw the boxes and arrows before coding; most bugs are a lost `next` reference.'
   complexity: 'Mostly O(n) time and O(1) extra space.'
   useWhen: 'Problems on linked structures, in-place re-linking, or detecting cycles in sequences.'
-lastReviewed: 2026-10-30
+lastReviewed: 2026-10-31
 ---
+
+## Why it matters
+
+A linked list stores each element in its own node with a pointer to the next one. That costs memory and cache locality — an `ArrayList` is usually faster in practice — but it gives two abilities arrays don't: **O(1) insertion and removal anywhere you already hold a pointer**, and **re-linking in place** without copying. That's why linked lists sit inside an LRU cache, a free list in a memory allocator, the buckets of a hash map and the queue of runnable threads in an OS scheduler.
+
+In interviews, linked lists test something specific: careful pointer manipulation under the constraint of **O(1) extra space**. The problems are rarely deep algorithmically; they are about never losing a node and handling the head, the tail and empty lists correctly. A handful of techniques — dummy heads, three-pointer reversal, fast/slow pointers and gap pointers — combine to solve nearly all of them.
+
+<Callout type="analogy">
+A treasure hunt where each clue tells you where the next one is. You can't jump to clue 50; you follow the chain. Re-linking means rewriting a clue — and if you overwrite it before reading where it pointed, the rest of the hunt is lost forever.
+</Callout>
 
 ## Recognise it
 
-- Input is a linked list, or a sequence defined by "next" pointers (including functional graphs like `i → nums[i]`).
-- Needs O(1) extra space where an array copy would be easy.
-- Middle, cycle, kth from end, merge, reverse a section.
-
-<Callout type="analogy">
-A treasure hunt where each clue tells you where the next one is. You can't jump to clue 50; you follow the chain. Re-linking means rewriting a clue — and if you overwrite it before reading it, the rest of the hunt is lost.
-</Callout>
+- The input is a linked list, or a sequence defined by "next" pointers (including functional graphs like `i → nums[i]`, as in "find the duplicate number").
+- O(1) extra space is required where an array copy would be easy.
+- The question mentions the middle, a cycle, the kth node from the end, merging, or reversing a section.
 
 <CodeTabs id="dsa-list-node" title="The node type used in these examples" />
+
+## The four techniques
+
+| Technique | What it does | Typical problems |
+|---|---|---|
+| **Dummy head** | a fake node before the head, so the real head is never a special case | merge, remove, partition, add numbers |
+| **Three-pointer reversal** | `prev`, `cur`, `next`: save, re-point, advance | reverse list, reverse in k-groups, palindrome check |
+| **Fast and slow pointers** | fast moves 2, slow moves 1 | middle, cycle detection, cycle start |
+| **Gap pointers** | lead pointer starts n ahead | nth from end, rotate list |
 
 ## Reversing a list
 
 <Walkthrough id="reverse-list" />
 
+The loop keeps one invariant: `prev` is the head of the already-reversed part and `cur` is the head of the rest. Each step moves one node from the rest to the front of the reversed part — **save** `cur.next`, **re-point** `cur.next = prev`, **advance** both. When `cur` is null, `prev` is the new head.
+
 <CodeTabs id="dsa-reverse-list" title="Reverse a linked list — iterative O(1) space, and recursive" />
+
+The recursive version is elegant but uses O(n) stack space — a 100,000-node list can overflow the default Java thread stack.
 
 ## Fast and slow pointers
 
 <CodeTabs id="dsa-cycle-detection" title="Floyd's cycle detection — has a cycle, and where it starts" />
 
-Why the cycle start works: if the head is `a` steps from the cycle entry and they meet `b` steps into the cycle, slow travelled `a + b` and fast `2(a + b)`; the difference `a + b` is a multiple of the cycle length, so walking `a` more steps from the meeting point lands on the entry — exactly where a pointer from the head arrives after `a` steps.
+- **Middle:** when fast reaches the end, slow has gone half as far.
+- **Cycle detection:** inside a cycle, fast gains one step on slow per move, so it must catch up — they meet within one lap. Without a cycle, fast falls off the end.
+- **Cycle start:** let the head be `a` steps from the cycle entry and the meeting point `b` steps into the cycle. Slow travelled `a + b`, fast `2(a + b)`; the difference `a + b` is a whole number of laps. So walking `a` more steps from the meeting point lands exactly on the entry — the same place a pointer starting at the head reaches after `a` steps. Move both one step at a time; they meet at the entry.
+
+The same algorithm finds the duplicate in an array of n + 1 values in `[1, n]` without modifying it: treat `i → nums[i]` as next pointers; the duplicate is the cycle entry.
 
 ## Merging and gap pointers
 
+### Merge two sorted lists
+
+**Insight.** A dummy head plus a `tail` pointer: repeatedly attach the smaller head and advance. When one list runs out, attach the rest of the other in one step.
+
 <CodeTabs id="dsa-merge-two-lists" title="Merge two sorted lists — dummy head" />
+
+Merging **k** sorted lists uses a min-heap of the current heads — O(N log k) for N total nodes ([Heaps](../heaps-and-top-k/)).
+
+### Remove the nth node from the end
+
+**Insight.** Start `lead` n + 1 nodes ahead of `trail` (both from a dummy). Move both until `lead` falls off the end; `trail` is then just before the node to remove. One pass, and the dummy handles removing the head itself.
 
 <CodeTabs id="dsa-remove-nth-from-end" title="Remove the nth node from the end — one pass with a gap" />
 
-Merging **k** sorted lists uses a min-heap of the current heads — O(N log k) ([Heaps](../heaps-and-top-k/)).
+## Combining techniques
+
+### Reorder list
+
+**Problem.** Rearrange `L0 → L1 → … → Ln` into `L0 → Ln → L1 → Ln−1 → …`, in place. `[1,2,3,4,5]` → `[1,5,2,4,3]`.
+
+**Insight.** Three techniques in sequence: **fast/slow** to find the middle, **reverse** the second half (`[4,5]` → `[5,4]`), then **weave** the two halves together one node at a time. Each step is O(n) with O(1) space; using an array of nodes would be simpler but O(n) space — say both and let the interviewer choose.
+
+<CodeTabs id="dsa-reorder-list" title="Reorder list — middle, reverse, weave" />
+
+The same middle-and-reverse combination checks whether a list is a **palindrome** in O(1) space: reverse the second half and compare it with the first (and reverse it back if the caller needs the list intact).
+
+### Add two numbers
+
+**Problem.** Two numbers are stored as lists of digits, ones digit first. Return their sum as a list. `[2,4,3] + [5,6,4]` (342 + 465) → `[7,0,8]` (807).
+
+**Insight.** It's grade-school addition: walk both lists together with a carry. The loop continues while **either** list has nodes **or** a carry remains, which handles different lengths and a final carry (`999 + 1`) without special cases. Because nothing is converted to an integer, numbers of any length work — no overflow.
+
+<CodeTabs id="dsa-add-two-numbers" title="Add two numbers — digit by digit with a carry" />
+
+If the digits are stored most-significant first, reverse both lists first (or push digits onto two stacks), add, and build the result from the front.
+
+## Complexity at a glance
+
+| Problem | Time | Extra space |
+|---|---|---|
+| Reverse | O(n) | O(1) iterative, O(n) recursive |
+| Cycle detection / start | O(n) | O(1) |
+| Middle | O(n) | O(1) |
+| Merge two sorted | O(m + n) | O(1) |
+| Merge k sorted | O(N log k) | O(k) |
+| Remove nth from end | O(n), one pass | O(1) |
+| Reorder list | O(n) | O(1) |
+| Add two numbers | O(max(m, n)) | O(1) besides the output |
+
+## Talking through it in an interview
+
+- Draw three or four boxes and arrows before writing code, and step through one iteration on the drawing.
+- Name the technique ("I'll use a dummy head so removing the first node isn't a special case").
+- Check the edge cases out loud: empty list, one node, two nodes, n equal to the length.
+- Ask whether you may modify the input list; restore it if needed (palindrome check).
 
 <Pitfalls>
 
 - **Losing the rest of the list** — save `next` before changing `cur.next`.
-- **Null checks for fast pointers** — `fast != null && fast.next != null`.
+- **Null checks for fast pointers** — `fast != null && fast.next != null` (or `fast.next.next` when you want the first middle).
 - **Special-casing the head** — a dummy node avoids it.
 - **Returning the wrong head** after reversal (it's `prev`, not `head`).
-- **Modifying input lists** when the caller still needs them.
+- **Forgetting to cut the list** before weaving halves — the result loops forever.
+- **Recursive solutions on long lists** — stack overflow; prefer iteration.
 
 </Pitfalls>
 
 <KeyTakeaways>
 
-- Dummy heads, three-pointer reversal, fast/slow and gap pointers cover most list problems.
+- Dummy heads, three-pointer reversal, fast/slow and gap pointers cover most list problems; hard ones combine them.
 - Floyd's algorithm detects cycles and finds their start in O(1) space.
-- Draw before coding; preserve `next` before re-linking.
+- Draw before coding; preserve `next` before re-linking; cut lists before weaving.
 
 </KeyTakeaways>
