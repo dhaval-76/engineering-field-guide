@@ -4,7 +4,12 @@
 String alienOrder(String[] words) {
     Map<Character, Set<Character>> next = new HashMap<>();
     Map<Character, Integer> inDegree = new HashMap<>();
-    for (String w : words) for (char c : w.toCharArray()) { next.putIfAbsent(c, new HashSet<>()); inDegree.putIfAbsent(c, 0); }
+    for (String w : words) {
+        for (char c : w.toCharArray()) {
+            next.putIfAbsent(c, new HashSet<>());
+            inDegree.putIfAbsent(c, 0);
+        }
+    }
 
     for (int i = 0; i + 1 < words.length; i++) {
         String a = words[i], b = words[i + 1];
@@ -26,7 +31,9 @@ String alienOrder(String[] words) {
     while (!ready.isEmpty()) {
         char c = ready.poll();
         order.append(c);
-        for (char d : next.get(c)) if (inDegree.merge(d, -1, Integer::sum) == 0) ready.offer(d);
+        for (char d : next.get(c)) {
+            if (inDegree.merge(d, -1, Integer::sum) == 0) ready.offer(d);
+        }
     }
     // cycle → contradictory input
     return order.length() == inDegree.size() ? order.toString() : "";

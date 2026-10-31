@@ -4,7 +4,7 @@ summary: Ordering tasks that depend on each other — Kahn's algorithm with in-d
 track: dsa
 order: 100
 tags: [dsa, graphs, topological-sort, dag, patterns]
-aliases: [topological sort, topo sort, dag, directed acyclic graph, kahn algorithm, in degree, dependency order, course schedule, course schedule ii, build order, task scheduling with dependencies, alien dictionary, cycle detection directed graph, three color dfs, parallel courses]
+aliases: [topological sort, topo sort, dag, directed acyclic graph, kahn algorithm, in degree, dependency order, course schedule, course schedule ii, build order, task scheduling with dependencies, alien dictionary, cycle detection directed graph, three color dfs, parallel courses, critical path, longest path in dag, project scheduling]
 prerequisites: [dsa/graphs-bfs-dfs]
 related: [system-design/job-scheduler, system-design/workflow-engine]
 quickRef:
@@ -16,57 +16,110 @@ quickRef:
     - 'Kahn''s levels give the minimum number of "rounds" when independent tasks run in parallel.'
   complexity: 'O(V + E) time and space.'
   useWhen: 'Dependencies, prerequisites, build/install order, scheduling with constraints, or "is this dependency graph valid?".'
-lastReviewed: 2026-10-30
+lastReviewed: 2026-10-31
 ---
+
+## Why it matters
+
+Whenever work has **dependencies** — compile this module before that one, take Calculus before Physics, run the migration before the deploy, recompute cell A1 before B2 — someone has to find an order that respects every "before". That order is a **topological order**, and finding it is the job of every build tool (Maven, Gradle, Bazel, `make`), package manager, spreadsheet engine, workflow scheduler (Airflow) and database query planner.
+
+The same algorithm answers the inverse question too: **is the plan even possible?** A cycle of dependencies (A needs B, B needs C, C needs A) means no valid order exists — and detecting it, with the offending loop, is how a package manager reports a circular dependency.
+
+<Callout type="analogy">
+Getting dressed: socks before shoes, trousers before shoes and belt, shirt before tie. Any order respecting those arrows works, and several do. If someone insisted on shoes before socks *and* socks before shoes, you'd never get dressed — that's a cycle.
+</Callout>
 
 ## Recognise it
 
-- "X must happen before Y": courses and prerequisites, build targets, package installs, spreadsheet cell recalculation, task pipelines.
-- "Is it possible to finish everything?" → cycle detection in a directed graph.
-- "Give a valid order" / "minimum number of semesters" → topological order / Kahn's levels.
+- "X must happen before Y": courses and prerequisites, build targets, package installs, spreadsheet recalculation, task pipelines.
+- "Is it possible to finish everything?" → cycle detection in a **directed** graph.
+- "Give a valid order" → a topological order.
+- "Minimum number of rounds / semesters / total time if independent work runs in parallel" → Kahn's levels or the **critical path**.
 
-<Callout type="analogy">
-Getting dressed: socks before shoes, trousers before shoes and belt, shirt before tie. Any order respecting those arrows works. If someone insisted shoes before socks *and* socks before shoes, you'd never get dressed — that's a cycle.
-</Callout>
+## What a topological order is
+
+Draw an arrow `u → v` for "u must come before v". A topological order lists every node so that all arrows point **forward**. It exists **if and only if the graph has no directed cycle** — such a graph is a DAG (directed acyclic graph). There can be many valid orders; any of them is correct unless the problem asks for a specific one (for example the lexicographically smallest, which uses a min-heap instead of a queue in Kahn's algorithm).
+
+## Kahn's algorithm (BFS on in-degrees)
 
 <Walkthrough id="kahn" />
 
-## Kahn's algorithm (BFS)
+<Steps>
+
+1. Count each node's **in-degree** (how many prerequisites it has).
+2. Put every node with in-degree 0 into a queue — they can go first.
+3. Repeatedly take a node from the queue, append it to the order, and "remove" its outgoing edges by decrementing each neighbour's in-degree; neighbours that reach 0 join the queue.
+4. If the order contains every node, it's valid. If some nodes never reached in-degree 0, they're stuck behind a **cycle**.
+
+</Steps>
 
 <CodeTabs id="dsa-course-schedule" title="Course schedule — Kahn's algorithm returning an order or detecting a cycle" />
 
 ## DFS with three colours
 
-White = unvisited, grey = on the current DFS path, black = finished. Reaching a grey node means a back edge — a cycle. Appending each node when it turns black and reversing gives a topological order.
+DFS gives a second, equally O(V + E) method. Colour each node **white** (unvisited), **grey** (on the current DFS path) or **black** (finished, with all its descendants).
+
+- Reaching a **grey** node means you followed an edge back to a node still on your path — a **back edge**, i.e. a cycle. (A plain visited set can't tell this apart from reaching a black node via a different route, which is harmless.)
+- A node turns black only after everything that depends on it has finished, so the **reverse of the finishing order** is a topological order.
 
 <CodeTabs id="dsa-topo-dfs" title="DFS topological order with cycle detection" />
 
+**Kahn or DFS?** Kahn's is iterative (no recursion-depth risk), naturally gives parallel "levels", and makes cycle detection a simple count. DFS is shorter to write, and the grey-node check can report the actual cycle path.
+
 ## Applications
+
+### Alien dictionary
+
+**Problem.** Words are sorted in an unknown alphabet: `["wrt","wrf","er","ett","rftt"]`. Find a letter order consistent with it (`wertf`).
+
+**Insight.** Compare each pair of **adjacent** words: the first position where they differ gives one edge (`t → f` from `wrt`/`wrf`). Letters after that position tell you nothing. Then topologically sort the letters. Invalid input: a word followed by its own strict prefix (`"abc"` before `"ab"`) — no alphabet can sort that way.
 
 <CodeTabs id="dsa-alien-dictionary" title="Alien dictionary — derive letter order from sorted words" />
 
-| Problem | Graph | Answer |
-|---|---|---|
-| Can all courses be finished? | prerequisite → course | Kahn's processed count == n |
-| Course order | same | Kahn's output |
-| Minimum semesters (parallel) | same | number of Kahn's levels |
-| Alien dictionary | first differing letters of adjacent words | topological order of letters |
-| Build order / package manager | dependency → dependent | topological order; cycle = error |
+### Critical path: minimum time with parallel work
+
+**Problem.** Each task has a duration and prerequisites; any number of workers can run independent tasks at once. What's the minimum total time? Tasks 0–3 (durations 1, 2, 3, 4) must all finish before task 4 (duration 5) → 4 + 5 = **9**.
+
+**Insight.** A task can start only when its **slowest** prerequisite finishes. Process tasks in topological order (Kahn's), and for each one set `start[v] = max(start[v], finish[u])` over its prerequisites `u`. The answer is the largest finish time — the length of the **longest path** in the DAG, weighted by durations. The tasks on that path form the **critical path**: speeding up anything else doesn't shorten the project.
+
+<CodeTabs id="dsa-critical-path" title="Critical path — earliest finish times in topological order" />
+
+Longest path is NP-hard in general graphs, but easy in a DAG precisely because a topological order exists. With all durations equal to 1, the answer is the number of Kahn's levels (the "minimum semesters" problem).
+
+## Complexity at a glance
+
+| Problem | Graph | Answer | Time |
+|---|---|---|---|
+| Can all courses be finished? | prerequisite → course | Kahn's processed count == n | O(V + E) |
+| A valid course order | same | Kahn's output | O(V + E) |
+| Minimum semesters (parallel) | same | number of Kahn's levels | O(V + E) |
+| Minimum total time with durations | same | longest weighted path | O(V + E) |
+| Alien dictionary | first differing letters of adjacent words | order of letters | O(total characters) |
+| Build order / package manager | dependency → dependent | order; cycle = error | O(V + E) |
+
+## Talking through it in an interview
+
+- Fix the edge direction first and say it: "an edge from prerequisite to course".
+- Name the algorithm and how it detects a cycle (Kahn's count, or a grey node in DFS).
+- Remember isolated nodes — they have in-degree 0 and belong in the order.
+- If asked for a unique or smallest order, mention using a min-heap instead of a queue in Kahn's.
 
 <Pitfalls>
 
 - **Reversed edges** (`course → prerequisite`) — the order comes out backwards.
 - **Forgetting nodes with no edges** — they still belong in the order.
-- **Undirected cycle detection logic** applied to directed graphs (visited alone isn't enough; you need "in progress").
-- **Alien dictionary edge case**: a word followed by its own prefix (`"abc"` before `"ab"`) is invalid.
-- **Recursion depth** in DFS on long chains.
+- **Undirected cycle detection logic** applied to directed graphs — a visited set alone isn't enough; you need "in progress".
+- **Alien dictionary edge cases**: a word before its own prefix is invalid; only the first difference of each adjacent pair gives an edge.
+- **Duplicate edges** counted twice in in-degrees but added once to adjacency (or vice versa).
+- **Recursion depth** in DFS on long dependency chains.
 
 </Pitfalls>
 
 <KeyTakeaways>
 
-- Topological orders exist exactly for DAGs.
-- Kahn's (in-degrees, BFS) also detects cycles and gives parallel levels.
-- DFS three-colour: grey-to-grey edge = cycle; reverse post-order = topological order.
+- Topological orders exist exactly for DAGs; there may be several.
+- Kahn's (in-degrees, BFS) detects cycles by count and gives parallel levels.
+- DFS three-colour: an edge to a grey node is a cycle; reverse finishing order is a topological order.
+- In a DAG, the longest weighted path — the critical path — is easy and gives the minimum total time.
 
 </KeyTakeaways>

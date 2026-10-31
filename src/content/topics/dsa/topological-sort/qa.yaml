@@ -22,6 +22,11 @@ practice:
     solution: |
       Build adjacency lists and in-degrees, enqueue in-degree-0 courses, then repeatedly dequeue, append to the order, and decrement each dependent's in-degree, enqueuing it at zero. Return the order if it has n courses, else an empty list. O(V + E) time and space.
     solutionCode: dsa-course-schedule
+  - task: Tasks have durations and prerequisites; with unlimited parallel workers, find the minimum total time, or -1 if the dependencies contain a cycle.
+    hint: When can a task start at the earliest?
+    solution: |
+      Run Kahn's algorithm. Keep `start[v]` = the latest finish time among v's prerequisites. When u is taken from the queue, `finish = start[u] + duration[u]`; for each successor v, `start[v] = max(start[v], finish)` and decrement its in-degree. The answer is the maximum finish time (the critical path), or -1 if fewer than n tasks were processed. O(V + E).
+    solutionCode: dsa-critical-path
 quiz:
   - q: When does a directed graph have a topological order?
     options: [Always, When it is connected, When it has no directed cycle, When it is a tree]
@@ -31,3 +36,7 @@ quiz:
     options: [The queue never empties, Fewer than V nodes are output, A node has in-degree 1, The graph is disconnected]
     correct: 1
     why: Nodes on a cycle never reach in-degree 0, so they are never output.
+  - q: In a project with dependencies and unlimited parallel workers, what determines the minimum total time?
+    options: [The sum of all durations, The longest weighted path through the dependency DAG, The number of tasks, The task with the most prerequisites]
+    correct: 1
+    why: Tasks off the critical path can overlap with it; only the longest chain of dependent work can't be compressed.

@@ -1,6 +1,13 @@
 function alienOrder(words) {
   const next = new Map(), inDegree = new Map();
-  for (const w of words) for (const c of w) if (!next.has(c)) { next.set(c, new Set()); inDegree.set(c, 0); }
+  for (const w of words) {
+    for (const c of w) {
+      if (!next.has(c)) {
+        next.set(c, new Set());
+        inDegree.set(c, 0);
+      }
+    }
+  }
   for (let i = 0; i + 1 < words.length; i++) {
     const a = words[i], b = words[i + 1];
     // "abc" before "ab" is impossible
