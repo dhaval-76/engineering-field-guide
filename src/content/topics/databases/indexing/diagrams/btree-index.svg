@@ -1,37 +1,31 @@
-<svg viewBox="0 0 680 270" xmlns="http://www.w3.org/2000/svg" font-family="var(--font-sans)" font-size="12">
-  <text x="12" y="26" fill="var(--d-muted)" font-size="11" font-weight="600" letter-spacing=".05em">ROOT</text>
-  <rect x="290" y="10" width="100" height="30" rx="4" fill="var(--d-info-soft)" stroke="var(--d-info)"/>
-  <line x1="340" y1="10" x2="340" y2="40" stroke="var(--d-info)"/>
-  <g font-family="var(--font-mono)" fill="var(--d-text)" text-anchor="middle"><text x="315" y="30">40</text><text x="365" y="30">80</text></g>
-  <g stroke="var(--d-line)" fill="none" stroke-width="1.3">
-    <path d="M292 40 L110 92"/><path d="M340 40 L340 92"/><path d="M388 40 L570 92"/>
+<svg viewBox="0 0 340 300" xmlns="http://www.w3.org/2000/svg" font-family="var(--font-sans)" font-size="12">
+  <defs><marker id="bt-a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="var(--d-info)"/></marker></defs>
+  <text x="10" y="16" fill="var(--d-muted)" font-weight="600" letter-spacing=".05em">ROOT PAGE</text>
+  <g font-family="var(--font-mono)" fill="var(--d-text)">
+    <rect x="118" y="24" width="104" height="30" rx="5" fill="var(--d-info-soft)" stroke="var(--d-info)"/>
+    <text x="146" y="44" text-anchor="middle">40</text><text x="194" y="44" text-anchor="middle">80</text>
+    <line x1="170" y1="24" x2="170" y2="54" stroke="var(--d-info)"/>
   </g>
-  <g fill="var(--d-muted)" font-size="11" text-anchor="middle">
-    <text x="178" y="58">&lt; 40</text><text x="372" y="70">40–79</text><text x="500" y="58">≥ 80</text>
+  <g fill="none" stroke="var(--d-line)" stroke-width="1.3">
+    <path d="M124 54 L58 98"/><path d="M170 54 L170 98"/><path d="M216 54 L282 98"/>
   </g>
-
-  <text x="30" y="86" fill="var(--d-muted)" font-size="11" font-weight="600" letter-spacing=".05em">LEAVES</text>
-  <g font-family="var(--font-mono)" text-anchor="middle" fill="var(--d-text)">
-    <rect x="30" y="94" width="160" height="30" rx="4" fill="var(--d-fill)" stroke="var(--d-stroke)"/>
-    <text x="57" y="114">10</text><text x="110" y="114">25</text><text x="163" y="114">33</text>
-    <rect x="260" y="94" width="160" height="30" rx="4" fill="var(--d-accent-soft)" stroke="var(--d-accent)"/>
-    <text x="287" y="114">40</text><text x="340" y="114" font-weight="700">52</text><text x="393" y="114">67</text>
-    <rect x="490" y="94" width="160" height="30" rx="4" fill="var(--d-fill)" stroke="var(--d-stroke)"/>
-    <text x="517" y="114">80</text><text x="570" y="114">91</text><text x="623" y="114">97</text>
+  <g fill="var(--d-muted)" font-size="10.5" text-anchor="middle"><text x="74" y="76">&lt; 40</text><text x="186" y="80">40–79</text><text x="268" y="76">≥ 80</text></g>
+  <text x="10" y="94" fill="var(--d-muted)" font-weight="600" letter-spacing=".05em">LEAF PAGES (linked, sorted)</text>
+  <g font-family="var(--font-mono)" font-size="11" fill="var(--d-text)">
+    <rect x="8" y="100" width="100" height="30" rx="5" fill="var(--d-bg)" stroke="var(--d-stroke)"/>
+    <text x="24" y="120">10</text><text x="50" y="120">25</text><text x="76" y="120">33</text>
+    <rect x="120" y="100" width="100" height="30" rx="5" fill="var(--d-accent-soft)" stroke="var(--d-accent)"/>
+    <text x="134" y="120">40</text><text x="160" y="120" font-weight="700">52</text><text x="188" y="120">67</text>
+    <rect x="232" y="100" width="100" height="30" rx="5" fill="var(--d-bg)" stroke="var(--d-stroke)"/>
+    <text x="248" y="120">80</text><text x="274" y="120">91</text><text x="300" y="120">97</text>
   </g>
-  <g stroke="var(--d-ok)" stroke-width="1.5" fill="none">
-    <path d="M190 109 L258 109"/><path d="M252 104 L258 109 L252 114"/>
-    <path d="M420 109 L488 109"/><path d="M482 104 L488 109 L482 114"/>
-  </g>
-  <text x="224" y="142" text-anchor="middle" fill="var(--d-ok)" font-size="11">next leaf</text>
-  <text x="454" y="142" text-anchor="middle" fill="var(--d-ok)" font-size="11">next leaf</text>
-
-  <path d="M340 124 L340 186" stroke="var(--d-accent)" stroke-width="1.5" stroke-dasharray="4 3" fill="none"/>
-  <path d="M335 180 L340 188 L345 180" stroke="var(--d-accent)" stroke-width="1.5" fill="none"/>
-  <text x="350" y="160" fill="var(--d-muted)" font-size="11">row pointer (page 812, item 4)</text>
-
-  <text x="12" y="212" fill="var(--d-muted)" font-size="11" font-weight="600" letter-spacing=".05em">TABLE</text>
-  <rect x="200" y="192" width="280" height="30" rx="4" fill="var(--d-fill)" stroke="var(--d-stroke)"/>
-  <text x="340" y="212" text-anchor="middle" fill="var(--d-text)" font-family="var(--font-mono)">id=52 · Asha · PAID · 120.00</text>
-  <text x="340" y="252" text-anchor="middle" fill="var(--d-muted)" font-size="11">WHERE id = 52: root → leaf → row. Three page reads instead of scanning the table.</text>
+  <g stroke="var(--d-line)" stroke-dasharray="3 3"><line x1="108" y1="115" x2="120" y2="115"/><line x1="220" y1="115" x2="232" y2="115"/></g>
+  <path d="M166 130 L166 186" fill="none" stroke="var(--d-info)" stroke-width="1.4" marker-end="url(#bt-a)"/>
+  <text x="176" y="160" fill="var(--d-muted)" font-size="11">row pointer (page 812, item 4)</text>
+  <text x="10" y="198" fill="var(--d-muted)" font-weight="600" letter-spacing=".05em">TABLE (HEAP)</text>
+  <rect x="8" y="206" width="324" height="30" rx="5" fill="var(--d-fill)" stroke="var(--d-stroke)"/>
+  <text x="20" y="226" fill="var(--d-text)" font-family="var(--font-mono)" font-size="11">id=52 · Asha · PAID · 120.00</text>
+  <text x="10" y="262" fill="var(--d-text)" font-size="11.5">WHERE id = 52: root → leaf → row — three page</text>
+  <text x="10" y="278" fill="var(--d-text)" font-size="11.5">reads instead of scanning the whole table.</text>
+  <text x="10" y="294" fill="var(--d-muted)" font-size="11">Range scans walk the linked leaves in order.</text>
 </svg>

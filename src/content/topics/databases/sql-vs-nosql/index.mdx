@@ -41,7 +41,17 @@ A library, a filing cabinet and a coat check. The library (relational) is organi
 | Time-series | TimescaleDB, InfluxDB, Prometheus | timestamped points | ingest + range aggregation, retention | updates, relationships |
 | Vector | pgvector, Pinecone, Milvus, Qdrant | embeddings | nearest-neighbour similarity search (RAG, recommendations) | exact filters at scale (improving) |
 
-<Diagram id="choose-a-store" caption="A starting decision path. Relational is the default; when one primary or one region isn't enough, consider distributed SQL. Real choices also weigh team skills, operations and cost." />
+<DecisionGuide
+  title="Which kind of store fits?"
+  steps={[
+    ['Do you need joins, constraints or multi-row transactions?', 'Relational — PostgreSQL, MySQL. The default; consider distributed SQL when one primary or one region is not enough.'],
+    ['Do you always read and write a whole aggregate by its id?', 'Document — MongoDB, or JSONB columns in PostgreSQL.'],
+    ['Huge write volume, queried by key and time range?', 'Wide-column — Cassandra, ScyllaDB, DynamoDB.'],
+    ['Sub-millisecond reads by key, counters, TTLs, rankings?', 'Redis / Valkey — beside a durable store, not instead of one.'],
+  ]}
+  otherwise="Search, graph, time-series or vector stores — fed from the source of truth, for one kind of query each."
+  caption="A starting path, not a rule: team skills, operations and cost weigh in too."
+/>
 
 ## Relational first, usually
 

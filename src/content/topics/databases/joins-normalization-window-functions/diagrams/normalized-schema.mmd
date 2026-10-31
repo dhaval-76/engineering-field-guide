@@ -1,25 +1,25 @@
 erDiagram
   CUSTOMERS ||--o{ ORDERS : places
   ORDERS ||--|{ ORDER_ITEMS : contains
-  PRODUCTS ||--o{ ORDER_ITEMS : "appears in"
+  PRODUCTS ||--o{ ORDER_ITEMS : in
   CUSTOMERS {
-    bigint id PK
+    int id PK
     text name
     text city
   }
   ORDERS {
-    bigint id PK
-    bigint customer_id FK
-    timestamptz created_at
+    int id PK
+    int customer_id FK
+    ts created_at
   }
   ORDER_ITEMS {
-    bigint order_id PK
-    bigint product_id PK
+    int order_id PK
+    int product_id PK
     int qty
-    numeric unit_price
+    num unit_price
   }
   PRODUCTS {
-    bigint id PK
+    int id PK
     text name
-    numeric price
+    num price
   }

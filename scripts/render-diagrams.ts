@@ -16,7 +16,7 @@ import { createRequire } from 'node:module';
 import { basename, dirname, join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
-const RENDERER_VERSION = '7-compact2';
+const RENDERER_VERSION = '7-compact3';
 const root = new URL('../', import.meta.url).pathname;
 const args = new Set(process.argv.slice(2));
 
@@ -113,7 +113,7 @@ async function main() {
         sequence: {
           mirrorActors: false,
           actorMargin: 18,
-          width: 110,
+          width: 96,
           boxMargin: 6,
           messageMargin: 28,
           noteMargin: 8,

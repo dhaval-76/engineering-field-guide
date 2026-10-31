@@ -1,13 +1,13 @@
 sequenceDiagram
-  participant C as Client
+  participant C as App
   participant L as Leader
-  participant S as Sync follower
-  participant A as Async follower
+  participant S as Sync
+  participant A as Async
   C->>L: UPDATE … COMMIT
   L->>L: write WAL
-  L->>S: stream WAL
+  L->>S: WAL
   S-->>L: flushed ✓
   L-->>C: COMMIT ok
-  L--)A: stream WAL (later)
-  Note over A: may lag ms … s
-  C->>A: SELECT (read replica)
+  L--)A: WAL (later)
+  Note over A: lags ms…s
+  C->>A: SELECT on replica
