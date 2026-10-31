@@ -1,0 +1,27 @@
+title: A flag change, then the flag service goes down
+frames:
+  - caption: 'The checkout service starts. Its SDK loads the full ruleset (version 41) from the relay and opens a **server-sent events** stream. Every `isEnabled` call is now a local, in-memory lookup.'
+    panels:
+      - kind: kv
+        label: SDK state
+        pairs: [[ruleset, { v: 'v41 · in memory', tone: info }], [stream, { v: connected, tone: ok }], [new-checkout, '10% rollout']]
+  - caption: 'An engineer ramps `new-checkout` to 20%. The flag service writes version 42 and an audit entry, then publishes the change. Within about a second every SDK has v42. Users already in the 10% stay in, because their bucket hasn''t moved.'
+    panels:
+      - kind: kv
+        label: SDK state
+        pairs: [[ruleset, { v: 'v42 · in memory', tone: ok }], [new-checkout, '20% rollout']]
+  - caption: 'The flag service and the relay go down. The stream drops. The SDK **keeps serving v42** and retries the connection with exponential backoff and jitter. Requests are unaffected: evaluation never needed the network.'
+    panels:
+      - kind: kv
+        label: SDK state
+        pairs: [[ruleset, { v: 'v42 · stale but valid', tone: warn }], [stream, { v: 'reconnecting…', tone: warn }]]
+  - caption: 'Worse: a pod restarts during the outage, with nothing in memory. The SDK falls back in order: a CDN snapshot of the ruleset, then a file written at the last successful sync, then the **default value in code**. Defaults must therefore be the safe choice (usually the old behaviour).'
+    panels:
+      - kind: rows
+        label: Startup fallbacks
+        items: [{ v: 'relay → down', tone: bad }, { v: 'CDN snapshot v42 → used', tone: ok }, 'local file (if CDN also fails)', 'code default (last resort)']
+  - caption: 'The flag service recovers. The SDK reconnects and asks for changes **since v42**, so nothing is missed; if the gap is too large it reloads the full ruleset.'
+    panels:
+      - kind: kv
+        label: SDK state
+        pairs: [[ruleset, { v: 'v42 → v43', tone: ok }], [stream, { v: connected, tone: ok }]]

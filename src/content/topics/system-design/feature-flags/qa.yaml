@@ -1,0 +1,37 @@
+questions:
+  - q: 'Design a feature flag service used by 500 services: targeting rules, percentage rollouts, changes visible within seconds, no added latency, and services must keep working if the flag service is down.'
+    think: Where does evaluation happen, how does a user stay in the same group, and how do changes reach thousands of processes?
+    answer: |
+      Split a control plane from evaluation. The control plane (API, UI, approvals) stores versioned flags per environment with an audit row per change. SDKs inside each service load the whole ruleset at startup and evaluate **locally** from memory: off → individual targets → ordered rules → percentage rollout. The rollout uses `hash(flagKey:salt:userId) mod 100,000`, so assignments are sticky, identical across languages and independent between flags, and ramping up never removes anyone. Changes increment the version and are pushed over SSE through relay instances (polling with ETags as fallback; a CDN snapshot for mass restarts); SDKs that miss events detect the version gap and reload. If nothing is reachable at startup, the SDK uses the CDN snapshot, then a local file, then the default in code, so defaults must be the safe behaviour. Browsers get only their own evaluated values from an edge endpoint. Exposure events are deduplicated and batched for experiments; stale flags are reported for removal.
+followUps:
+  - q: Why hash the user id instead of picking a random number when a user first arrives?
+    intuition: What would you have to store, and where?
+    approach: |
+      A random choice must be stored and looked up to stay consistent, which puts a database read on every evaluation and makes services in different languages depend on that store. A hash is a pure function of data every service already has: the same user gets the same bucket everywhere with no state. Including the flag key keeps flags independent; a salt lets you deliberately reshuffle for a new experiment.
+  - q: How do you roll back a bad flag change quickly?
+    intuition: What already records every change?
+    approach: |
+      Every change is versioned with an audit entry holding the previous value, so "revert to version n" is just another change, pushed through the same stream within seconds. Guard production with approvals for risky flags, staged rollouts (1% → 10% → 50%) watched by error-rate alerts, and optionally automatic rollback when a guardrail metric degrades during a ramp.
+  - q: How are client-side (browser, mobile) flags different?
+    intuition: Who can read what you send to a browser?
+    approach: |
+      The full ruleset would reveal unreleased features and targeting data, so clients send their context to an edge endpoint that evaluates and returns only their variations. The client caches them, refreshes on app start or over a stream, and ships compiled-in defaults for offline first launches.
+practice:
+  - task: Implement flag evaluation with targets, ordered rules and a sticky percentage rollout that gives identical results in Java, JavaScript and Python.
+    hint: SHA-256 of `flagKey:salt:userId`, read the first four bytes as an unsigned big-endian integer, mod 100,000; walk rollout slices adding weights.
+    solution: |
+      Return the off variation if the flag is off; then an individual target; then the first matching rule; otherwise compute the bucket and walk the rollout slices, accumulating weights until the bucket is below the running total. Using a standard hash and an explicit byte order makes every language produce the same bucket — verify by comparing buckets for a few thousand ids across implementations.
+    solutionCode: flag-eval
+quiz:
+  - q: A rollout goes from 10% to 20%. With hash-based buckets, what happens to users who were already in?
+    options: [About half are removed, They all stay in, They are reshuffled at random, It depends on the server]
+    correct: 1
+    why: Their bucket is below 10,000, so it is also below 20,000; ramping up only adds users.
+  - q: The flag service is down and a pod restarts with nothing cached anywhere. What does the SDK return?
+    options: [An error, The default value passed in code, The last value it saw, 'true']
+    correct: 1
+    why: The code default is the last resort, which is why it must be the safe behaviour.
+  - q: Why does the hash include the flag key?
+    options: [To make hashing faster, So the same users aren't in the first 10% of every flag, To encrypt the user id, It is required by SSE]
+    correct: 1
+    why: Without it, a user with a low bucket would get every new feature first.

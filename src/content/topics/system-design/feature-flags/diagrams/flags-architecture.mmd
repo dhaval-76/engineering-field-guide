@@ -1,0 +1,6 @@
+flowchart TD
+  A[Admin UI and API<br/>create · target · roll out] --> B
+  B[Flag service · control plane<br/>validates, versions every change] --> D[(Flags DB<br/>+ audit log)]
+  B -->|change event, version n| R
+  R[Relay / edge<br/>SSE fan-out · CDN snapshot] -->|stream or poll| S
+  S[SDK inside each service<br/>full ruleset in memory<br/>evaluates locally, ~0.4 µs] -->|exposure events, batched| E[Analytics pipeline<br/>experiments · flag usage]

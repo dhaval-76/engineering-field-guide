@@ -1,3 +1,3 @@
 term: "Feature flag"
 short: "A runtime switch that turns code paths on or off per user or percentage, separating deploying code from releasing a feature."
-topic: devops/ci-cd-and-cloud
+topic: system-design/feature-flags

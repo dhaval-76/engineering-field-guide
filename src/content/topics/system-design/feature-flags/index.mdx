@@ -1,0 +1,163 @@
+---
+title: 'Design: Feature Flag Service'
+summary: A flag platform like LaunchDarkly or Unleash — targeting rules, sticky percentage rollouts by hashing, in-process evaluation with streamed updates, safe defaults when the service is down, audit, experiments and flag clean-up.
+track: system-design
+order: 290
+tags: [system-design, case-study, feature-flags, deployment, experimentation]
+aliases: [feature flags, feature toggles, feature flag service, design launchdarkly, unleash, flagsmith, openfeature, percentage rollout, gradual rollout, kill switch, dark launch, a/b testing, experimentation platform, targeting rules, sticky bucketing, consistent bucketing, flag evaluation, remote config]
+prerequisites: [devops/ci-cd-and-cloud, system-design/approach-and-estimation]
+related: [backend/realtime-communication, distributed-systems/caching-strategies, distributed-systems/failure-fallbacks, system-design/notification-system]
+quickRef:
+  points:
+    - '**Evaluate in-process**: the SDK holds the whole ruleset in memory, so a check costs under a microsecond and works when the flag service is down.'
+    - '**Sticky rollouts**: bucket = hash(flag key + salt + user id) mod 100,000; a user is in if their bucket is below the rollout percentage. Ramping up never removes anyone.'
+    - 'Order of evaluation: flag off → individual targets → rules in order → percentage rollout.'
+    - 'Changes are **versioned** and pushed over a stream (SSE) through a relay or CDN, with polling as fallback.'
+    - 'If nothing is reachable at startup: CDN snapshot → local file → **code default**, so defaults must be the safe choice.'
+    - 'Every change is audited; exposure events feed experiments; stale flags are found and removed.'
+  useWhen: '"Design a feature flag / remote config / A/B testing service."'
+lastReviewed: 2026-10-31
+---
+
+## Why it matters
+
+Feature flags separate **deploying** code from **releasing** it. New code ships switched off, is turned on for employees, then 1% of users, then everyone. If something breaks, someone flips a switch instead of rolling back a deploy. The same system runs A/B experiments and kill switches that shed expensive features during an incident.
+
+Because every request in every service may check several flags, the flag system sits on the hot path of the whole company. That shapes the design: checks must be nearly free, must never wait on the network, and must keep working when the flag service itself is down. A flag system that adds latency or an outage dependency is worse than none.
+
+<Callout type="analogy">
+The light switches in a building that was wired in advance. Electricians (deploys) install every circuit early and leave it off; the facilities team (product) switches rooms on when they're ready, one floor at a time. Each room has its own switch on the wall (the in-process ruleset), so the lights don't go out when the central control room loses power; you just can't change them until it's back.
+</Callout>
+
+## Requirements
+
+**Functional**:
+- Create flags with variations (on/off, or several values such as a JSON config).
+- Target individual users, segments (country, plan, beta group) and percentages.
+- Change flags in a UI or API, with an audit log and approvals for production.
+- Record exposures for experiments, and show which flags are stale.
+
+**Non-functional**:
+- Evaluation adds well under 1 ms and makes no network call.
+- Changes reach all services within a few seconds.
+- Services keep working if the flag service is down.
+- The same user gets the same variation on every request and in every service, whatever the language.
+
+## Estimates
+
+| Quantity | Estimate |
+|---|---|
+| Services and SDK instances | 500 services × 20 pods ≈ 10,000 connected SDKs |
+| Evaluations | 100,000 requests/s × 5 flags ≈ 500,000 evaluations/s, **all local** |
+| Ruleset size | 2,000 flags × ~1 KB ≈ 2 MB per environment, held in every SDK |
+| Changes | a few hundred per day; each one fanned out to 10,000 SDKs |
+| Exposure events | sampled or deduplicated per user and flag, or they would match the evaluation rate |
+
+The numbers show the shape: reads are enormous but local, writes are tiny, and the hard parts are fan-out and consistency of the pushed ruleset.
+
+## High-level design
+
+<Diagram id="flags-architecture" caption="The control plane stores versioned flags and publishes changes; a relay or CDN fans them out; each SDK evaluates locally from memory and sends exposure events in batches." />
+
+- **Control plane**: the API and UI, validation, approvals, and a database of flags with a version number per environment. Every change writes an audit row in the same transaction.
+- **Distribution**: on each change the service publishes the new version. A relay layer (or a CDN for snapshots) holds the long-lived connections, so the flag database doesn't serve 10,000 clients directly.
+- **SDKs**: fetch the full ruleset at startup, keep it in memory, apply streamed changes, and evaluate locally. Client-side SDKs in browsers and phones are different (see below).
+
+## Evaluation and sticky bucketing
+
+<CodeTabs id="flag-eval" title="Evaluating a flag: off, targets, rules, then a hashed percentage rollout" />
+
+Evaluation follows a fixed order, and the first match wins:
+1. The flag is **off** → the off variation.
+2. The user is **individually targeted** → that variation (QA accounts, a customer who asked for early access).
+3. **Rules** in order, e.g. `country in [IN]` or `plan = enterprise`.
+4. The **percentage rollout**, using the user's bucket.
+
+The bucket is `hash(flagKey:salt:userId) mod 100,000`. Hashing instead of random numbers is what makes rollouts **sticky**: a user's bucket never changes, so they see the same variation on every request, on every server, in every language. Including the flag key means a user who is in the 10% of one flag isn't automatically in the 10% of every other flag.
+
+Measured with the Java evaluator above over one million user ids (JDK 22, Apple M2):
+
+| Check | Result |
+|---|---|
+| Rollout set to 1% / 10% / 50% | 1.005% / 9.991% / 49.953% of users got it |
+| Ramp 10% → 20%: users who lost the feature | **0** (100,172 gained it) |
+| Same 10%, salt changed | only 10.1% of the old group still in: everyone is reshuffled |
+| Random number per request instead of a hash | 18% of users see a different variant on their second request |
+| Cost of one evaluation | about **380 ns**, mostly the SHA-256 |
+
+The same bucket values came out of the Java, JavaScript and Python versions for 2,000 test users, which is what lets a backend in Java and a frontend in JavaScript agree. Change the salt only when you deliberately want a fresh random group, for example to rerun an experiment.
+
+## Getting changes to every SDK
+
+<Walkthrough id="flag-outage" />
+
+- **Streaming**: SDKs keep a **<Term id="sse">server-sent events</Term>** connection to a relay. A change event carries the new version (or the changed flag). SSE is enough because data only flows one way, and it reconnects automatically.
+- **Polling fallback**: if streaming is blocked (proxies, serverless), poll every 30–60 s with an `ETag`, so an unchanged ruleset costs a `304`.
+- **Versions, not timestamps**: each change increments the environment's version. An SDK that reconnects asks for "changes since v42"; one that is too far behind reloads everything. Applying changes out of order is then easy to detect.
+- **Fan-out**: 10,000 connections across a few relay instances is ordinary; the relays subscribe to the control plane once each. A CDN-hosted snapshot (`/flags/prod.json`) absorbs restarts of a whole fleet after an incident.
+
+## When the flag service is down
+
+Evaluation needs no network, so an outage only means "changes can't be made or delivered". The cases that need design are startup and defaults:
+
+<DecisionGuide
+  title="Where does a starting SDK get its ruleset?"
+  steps={[
+    ['Is the relay or flag service reachable?', 'Load the full ruleset and open the stream.'],
+    ['Is the CDN snapshot reachable?', 'Use it (it may be a few minutes old) and keep retrying the stream.'],
+    ['Is there a local file from the last successful sync?', 'Use it, and report the ruleset as stale in metrics.'],
+  ]}
+  otherwise="Serve the default passed in code (`isEnabled('new-checkout', false)`), so the default must be the safe, old behaviour."
+/>
+
+- Don't block startup for long on the flag service: wait a bounded time (a second or two), then start with the fallback.
+- Expose the ruleset version and its age as metrics, and alert when an SDK has been stale for minutes.
+- A **kill switch** is a flag whose safe state is "feature off". It must work when everything else is struggling, which is exactly why evaluation is local.
+
+## Client-side flags
+
+Browsers and mobile apps can't receive the full ruleset: it reveals unreleased features, targeting rules and other customers' ids. Instead, the client sends its user context to an edge evaluation endpoint, which returns only that user's variations. The client caches them and refreshes on a stream or at app start. Mobile apps also need defaults compiled in, because the first launch may be offline.
+
+## Experiments and exposures
+
+An A/B test is a flag with two or more variations and a metric. The SDK records an **exposure** the first time it evaluates a flag for a user (deduplicated per user and flag in memory, then batched). Analysis joins exposures with outcomes (purchases, errors) by user id. Without exposure events, you'd compare everyone assigned to B with everyone assigned to A, including users who never reached the changed page, which dilutes the result.
+
+## Flag hygiene
+
+Old flags are technical debt: dead branches that nobody dares to delete, and flags that interact in surprising ways.
+- Give every flag an owner, a type (release, experiment, kill switch, permanent config) and an expected removal date.
+- Report flags that have served one variation to 100% of traffic for weeks, and flags not evaluated at all.
+- Removing a release flag is a code change: delete the branch, then archive the flag.
+
+## When things fail
+
+Interviewers almost always ask "what happens when X goes down?". The general fallback patterns are in [Surviving dependency outages](../../distributed-systems/failure-fallbacks/).
+
+| What fails | What users see | What the design does |
+|---|---|---|
+| Flag service or relay | nothing; flags can't be changed for now | SDKs keep the last ruleset in memory and reconnect with backoff |
+| CDN snapshot and service, during a restart | default behaviour until reconnect | local file from the last sync, then code defaults; defaults are the safe choice |
+| A bad flag change (wrong rule ships a broken path to everyone) | errors for targeted users | instant rollback to the previous version from the audit log; approvals and staged rollouts for production |
+| An SDK misses change events | some pods disagree briefly | version numbers reveal the gap; the SDK reloads the full ruleset |
+| Exposure pipeline is down | nothing for users | events are buffered and dropped by priority; experiments lose some data, never requests |
+
+<Pitfalls>
+
+- **Calling the flag service on every request**: adds latency and makes it a single point of failure.
+- **Random assignment per request**: users flip between variants; use a hash of a stable id.
+- **Unsafe defaults**: if the default is "new behaviour on", an outage at startup releases it to everyone.
+- **Bucketing by session or device for logged-in users**: the same person gets different variants on phone and laptop.
+- **Shipping the full ruleset to browsers**: leaks unreleased features and customer ids.
+- **Never removing flags**: dead code paths and combinations nobody has tested.
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- Evaluate locally from an in-memory ruleset; the network is only for receiving changes.
+- Hash a stable id with the flag key to get sticky, independent percentage rollouts.
+- Push versioned changes over SSE through relays, poll as a fallback, and keep a CDN snapshot for restarts.
+- Plan for startup during an outage: snapshot, local file, then safe code defaults.
+- Audit every change, record exposures for experiments, and clean up old flags.
+
+</KeyTakeaways>
