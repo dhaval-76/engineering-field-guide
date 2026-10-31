@@ -1,4 +1,5 @@
-# psycopg 3. Claim due jobs with a lease and a fencing number; commit the claim before running anything.
+# psycopg 3. Claim due jobs with a lease and a fencing number; commit the claim before
+# running anything.
 import random
 import threading
 
@@ -31,7 +32,8 @@ def run(pool, job, handlers) -> None:
                           (LEASE_SECONDS, job_id, fence))
     threading.Thread(target=heartbeat, daemon=True).start()
     try:
-        handlers[job_type](payload, fence)                       # idempotent; fence passed to resources
+        # idempotent; fence passed to resources
+        handlers[job_type](payload, fence)
         finish(pool, job_id, fence, "SUCCEEDED", None, None)
     except Retryable as e:
         exhausted = attempts >= max_attempts

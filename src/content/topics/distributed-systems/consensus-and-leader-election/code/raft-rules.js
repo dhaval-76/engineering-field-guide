@@ -1,4 +1,5 @@
-// Two core Raft rules: granting votes and advancing the commit index. (Networking, timers omitted.)
+// Two core Raft rules: granting votes and advancing the commit index. (Networking, timers
+// omitted.)
 export class RaftNode {
   currentTerm = 0;
   votedFor = null;

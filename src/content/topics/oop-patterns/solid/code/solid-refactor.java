@@ -1,4 +1,5 @@
-// BEFORE — SQL injection, three responsibilities, hard-wired dependencies, growing if-chain.
+// BEFORE — SQL injection, three responsibilities, hard-wired dependencies, growing
+// if-chain.
 class UserService {
     public void processUser(String userId) {
         User user = db.query("SELECT * FROM users WHERE id=" + userId);
@@ -11,7 +12,8 @@ class UserService {
 
 // AFTER
 interface UserRepository { Optional<User> findById(String id); void touchLastLogin(String id); }
-interface LoginHook { boolean appliesTo(User u); void onLogin(User u); }   // new behaviour = new hook
+// new behaviour = new hook
+interface LoginHook { boolean appliesTo(User u); void onLogin(User u); }
 
 class AdminReportHook implements LoginHook {
     private final ReportMailer mailer;
@@ -21,7 +23,8 @@ class AdminReportHook implements LoginHook {
 }
 
 class LoginService {
-    private final UserRepository users;          // DIP: abstraction, parameterised queries inside
+    // DIP: abstraction, parameterised queries inside
+    private final UserRepository users;
     private final List<LoginHook> hooks;          // OCP: extend by adding hooks
 
     LoginService(UserRepository users, List<LoginHook> hooks) { this.users = users; this.hooks = hooks; }

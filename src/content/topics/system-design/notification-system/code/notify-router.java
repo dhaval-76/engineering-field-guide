@@ -7,8 +7,10 @@ record Decision(List<Channel> sendNow, List<Channel> deferred, String reason) {}
 
 /** Decides where a notification goes, applying dedup, preferences, quiet hours and frequency caps. */
 class NotificationRouter {
-    private final Map<String, Long> seenDedupKeys = new HashMap<>();          // Redis SET NX EX in production
-    private final Map<String, Deque<Long>> marketingSent = new HashMap<>();   // per-user send times
+    // Redis SET NX EX in production
+    private final Map<String, Long> seenDedupKeys = new HashMap<>();
+    // per-user send times
+    private final Map<String, Deque<Long>> marketingSent = new HashMap<>();
     private final int marketingPerDay;
 
     NotificationRouter(int marketingPerDay) { this.marketingPerDay = marketingPerDay; }
@@ -19,7 +21,8 @@ class NotificationRouter {
         if (seen != null && t - seen < 86_400) return new Decision(List.of(), List.of(), "duplicate");
         seenDedupKeys.put(n.dedupKey(), t);
 
-        boolean critical = n.category() == Category.SECURITY;                  // OTPs, password resets
+        // OTPs, password resets
+        boolean critical = n.category() == Category.SECURITY;
         if (!critical && p.mutedCategories().contains(n.category()))
             return new Decision(List.of(), List.of(), "muted by user");
 
@@ -37,7 +40,8 @@ class NotificationRouter {
         boolean quiet = !critical && inQuietHours(now, p);
         List<Channel> sendNow = new ArrayList<>(), later = new ArrayList<>();
         for (Channel c : allowed) {
-            if (quiet && c != Channel.IN_APP) later.add(c);                      // in-app inbox is silent anyway
+            // in-app inbox is silent anyway
+            if (quiet && c != Channel.IN_APP) later.add(c);
             else sendNow.add(c);
         }
         return new Decision(sendNow, later, quiet ? "quiet hours" : "ok");
@@ -48,6 +52,7 @@ class NotificationRouter {
         LocalTime local = now.atZone(p.zone()).toLocalTime();
         return p.quietStart().isBefore(p.quietEnd())
                 ? !local.isBefore(p.quietStart()) && local.isBefore(p.quietEnd())
-                : !local.isBefore(p.quietStart()) || local.isBefore(p.quietEnd());  // window crosses midnight
+                // window crosses midnight
+                : !local.isBefore(p.quietStart()) || local.isBefore(p.quietEnd());
     }
 }

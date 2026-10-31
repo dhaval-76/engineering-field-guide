@@ -12,4 +12,5 @@ def hold_seat(show_id: str, seat_id: str, hold_id: str) -> bool:
 def release_seat(show_id: str, seat_id: str, hold_id: str) -> bool:
     # release only if WE still hold it (compare-and-delete must be atomic → Lua)
     return RELEASE_IF_OWNER(keys=[f"hold:{show_id}:{seat_id}"], args=[hold_id]) == 1
-# The database row is still the source of truth for BOOKED; Redis only arbitrates short-lived holds.
+# The database row is still the source of truth for BOOKED; Redis only arbitrates
+# short-lived holds.

@@ -5,7 +5,8 @@ class ProductService {
         .maximumSize(50_000).expireAfterWrite(Duration.ofSeconds(30)).recordStats().build();
 
     private final ProductRepository repo;
-    private final RedisTemplate<String, ProductView> redis;   // Level 2: shared across instances
+    // Level 2: shared across instances
+    private final RedisTemplate<String, ProductView> redis;
 
     ProductView get(long id) {
         return local.get(id, k -> {
@@ -27,9 +28,11 @@ class OrderController {
     @PostMapping("/orders")
     ResponseEntity<OrderView> place(@RequestHeader("X-Api-Key") String key, @RequestBody PlaceOrder cmd) {
         if (!perClient.tryAcquire(key)) {
-            return ResponseEntity.status(429).header("Retry-After", "1").build();   // shed early
+            // shed early
+            return ResponseEntity.status(429).header("Retry-After", "1").build();
         }
-        OrderView placed = orders.place(cmd);  // fast path: DB transaction + outbox row only
+        // fast path: DB transaction + outbox row only
+        OrderView placed = orders.place(cmd);
         return ResponseEntity.status(201).body(placed);
     }
 }
@@ -39,6 +42,7 @@ class OrderController {
 class OrderSideEffects {
     @KafkaListener(topics = "orders", groupId = "emails")
     void onPlaced(OrderPlaced e) {
-        emails.sendConfirmation(e);           // retried independently; never slows checkout
+        // retried independently; never slows checkout
+        emails.sendConfirmation(e);
     }
 }

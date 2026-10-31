@@ -1,6 +1,8 @@
 // Java is ALWAYS pass-by-value. For objects, the value passed is a copy of the reference.
-static void reassign(List<String> list) { list = new ArrayList<>(); list.add("x"); }   // caller unaffected
-static void mutate(List<String> list)   { list.add("y"); }                              // caller sees "y"
+// caller unaffected
+static void reassign(List<String> list) { list = new ArrayList<>(); list.add("x"); }
+// caller sees "y"
+static void mutate(List<String> list)   { list.add("y"); }
 
 List<String> mine = new ArrayList<>();
 reassign(mine);   // mine is still []

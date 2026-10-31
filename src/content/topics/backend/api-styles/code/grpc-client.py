@@ -9,7 +9,8 @@ channel = grpc.secure_channel(
 stub = orders_pb2_grpc.OrderServiceStub(channel)
 
 try:
-    order = stub.GetOrder(orders_pb2.GetOrderRequest(order_id="A-1001"), timeout=0.3)  # deadline
+    # deadline
+    order = stub.GetOrder(orders_pb2.GetOrderRequest(order_id="A-1001"), timeout=0.3)
     print(order.status, order.total_cents)
 except grpc.RpcError as e:
     if e.code() == grpc.StatusCode.NOT_FOUND:
@@ -19,5 +20,6 @@ except grpc.RpcError as e:
     else:
         raise
 
-for event in stub.WatchOrder(orders_pb2.WatchOrderRequest(order_id="A-1001")):   # server streaming
+# server streaming
+for event in stub.WatchOrder(orders_pb2.WatchOrderRequest(order_id="A-1001")):
     print("status", event.status)

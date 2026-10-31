@@ -1,5 +1,6 @@
 @Component
-@Order(Ordered.HIGHEST_PRECEDENCE + 10)          // after authentication has identified the caller
+// after authentication has identified the caller
+@Order(Ordered.HIGHEST_PRECEDENCE + 10)
 class RateLimitFilter extends OncePerRequestFilter {
     private final RuleSet rules;
     private final SlidingWindowLimiter limiter;
@@ -7,7 +8,8 @@ class RateLimitFilter extends OncePerRequestFilter {
     @Override
     protected void doFilterInternal(HttpServletRequest req, HttpServletResponse res, FilterChain chain)
             throws ServletException, IOException {
-        Caller caller = Caller.from(req);         // API key / user / tenant, plan; IP if anonymous
+        // API key / user / tenant, plan; IP if anonymous
+        Caller caller = Caller.from(req);
         Rule rule = rules.match(caller, req.getMethod() + " " + req.getRequestURI());
         var d = limiter.check(rule.keyFor(caller), rule.limit(), rule.window());
 

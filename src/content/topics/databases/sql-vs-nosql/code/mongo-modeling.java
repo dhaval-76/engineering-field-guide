@@ -1,9 +1,10 @@
-// An order is an aggregate: always read and written as a whole → embed its items and address.
-// {
+// An order is an aggregate: always read and written as a whole → embed its items and
+// address. {
 //   "_id": "ord_8f2c",
-//   "customerId": "cus_42",                       ← reference: customers live their own life
+// "customerId": "cus_42",                       ← reference: customers live their own
+// life
 //   "status": "PLACED",
-//   "items": [                                     ← embedded: bounded, read with the order
+// "items": [                                     ← embedded: bounded, read with the order
 //     { "productId": "prd_1", "name": "Air 14", "qty": 1, "unitPrice": "999.00" },
 //     { "productId": "prd_7", "name": "Sleeve", "qty": 1, "unitPrice": "29.00" }
 //   ],

@@ -22,7 +22,8 @@ final class CheckoutFacade {
             inventory.commit(hold);
             return new OrderConfirmation(order.id(), quote.total());
         } catch (RuntimeException e) {
-            inventory.release(hold);                         // the facade owns the clean-up rules
+            // the facade owns the clean-up rules
+            inventory.release(hold);
             throw e;
         }
     }

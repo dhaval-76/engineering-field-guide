@@ -1,7 +1,8 @@
 // A small hierarchy of business exceptions, each carrying what the client needs to know
 public abstract sealed class DomainException extends RuntimeException
         permits NotFoundException, ConflictException, BusinessRuleException {
-    private final String code;                          // stable, documented: "order_not_found"
+    // stable, documented: "order_not_found"
+    private final String code;
     protected DomainException(String code, String message) { super(message); this.code = code; }
     public String code() { return code; }
 }

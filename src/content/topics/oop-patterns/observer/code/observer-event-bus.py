@@ -24,7 +24,8 @@ class EventBus:
 
     def publish(self, event) -> None:
         with self._lock:
-            handlers = list(self._handlers.get(type(event), ()))      # snapshot: safe if handlers change
+            # snapshot: safe if handlers change
+            handlers = list(self._handlers.get(type(event), ()))
         for h in handlers:
             self._executor.submit(self._safe, h, event)
 
@@ -33,7 +34,8 @@ class EventBus:
         try:
             handler(event)
         except Exception:
-            log.exception("handler failed for %r", event)               # one bad handler doesn't stop the others
+            # one bad handler doesn't stop the others
+            log.exception("handler failed for %r", event)
 
     def close(self) -> None:
         self._executor.shutdown(wait=True)

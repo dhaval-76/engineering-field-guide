@@ -18,12 +18,14 @@ class AbrController:
         self._estimate = sample if self._estimate < 0 else 0.7 * self._estimate + 0.3 * sample
 
     def next(self, buffer_seconds: float) -> Rendition:
-        if self._estimate < 0 or buffer_seconds < 5:          # start low; about to stall → safest
+        # start low; about to stall → safest
+        if self._estimate < 0 or buffer_seconds < 5:
             self._current = 0
             return self.ladder[0]
         budget = 0.8 * self._estimate                          # 20% headroom
         best = max((i for i, r in enumerate(self.ladder) if r.kbps <= budget), default=0)
-        if best > self._current:                               # climb one rung, only with buffer to spare
+        # climb one rung, only with buffer to spare
+        if best > self._current:
             best = self._current + 1 if buffer_seconds > 15 else self._current
         self._current = best
         return self.ladder[best]

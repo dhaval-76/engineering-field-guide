@@ -2,9 +2,11 @@
 int minMeetingRooms(int[][] meetings) {
     int[][] sorted = meetings.clone();
     Arrays.sort(sorted, Comparator.comparingInt(m -> m[0]));
-    PriorityQueue<Integer> ends = new PriorityQueue<>();          // end times of rooms in use
+    // end times of rooms in use
+    PriorityQueue<Integer> ends = new PriorityQueue<>();
     for (int[] m : sorted) {
-        if (!ends.isEmpty() && ends.peek() <= m[0]) ends.poll();  // reuse the room that frees earliest
+        // reuse the room that frees earliest
+        if (!ends.isEmpty() && ends.peek() <= m[0]) ends.poll();
         ends.offer(m[1]);
     }
     return ends.size();

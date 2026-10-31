@@ -11,5 +11,5 @@ const top3 = Object.entries(
 // Grouping (ES2024): Object.groupBy / Map.groupBy
 const byDept = Object.groupBy(employees, (e) => e.dept);
 
-// Lazy pipelines (stop early) with iterator helpers in modern runtimes:
-// const first = Iterator.from(strings).filter((s) => s.startsWith('A')).take(1).toArray();
+// Lazy pipelines (stop early) with iterator helpers in modern runtimes: const first =
+// Iterator.from(strings).filter((s) => s.startsWith('A')).take(1).toArray();

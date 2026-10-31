@@ -1,6 +1,7 @@
 // ✗ BROKEN — check-then-act across an await, and money as a floating-point number
 async function debit(accountId, amount) {
-  const account = await db.findAccount(accountId);   // request A and request B both read 1000
+  // request A and request B both read 1000
+  const account = await db.findAccount(accountId);
   if (account.balance >= amount) {
     account.balance -= amount;                       // both compute 100
     await db.saveAccount(account);                   // last write wins: one debit is lost

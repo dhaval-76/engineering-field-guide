@@ -18,10 +18,13 @@ final class FileNode extends Node {
 }
 
 final class DirNode extends Node {
-    private final Map<String, Node> children = new TreeMap<>();      // sorted names for `ls`
+    // sorted names for `ls`
+    private final Map<String, Node> children = new TreeMap<>();
     DirNode(String name) { super(name); }
-    static DirNode root() { return new DirNode(""); }             // the only nameless node
-    long size() { return children.values().stream().mapToLong(Node::size).sum(); }   // recursive by composition
+    // the only nameless node
+    static DirNode root() { return new DirNode(""); }
+    // recursive by composition
+    long size() { return children.values().stream().mapToLong(Node::size).sum(); }
     Optional<Node> child(String n) { return Optional.ofNullable(children.get(n)); }
     Collection<Node> children() { return Collections.unmodifiableCollection(children.values()); }
     void add(Node n) {

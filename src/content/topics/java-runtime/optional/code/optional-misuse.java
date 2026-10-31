@@ -5,15 +5,19 @@ String n = findUser(id).get().name();
 if (opt.isPresent()) { use(opt.get()); }         // ✓ opt.ifPresent(this::use)
 
 // ✗ Optional fields and parameters
-class User { Optional<String> nickname; }        // not Serializable; awkward in JPA/Jackson
+// not Serializable; awkward in JPA/Jackson
+class User { Optional<String> nickname; }
 void send(Optional<String> cc) { }               // callers can still pass null!
-// ✓ Fields: nullable + accessor that returns Optional. Parameters: overloads or @Nullable.
+// ✓ Fields: nullable + accessor that returns Optional. Parameters: overloads or
+// @Nullable.
 class User {
     private String nickname;                                 // may be null
     Optional<String> nickname() { return Optional.ofNullable(nickname); }
 }
 
 // ✗ Optional of a collection — return an empty collection instead
-Optional<List<Order>> orders();                  // ✓ List<Order> orders()  (possibly empty)
+// ✓ List<Order> orders()  (possibly empty)
+Optional<List<Order>> orders();
 
-// ✗ Optional.of(maybeNull) — throws immediately if null; use ofNullable for uncertain values
+// ✗ Optional.of(maybeNull) — throws immediately if null; use ofNullable for uncertain
+// values

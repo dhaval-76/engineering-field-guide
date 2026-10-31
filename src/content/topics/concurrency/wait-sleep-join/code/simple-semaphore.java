@@ -15,4 +15,5 @@ class SimpleSemaphore {
         notifyAll();      // waiters re-check `permits`; only one can take the new permit
     }
 }
-// In real code use java.util.concurrent.Semaphore (fairness option, tryAcquire with timeout).
+// In real code use java.util.concurrent.Semaphore (fairness option, tryAcquire with
+// timeout).

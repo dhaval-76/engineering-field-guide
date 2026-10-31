@@ -1,7 +1,9 @@
-// Amounts are integers in the smallest currency unit (paise). Each strategy returns shares summing exactly to total.
+// Amounts are integers in the smallest currency unit (paise). Each strategy returns
+// shares summing exactly to total.
 export const equalSplit = (total, people) => {
   const base = Math.floor(total / people.length), remainder = total % people.length;
-  return new Map(people.map((p, i) => [p, base + (i < remainder ? 1 : 0)]));   // spread leftover paise deterministically
+  // spread leftover paise deterministically
+  return new Map(people.map((p, i) => [p, base + (i < remainder ? 1 : 0)]));
 };
 
 export const exactSplit = (amounts) => (total) => {
@@ -18,7 +20,8 @@ export const percentSplit = (basisPoints) => {
     let assigned = 0;
     return new Map(people.map((p, i) => {
       const share = i === people.length - 1
-        ? total - assigned                                           // last person absorbs rounding
+        // last person absorbs rounding
+        ? total - assigned
         : Math.floor((basisPoints.get(p) * total + 5000) / 10000);   // round half up
       assigned += share;
       return [p, share];

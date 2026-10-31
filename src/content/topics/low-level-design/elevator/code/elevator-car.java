@@ -1,8 +1,9 @@
 enum Direction { UP, DOWN, IDLE }
 
 /**
- * One car using the LOOK algorithm: keep going in the current direction while there are stops
- * ahead; reverse only when nothing is left ahead. Driven by tick() so it is deterministic to test.
+ * One car using the LOOK algorithm: keep going in the current direction while there are
+ * stops ahead; reverse only when nothing is left ahead. Driven by tick() so it is
+ * deterministic to test.
  */
 final class ElevatorCar {
     private final int id, minFloor, maxFloor;
@@ -25,7 +26,8 @@ final class ElevatorCar {
     /** Advance the simulation by one step: move one floor, or service a stop. */
     synchronized void tick() {
         if (door.isOpen()) { door.close(); return; }
-        if (stops.remove(floor)) { door.open(); return; }          // arrived at a requested floor
+        // arrived at a requested floor
+        if (stops.remove(floor)) { door.open(); return; }
         Integer next = nextStop();
         if (next == null) { direction = Direction.IDLE; return; }
         direction = next > floor ? Direction.UP : Direction.DOWN;
@@ -36,7 +38,8 @@ final class ElevatorCar {
         if (stops.isEmpty()) return null;
         Integer ahead = direction == Direction.DOWN ? stops.floor(floor) : stops.ceiling(floor);
         if (ahead != null) return ahead;                            // keep going (LOOK)
-        return direction == Direction.DOWN ? stops.ceiling(floor) : stops.floor(floor);   // reverse
+        // reverse
+        return direction == Direction.DOWN ? stops.ceiling(floor) : stops.floor(floor);
     }
 
     synchronized int floor() { return floor; }

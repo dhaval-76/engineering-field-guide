@@ -22,7 +22,8 @@ final class PhoneDirectory {
         while (!stack.isEmpty() && out.size() < limit) {
             Node cur = stack.pop();
             out.addAll(cur.contacts);
-            for (int i = 9; i >= 0; i--) if (cur.next[i] != null) stack.push(cur.next[i]);   // 0 first
+            // 0 first
+            for (int i = 9; i >= 0; i--) if (cur.next[i] != null) stack.push(cur.next[i]);
         }
         return out.subList(0, Math.min(limit, out.size()));
     }

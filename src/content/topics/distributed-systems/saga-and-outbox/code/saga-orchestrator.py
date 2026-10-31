@@ -2,7 +2,8 @@ from typing import Any, Protocol
 
 class SagaStep(Protocol):
     name: str
-    def execute(self, ctx: dict[str, Any]) -> None: ...      # idempotent local transaction
+    # idempotent local transaction
+    def execute(self, ctx: dict[str, Any]) -> None: ...
     def compensate(self, ctx: dict[str, Any]) -> None: ...   # idempotent semantic undo
 
 class SagaLog(Protocol):

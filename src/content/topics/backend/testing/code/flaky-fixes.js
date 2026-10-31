@@ -6,7 +6,8 @@ export const isExpired = (trial, now = () => new Date()) => now() > trial.endsAt
 
 it('expires after the end time', () => {
   const fixed = () => new Date('2026-03-15T00:00:01Z');
-  expect(isExpired({ endsAt: new Date('2026-03-15T00:00:00Z') }, fixed)).toBe(true); // same result every run
+  // same result every run
+  expect(isExpired({ endsAt: new Date('2026-03-15T00:00:00Z') }, fixed)).toBe(true);
 });
 // (Or vi.useFakeTimers() + vi.setSystemTime(...) for code you can't change.)
 
@@ -19,7 +20,8 @@ it('eventually sends the confirmation email', async () => {
 
 // 3. Shared state: each test creates the data it needs, with unique keys.
 it('allows only one active cart per customer', async () => {
-  const customer = await customers.create(`user-${randomUUID()}@example.com`); // no clash with other tests
+  // no clash with other tests
+  const customer = await customers.create(`user-${randomUUID()}@example.com`);
   await carts.open(customer);
   await expect(carts.open(customer)).rejects.toThrow('active cart exists');
 });

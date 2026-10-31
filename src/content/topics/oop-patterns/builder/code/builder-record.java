@@ -3,7 +3,8 @@
 public record Pizza(Size size, Crust crust, List<String> toppings, boolean extraCheese) {
     public Pizza {
         Objects.requireNonNull(size, "size");
-        toppings = List.copyOf(toppings);                       // defensive, immutable copy
+        // defensive, immutable copy
+        toppings = List.copyOf(toppings);
         if (crust == Crust.STUFFED && size != Size.LARGE)
             throw new IllegalArgumentException("stuffed crust is only available in LARGE");
     }

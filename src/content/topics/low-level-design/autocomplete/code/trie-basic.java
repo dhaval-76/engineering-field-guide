@@ -1,6 +1,7 @@
 final class Trie {
     private static final class Node {
-        final Map<Character, Node> next = new HashMap<>();   // or Node[26] for lowercase a–z
+        // or Node[26] for lowercase a–z
+        final Map<Character, Node> next = new HashMap<>();
         boolean word;
     }
     private final Node root = new Node();
@@ -25,7 +26,8 @@ final class Trie {
     private void collect(Node n, StringBuilder sb, List<String> out, int limit) {
         if (out.size() >= limit) return;
         if (n.word) out.add(sb.toString());
-        for (var e : new TreeMap<>(n.next).entrySet()) {          // sorted children → sorted output
+        // sorted children → sorted output
+        for (var e : new TreeMap<>(n.next).entrySet()) {
             sb.append(e.getKey());
             collect(e.getValue(), sb, out, limit);
             sb.deleteCharAt(sb.length() - 1);

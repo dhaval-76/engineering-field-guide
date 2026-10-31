@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
 
-const hash = (s) => createHash('md5').update(s).digest().readBigUInt64BE(0); // stable 64-bit position
+// stable 64-bit position
+const hash = (s) => createHash('md5').update(s).digest().readBigUInt64BE(0);
 
 export class HashRing {
   #tokens = []; // sorted BigInt positions
@@ -19,7 +20,8 @@ export class HashRing {
   }
 
   removeNode(node) {
-    this.#tokens = this.#tokens.filter((t) => this.#owner.get(t) !== node); // only its arcs change owner
+    // only its arcs change owner
+    this.#tokens = this.#tokens.filter((t) => this.#owner.get(t) !== node);
     for (const [t, n] of this.#owner) if (n === node) this.#owner.delete(t);
   }
 

@@ -12,8 +12,10 @@ class PasteService {
         String id = ShortCodes.scrambled(ids.nextId());
         Instant expiresAt = ttl == null ? null : Instant.now().plus(ttl);
 
-        objects.put("pastes/" + id, bytes, "text/plain; charset=utf-8");   // write content first…
-        return pastes.save(new Paste(id, ownerId, bytes.length, visibility, expiresAt));   // …then metadata
+        // write content first…
+        objects.put("pastes/" + id, bytes, "text/plain; charset=utf-8");
+        // …then metadata
+        return pastes.save(new Paste(id, ownerId, bytes.length, visibility, expiresAt));
         // A crash between the two leaves an orphan object, never a paste without content;
         // a lifecycle rule removes orphans.
     }
@@ -33,11 +35,13 @@ class RawPasteController {
 
         CacheControl cache = p.visibility() == Visibility.PRIVATE
             ? CacheControl.noStore().cachePrivate()
-            : CacheControl.maxAge(p.cacheableFor(now, Duration.ofHours(1))).cachePublic();   // ≤ time left
+            // ≤ time left
+            : CacheControl.maxAge(p.cacheableFor(now, Duration.ofHours(1))).cachePublic();
 
         return ResponseEntity.ok()
             .cacheControl(cache)
-            .eTag(p.id())                                  // immutable content: id is a perfect ETag
+            // immutable content: id is a perfect ETag
+            .eTag(p.id())
             .body(objects.get("pastes/" + id));
     }
 }

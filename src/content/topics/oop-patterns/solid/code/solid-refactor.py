@@ -1,4 +1,5 @@
-# BEFORE — SQL injection, three responsibilities, hard-wired dependencies, growing if-chain.
+# BEFORE — SQL injection, three responsibilities, hard-wired dependencies, growing
+# if-chain.
 def process_user(user_id):
     user = db.query(f"SELECT * FROM users WHERE id={user_id}")
     if user.is_admin:
@@ -8,7 +9,8 @@ def process_user(user_id):
 # AFTER
 from typing import Protocol
 
-class UserRepository(Protocol):               # DIP: an abstraction; parameterised queries live inside
+# DIP: an abstraction; parameterised queries live inside
+class UserRepository(Protocol):
     def find_by_id(self, user_id: str): ...
     def touch_last_login(self, user_id: str) -> None: ...
 

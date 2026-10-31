@@ -1,8 +1,8 @@
-// JavaScript has no `interface` keyword: the contract is the set of methods callers rely on
-// (duck typing). Document it, and validate at the boundary if it matters.
+// JavaScript has no `interface` keyword: the contract is the set of methods callers rely
+// on (duck typing). Document it, and validate at the boundary if it matters.
 
 /** @typedef {{ charge(amount: number, customerId: string): Promise<object>,
- *             refund(txnId: string, amount: number): Promise<object> }} PaymentProcessor */
+ * refund(txnId: string, amount: number): Promise<object> }} PaymentProcessor */
 
 export class CardProcessor {
   async charge(amount, customerId) { /* call card gateway */ return { ok: true }; }

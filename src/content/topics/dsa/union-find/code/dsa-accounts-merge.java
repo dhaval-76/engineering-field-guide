@@ -1,6 +1,7 @@
 /** accounts[i] = [name, email1, email2, ...]. Merge accounts sharing any email. */
 List<List<String>> accountsMerge(List<List<String>> accounts) {
-    Map<String, Integer> ownerOf = new HashMap<>();        // email → first account index that had it
+    // email → first account index that had it
+    Map<String, Integer> ownerOf = new HashMap<>();
     UnionFind uf = new UnionFind(accounts.size());
     for (int i = 0; i < accounts.size(); i++)
         for (String email : accounts.get(i).subList(1, accounts.get(i).size())) {

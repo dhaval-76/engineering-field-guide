@@ -17,7 +17,8 @@ class BusinessRuleError(DomainError):
         self.details = dict(details or {})
 
 # Services raise meaningful errors and know nothing about HTTP:
-#   raise BusinessRuleError("insufficient_funds", "Balance is too low", {"account_id": aid, "shortfall": s})
+# raise BusinessRuleError("insufficient_funds", "Balance is too low", {"account_id": aid,
+# "shortfall": s})
 
 # One FastAPI handler maps them to responses (RFC 9457 problem details):
 from fastapi import Request

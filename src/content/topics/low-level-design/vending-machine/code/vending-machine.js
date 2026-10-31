@@ -61,7 +61,8 @@ export class VendingMachine {
   }
 }
 
-// Fewest coins for `amount` from a box with limited counts. Returns Map(coin -> n) or null.
+// Fewest coins for `amount` from a box with limited counts. Returns Map(coin -> n) or
+// null.
 export function makeChange(amount, box) {
   const coins = [...box.entries()];
   const INF = Number.MAX_SAFE_INTEGER;

@@ -2,7 +2,8 @@
 record Graph(int[] firstEdge, int[] to, int[] travelMillis, double[] lat, double[] lon) {}
 
 final class Router {
-    private static final double MAX_SPEED_M_PER_MS = 130_000.0 / 3_600_000;   // 130 km/h — keeps A* admissible
+    // 130 km/h — keeps A* admissible
+    private static final double MAX_SPEED_M_PER_MS = 130_000.0 / 3_600_000;
 
     /** A* search; with heuristic = 0 it is exactly Dijkstra. Returns travel time in ms, or -1. */
     static long shortest(Graph g, int src, int dst, boolean useHeuristic) {
@@ -17,7 +18,8 @@ final class Router {
         while (!open.isEmpty()) {
             long[] e = open.poll();
             int u = (int) e[1];
-            if (e[0] - h(g, u, dst, useHeuristic) > best[u]) continue;   // stale entry (compare distances, not priorities)
+            // stale entry (compare distances, not priorities)
+            if (e[0] - h(g, u, dst, useHeuristic) > best[u]) continue;
             if (u == dst) return best[u];
             for (int i = g.firstEdge()[u]; i < g.firstEdge()[u + 1]; i++) {
                 int v = g.to()[i];

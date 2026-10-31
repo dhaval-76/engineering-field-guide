@@ -10,7 +10,8 @@ def fmt(e: dict) -> str:
 
 @app.get("/orders/{order_id}/events")
 async def order_events(order_id: str, request: Request,
-                       last_event_id: str | None = Header(default=None),   # "Last-Event-ID"
+                       # "Last-Event-ID"
+                       last_event_id: str | None = Header(default=None),
                        user=Depends(current_user)):
     await orders.check_can_read(user, order_id)           # authorize once, at connect
 
@@ -22,7 +23,8 @@ async def order_events(order_id: str, request: Request,
                 try:
                     yield fmt(await asyncio.wait_for(queue.get(), timeout=15))
                 except asyncio.TimeoutError:
-                    yield ": ping\n\n"                     # heartbeat keeps proxies from closing it
+                    # heartbeat keeps proxies from closing it
+                    yield ": ping\n\n"
 
     return StreamingResponse(stream(), media_type="text/event-stream",
                              headers={"Cache-Control": "no-cache"})

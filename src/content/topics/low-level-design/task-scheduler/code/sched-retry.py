@@ -10,4 +10,5 @@ def exponential_backoff(max_attempts: int, base_s: float, cap_s: float):
             return None
         return random.uniform(0, min(cap_s, base_s * 2 ** min(attempt, 20)))
     return delay_for
-# Jitter spreads retries out so failed tasks don't all retry at once and hammer a recovering dependency.
+# Jitter spreads retries out so failed tasks don't all retry at once and hammer a
+# recovering dependency.

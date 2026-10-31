@@ -1,5 +1,5 @@
-// House robber: maximum sum of non-adjacent houses.
-// State: best(i) = most money from houses [0..i]. Transition: skip i, or rob i + best(i − 2).
+// House robber: maximum sum of non-adjacent houses. State: best(i) = most money from
+// houses [0..i]. Transition: skip i, or rob i + best(i − 2).
 
 /** 1. Top-down: recursion + memo. */
 int robMemo(int[] nums) {

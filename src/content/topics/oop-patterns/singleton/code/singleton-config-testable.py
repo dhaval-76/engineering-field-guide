@@ -10,7 +10,8 @@ class FeatureFlags:
 
 _override: FeatureFlags | None = None           # test seam
 
-@functools.cache                                # loaded lazily, exactly once (thread-safe enough for reads)
+# loaded lazily, exactly once (thread-safe enough for reads)
+@functools.cache
 def _load() -> FeatureFlags:
     with open("flags.json") as f:
         return FeatureFlags(json.load(f))

@@ -1,4 +1,5 @@
-// Polling relay with node-postgres + kafkajs. Several instances can run: SKIP LOCKED splits the work.
+// Polling relay with node-postgres + kafkajs. Several instances can run: SKIP LOCKED
+// splits the work.
 export async function relayOnce(pool, producer) {
   const client = await pool.connect();
   try {
@@ -19,7 +20,8 @@ export async function relayOnce(pool, producer) {
     await client.query('COMMIT');
     return rows.length;
   } catch (e) {
-    await client.query('ROLLBACK'); // rows unlock and are retried; duplicates are possible → idempotent consumers
+    // rows unlock and are retried; duplicates are possible → idempotent consumers
+    await client.query('ROLLBACK');
     throw e;
   } finally {
     client.release();

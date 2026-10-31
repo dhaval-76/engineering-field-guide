@@ -9,9 +9,11 @@ class DashboardService {
             .register(registry);
     }
 
-    @Observed(name = "dashboard.load")          // creates a timer and a tracing span (needs AOP + ObservedAspect bean)
+    // creates a timer and a tracing span (needs AOP + ObservedAspect bean)
+    @Observed(name = "dashboard.load")
     public Dashboard load(String userId) {
         return buildTimer.record(() -> build(userId));
     }
 }
-// Reading the numbers: p50 fine but p99 bad → specific inputs or contention; p50 bad → everything is slow.
+// Reading the numbers: p50 fine but p99 bad → specific inputs or contention; p50 bad →
+// everything is slow.

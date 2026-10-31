@@ -1,5 +1,6 @@
 @RestControllerAdvice
-class ApiExceptionHandler extends ResponseEntityExceptionHandler {   // handles Spring MVC's own exceptions as ProblemDetail
+// handles Spring MVC's own exceptions as ProblemDetail
+class ApiExceptionHandler extends ResponseEntityExceptionHandler {
     private static final Logger log = LoggerFactory.getLogger(ApiExceptionHandler.class);
 
     @ExceptionHandler(NotFoundException.class)
@@ -19,7 +20,8 @@ class ApiExceptionHandler extends ResponseEntityExceptionHandler {   // handles 
         return pd;
     }
 
-    // @Valid failures on request bodies → 400 with every field error (a field can have several)
+    // @Valid failures on request bodies → 400 with every field error (a field can have
+    // several)
     @Override
     protected ResponseEntity<Object> handleMethodArgumentNotValid(MethodArgumentNotValidException ex,
             HttpHeaders headers, HttpStatusCode status, WebRequest request) {
@@ -33,7 +35,8 @@ class ApiExceptionHandler extends ResponseEntityExceptionHandler {   // handles 
     // Anything unexpected: log everything, reveal nothing
     @ExceptionHandler(Exception.class)
     ProblemDetail unexpected(Exception ex) {
-        log.error("Unhandled exception", ex);                  // trace id comes from MDC in the log pattern
+        // trace id comes from MDC in the log pattern
+        log.error("Unhandled exception", ex);
         return problem(HttpStatus.INTERNAL_SERVER_ERROR, "internal_error",
                        "Something went wrong. Quote the trace id when contacting support.");
     }
@@ -46,4 +49,5 @@ class ApiExceptionHandler extends ResponseEntityExceptionHandler {   // handles 
         return pd;
     }
 }
-// application.yml: spring.mvc.problemdetails.enabled: true   (framework errors such as 405/415 as problem+json)
+// application.yml: spring.mvc.problemdetails.enabled: true   (framework errors such as
+// 405/415 as problem+json)

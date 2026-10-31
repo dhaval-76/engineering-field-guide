@@ -12,5 +12,5 @@ class Worker implements Runnable {
     public void run() { while (running) { doWork(); } }
     public void stop() { running = false; }
 }
-// Even better for stopping threads: interruption (thread.interrupt() / Thread.interrupted()),
-// which also wakes threads blocked in sleep/wait/queue.take().
+// Even better for stopping threads: interruption (thread.interrupt() /
+// Thread.interrupted()), which also wakes threads blocked in sleep/wait/queue.take().

@@ -8,9 +8,11 @@ import { OrderRepository } from './order-repository.js';
 let container, pool, repo;
 
 beforeAll(async () => {
-  container = await new PostgreSqlContainer('postgres:17-alpine').start(); // ~2–5 s, once per file
+  // ~2–5 s, once per file
+  container = await new PostgreSqlContainer('postgres:17-alpine').start();
   pool = new pg.Pool({ connectionString: container.getConnectionUri() });
-  await migrate(pool);                                                     // the same migrations as production
+  // the same migrations as production
+  await migrate(pool);
   repo = new OrderRepository(pool);
 }, 60_000);
 
@@ -30,5 +32,6 @@ it('loads an order with its lines', async () => {
 
 it('refuses to reserve more stock than exists', async () => {
   const productId = await repo.createProduct('BOOK', 1);
-  expect(await repo.reserve(productId, 2)).toBe(0);                        // the atomic UPDATE refuses
+  // the atomic UPDATE refuses
+  expect(await repo.reserve(productId, 2)).toBe(0);
 });

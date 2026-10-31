@@ -14,5 +14,5 @@ final class Pipeline implements Chain {
 
 Handler auth = (req, next) -> req.hasValidToken() ? next.proceed(req) : Response.status(401);
 Handler rateLimit = (req, next) -> limiter.tryAcquire(req.clientId()) ? next.proceed(req) : Response.status(429);
-// new Pipeline(List.of(auth, rateLimit), controller::handle).proceed(request);
-// Servlet filters, Spring Security's filter chain and Express middleware all work this way.
+// new Pipeline(List.of(auth, rateLimit), controller::handle).proceed(request); Servlet
+// filters, Spring Security's filter chain and Express middleware all work this way.

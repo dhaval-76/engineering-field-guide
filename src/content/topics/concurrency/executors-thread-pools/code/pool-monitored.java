@@ -18,7 +18,9 @@ final class MonitoredExecutor extends ThreadPoolExecutor {
     @Override
     protected void afterExecute(Runnable r, Throwable t) {
         super.afterExecute(r, t);
-        if (t != null) log.error("task failed", t);           // execute() failures would otherwise be easy to miss
+        // execute() failures would otherwise be easy to miss
+        if (t != null) log.error("task failed", t);
     }
 }
-// Export getActiveCount(), getQueue().size() and rejected-task counts as metrics (Micrometer can do this).
+// Export getActiveCount(), getQueue().size() and rejected-task counts as metrics
+// (Micrometer can do this).

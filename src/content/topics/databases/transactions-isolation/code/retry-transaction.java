@@ -1,6 +1,7 @@
 @Component
 class TransactionRetrier {
-    private static final Set<String> RETRYABLE = Set.of("40001", "40P01");  // serialization failure, deadlock
+    // serialization failure, deadlock
+    private static final Set<String> RETRYABLE = Set.of("40001", "40P01");
     private final TransactionTemplate tx;
 
     TransactionRetrier(PlatformTransactionManager tm) {

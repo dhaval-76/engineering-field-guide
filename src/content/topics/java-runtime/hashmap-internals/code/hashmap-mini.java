@@ -18,7 +18,8 @@ public final class MiniHashMap<K, V> {
     public V get(K key) {
         int h = hash(key);
         for (Node<K, V> n = table[h & (table.length - 1)]; n != null; n = n.next)
-            if (n.hash == h && Objects.equals(n.key, key)) return n.value;   // compare hash first: cheap filter
+            // compare hash first: cheap filter
+            if (n.hash == h && Objects.equals(n.key, key)) return n.value;
         return null;
     }
 
@@ -39,7 +40,8 @@ public final class MiniHashMap<K, V> {
         for (Node<K, V> head : old) {
             for (Node<K, V> n = head; n != null; ) {
                 Node<K, V> next = n.next;
-                int i = n.hash & (table.length - 1);     // the new bit of the index decides: same or +old.length
+                // the new bit of the index decides: same or +old.length
+                int i = n.hash & (table.length - 1);
                 n.next = table[i];
                 table[i] = n;
                 n = next;

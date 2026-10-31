@@ -28,5 +28,6 @@ async def create_link(url: str, alias: str | None, expires_at, owner_id: str):
     code = alias or scrambled(await ids.next_id())
     try:
         return await links.insert(code=code, url=url, owner_id=owner_id, expires_at=expires_at, custom=bool(alias))
-    except UniqueViolation:                                            # UNIQUE(code) settles alias races
+    # UNIQUE(code) settles alias races
+    except UniqueViolation:
         raise HTTPException(409, "alias taken")

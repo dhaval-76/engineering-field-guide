@@ -1,5 +1,5 @@
-// uses FITS_IN and ParkingSpot from the model above
-// O(log n) allocation: one min-heap of free spots per size, ordered by (floor, id) = "nearest".
+// uses FITS_IN and ParkingSpot from the model above O(log n) allocation: one min-heap of
+// free spots per size, ordered by (floor, id) = "nearest".
 const nearer = (a, b) => a.floor - b.floor || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
 
 class SpotHeap {

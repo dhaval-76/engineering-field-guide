@@ -13,10 +13,12 @@ class BoundedQueue:
 
     def put(self, item) -> None:
         with self._not_full:
-            while len(self._items) == self._capacity:   # loop: re-check after every wake-up
+            # loop: re-check after every wake-up
+            while len(self._items) == self._capacity:
                 self._not_full.wait()
             self._items.append(item)
-            self._not_empty.notify()                    # wake one consumer — only consumers wait here
+            # wake one consumer — only consumers wait here
+            self._not_empty.notify()
 
     def take(self):
         with self._not_empty:

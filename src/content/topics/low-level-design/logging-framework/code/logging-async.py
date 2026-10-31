@@ -1,4 +1,5 @@
-# uses Level from above. The standard library offers the same idea: logging.handlers.QueueHandler + QueueListener.
+# uses Level from above. The standard library offers the same idea:
+# logging.handlers.QueueHandler + QueueListener.
 import queue
 import threading
 
@@ -17,7 +18,8 @@ class AsyncAppender:
         if self._closed:
             return
         if e.level >= Level.WARN:
-            self._queue.put(e)                     # never drop warnings/errors: wait for room
+            # never drop warnings/errors: wait for room
+            self._queue.put(e)
             return
         try:
             self._queue.put_nowait(e)

@@ -8,5 +8,6 @@ CountDownLatch warmed = new CountDownLatch(3);
 for (Cache c : caches) pool.submit(() -> { c.warm(); warmed.countDown(); });
 if (!warmed.await(30, SECONDS)) log.warn("starting with cold caches");
 
-// CyclicBarrier / Phaser: N threads meet at a point repeatedly (simulations, parallel phases)
+// CyclicBarrier / Phaser: N threads meet at a point repeatedly (simulations, parallel
+// phases)
 CyclicBarrier barrier = new CyclicBarrier(4, () -> mergePartialResults());

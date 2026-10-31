@@ -21,5 +21,6 @@ final class PluginClassLoader extends URLClassLoader {
         }
     }
 }
-// Closing the loader and dropping every reference to its classes lets the GC unload them —
-// a lingering reference (static cache, thread, ThreadLocal) leaks the whole loader: a Metaspace leak.
+// Closing the loader and dropping every reference to its classes lets the GC unload them
+// — a lingering reference (static cache, thread, ThreadLocal) leaks the whole loader: a
+// Metaspace leak.

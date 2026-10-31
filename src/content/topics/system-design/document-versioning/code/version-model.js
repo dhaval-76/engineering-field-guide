@@ -1,4 +1,5 @@
-// Content-addressed versions: full snapshots every N saves, deltas in between; head moves with a CAS.
+// Content-addressed versions: full snapshots every N saves, deltas in between; head moves
+// with a CAS.
 import { createHash } from 'node:crypto';
 const SNAPSHOT_EVERY = 10;
 const sha256 = (buf) => createHash('sha256').update(buf).digest('hex');
@@ -6,7 +7,8 @@ const sha256 = (buf) => createHash('sha256').update(buf).digest('hex');
 export async function save(c, { pageId, expectedHead, content, authorId, message }) {
   const bytes = Buffer.from(content, 'utf8');
   const hash = sha256(bytes);
-  if (!(await blobs.exists(hash))) {                     // identical content (or a restore) stores nothing
+  // identical content (or a restore) stores nothing
+  if (!(await blobs.exists(hash))) {
     const parent = await blobs.get((await versions.get(expectedHead)).contentHash);
     if (parent.chainLength + 1 >= SNAPSHOT_EVERY) await blobs.putFull(hash, bytes);
     else await blobs.putDelta(hash, parent.hash, delta(await read(parent.hash), bytes), parent.chainLength + 1);

@@ -5,7 +5,8 @@ class KvNode:
     """A single node's in-memory store with TTL. Value and expiry live together, so overwrites can't leave stale TTLs."""
 
     def __init__(self, clock=time.monotonic):
-        self._data: dict[str, tuple[bytes, float]] = {}    # key -> (value, expires_at); 0 = no expiry
+        # key -> (value, expires_at); 0 = no expiry
+        self._data: dict[str, tuple[bytes, float]] = {}
         self._clock = clock
         self._lock = threading.Lock()
 
@@ -21,7 +22,8 @@ class KvNode:
 
     def put(self, key: str, value: bytes, ttl: float | None = None) -> None:
         with self._lock:
-            self._data[key] = (value, self._clock() + ttl if ttl else 0)   # value AND expiry replaced together
+            # value AND expiry replaced together
+            self._data[key] = (value, self._clock() + ttl if ttl else 0)
 
     def delete(self, key: str) -> None:
         with self._lock:

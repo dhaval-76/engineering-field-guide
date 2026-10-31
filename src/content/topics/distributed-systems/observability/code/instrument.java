@@ -11,12 +11,15 @@ class CheckoutService {
 
     Order checkout(Cart cart, String channel) {
         return Observation.createNotStarted("checkout", observations)
-                .lowCardinalityKeyValue("channel", channel)               // few values: OK as a label
-                .highCardinalityKeyValue("cart.id", cart.id())             // span attribute only, never a metric label
+                // few values: OK as a label
+                .lowCardinalityKeyValue("channel", channel)
+                // span attribute only, never a metric label
+                .highCardinalityKeyValue("cart.id", cart.id())
                 .observe(() -> {
                     Order order = placeOrder(cart);
                     meters.counter("orders.placed", "channel", channel).increment();
-                    log.info("order placed orderId={} items={} totalCents={}",  // trace id added by the log pattern
+                    // trace id added by the log pattern
+                    log.info("order placed orderId={} items={} totalCents={}",
                             order.id(), cart.items().size(), order.totalCents());
                     return order;
                 });

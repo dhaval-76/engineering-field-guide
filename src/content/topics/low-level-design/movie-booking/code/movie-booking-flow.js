@@ -3,7 +3,8 @@ const HOLD_TTL_MS = 8 * 60 * 1000;
 
 export class BookingService {
   constructor({ seats, payments, bookings, now = () => Date.now() }) {
-    Object.assign(this, { seats, payments, bookings, now }); // seats.get(showId, seatId) → ShowSeat
+    // seats.get(showId, seatId) → ShowSeat
+    Object.assign(this, { seats, payments, bookings, now });
   }
 
   // Step 1 — hold all requested seats or none.
@@ -22,8 +23,8 @@ export class BookingService {
     return { id: holdId, showId, userId, seatIds: [...seatIds], expiresAt: this.now() + HOLD_TTL_MS };
   }
 
-  // Step 2 — pay (idempotently, keyed by the hold), then confirm. The await is where other
-  // requests interleave: the hold may expire while the user pays.
+  // Step 2 — pay (idempotently, keyed by the hold), then confirm. The await is where
+  // other requests interleave: the hold may expire while the user pays.
   async checkout(hold, amount, method) {
     const result = await this.payments.charge(amount, method, { idempotencyKey: hold.id });
     if (!result.succeeded) {

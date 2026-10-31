@@ -2,7 +2,8 @@ import threading
 
 ALPHABET = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 SPACE = 62 ** 7                     # 3,521,614,606,208 seven-character codes
-MULTIPLIER = 1_580_030_173          # coprime with 62^7 → multiplication mod 62^7 is a bijection
+# coprime with 62^7 → multiplication mod 62^7 is a bijection
+MULTIPLIER = 1_580_030_173
 
 def encode(n: int) -> str:
     """Fixed-width base62 so every code has 7 characters."""

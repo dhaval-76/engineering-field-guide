@@ -9,7 +9,8 @@ final class EqualSplit implements SplitStrategy {
         long base = total / people.size(), remainder = total % people.size();
         Map<String, Long> out = new LinkedHashMap<>();
         for (int i = 0; i < people.size(); i++) {
-            out.put(people.get(i), base + (i < remainder ? 1 : 0));    // spread leftover paise deterministically
+            // spread leftover paise deterministically
+            out.put(people.get(i), base + (i < remainder ? 1 : 0));
         }
         return out;
     }
@@ -26,7 +27,8 @@ final class ExactSplit implements SplitStrategy {
 }
 
 final class PercentSplit implements SplitStrategy {
-    private final Map<String, BigDecimal> percent;              // e.g. 33.34, 33.33, 33.33
+    // e.g. 33.34, 33.33, 33.33
+    private final Map<String, BigDecimal> percent;
     PercentSplit(Map<String, BigDecimal> percent) {
         if (percent.values().stream().reduce(BigDecimal.ZERO, BigDecimal::add).compareTo(BigDecimal.valueOf(100)) != 0)
             throw new IllegalArgumentException("percentages must add up to 100");
@@ -38,7 +40,8 @@ final class PercentSplit implements SplitStrategy {
         for (int i = 0; i < people.size(); i++) {
             String p = people.get(i);
             long share = i == people.size() - 1
-                    ? total - assigned                              // last person absorbs rounding
+                    // last person absorbs rounding
+                    ? total - assigned
                     : percent.get(p).multiply(BigDecimal.valueOf(total)).divide(BigDecimal.valueOf(100), RoundingMode.HALF_UP).longValue();
             out.put(p, share);
             assigned += share;

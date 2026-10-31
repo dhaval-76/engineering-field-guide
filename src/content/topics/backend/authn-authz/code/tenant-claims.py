@@ -1,4 +1,5 @@
-# Access token claims: {"sub":"u_1","org_id":"org_42","roles":["ADMIN"],"aud":"projects-api", …}
+# Access token claims:
+# {"sub":"u_1","org_id":"org_42","roles":["ADMIN"],"aud":"projects-api", …}
 from dataclasses import dataclass
 from fastapi import Depends, HTTPException
 
@@ -15,14 +16,17 @@ def tenant(claims: dict = Depends(current_user)) -> Tenant:
 
 @app.get("/projects")
 def list_projects(t: Tenant = Depends(tenant)):
-    return projects.find_by_org_id(t.org_id)                    # every query scoped to the caller's org
+    # every query scoped to the caller's org
+    return projects.find_by_org_id(t.org_id)
 
 @app.post("/projects", status_code=201)
 def create_project(req: NewProject, t: Tenant = Depends(tenant)):
     if not {"OWNER", "ADMIN"} & set(t.roles):
         raise HTTPException(403)
-    return projects.create(org_id=t.org_id, **req.model_dump())  # body can't choose the org
+    # body can't choose the org
+    return projects.create(org_id=t.org_id, **req.model_dump())
 
 # Defence in depth: PostgreSQL row-level security, set per transaction:
 #   conn.execute(text("SELECT set_config('app.org_id', :org, true)"), {"org": t.org_id})
-#   CREATE POLICY tenant_isolation ON projects USING (org_id = current_setting('app.org_id'));
+# CREATE POLICY tenant_isolation ON projects USING (org_id =
+# current_setting('app.org_id'));

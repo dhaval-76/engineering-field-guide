@@ -4,7 +4,8 @@ class LFUCache<K, V> {
 
     private final int capacity;
     private final Map<K, Entry<V>> entries = new HashMap<>();
-    private final Map<Integer, LinkedHashSet<K>> buckets = new HashMap<>();  // freq → keys, oldest first
+    // freq → keys, oldest first
+    private final Map<Integer, LinkedHashSet<K>> buckets = new HashMap<>();
     private int minFreq = 0;
 
     LFUCache(int capacity) {
@@ -29,10 +30,12 @@ class LFUCache<K, V> {
         if (entries.size() == capacity) evict();
         entries.put(key, new Entry<>(value, 1));
         buckets.computeIfAbsent(1, f -> new LinkedHashSet<>()).add(key);
-        minFreq = 1;                                       // a new key always has the lowest count
+        // a new key always has the lowest count
+        minFreq = 1;
     }
 
-    private void touch(K key, Entry<V> e) {               // move key from bucket f to f + 1
+    // move key from bucket f to f + 1
+    private void touch(K key, Entry<V> e) {
         int f = e.freq();
         LinkedHashSet<K> bucket = buckets.get(f);
         bucket.remove(key);
@@ -46,7 +49,8 @@ class LFUCache<K, V> {
 
     private void evict() {
         LinkedHashSet<K> bucket = buckets.get(minFreq);
-        K victim = bucket.iterator().next();               // least recently used among the least frequent
+        // least recently used among the least frequent
+        K victim = bucket.iterator().next();
         bucket.remove(victim);
         if (bucket.isEmpty()) buckets.remove(minFreq);
         entries.remove(victim);

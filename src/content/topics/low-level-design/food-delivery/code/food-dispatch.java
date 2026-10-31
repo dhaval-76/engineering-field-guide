@@ -19,7 +19,8 @@ class NearestAvailable implements DispatchStrategy {
 /** Assign when the restaurant accepts, so the partner arrives as the food gets ready. */
 class Dispatcher implements OrderListener {
     private final DispatchStrategy strategy;
-    private final Supplier<List<Partner>> partnersNearby;              // from a geo index in production
+    // from a geo index in production
+    private final Supplier<List<Partner>> partnersNearby;
     private final Set<String> busy = ConcurrentHashMap.newKeySet();
 
     Dispatcher(DispatchStrategy strategy, Supplier<List<Partner>> partnersNearby) {
@@ -30,7 +31,8 @@ class Dispatcher implements OrderListener {
         if (to == Status.ACCEPTED) {
             List<Partner> free = partnersNearby.get().stream().filter(p -> !busy.contains(p.id())).toList();
             strategy.choose(order, free).ifPresent(p -> {
-                if (busy.add(p.id())) order.assign(p.id());             // claim atomically; retry loop omitted
+                // claim atomically; retry loop omitted
+                if (busy.add(p.id())) order.assign(p.id());
             });
         }
         if ((to == Status.DELIVERED || to == Status.CANCELLED) && order.partnerId() != null) busy.remove(order.partnerId());
@@ -40,6 +42,7 @@ class Dispatcher implements OrderListener {
 /** Pricing is another strategy: base + distance + surge, minus discount, never below zero. */
 long deliveryFeePaise(Order o, double surgeMultiplier, long discountPaise) {
     double km = o.pickup.km(o.drop);
-    long base = 2_000 + Math.round(Math.max(0, km - 2) * 800);       // ₹20 for the first 2 km, ₹8/km after
+    // ₹20 for the first 2 km, ₹8/km after
+    long base = 2_000 + Math.round(Math.max(0, km - 2) * 800);
     return Math.max(0, Math.round(base * surgeMultiplier) - discountPaise);
 }

@@ -3,7 +3,8 @@ TreeNode lowestCommonAncestor(TreeNode n, TreeNode p, TreeNode q) {
     if (n == null || n == p || n == q) return n;
     TreeNode left = lowestCommonAncestor(n.left, p, q);
     TreeNode right = lowestCommonAncestor(n.right, p, q);
-    if (left != null && right != null) return n;     // one on each side → n is the split point
+    // one on each side → n is the split point
+    if (left != null && right != null) return n;
     return left != null ? left : right;              // both on one side (or not found)
 }
 

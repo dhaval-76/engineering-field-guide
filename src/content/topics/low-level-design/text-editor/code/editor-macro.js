@@ -1,4 +1,5 @@
-// A composite command: one undo step for many actions (paste-with-format, replace-all, macros).
+// A composite command: one undo step for many actions (paste-with-format, replace-all,
+// macros).
 export const composite = (steps) => ({
   execute: (b) => steps.forEach((s) => s.execute(b)),
   undo: (b) => [...steps].reverse().forEach((s) => s.undo(b)), // reverse order

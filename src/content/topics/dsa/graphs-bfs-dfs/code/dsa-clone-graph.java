@@ -6,7 +6,8 @@ class Node {
 
 Node cloneGraph(Node start) {
     if (start == null) return null;
-    Map<Node, Node> copies = new HashMap<>();          // original → copy; doubles as "visited"
+    // original → copy; doubles as "visited"
+    Map<Node, Node> copies = new HashMap<>();
     Deque<Node> queue = new ArrayDeque<>(List.of(start));
     copies.put(start, new Node(start.val));
     while (!queue.isEmpty()) {

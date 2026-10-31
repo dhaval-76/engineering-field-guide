@@ -1,6 +1,7 @@
 int shipWithinDays(int[] weights, int days) {
     int lo = 0, hi = 0;
-    for (int w : weights) { lo = Math.max(lo, w); hi += w; }   // must fit the heaviest; all in one day works
+    // must fit the heaviest; all in one day works
+    for (int w : weights) { lo = Math.max(lo, w); hi += w; }
     while (lo < hi) {
         int mid = lo + (hi - lo) / 2;
         if (canShip(weights, days, mid)) hi = mid; else lo = mid + 1;

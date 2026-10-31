@@ -1,7 +1,8 @@
 // uses UnionFind from above
 function accountsMerge(accounts) {
   const uf = new UnionFind(accounts.length);
-  const owner = new Map();                         // email -> first account index that had it
+  // email -> first account index that had it
+  const owner = new Map();
   accounts.forEach(([, ...emails], i) => {
     for (const e of emails) {
       if (owner.has(e)) uf.union(i, owner.get(e));

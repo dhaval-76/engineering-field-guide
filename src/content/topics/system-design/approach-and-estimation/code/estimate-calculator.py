@@ -10,4 +10,5 @@ def estimate(requests_per_day, new_items_per_day, bytes_per_item, bytes_per_resp
     }
 
 print(estimate(10e9, 100e6, 500, 500))
-# {'avg_qps': 115741, 'peak_qps': 347222, 'storage_tb_per_year': 54.75, 'egress_mb_per_s': 173.6}
+# {'avg_qps': 115741, 'peak_qps': 347222, 'storage_tb_per_year': 54.75, 'egress_mb_per_s':
+# 173.6}

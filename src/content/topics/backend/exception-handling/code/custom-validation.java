@@ -9,7 +9,8 @@ public @interface CurrencyCode {
 
 class CurrencyCodeValidator implements ConstraintValidator<CurrencyCode, String> {
     public boolean isValid(String value, ConstraintValidatorContext ctx) {
-        if (value == null) return true;                          // combine with @NotNull when required
+        // combine with @NotNull when required
+        if (value == null) return true;
         try { Currency.getInstance(value); return true; } catch (IllegalArgumentException e) { return false; }
     }
 }
@@ -20,6 +21,7 @@ record BookingRequest(@NotNull LocalDate checkIn, @NotNull LocalDate checkOut, @
     boolean isRangeValid() { return checkIn == null || checkOut == null || checkOut.isAfter(checkIn); }
 }
 
-// Path and query parameters: annotate the controller with @Validated (or rely on Spring 6.1+ method validation)
+// Path and query parameters: annotate the controller with @Validated (or rely on Spring
+// 6.1+ method validation)
 @GetMapping("/v1/rates")
 List<Rate> rates(@RequestParam @CurrencyCode String base, @RequestParam @Max(100) int limit) { … }

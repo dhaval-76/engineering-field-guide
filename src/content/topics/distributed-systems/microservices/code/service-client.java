@@ -1,4 +1,5 @@
-// Spring Framework 6+: declare the remote API as an interface (replaces Feign/RestTemplate).
+// Spring Framework 6+: declare the remote API as an interface (replaces
+// Feign/RestTemplate).
 @HttpExchange("/api/payments")
 interface PaymentsClient {
     @PostExchange
@@ -14,9 +15,12 @@ class ClientsConfig {
     @Bean
     PaymentsClient paymentsClient(RestClient.Builder builder) {
         var factory = new SimpleClientHttpRequestFactory();
-        factory.setConnectTimeout(Duration.ofMillis(300));  // fail fast if the host is unreachable
-        factory.setReadTimeout(Duration.ofSeconds(2));      // never wait forever for an answer
-        RestClient rest = builder                           // Boot's builder adds tracing headers
+        // fail fast if the host is unreachable
+        factory.setConnectTimeout(Duration.ofMillis(300));
+        // never wait forever for an answer
+        factory.setReadTimeout(Duration.ofSeconds(2));
+        // Boot's builder adds tracing headers
+        RestClient rest = builder
             .baseUrl("http://payments")                     // Kubernetes Service DNS name
             .requestFactory(factory)
             .build();
@@ -26,5 +30,6 @@ class ClientsConfig {
     }
 }
 
-// Usage — wrap with a circuit breaker and handle failure explicitly (see Resilience patterns):
-// PaymentResult r = payments.charge(new ChargeRequest(orderId, amount), "order-" + orderId);
+// Usage — wrap with a circuit breaker and handle failure explicitly (see Resilience
+// patterns): PaymentResult r = payments.charge(new ChargeRequest(orderId, amount),
+// "order-" + orderId);

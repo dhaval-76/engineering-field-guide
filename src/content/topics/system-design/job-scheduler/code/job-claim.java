@@ -22,7 +22,8 @@ class JobRunner {
             (rs, i) -> new Claimed(rs.getObject("id", UUID.class), rs.getString("type"), rs.getString("payload"),
                                    rs.getInt("attempts"), rs.getInt("max_attempts"), rs.getLong("fence")),
             workerId, LEASE.toSeconds() + " seconds",
-            partitions.stream().map(String::valueOf).collect(Collectors.joining(",", "{", "}")),   // '{0,1,2}'
+            // '{0,1,2}'
+            partitions.stream().map(String::valueOf).collect(Collectors.joining(",", "{", "}")),
             batch));
     }
 
@@ -31,7 +32,8 @@ class JobRunner {
             "UPDATE jobs SET lease_until = now() + ?::interval WHERE id = ? AND fence = ?",
             LEASE.toSeconds() + " seconds", job.id(), job.fence()), 20, 20, TimeUnit.SECONDS);
         try {
-            handlers.get(job.type()).handle(job.payload(), job.fence());   // idempotent; fence passed to resources
+            // idempotent; fence passed to resources
+            handlers.get(job.type()).handle(job.payload(), job.fence());
             finish(job, "SUCCEEDED", null, null);
         } catch (RetryableException e) {
             boolean exhausted = job.attempts() >= job.maxAttempts();

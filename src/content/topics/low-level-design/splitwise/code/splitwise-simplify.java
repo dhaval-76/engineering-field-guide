@@ -8,7 +8,8 @@ final class DebtSimplifier {
     static List<Transfer> simplify(Map<String, Long> netBalances) {
         Comparator<Map.Entry<String, Long>> byAmountDesc = Map.Entry.<String, Long>comparingByValue().reversed();
         PriorityQueue<Map.Entry<String, Long>> creditors = new PriorityQueue<>(byAmountDesc);
-        PriorityQueue<Map.Entry<String, Long>> debtors = new PriorityQueue<>(byAmountDesc);   // stored as positive debt
+        // stored as positive debt
+        PriorityQueue<Map.Entry<String, Long>> debtors = new PriorityQueue<>(byAmountDesc);
         netBalances.forEach((person, bal) -> {
             if (bal > 0) creditors.add(Map.entry(person, bal));
             else if (bal < 0) debtors.add(Map.entry(person, -bal));
@@ -23,6 +24,7 @@ final class DebtSimplifier {
             if (c.getValue() > amount) creditors.add(Map.entry(c.getKey(), c.getValue() - amount));
             if (d.getValue() > amount) debtors.add(Map.entry(d.getKey(), d.getValue() - amount));
         }
-        return plan;                                             // integer paise: no epsilon comparisons needed
+        // integer paise: no epsilon comparisons needed
+        return plan;
     }
 }

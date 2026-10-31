@@ -33,5 +33,6 @@ def book_series(room: "Room", rule: Recurrence, organizer: str, attendees=frozen
     with room.lock:
         clashes = [s for s in slots if not room.is_free(s)]
         if clashes:
-            raise SeriesConflict(clashes)          # let the user skip those dates or pick another room
+            # let the user skip those dates or pick another room
+            raise SeriesConflict(clashes)
         return [room.book(s, organizer, attendees, series_id) for s in slots]

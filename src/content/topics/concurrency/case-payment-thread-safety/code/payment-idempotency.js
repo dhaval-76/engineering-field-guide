@@ -1,4 +1,5 @@
-// Express: the client sends an Idempotency-Key per payment attempt; retries with the same key replay the result.
+// Express: the client sends an Idempotency-Key per payment attempt; retries with the same
+// key replay the result.
 app.post('/payments', async (req, res) => {
   const key = req.get('Idempotency-Key');
   if (!key) return res.status(400).json({ error: 'Idempotency-Key header required' });
@@ -15,9 +16,11 @@ async function payOnce(key, request) {
       [key, hash(request)]);
     if (first.rowCount === 0) {
       await c.query('ROLLBACK');
-      return previousResultOrConflict(key, request); // same key: replay (or 409 if in progress / different body)
+      // same key: replay (or 409 if in progress / different body)
+      return previousResultOrConflict(key, request);
     }
-    const result = await debitAndRecord(c, request); // atomic UPDATE + ledger row, same transaction
+    // atomic UPDATE + ledger row, same transaction
+    const result = await debitAndRecord(c, request);
     await c.query(`UPDATE idempotency_keys SET status = 'DONE', response = $1 WHERE key = $2`, [result, key]);
     await c.query('COMMIT');
     return result;

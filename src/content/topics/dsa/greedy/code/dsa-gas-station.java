@@ -5,7 +5,8 @@ int canCompleteCircuit(int[] gas, int[] cost) {
         int gain = gas[i] - cost[i];
         total += gain;
         tank += gain;
-        if (tank < 0) {          // can't reach i + 1 from `start` — nor from any station in between
+        // can't reach i + 1 from `start` — nor from any station in between
+        if (tank < 0) {
             start = i + 1;
             tank = 0;
         }

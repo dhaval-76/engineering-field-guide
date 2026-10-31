@@ -28,7 +28,8 @@ def test_order_eventually_sends_confirmation(service, mailbox):
 
 # 3. Shared state: each test creates the data it needs, with unique keys.
 def test_customer_can_have_only_one_active_cart(customers, carts):
-    customer = customers.create(f"user-{uuid.uuid4()}@example.com")   # no clash with other tests
+    # no clash with other tests
+    customer = customers.create(f"user-{uuid.uuid4()}@example.com")
     carts.open(customer)
     with pytest.raises(ActiveCartExists):
         carts.open(customer)

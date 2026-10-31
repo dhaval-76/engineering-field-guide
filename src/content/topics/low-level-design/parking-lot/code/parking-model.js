@@ -1,4 +1,5 @@
-// Which spot sizes a vehicle may use, smallest first (so cars don't take truck spots unnecessarily).
+// Which spot sizes a vehicle may use, smallest first (so cars don't take truck spots
+// unnecessarily).
 export const FITS_IN = {
   MOTORCYCLE: ['SMALL', 'MEDIUM', 'LARGE'],
   CAR: ['MEDIUM', 'LARGE'],
@@ -10,7 +11,8 @@ export class ParkingSpot {
   constructor(id, floor, size) {
     Object.assign(this, { id, floor, size });
   }
-  // Single-threaded Node: check-and-set can't interleave. Across processes this becomes a DB/Redis claim.
+  // Single-threaded Node: check-and-set can't interleave. Across processes this becomes a
+  // DB/Redis claim.
   tryOccupy(vehicle) {
     if (this.#occupant) return false;
     this.#occupant = vehicle;

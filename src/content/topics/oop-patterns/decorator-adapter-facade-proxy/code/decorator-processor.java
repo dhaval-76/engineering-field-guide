@@ -18,7 +18,8 @@ final class RetryingProcessor implements PaymentProcessor {
     RetryingProcessor(PaymentProcessor next, int maxAttempts) { this.next = next; this.maxAttempts = maxAttempts; }
     public PaymentResult pay(Payment p) {
         for (int attempt = 1; ; attempt++) {
-            try { return next.pay(p); }                        // safe only because pay() is idempotent per p.id()
+            // safe only because pay() is idempotent per p.id()
+            try { return next.pay(p); }
             catch (TransientGatewayException e) {
                 if (attempt == maxAttempts) throw e;
                 sleep(Duration.ofMillis(100L << attempt));

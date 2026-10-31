@@ -1,4 +1,5 @@
-// Node: timeout + retry with full jitter + a simple circuit breaker (libraries: opossum, cockatiel)
+// Node: timeout + retry with full jitter + a simple circuit breaker (libraries: opossum,
+// cockatiel)
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 export async function withRetry(fn, { attempts = 3, baseMs = 100, maxMs = 1000, retryable }) {

@@ -42,7 +42,8 @@ final class Geohash {
             for (int dx = -1; dx <= 1; dx++) {
                 double lat = latC + dy * h;
                 if (lat < -90 || lat > 90) continue;
-                double lon = ((lonC + dx * w + 540) % 360) - 180;          // wrap at the antimeridian
+                // wrap at the antimeridian
+                double lon = ((lonC + dx * w + 540) % 360) - 180;
                 cells.add(encode(lat, lon, gh.length()));
             }
         return cells;

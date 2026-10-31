@@ -17,7 +17,8 @@ class IssueTransitions {
             UPDATE issues SET status = ?, rank = coalesce(?, rank), version = version + 1, updated_at = now()
             WHERE tenant_id = ? AND id = ? AND version = ?""",
             to, newRank, tenantId, issueId, expectedVersion);
-        if (updated == 0) throw new StaleIssueException(issueId);           // someone else changed it → 409
+        // someone else changed it → 409
+        if (updated == 0) throw new StaleIssueException(issueId);
 
         jdbc.update("INSERT INTO issue_history (tenant_id, issue_id, actor_id, field, old_value, new_value) VALUES (?,?,?,?,?,?)",
                     tenantId, issueId, actor.id(), "status", issue.status(), to);

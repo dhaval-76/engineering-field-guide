@@ -27,8 +27,10 @@ class Logger {
     private final Logger parent;
     private volatile Level level;                              // null = inherit
     private final List<Appender> appenders = new CopyOnWriteArrayList<>();
-    private volatile boolean additive = true;                  // also send to ancestors' appenders
-    static final ThreadLocal<Map<String, String>> CONTEXT = ThreadLocal.withInitial(LinkedHashMap::new); // MDC
+    // also send to ancestors' appenders
+    private volatile boolean additive = true;
+    // MDC
+    static final ThreadLocal<Map<String, String>> CONTEXT = ThreadLocal.withInitial(LinkedHashMap::new);
 
     Logger(String name, Logger parent) { this.name = name; this.parent = parent; }
 
@@ -39,7 +41,8 @@ class Logger {
 
     boolean isEnabled(Level l) { return l.compareTo(effectiveLevel()) >= 0; }
 
-    void log(Level l, Supplier<String> message) {              // supplier: no string building when disabled
+    // supplier: no string building when disabled
+    void log(Level l, Supplier<String> message) {
         if (!isEnabled(l)) return;
         LogEvent e = new LogEvent(Instant.now(), l, name, Thread.currentThread().getName(),
                 message.get(), Map.copyOf(CONTEXT.get()));
@@ -69,7 +72,8 @@ final class LoggerFactory {
     static Logger getLogger(String name) {
         return LOGGERS.computeIfAbsent(name, n -> {
             int dot = n.lastIndexOf('.');
-            Logger parent = dot < 0 ? ROOT : getLogger(n.substring(0, dot));    // com.shop → com
+            // com.shop → com
+            Logger parent = dot < 0 ? ROOT : getLogger(n.substring(0, dot));
             return new Logger(n, parent);
         });
     }

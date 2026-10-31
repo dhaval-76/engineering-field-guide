@@ -6,7 +6,8 @@ List<String> top3 = orders.stream()
         .sorted(Map.Entry.<String, Long>comparingByValue().reversed())
         .limit(3)
         .map(Map.Entry::getKey)
-        .toList();                                                 // Java 16+: unmodifiable list
+        // Java 16+: unmodifiable list
+        .toList();
 
 // Highest-paid employee per department
 Map<String, Optional<Employee>> topPaid = employees.stream()

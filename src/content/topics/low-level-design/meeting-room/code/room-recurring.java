@@ -16,9 +16,11 @@ final class SeriesBooker {
     List<Booking> bookSeries(Room room, Recurrence rule, String organizer, Set<String> attendees) {
         String seriesId = UUID.randomUUID().toString();
         List<TimeSlot> slots = rule.expand();
-        synchronized (room) {                                   // Room's methods lock on the room too (reentrant)
+        // Room's methods lock on the room too (reentrant)
+        synchronized (room) {
             List<TimeSlot> clashes = slots.stream().filter(s -> !room.isFree(s)).toList();
-            if (!clashes.isEmpty()) throw new SeriesConflictException(clashes);   // let the user choose: skip or pick another room
+            // let the user choose: skip or pick another room
+            if (!clashes.isEmpty()) throw new SeriesConflictException(clashes);
             return slots.stream().map(s -> room.book(s, organizer, attendees, seriesId)).toList();
         }
     }

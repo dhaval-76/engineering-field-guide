@@ -13,7 +13,8 @@ class ObservabilityAspect {
     @Pointcut("execution(public * com.shop.service..*(..))")
     void serviceMethods() {}
 
-    // @Around: wraps the call — can measure, retry, change arguments or results, or skip the call
+    // @Around: wraps the call — can measure, retry, change arguments or results, or skip
+    // the call
     @Around("serviceMethods()")
     Object time(ProceedingJoinPoint pjp) throws Throwable {
         Timer.Sample sample = Timer.start(metrics);

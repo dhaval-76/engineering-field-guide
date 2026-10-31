@@ -9,7 +9,8 @@ export function snowflake(worker) {
   let lastMs = -1n;
   let sequence = 0n;
 
-  return function nextId() {               // single-threaded event loop: no locking needed
+  // single-threaded event loop: no locking needed
+  return function nextId() {
     let now = BigInt(Date.now());
     if (now < lastMs) {
       if (lastMs - now > 10n) throw new Error(`clock moved back ${lastMs - now} ms`);

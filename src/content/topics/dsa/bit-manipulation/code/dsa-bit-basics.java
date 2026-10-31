@@ -15,7 +15,8 @@ int missingNumber(int[] nums) {
 /** Number of set bits: each iteration removes the lowest one. */
 int popcount(int x) {
     int count = 0;
-    while (x != 0) { x &= x - 1; count++; }       // works for negatives too (32 iterations max)
+    // works for negatives too (32 iterations max)
+    while (x != 0) { x &= x - 1; count++; }
     return count;                                 // or Integer.bitCount(x)
 }
 

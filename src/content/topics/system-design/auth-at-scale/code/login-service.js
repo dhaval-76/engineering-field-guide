@@ -1,14 +1,17 @@
-// Login with uniform timing and messages, rate limits, MFA; password resets with single-use hashed tokens.
-// hashPassword/verifyPassword from Authentication and authorization (scrypt) — argon2 works the same way.
+// Login with uniform timing and messages, rate limits, MFA; password resets with
+// single-use hashed tokens. hashPassword/verifyPassword from Authentication and
+// authorization (scrypt) — argon2 works the same way.
 import { createHash, randomBytes } from 'node:crypto';
 const sha256 = (s) => createHash('sha256').update(s).digest('hex');
-const DUMMY_HASH = hashPassword(randomBytes(16).toString('hex')); // a real hash: same cost as a real account
+// a real hash: same cost as a real account
+const DUMMY_HASH = hashPassword(randomBytes(16).toString('hex'));
 
 export async function login(email, password, ip) {
   const normalized = email.trim().toLowerCase();
   if (!(await limits.tryIp(ip)) || !(await limits.tryAccount(normalized))) throw httpError(429, 'too many attempts');
   const user = await users.findByEmail(normalized);
-  const ok = verifyPassword(password, user?.passwordHash ?? DUMMY_HASH); // always run the slow hash
+  // always run the slow hash
+  const ok = verifyPassword(password, user?.passwordHash ?? DUMMY_HASH);
   if (!user || !ok) {
     await limits.recordFailure(normalized, ip);
     throw httpError(401, 'Invalid email or password'); // one message for both cases
@@ -17,7 +20,8 @@ export async function login(email, password, ip) {
   return user.mfaEnabled ? { mfaRequired: await sessions.pendingMfa(user) } : { session: await sessions.create(user, ip) };
 }
 
-export async function requestReset(email) { // always answers "if it exists, we sent a link"
+// always answers "if it exists, we sent a link"
+export async function requestReset(email) {
   const user = await users.findByEmail(email.trim().toLowerCase());
   if (!user) return;
   const token = randomBytes(32).toString('base64url');

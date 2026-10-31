@@ -1,5 +1,6 @@
-// Double-entry wallet. Node runs this on one thread, so each method is atomic as long as it
-// doesn't await in the middle; with a database, the same rules become SQL (see wallet-schema).
+// Double-entry wallet. Node runs this on one thread, so each method is atomic as long as
+// it doesn't await in the middle; with a database, the same rules become SQL (see
+// wallet-schema).
 import { randomUUID } from 'node:crypto';
 
 export class InsufficientFunds extends Error {}

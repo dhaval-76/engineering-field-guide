@@ -1,4 +1,5 @@
-// The cart stores intent (what and how many), not prices — prices are looked up when pricing.
+// The cart stores intent (what and how many), not prices — prices are looked up when
+// pricing.
 export class Cart {
   #lines = new Map(); // sku -> qty, insertion order kept
   #coupons = new Set();

@@ -1,6 +1,7 @@
 class Trie {
     private static final class Node {
-        final Map<Character, Node> children = new HashMap<>();   // or Node[26] for lowercase letters
+        // or Node[26] for lowercase letters
+        final Map<Character, Node> children = new HashMap<>();
         boolean isWord;
     }
     private final Node root = new Node();
@@ -27,4 +28,5 @@ class Trie {
         return n;
     }
 }
-// Each operation is O(L) for a string of length L, regardless of how many words are stored.
+// Each operation is O(L) for a string of length L, regardless of how many words are
+// stored.

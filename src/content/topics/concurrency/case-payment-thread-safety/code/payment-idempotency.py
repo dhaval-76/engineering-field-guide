@@ -1,4 +1,5 @@
-# FastAPI: the client sends an Idempotency-Key per payment attempt; retries with the same key replay the result.
+# FastAPI: the client sends an Idempotency-Key per payment attempt; retries with the same
+# key replay the result.
 from fastapi import Header
 from psycopg.types.json import Jsonb
 
@@ -9,12 +10,15 @@ def pay(req: PaymentRequest, idempotency_key: str = Header(...)):
 def pay_once(key: str, req) -> dict:
     with pool.connection() as conn:
         with conn.transaction():
-            first = conn.execute(          # exactly one request with this key gets to proceed
+            # exactly one request with this key gets to proceed
+            first = conn.execute(
                 "INSERT INTO idempotency_keys (key, request_hash, status) VALUES (%s, %s, 'IN_PROGRESS') "
                 "ON CONFLICT (key) DO NOTHING", (key, request_hash(req))).rowcount == 1
             if first:
-                result = debit_and_record(conn, req)       # atomic UPDATE + ledger row, same transaction
+                # atomic UPDATE + ledger row, same transaction
+                result = debit_and_record(conn, req)
                 conn.execute("UPDATE idempotency_keys SET status = 'DONE', response = %s WHERE key = %s",
                              (Jsonb(result), key))
                 return result
-    return previous_result_or_conflict(key, req)           # replay, or 409 if in progress / different body
+    # replay, or 409 if in progress / different body
+    return previous_result_or_conflict(key, req)

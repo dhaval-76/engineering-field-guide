@@ -4,8 +4,10 @@ record Message(long offset, String key, String payload) {}
 class Broker {
     private static final class Topic {
         final List<Message> log = new ArrayList<>();
-        long baseOffset = 0;                                   // offset of log.get(0) after retention trims
-        final Map<String, Long> committed = new HashMap<>();   // group → next offset to read
+        // offset of log.get(0) after retention trims
+        long baseOffset = 0;
+        // group → next offset to read
+        final Map<String, Long> committed = new HashMap<>();
     }
 
     private final Map<String, Topic> topics = new ConcurrentHashMap<>();
@@ -17,7 +19,8 @@ class Broker {
         synchronized (t) {
             long offset = t.baseOffset + t.log.size();
             t.log.add(new Message(offset, key, payload));
-            t.notifyAll();                                     // wake long-polling consumers
+            // wake long-polling consumers
+            t.notifyAll();
             return offset;
         }
     }
@@ -42,7 +45,8 @@ class Broker {
     /** Acknowledge everything below nextOffset. A consumer that crashes before committing gets the batch again. */
     void commit(String topicName, String group, long nextOffset) {
         Topic t = topic(topicName);
-        synchronized (t) { t.committed.merge(group, nextOffset, Math::max); }   // never move backwards by accident
+        // never move backwards by accident
+        synchronized (t) { t.committed.merge(group, nextOffset, Math::max); }
     }
 
     /** Retention: drop messages every group has consumed (a real broker also trims by age/size). */

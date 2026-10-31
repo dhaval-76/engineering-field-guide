@@ -28,7 +28,8 @@ final class NotificationService {
     }
 
     private boolean deliverOnce(User u, Notification n, Channel c) {
-        if (!log.claim(n.id(), c)) return true;                   // already sent on this channel: idempotent
+        // already sent on this channel: idempotent
+        if (!log.claim(n.id(), c)) return true;
         try {
             senders.get(c).send(u, n);
             log.markSent(n.id(), c);

@@ -31,7 +31,8 @@ export function checkout(cart, channel) {
       log.error({ err: e }, 'checkout failed');
       throw e;
     } finally {
-      duration.record(performance.now() - start, { channel, outcome }); // low-cardinality labels only
+      // low-cardinality labels only
+      duration.record(performance.now() - start, { channel, outcome });
       span.end();
     }
   });

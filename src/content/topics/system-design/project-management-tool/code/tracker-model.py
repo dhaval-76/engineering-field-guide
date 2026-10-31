@@ -1,4 +1,5 @@
-# psycopg 3. Workflow-checked issue transition with optimistic locking, history and an outbox event.
+# psycopg 3. Workflow-checked issue transition with optimistic locking, history and an
+# outbox event.
 class InvalidTransition(Exception): pass
 class Forbidden(Exception): pass
 class StaleIssue(Exception): pass          # → 409: someone else changed it

@@ -30,7 +30,8 @@ class SingleFlight:
             with self._lock:
                 self._in_flight.pop(key, None)
 
-# 2. Across instances (redis-py): a short Redis lock so only one instance rebuilds a hot key.
+# 2. Across instances (redis-py): a short Redis lock so only one instance rebuilds a hot
+# key.
 RELEASE_IF_OWNER = "if redis.call('GET', KEYS[1]) == ARGV[1] then return redis.call('DEL', KEYS[1]) else return 0 end"
 
 def get_with_lock(r, product_id: int, load, ttl: int = 300):
@@ -43,12 +44,18 @@ def get_with_lock(r, product_id: int, load, ttl: int = 300):
         if r.set(lock_key, token, nx=True, ex=5):
             try:
                 value = load(product_id)
-                r.set(key, json.dumps(value), ex=ttl + random.randint(0, ttl // 10))   # jitter spreads expiries
+                # jitter spreads expiries
+                r.set(key, json.dumps(value), ex=ttl + random.randint(0, ttl // 10))
                 return value
             finally:
-                r.eval(RELEASE_IF_OWNER, 1, lock_key, token)   # release only if still ours
-        time.sleep(0.05)                                 # someone else is loading: wait, re-check
-    return load(product_id)                              # give up waiting; protect latency
+                # release only if still ours
+                r.eval(RELEASE_IF_OWNER, 1, lock_key, token)
+        # someone else is loading: wait, re-check
+        time.sleep(0.05)
+    # give up waiting; protect latency
+    return load(product_id)
 
-# 3. Stale-while-revalidate: store {"value", "soft_expiry"} with a longer real TTL. After soft_expiry,
-#    return the stale value at once and refresh in the background (guarded by the lock above).
+# 3. Stale-while-revalidate: store {"value", "soft_expiry"} with a longer real TTL. After
+# soft_expiry,
+# return the stale value at once and refresh in the background (guarded by the lock
+# above).

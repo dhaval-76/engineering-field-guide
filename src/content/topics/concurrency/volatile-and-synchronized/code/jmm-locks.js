@@ -13,7 +13,8 @@ class Mutex {
 const inventoryLock = new Mutex();
 export const reserve = (sku, qty) =>
   inventoryLock.run(async () => {
-    const have = await stock.get(sku);       // without the mutex, two requests could both read the same value here
+    // without the mutex, two requests could both read the same value here
+    const have = await stock.get(sku);
     if (have < qty) return false;
     await stock.set(sku, have - qty);
     return true;

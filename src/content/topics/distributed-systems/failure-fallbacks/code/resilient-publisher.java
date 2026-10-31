@@ -14,20 +14,23 @@ interface Broker { void send(Event e) throws Exception; }
 interface Spool {
     void append(Event e) throws IOException;
     Event peek();                          // oldest event, or null
-    void removeHead() throws IOException;  // call only after the broker acknowledged peek()
+    // call only after the broker acknowledged peek()
+    void removeHead() throws IOException;
     int size();
     List<Event> pending();
 }
 
 /**
  * Durable spool: an append-only log of events plus a separate "how many are done" offset.
- * Survives a process restart (put it on a persistent volume, not the container's scratch disk).
- * A crash between the broker's ack and removeHead() re-sends that event: at-least-once.
+ * Survives a process restart (put it on a persistent volume, not the container's scratch
+ * disk). A crash between the broker's ack and removeHead() re-sends that event:
+ * at-least-once.
  */
 final class FileSpool implements Spool {
     private final Path log, offsetFile;
     private final Deque<Event> queue = new ArrayDeque<>();
-    private long done;                     // events already published, counted from the start of the log
+    // events already published, counted from the start of the log
+    private long done;
 
     FileSpool(Path dir) throws IOException {
         Files.createDirectories(dir);
@@ -44,7 +47,8 @@ final class FileSpool implements Spool {
     }
 
     public void append(Event e) throws IOException {
-        // One line per event; production code would also fsync (FileChannel.force) per batch.
+        // One line per event; production code would also fsync (FileChannel.force) per
+        // batch.
         String line = e.id() + "\t" + e.key() + "\t" + e.payload().replace('\n', ' ') + "\n";
         Files.writeString(log, line, StandardCharsets.UTF_8, StandardOpenOption.CREATE, StandardOpenOption.APPEND);
         queue.add(e);
@@ -56,8 +60,9 @@ final class FileSpool implements Spool {
         queue.poll();
         done++;
         if (queue.isEmpty()) {
-            // Fully drained: reset the offset *first*, then drop the log. A crash in between only
-            // replays old events (duplicates); the reverse order could skip new ones (loss).
+            // Fully drained: reset the offset *first*, then drop the log. A crash in
+            // between only replays old events (duplicates); the reverse order could skip
+            // new ones (loss).
             writeOffset(0);
             Files.deleteIfExists(log);
             done = 0;
@@ -97,9 +102,12 @@ final class Breaker {
 }
 
 /**
- * Publishes to the broker when it is healthy; otherwise spools to durable storage and replays later.
- * - Live traffic never waits on a broken broker: the breaker makes the decision instantly.
- * - Per-key order is kept: while a key has spooled events, new events for that key queue behind them.
+ * Publishes to the broker when it is healthy; otherwise spools to durable storage and
+ * replays later.
+ * - Live traffic never waits on a broken broker: the breaker makes the decision
+ * instantly.
+ * - Per-key order is kept: while a key has spooled events, new events for that key queue
+ * behind them.
  *   (As with Kafka itself, a caller must publish same-key events one after another.)
  * - Replay is rate-limited so the recovering broker and the consumers are not flooded.
  */
@@ -112,7 +120,8 @@ final class ResilientPublisher {
     ResilientPublisher(Broker broker, Spool spool, Breaker breaker, double drainPerSecond, LongSupplier clock) {
         this.broker = broker; this.spool = spool; this.breaker = breaker; this.clock = clock;
         this.drainPerSecond = drainPerSecond; this.lastRefill = clock.getAsLong();
-        for (Event e : spool.pending()) spooledPerKey.merge(e.key(), 1, Integer::sum); // after a restart
+        // after a restart
+        for (Event e : spool.pending()) spooledPerKey.merge(e.key(), 1, Integer::sum);
     }
 
     Result publish(Event e) throws IOException {

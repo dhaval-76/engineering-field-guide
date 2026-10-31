@@ -17,7 +17,8 @@ class LegacyGatewayAdapter:
         loop = asyncio.get_running_loop()
         done: asyncio.Future = loop.create_future()
 
-        def callback(err, res):          # the legacy client may call back from another thread
+        # the legacy client may call back from another thread
+        def callback(err, res):
             if err:
                 loop.call_soon_threadsafe(done.set_exception, err)
             else:

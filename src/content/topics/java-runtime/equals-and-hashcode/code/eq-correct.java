@@ -16,7 +16,8 @@ public final class Money {
 
     @Override
     public int hashCode() {
-        return Objects.hash(amountMinor, currency);       // exactly the fields used in equals()
+        // exactly the fields used in equals()
+        return Objects.hash(amountMinor, currency);
     }
 }
 

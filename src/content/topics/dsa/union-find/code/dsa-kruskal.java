@@ -10,9 +10,11 @@ int minCostConnectPoints(int[][] points) {
     UnionFind uf = new UnionFind(n);
     int total = 0, used = 0;
     for (int[] e : edges) {
-        if (uf.union(e[1], e[2])) {                              // joins two components → part of the MST
+        // joins two components → part of the MST
+        if (uf.union(e[1], e[2])) {
             total += e[0];
-            if (++used == n - 1) break;                          // a tree on n nodes has n − 1 edges
+            // a tree on n nodes has n − 1 edges
+            if (++used == n - 1) break;
         }
     }
     return total;

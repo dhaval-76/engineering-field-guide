@@ -27,7 +27,8 @@ public final class SelectQuery {
         public SelectQuery build() {
             if (table == null) throw new IllegalStateException("from() is required");
             var sb = new StringBuilder("SELECT ").append(String.join(", ", columns)).append(" FROM ").append(table);
-            if (!where.isEmpty()) sb.append(" WHERE ").append(String.join(" AND ", where));   // conditions use '?' placeholders
+            // conditions use '?' placeholders
+            if (!where.isEmpty()) sb.append(" WHERE ").append(String.join(" AND ", where));
             if (orderBy != null) sb.append(" ORDER BY ").append(orderBy);
             if (limit != null) sb.append(" LIMIT ").append(limit);
             return new SelectQuery(sb.toString(), params);

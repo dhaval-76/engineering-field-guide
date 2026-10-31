@@ -11,4 +11,5 @@ final class VehicleFactory {
         return creator.apply(plate);
     }
 }
-// Adding SCOOTER: one enum constant + one map entry (or a self-registering @Component in Spring).
+// Adding SCOOTER: one enum constant + one map entry (or a self-registering @Component in
+// Spring).

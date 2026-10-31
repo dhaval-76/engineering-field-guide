@@ -1,5 +1,6 @@
 function maxSlidingWindow(nums, k) {
-  const out = [], dq = [];          // indices; use a head pointer for O(1) pops from the front
+  // indices; use a head pointer for O(1) pops from the front
+  const out = [], dq = [];
   let head = 0;
   for (let i = 0; i < nums.length; i++) {
     if (head < dq.length && dq[head] <= i - k) head++;

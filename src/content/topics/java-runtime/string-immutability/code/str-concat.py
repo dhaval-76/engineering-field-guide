@@ -1,5 +1,6 @@
 # Python strings are immutable; repeated += in a loop can be quadratic.
-csv = "\n".join(r.to_csv() for r in rows)        # linear: join computes the total size once
+# linear: join computes the total size once
+csv = "\n".join(r.to_csv() for r in rows)
 
 # io.StringIO is the StringBuilder equivalent when pieces come from many places:
 import io

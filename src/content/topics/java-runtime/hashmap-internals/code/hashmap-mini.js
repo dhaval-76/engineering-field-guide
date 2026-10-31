@@ -1,11 +1,13 @@
-// JS has a built-in Map (insertion-ordered hash table). This shows the same mechanics by hand.
+// JS has a built-in Map (insertion-ordered hash table). This shows the same mechanics by
+// hand.
 export class MiniHashMap {
   #buckets = Array.from({ length: 8 }, () => []);
   #size = 0;
 
   #index(key) {
     let h = 0;
-    for (const ch of String(key)) h = (Math.imul(31, h) + ch.charCodeAt(0)) | 0; // Java-style string hash
+    // Java-style string hash
+    for (const ch of String(key)) h = (Math.imul(31, h) + ch.charCodeAt(0)) | 0;
     h ^= h >>> 16;
     return h & (this.#buckets.length - 1);
   }

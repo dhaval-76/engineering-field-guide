@@ -2,7 +2,8 @@
 const inFlight = new Map(); // key -> Promise
 
 export function singleFlight(key, loader) {
-  if (inFlight.has(key)) return inFlight.get(key);             // someone is already loading
+  // someone is already loading
+  if (inFlight.has(key)) return inFlight.get(key);
   const p = Promise.resolve()
     .then(() => loader(key))
     .finally(() => inFlight.delete(key));
@@ -10,7 +11,8 @@ export function singleFlight(key, loader) {
   return p;
 }
 
-// 2. Across instances (ioredis): a short Redis lock so only one instance rebuilds a hot key.
+// 2. Across instances (ioredis): a short Redis lock so only one instance rebuilds a hot
+// key.
 const RELEASE_IF_OWNER = `if redis.call('GET', KEYS[1]) == ARGV[1] then return redis.call('DEL', KEYS[1]) else return 0 end`;
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
@@ -27,13 +29,18 @@ export async function getWithLock(redis, id, load, ttlSeconds = 300) {
         await redis.set(key, JSON.stringify(value), 'EX', ttlSeconds + jitter);
         return value;
       } finally {
-        await redis.eval(RELEASE_IF_OWNER, 1, lockKey, token);  // release only if still ours
+        // release only if still ours
+        await redis.eval(RELEASE_IF_OWNER, 1, lockKey, token);
       }
     }
-    await sleep(50);                                            // someone else is loading: wait, re-check
+    // someone else is loading: wait, re-check
+    await sleep(50);
   }
-  return load(id);                                              // give up waiting; protect latency
+  // give up waiting; protect latency
+  return load(id);
 }
 
-// 3. Stale-while-revalidate: store { value, softExpiry } with a longer real TTL. After softExpiry,
-//    return the stale value at once and refresh in the background (guarded by the lock above).
+// 3. Stale-while-revalidate: store { value, softExpiry } with a longer real TTL. After
+// softExpiry,
+// return the stale value at once and refresh in the background (guarded by the lock
+// above).

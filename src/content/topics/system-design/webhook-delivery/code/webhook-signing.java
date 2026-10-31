@@ -23,7 +23,9 @@ static String hmacHex(String data, byte[] secret) throws Exception {
 
 /** Retry schedule: exponential backoff with full jitter, capped, for about three days. */
 static long nextDelaySeconds(int attempt, Random random) {
-    long cap = 6 * 3600;                                        // never wait more than 6 h between tries
+    // never wait more than 6 h between tries
+    long cap = 6 * 3600;
     long base = Math.min(cap, 30L << Math.min(attempt, 20));    // 30 s, 1 m, 2 m, 4 m, …
-    return base / 2 + (long) (random.nextDouble() * base / 2);  // jitter spreads retries out
+    // jitter spreads retries out
+    return base / 2 + (long) (random.nextDouble() * base / 2);
 }

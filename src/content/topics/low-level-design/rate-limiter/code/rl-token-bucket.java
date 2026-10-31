@@ -19,9 +19,11 @@ final class TokenBucketLimiter implements RateLimiter {
         private long last;
         Bucket(double tokens, long now) { this.tokens = tokens; this.last = now; }
 
-        synchronized boolean tryTake() {                 // one lock per key, not one global lock
+        // one lock per key, not one global lock
+        synchronized boolean tryTake() {
             long now = ticker.nanos();
-            tokens = Math.min(capacity, tokens + (now - last) * tokensPerNano);   // lazy refill
+            // lazy refill
+            tokens = Math.min(capacity, tokens + (now - last) * tokensPerNano);
             last = now;
             if (tokens < 1) return false;
             tokens -= 1;

@@ -5,8 +5,10 @@ List<String> chunk(String text, int maxWords, int overlap) {
     for (String para : text.split("\\n\\s*\\n")) {
         List<String> words = List.of(para.trim().split("\\s+"));
         if (words.get(0).isEmpty()) continue;
-        int step = maxWords - overlap;                                 // overlap must be < maxWords
-        for (int i = 0; i < words.size(); i += step) {               // split very long paragraphs
+        // overlap must be < maxWords
+        int step = maxWords - overlap;
+        // split very long paragraphs
+        for (int i = 0; i < words.size(); i += step) {
             List<String> piece = words.subList(i, Math.min(words.size(), i + step));
             if (!current.isEmpty() && current.size() + piece.size() > maxWords) {
                 chunks.add(String.join(" ", current));

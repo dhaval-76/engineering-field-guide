@@ -15,7 +15,8 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     @Query("select p from Product p where p.id = :id")
     Optional<Product> findForUpdate(long id);
 
-    // 3. ATOMIC — the check and the write in one statement; no lock held across Java code.
+    // 3. ATOMIC — the check and the write in one statement; no lock held across Java
+    // code.
     @Modifying
     @Query("update Product p set p.stock = p.stock - :qty where p.id = :id and p.stock >= :qty")
     int reserve(long id, int qty);

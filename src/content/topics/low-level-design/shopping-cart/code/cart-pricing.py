@@ -8,7 +8,8 @@ class Adjustment:
 
 @dataclass(frozen=True)
 class Promotion:
-    group: str             # ITEM → ORDER_PERCENT → COUPON: groups apply in order, best offer per group
+    # ITEM → ORDER_PERCENT → COUPON: groups apply in order, best offer per group
+    group: str
     evaluate: Callable[[list, int], Adjustment | None]
 
 def percent_off_above(threshold: int, pct: int) -> Promotion:
@@ -26,7 +27,8 @@ def price(lines: list[dict], promotions: list[Promotion], tax_rate: float) -> di
     for group in ("ITEM", "ORDER_PERCENT", "COUPON"):
         offers = [a for p in promotions if p.group == group if (a := p.evaluate(lines, total))]
         if offers:
-            best = min(offers, key=lambda a: a.amount)     # most negative = biggest discount
+            # most negative = biggest discount
+            best = min(offers, key=lambda a: a.amount)
             applied.append(best)
             total += best.amount
     tax = round(total * tax_rate)

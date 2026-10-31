@@ -46,7 +46,8 @@ class SlidingWindowCounterLimiter:
 
     def __init__(self, limit: int, window_s: float, clock=time.monotonic):
         self.limit, self.window_s, self.clock = limit, window_s, clock
-        self._state: dict[str, list] = {}                # key -> [window, current, previous]
+        # key -> [window, current, previous]
+        self._state: dict[str, list] = {}
         self._lock = threading.Lock()
 
     def try_acquire(self, key: str) -> bool:

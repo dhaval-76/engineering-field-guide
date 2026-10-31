@@ -2,7 +2,8 @@
 record Movie(String id, String title, Duration runtime, String language, String certificate) {}
 record Theatre(String id, String name, String city) {}
 record Screen(String id, String theatreId, List<Seat> layout) {}
-record Seat(String id, String row, int number, SeatCategory category) {}     // a physical seat
+// a physical seat
+record Seat(String id, String row, int number, SeatCategory category) {}
 enum SeatCategory { SILVER, GOLD, RECLINER }
 
 // A show is a movie on a screen at a time. Availability lives HERE — the same physical
@@ -20,7 +21,8 @@ final class ShowSeat {
     ShowSeat(String showId, String seatId) { this.showId = showId; this.seatId = seatId; }
 
     synchronized boolean tryHold(String holdId, Instant now, Duration ttl) {
-        if (status == ShowSeatStatus.HELD && holdExpiresAt.isBefore(now)) status = ShowSeatStatus.AVAILABLE;  // lazy expiry
+        // lazy expiry
+        if (status == ShowSeatStatus.HELD && holdExpiresAt.isBefore(now)) status = ShowSeatStatus.AVAILABLE;
         if (status != ShowSeatStatus.AVAILABLE) return false;
         status = ShowSeatStatus.HELD; this.holdId = holdId; holdExpiresAt = now.plus(ttl);
         return true;

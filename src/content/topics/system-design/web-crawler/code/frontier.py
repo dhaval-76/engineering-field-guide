@@ -11,7 +11,8 @@ def normalise(url: str) -> str:
     port = p.port
     netloc = host if port is None or (scheme, port) in (("http", 80), ("https", 443)) else f"{host}:{port}"
     query = urlencode(sorted((k, v) for k, v in parse_qsl(p.query, keep_blank_values=True) if k not in TRACKING))
-    return urlunsplit((scheme, netloc, p.path or "/", query, ""))        # drop the #fragment
+    # drop the #fragment
+    return urlunsplit((scheme, netloc, p.path or "/", query, ""))
 
 class PoliteFrontier:
     """Per-host FIFO queues plus a heap of (next time this host may be fetched, host)."""
@@ -19,9 +20,11 @@ class PoliteFrontier:
     def __init__(self, default_delay_s: float = 1.0):
         self.default_delay_s = default_delay_s
         self.queues: dict[str, deque[str]] = {}
-        self.delay: dict[str, float] = {}             # from robots.txt Crawl-delay, or adaptive
+        # from robots.txt Crawl-delay, or adaptive
+        self.delay: dict[str, float] = {}
         self.ready: list[tuple[float, str]] = []      # heap of hosts with queued URLs
-        self.next_allowed: dict[str, float] = {}      # earliest time each host may be contacted again
+        # earliest time each host may be contacted again
+        self.next_allowed: dict[str, float] = {}
         self.seen: set[str] = set()                   # a Bloom filter at web scale
 
     def add(self, url: str, now: float) -> bool:

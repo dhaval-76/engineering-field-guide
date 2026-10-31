@@ -1,4 +1,5 @@
-// Fixed window: one counter per (key, window). Cheap, but allows 2× the limit across a boundary.
+// Fixed window: one counter per (key, window). Cheap, but allows 2× the limit across a
+// boundary.
 export class FixedWindowLimiter {
   #state = new Map(); // key -> { window, count }
   constructor({ limit, windowMs, now = () => performance.now() }) {
@@ -31,7 +32,8 @@ export class SlidingLogLimiter {
   }
 }
 
-// Sliding window counter: weight the previous window by how much of it still overlaps. O(1) memory.
+// Sliding window counter: weight the previous window by how much of it still overlaps.
+// O(1) memory.
 export class SlidingWindowCounterLimiter {
   #state = new Map(); // key -> { window, current, previous }
   constructor({ limit, windowMs, now = () => performance.now() }) {

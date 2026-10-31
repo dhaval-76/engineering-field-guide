@@ -7,7 +7,8 @@ function haversineM([lat1, lon1], [lat2, lon2]) {
 
 const MAX_SPEED = 130_000 / 3600; // m/s; never overestimate → A* stays optimal
 
-// adj: Map(node -> [[neighbour, seconds], ...]); returns { seconds, path } (Infinity, [] if unreachable)
+// adj: Map(node -> [[neighbour, seconds], ...]); returns { seconds, path } (Infinity, []
+// if unreachable)
 export function shortest(adj, coords, src, dst, astar = true) {
   const h = astar ? (u) => haversineM(coords.get(u), coords.get(dst)) / MAX_SPEED : () => 0;
   const best = new Map([[src, 0]]), prev = new Map();

@@ -1,4 +1,5 @@
-// Express + jose: verify against the issuer's JWKS (keys are cached and rotated automatically)
+// Express + jose: verify against the issuer's JWKS (keys are cached and rotated
+// automatically)
 import { createRemoteJWKSet, jwtVerify } from 'jose';
 
 const JWKS = createRemoteJWKSet(new URL('https://auth.example.com/.well-known/jwks.json'));
@@ -10,7 +11,8 @@ export async function requireAuth(req, res, next) {
     const { payload } = await jwtVerify(token, JWKS, {
       issuer: 'https://auth.example.com',
       audience: 'orders-api',
-      algorithms: ['RS256'],               // never accept "none" or an algorithm you didn't expect
+      // never accept "none" or an algorithm you didn't expect
+      algorithms: ['RS256'],
       clockTolerance: 30,
     });
     req.user = { id: payload.sub, scopes: String(payload.scope ?? '').split(' ') };

@@ -7,10 +7,13 @@ record Transition(Status from, Status to, Set<Actor> allowed) {}
 final class OrderLifecycle {
     private static final List<Transition> RULES = List.of(
             new Transition(Status.PLACED, Status.ACCEPTED, Set.of(Actor.RESTAURANT)),
-            new Transition(Status.PLACED, Status.REJECTED, Set.of(Actor.RESTAURANT, Actor.SYSTEM)),  // timeout
-            new Transition(Status.PLACED, Status.CANCELLED, Set.of(Actor.CUSTOMER)),                // free cancel
+            // timeout
+            new Transition(Status.PLACED, Status.REJECTED, Set.of(Actor.RESTAURANT, Actor.SYSTEM)),
+            // free cancel
+            new Transition(Status.PLACED, Status.CANCELLED, Set.of(Actor.CUSTOMER)),
             new Transition(Status.ACCEPTED, Status.PREPARING, Set.of(Actor.RESTAURANT)),
-            new Transition(Status.ACCEPTED, Status.CANCELLED, Set.of(Actor.CUSTOMER, Actor.SYSTEM)), // fee may apply
+            // fee may apply
+            new Transition(Status.ACCEPTED, Status.CANCELLED, Set.of(Actor.CUSTOMER, Actor.SYSTEM)),
             new Transition(Status.PREPARING, Status.READY, Set.of(Actor.RESTAURANT)),
             new Transition(Status.READY, Status.PICKED_UP, Set.of(Actor.PARTNER)),
             new Transition(Status.PICKED_UP, Status.DELIVERED, Set.of(Actor.PARTNER)));
@@ -29,7 +32,8 @@ record Location(double lat, double lng) {
     }
 }
 
-interface OrderListener { void onStatus(Order order, Status from, Status to); }   // push notifications, ETA, analytics
+// push notifications, ETA, analytics
+interface OrderListener { void onStatus(Order order, Status from, Status to); }
 
 class Order {
     final String id, restaurantId;

@@ -5,8 +5,10 @@
 
 @Service
 class DocumentAccess {
-    private final PermissionClient permissions;      // OpenFGA/SpiceDB client, replicated service
-    private final Cache<String, Boolean> recent =    // short TTL: revocations take effect within seconds
+    // OpenFGA/SpiceDB client, replicated service
+    private final PermissionClient permissions;
+    // short TTL: revocations take effect within seconds
+    private final Cache<String, Boolean> recent =
         Caffeine.newBuilder().expireAfterWrite(Duration.ofSeconds(5)).maximumSize(100_000).build();
 
     public void requireEdit(String userId, String docId) {
@@ -23,6 +25,7 @@ class DocumentAccess {
     }
 
     public void share(String docId, String withUserId) {
-        permissions.write("document:" + docId, "editor", "user:" + withUserId);   // a new tuple
+        // a new tuple
+        permissions.write("document:" + docId, "editor", "user:" + withUserId);
     }
 }

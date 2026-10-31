@@ -6,12 +6,14 @@ log = logging.getLogger(__name__)
 async def price_or_fallback(item_id: str) -> dict:
     # orTimeout + exceptionally: recover from a failure with a fallback value
     try:
-        return await asyncio.wait_for(pricing.get(item_id), timeout=0.2)   # cancels the call on timeout
+        # cancels the call on timeout
+        return await asyncio.wait_for(pricing.get(item_id), timeout=0.2)
     except (asyncio.TimeoutError, PricingError):
         return {"unavailable": True}
 
 async def price_logged(item_id: str) -> dict:
-    # handle + whenComplete: see the outcome, log it, record metrics, return a value either way
+    # handle + whenComplete: see the outcome, log it, record metrics, return a value
+    # either way
     try:
         return await pricing.get(item_id)
     except Exception:

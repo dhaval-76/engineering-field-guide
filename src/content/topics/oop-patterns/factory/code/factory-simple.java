@@ -9,7 +9,8 @@ final class Notifiers {
     private Notifiers() {}
 
     static Notifier forChannel(Channel channel) {
-        return switch (channel) {           // exhaustive over an enum: the compiler flags a missing case
+        // exhaustive over an enum: the compiler flags a missing case
+        return switch (channel) {
             case EMAIL -> new EmailNotifier();
             case SMS   -> new SmsNotifier();
             case PUSH  -> new PushNotifier();

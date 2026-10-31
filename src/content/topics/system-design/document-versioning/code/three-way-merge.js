@@ -6,10 +6,14 @@ export function merge(base, ours, theirs) {
   const ids = new Set([...base.keys(), ...ours.keys(), ...theirs.keys()]);
   for (const id of ids) {
     const b = base.get(id), o = ours.get(id), t = theirs.get(id);
-    if (o === t) { if (o !== undefined) merged.set(id, o); }           // same on both sides
-    else if (o === b) { if (t !== undefined) merged.set(id, t); }      // only theirs changed
-    else if (t === b) { if (o !== undefined) merged.set(id, o); }      // only ours changed
-    else conflicts.push({ blockId: id, base: b, ours: o, theirs: t }); // both changed differently
+    // same on both sides
+    if (o === t) { if (o !== undefined) merged.set(id, o); }
+    // only theirs changed
+    else if (o === b) { if (t !== undefined) merged.set(id, t); }
+    // only ours changed
+    else if (t === b) { if (o !== undefined) merged.set(id, o); }
+    // both changed differently
+    else conflicts.push({ blockId: id, base: b, ours: o, theirs: t });
   }
   return { blocks: merged, conflicts }; // real implementations also merge block ORDER
 }

@@ -18,7 +18,8 @@ final class ParkingSpot {
     private final String id;
     private final int floor;
     private final SpotSize size;
-    private final AtomicReference<Vehicle> occupant = new AtomicReference<>();   // null = free
+    // null = free
+    private final AtomicReference<Vehicle> occupant = new AtomicReference<>();
 
     ParkingSpot(String id, int floor, SpotSize size) { this.id = id; this.floor = floor; this.size = size; }
 

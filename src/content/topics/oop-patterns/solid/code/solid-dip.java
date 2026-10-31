@@ -1,6 +1,7 @@
 // ✗ High-level policy hard-wired to a low-level detail.
 class NotificationService {
-    private final SmtpEmailSender sender = new SmtpEmailSender();   // can't swap, can't test
+    // can't swap, can't test
+    private final SmtpEmailSender sender = new SmtpEmailSender();
     void notify(User u, String msg) { sender.send(u.email(), msg); }
 }
 

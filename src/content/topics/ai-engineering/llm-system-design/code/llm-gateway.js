@@ -1,5 +1,5 @@
-// Per-tenant token budget per minute, plus a fallback chain of providers.
-// provider: { name, complete(prompt, { timeoutMs }) -> Promise<{ text, inputTokens, outputTokens }> }
+// Per-tenant token budget per minute, plus a fallback chain of providers. provider: {
+// name, complete(prompt, { timeoutMs }) -> Promise<{ text, inputTokens, outputTokens }> }
 export class LlmGateway {
   constructor(chain, tokensPerMinute) {
     this.chain = chain;

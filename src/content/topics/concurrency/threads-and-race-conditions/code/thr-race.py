@@ -6,13 +6,15 @@ class UnsafeCounter:
         self.count = 0
 
     def increment(self):
-        self.count += 1          # read → add → write: the GIL does NOT make this one atomic step
+        # read → add → write: the GIL does NOT make this one atomic step
+        self.count += 1
 
 counter = UnsafeCounter()
 with ThreadPoolExecutor(max_workers=8) as pool:
     for _ in range(100_000):
         pool.submit(counter.increment)
-print(counter.count)             # can be LESS than 100000 — and on free-threaded Python (3.13t) it often is
+# can be LESS than 100000 — and on free-threaded Python (3.13t) it often is
+print(counter.count)
 
 # Check-then-act is the same bug at a larger scale:
 if key not in cache:             # two threads can both see "absent" and both load

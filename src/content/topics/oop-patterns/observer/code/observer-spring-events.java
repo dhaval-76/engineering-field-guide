@@ -13,7 +13,8 @@ class OrderService {
     public Order place(PlaceOrder cmd) {
         Order order = orders.save(Order.from(cmd));
         events.publishEvent(new OrderPlaced(order.id(), order.customerId(), order.total()));
-        return order;                                   // knows nothing about email, invoices, analytics
+        // knows nothing about email, invoices, analytics
+        return order;
     }
 }
 

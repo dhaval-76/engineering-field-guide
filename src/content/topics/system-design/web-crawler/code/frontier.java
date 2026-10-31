@@ -5,10 +5,12 @@ class PoliteFrontier {
 
     private final double defaultDelay;
     private final Map<String, Deque<String>> queues = new HashMap<>();
-    final Map<String, Double> delay = new HashMap<>();                 // robots.txt Crawl-delay or adaptive
+    // robots.txt Crawl-delay or adaptive
+    final Map<String, Double> delay = new HashMap<>();
     private final Map<String, Double> nextAllowed = new HashMap<>();
     private final PriorityQueue<Ready> ready = new PriorityQueue<>(Comparator.comparingDouble(Ready::at).thenComparing(Ready::host));
-    final Set<String> seen = new HashSet<>();                          // a Bloom filter at web scale
+    // a Bloom filter at web scale
+    final Set<String> seen = new HashSet<>();
 
     PoliteFrontier(double defaultDelaySeconds) { this.defaultDelay = defaultDelaySeconds; }
 

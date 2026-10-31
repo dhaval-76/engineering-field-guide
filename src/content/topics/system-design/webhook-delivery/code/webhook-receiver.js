@@ -8,6 +8,8 @@ app.post('/webhooks/payments', express.raw({ type: 'application/json' }), async 
   const eventId = req.get('Webhook-Id');
   const { rowCount } = await pool.query(
     'INSERT INTO webhook_inbox (event_id, body) VALUES ($1, $2) ON CONFLICT DO NOTHING', [eventId, body]);
-  if (rowCount === 1) await queue.add('process-webhook', { eventId }); // duplicates are acknowledged, not re-processed
-  res.status(200).end();                                                 // answer within seconds; heavy work later
+  // duplicates are acknowledged, not re-processed
+  if (rowCount === 1) await queue.add('process-webhook', { eventId });
+  // answer within seconds; heavy work later
+  res.status(200).end();
 });

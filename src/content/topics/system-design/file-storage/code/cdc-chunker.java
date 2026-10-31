@@ -1,7 +1,8 @@
 /** Content-defined chunking with a gear rolling hash; boundaries follow content, not offsets. */
 final class Chunker {
     private static final long[] GEAR = new long[256];
-    static {                                                   // xorshift64*: same table on every client
+    // xorshift64*: same table on every client
+    static {
         long x = 0x9E3779B97F4A7C15L;
         for (int i = 0; i < 256; i++) {
             x ^= x >>> 12; x ^= x << 25; x ^= x >>> 27;

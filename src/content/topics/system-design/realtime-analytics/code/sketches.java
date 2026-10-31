@@ -1,11 +1,13 @@
-// Unique visitors per hour with Redis HyperLogLog: ~12 KB per key whatever the cardinality.
+// Unique visitors per hour with Redis HyperLogLog: ~12 KB per key whatever the
+// cardinality.
 void track(String userId, Instant at) {
     String key = "uv:" + at.truncatedTo(ChronoUnit.HOURS);
     redis.opsForHyperLogLog().add(key, userId);                         // PFADD
     redis.expire(key, Duration.ofDays(2));
 }
 long uniqueToday(List<String> hourKeys) {
-    return redis.opsForHyperLogLog().size(hourKeys.toArray(String[]::new));   // PFCOUNT merges hours
+    // PFCOUNT merges hours
+    return redis.opsForHyperLogLog().size(hourKeys.toArray(String[]::new));
 }
 
 /** Approximate top-K: Count-Min Sketch estimates counts; a small heap keeps the current leaders. */
@@ -21,10 +23,12 @@ final class TopK {
         long estimate = Long.MAX_VALUE;
         for (int row = 0; row < depth; row++) {
             int col = Math.floorMod(Objects.hash(row, item), width);
-            estimate = Math.min(estimate, ++table[row][col]);          // min over rows limits over-counting
+            // min over rows limits over-counting
+            estimate = Math.min(estimate, ++table[row][col]);
         }
         leaders.put(item, estimate);
-        if (leaders.size() > k) {                                        // drop the smallest leader
+        // drop the smallest leader
+        if (leaders.size() > k) {
             leaders.entrySet().stream().min(Map.Entry.comparingByValue())
                 .ifPresent(min -> leaders.remove(min.getKey()));
         }
@@ -34,4 +38,5 @@ final class TopK {
         return leaders.entrySet().stream().sorted(Map.Entry.<String, Long>comparingByValue().reversed()).toList();
     }
 }
-// Per partition: keep a TopK each; every few seconds merge the partitions' candidates for the global top-K.
+// Per partition: keep a TopK each; every few seconds merge the partitions' candidates for
+// the global top-K.

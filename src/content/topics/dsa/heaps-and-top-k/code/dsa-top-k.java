@@ -1,10 +1,13 @@
 int findKthLargest(int[] nums, int k) {
-    PriorityQueue<Integer> minHeap = new PriorityQueue<>();      // the k largest seen so far
+    // the k largest seen so far
+    PriorityQueue<Integer> minHeap = new PriorityQueue<>();
     for (int x : nums) {
         minHeap.offer(x);
-        if (minHeap.size() > k) minHeap.poll();                  // drop the smallest of them
+        // drop the smallest of them
+        if (minHeap.size() > k) minHeap.poll();
     }
-    return minHeap.peek();                                       // smallest of the k largest
+    // smallest of the k largest
+    return minHeap.peek();
 }
 
 int[] topKFrequent(int[] nums, int k) {

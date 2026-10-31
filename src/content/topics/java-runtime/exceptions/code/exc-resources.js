@@ -9,5 +9,5 @@ async function readConfig(path) {
     await file.close();
   }
 }
-// Newer runtimes support `await using file = await fs.open(path)` (explicit resource management),
-// the equivalent of try-with-resources.
+// Newer runtimes support `await using file = await fs.open(path)` (explicit resource
+// management), the equivalent of try-with-resources.

@@ -15,10 +15,12 @@ class AsyncAppender implements Appender {
     public void append(LogEvent e) {
         if (closed) return;
         if (e.level().compareTo(Level.WARN) >= 0) {
-            try { queue.put(e); }                                   // never drop warnings/errors: wait
+            // never drop warnings/errors: wait
+            try { queue.put(e); }
             catch (InterruptedException ie) { Thread.currentThread().interrupt(); }
         } else if (!queue.offer(e)) {
-            dropped.incrementAndGet();                              // full: drop DEBUG/INFO, count it
+            // full: drop DEBUG/INFO, count it
+            dropped.incrementAndGet();
         }
     }
 

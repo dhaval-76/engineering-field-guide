@@ -16,7 +16,8 @@ class DriverIndex:
 
     def __init__(self, stale_after_s: float = 30):
         self.stale_after_s = stale_after_s
-        self._drivers: dict[str, tuple[float, float, float, bool]] = {}   # id -> (lat, lon, seen_at, available)
+        # id -> (lat, lon, seen_at, available)
+        self._drivers: dict[str, tuple[float, float, float, bool]] = {}
         self._cells: dict[tuple[int, int], set[str]] = {}
         self._lock = threading.Lock()
 
@@ -25,7 +26,8 @@ class DriverIndex:
             old = self._drivers.get(driver_id)
             if old is not None:
                 old_cell = cell_of(old[0], old[1])
-                if old_cell != cell_of(lat, lon):                     # moved across a cell boundary
+                # moved across a cell boundary
+                if old_cell != cell_of(lat, lon):
                     self._cells[old_cell].discard(driver_id)
             self._drivers[driver_id] = (lat, lon, now, available)
             self._cells.setdefault(cell_of(lat, lon), set()).add(driver_id)
@@ -57,7 +59,8 @@ class DriverIndex:
             for ring in range(max_ring + 1):
                 for dy in range(-ring, ring + 1):
                     for dx in range(-ring, ring + 1):
-                        if max(abs(dy), abs(dx)) != ring:              # only the new outer ring
+                        # only the new outer ring
+                        if max(abs(dy), abs(dx)) != ring:
                             continue
                         for d in self._cells.get((cy + dy, cx + dx), ()):
                             dlat, dlon, seen, available = self._drivers[d]
@@ -65,7 +68,8 @@ class DriverIndex:
                                 dist = km(lat, lon, dlat, dlon)
                                 if dist <= max_km:
                                     found.append((dist, d))
-                # every unvisited cell is at least ring * cell-size away; stop once k are closer than that
+                # every unvisited cell is at least ring * cell-size away; stop once k are
+                # closer than that
                 found.sort()
                 ring_km = ring * CELL * 111 * max(math.cos(math.radians(lat)), 0.1)
                 if len(found) >= k and found[k - 1][0] <= ring_km:

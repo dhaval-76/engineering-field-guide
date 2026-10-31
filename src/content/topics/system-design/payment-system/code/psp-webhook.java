@@ -12,7 +12,8 @@ class Charges {
         } catch (PspTimeoutException | PspUnavailableException unknown) {
             // Unknown outcome: never FAILED, never a retry with a new key.
             payments.transition(p.id(), State.PENDING_CONFIRMATION, null);
-            confirmations.scheduleLookup(p.id(), Duration.ofSeconds(30));   // query PSP by our key if no webhook
+            // query PSP by our key if no webhook
+            confirmations.scheduleLookup(p.id(), Duration.ofSeconds(30));
             return payments.get(p.id());
         }
     }
@@ -20,19 +21,24 @@ class Charges {
 
 @RestController
 class PspWebhookController {
-    private final WebhookVerifier verifier;      // HMAC signature over raw body + timestamp tolerance
+    // HMAC signature over raw body + timestamp tolerance
+    private final WebhookVerifier verifier;
     private final JdbcTemplate jdbc;
     private final PaymentStateMachine machine;
 
     @PostMapping("/webhooks/psp")
     @Transactional
     public ResponseEntity<Void> receive(@RequestHeader("X-Signature") String sig, @RequestBody byte[] body) {
-        PspEvent e = verifier.verifyAndParse(sig, body);                // 400 if the signature is bad
+        // 400 if the signature is bad
+        PspEvent e = verifier.verifyAndParse(sig, body);
         int fresh = jdbc.update("INSERT INTO processed_psp_events (event_id) VALUES (?) ON CONFLICT DO NOTHING", e.id());
-        if (fresh == 0) return ResponseEntity.ok().build();             // duplicate delivery
+        // duplicate delivery
+        if (fresh == 0) return ResponseEntity.ok().build();
 
-        // Applies only valid transitions; writes ledger entries and an outbox row in this same transaction.
+        // Applies only valid transitions; writes ledger entries and an outbox row in this
+        // same transaction.
         machine.apply(e.paymentId(), e.type(), e.amount(), e.reference());
-        return ResponseEntity.ok().build();                             // 2xx tells the PSP to stop retrying
+        // 2xx tells the PSP to stop retrying
+        return ResponseEntity.ok().build();
     }
 }

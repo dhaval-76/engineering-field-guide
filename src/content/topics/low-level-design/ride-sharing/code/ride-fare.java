@@ -18,6 +18,7 @@ final class SurgeCalculator {
     double multiplier(int openRequests, int availableDrivers) {
         if (availableDrivers == 0) return 2.5;
         double ratio = (double) openRequests / availableDrivers;
-        return Math.min(2.5, Math.max(1.0, 0.8 + 0.4 * ratio));  // smooth, capped; tuned with data in reality
+        // smooth, capped; tuned with data in reality
+        return Math.min(2.5, Math.max(1.0, 0.8 + 0.4 * ratio));
     }
 }

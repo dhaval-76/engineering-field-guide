@@ -1,4 +1,5 @@
-// Plain java.net.http client against the Anthropic Messages API; other providers look similar.
+// Plain java.net.http client against the Anthropic Messages API; other providers look
+// similar.
 record Ticket(String category, String priority, String summary) {}
 
 private static final HttpClient HTTP = HttpClient.newBuilder()
@@ -17,10 +18,12 @@ Ticket classify(String ticketText) throws Exception {
             "temperature", 0,                        // classification: be consistent
             "system", system,
             "messages", List.of(Map.of("role", "user",
-                    "content", "<ticket>\n" + ticketText + "\n</ticket>")));   // delimit untrusted text
+                    // delimit untrusted text
+                    "content", "<ticket>\n" + ticketText + "\n</ticket>")));
 
     String text = callWithRetry(JSON.writeValueAsString(body));
-    Ticket t = JSON.readValue(text, Ticket.class);   // throws if not valid JSON / wrong shape
+    // throws if not valid JSON / wrong shape
+    Ticket t = JSON.readValue(text, Ticket.class);
     if (!CATEGORIES.contains(t.category())) throw new IllegalStateException("bad category " + t.category());
     return t;
 }

@@ -1,5 +1,6 @@
 ListNode mergeTwoLists(ListNode a, ListNode b) {
-    ListNode dummy = new ListNode(0), tail = dummy;   // dummy: no special case for the first node
+    // dummy: no special case for the first node
+    ListNode dummy = new ListNode(0), tail = dummy;
     while (a != null && b != null) {
         if (a.val <= b.val) { tail.next = a; a = a.next; }
         else { tail.next = b; b = b.next; }

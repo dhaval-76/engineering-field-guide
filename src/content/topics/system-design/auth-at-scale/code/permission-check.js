@@ -29,6 +29,7 @@ export class DocumentAccess {
   }
 
   share(docId, withUserId) {
-    return this.permissions.write(`document:${docId}`, 'editor', `user:${withUserId}`); // a new tuple
+    // a new tuple
+    return this.permissions.write(`document:${docId}`, 'editor', `user:${withUserId}`);
   }
 }

@@ -1,4 +1,5 @@
-# Hybrid feed read: pushed ids from the user's Redis sorted set + pulled posts from followed celebrities.
+# Hybrid feed read: pushed ids from the user's Redis sorted set + pulled posts from
+# followed celebrities.
 PAGE = 20
 
 def merge_page(cached: list[tuple[int, float]], pulled: list[tuple[int, float]], cursor):
@@ -23,6 +24,8 @@ def read_feed(user_id: int, cursor=None):
               for celeb in graph.celebrities_followed_by(user_id)
               for p in posts.latest_by_author(celeb, cursor[0] if cursor else float("inf"), 5)]
     page, nxt = merge_page(cached, pulled, cursor)
-    views = [p for p in posts.get_many([c[0] for c in page])          # hydrate in one batch
-             if not p.deleted and not graph.is_blocked(user_id, p.author_id)]   # filter at read time
+    # hydrate in one batch
+    views = [p for p in posts.get_many([c[0] for c in page])
+             # filter at read time
+             if not p.deleted and not graph.is_blocked(user_id, p.author_id)]
     return views, nxt

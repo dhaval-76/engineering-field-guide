@@ -5,7 +5,8 @@ import { readFileSync } from 'node:fs';
 const redis = new Redis({ commandTimeout: 5 });
 redis.defineCommand('slidingWindow', {
   numberOfKeys: 1,
-  lua: readFileSync(new URL('./sliding-window.lua', import.meta.url), 'utf8'),   // the script from the Java tab
+  // the script from the Java tab
+  lua: readFileSync(new URL('./sliding-window.lua', import.meta.url), 'utf8'),
 });
 
 export async function check(key, limit, windowSeconds) {
@@ -13,7 +14,8 @@ export async function check(key, limit, windowSeconds) {
     const [allowed, remaining, retryAfter] = await redis.slidingWindow(`rl:${key}`, limit, windowSeconds);
     return { allowed: allowed === 1, remaining, retryAfter };
   } catch {
-    return { allowed: true, remaining: -1, retryAfter: 0 };   // fail-open on limiter errors
+    // fail-open on limiter errors
+    return { allowed: true, remaining: -1, retryAfter: 0 };
   }
 }
 

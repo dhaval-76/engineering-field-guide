@@ -7,7 +7,8 @@ record PriceBreakdown(List<PricedLine> lines, List<Adjustment> adjustments, long
 
 /** Each promotion inspects the priced cart and proposes an adjustment (or none). */
 interface Promotion {
-    String group();                                               // promotions in the same group don't stack
+    // promotions in the same group don't stack
+    String group();
     Optional<Adjustment> evaluate(List<PricedLine> lines, long runningTotalPaise);
 }
 
@@ -54,7 +55,8 @@ final class PricingEngine {
             final long running = total;
             Optional<Adjustment> best = active.stream().filter(p -> p.group().equals(group))
                     .flatMap(p -> p.evaluate(lines, running).stream())
-                    .min(Comparator.comparingLong(Adjustment::amountPaise));       // most negative = biggest saving
+                    // most negative = biggest saving
+                    .min(Comparator.comparingLong(Adjustment::amountPaise));
             if (best.isPresent()) { applied.add(best.get()); total += best.get().amountPaise(); }
         }
         long taxPaise = tax.on(lines, total);

@@ -20,7 +20,8 @@ final class LazySheet {
     double get(String id) {
         Cell c = cells.get(id);
         if (c == null) return 0;
-        if (dirty.remove(id)) c.value = c.expr.eval(this::get);   // recursion pulls dirty inputs first
+        // recursion pulls dirty inputs first
+        if (dirty.remove(id)) c.value = c.expr.eval(this::get);
         return c.value;
     }
 }

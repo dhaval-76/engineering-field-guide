@@ -1,4 +1,5 @@
-// Higher-order functions are decorators: take a function, return a function with extra behaviour.
+// Higher-order functions are decorators: take a function, return a function with extra
+// behaviour.
 const withLogging = (pay) => async (payment) => {
   console.info('pay', payment.id);
   const result = await pay(payment);

@@ -11,5 +11,6 @@ class TimeMap:
         self.values[key].append(value)
 
     def get(self, key, t):
-        i = bisect_right(self.times[key], t)          # number of versions with timestamp ≤ t
+        # number of versions with timestamp ≤ t
+        i = bisect_right(self.times[key], t)
         return self.values[key][i - 1] if i else ""

@@ -32,7 +32,8 @@ class SlidingWindowLimiter {
                     String.valueOf(limit), String.valueOf(window.toSeconds()));
             return new Decision(r.get(0) == 1L, r.get(1), r.get(2));
         } catch (DataAccessException redisDown) {
-            return Decision.allowDegraded();           // fail-open; a local limiter can back this up
+            // fail-open; a local limiter can back this up
+            return Decision.allowDegraded();
         }
     }
 
@@ -40,4 +41,5 @@ class SlidingWindowLimiter {
         static Decision allowDegraded() { return new Decision(true, -1, 0); }
     }
 }
-// Configure the Redis client with a short command timeout (e.g. 5 ms) so a slow Redis can't slow every request.
+// Configure the Redis client with a short command timeout (e.g. 5 ms) so a slow Redis
+// can't slow every request.

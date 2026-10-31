@@ -1,4 +1,5 @@
-// Leaky bucket as a queue: requests wait in a bounded queue and are released at a constant rate.
+// Leaky bucket as a queue: requests wait in a bounded queue and are released at a
+// constant rate.
 export class LeakyBucket {
   #queue = [];
   #timer;
@@ -8,7 +9,8 @@ export class LeakyBucket {
     this.#timer = setInterval(() => {
       const next = this.#queue.shift();
       if (next !== undefined) downstream(next);
-    }, 1000 / perSecond); // timers have ~1 ms granularity; for high rates release a batch per tick
+    // timers have ~1 ms granularity; for high rates release a batch per tick
+    }, 1000 / perSecond);
   }
 
   // false = bucket full; reject (HTTP 429) or shed load

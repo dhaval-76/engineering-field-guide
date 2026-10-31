@@ -14,7 +14,8 @@ record Placed()    implements OrderState {
 }
 record Paid()      implements OrderState {
     public OrderState ship()   { return new Shipped(); }
-    public OrderState cancel() { return new Cancelled(); }     // refund handled by a listener
+    // refund handled by a listener
+    public OrderState cancel() { return new Cancelled(); }
 }
 record Shipped()   implements OrderState { public OrderState deliver() { return new Delivered(); } }
 record Delivered() implements OrderState {}

@@ -9,7 +9,8 @@ export async function createPaste(ownerId, content, ttlSeconds, visibility) {
   await s3.send(new PutObjectCommand({ Bucket: BUCKET, Key: `pastes/${id}`, Body: bytes,
     ContentType: 'text/plain; charset=utf-8' }));                      // content first…
   await pool.query('INSERT INTO pastes (id, owner_id, size, visibility, expires_at) VALUES ($1, $2, $3, $4, $5)',
-    [id, ownerId, bytes.length, visibility, expiresAt]);              // …then metadata (a crash leaves only an orphan object)
+    // …then metadata (a crash leaves only an orphan object)
+    [id, ownerId, bytes.length, visibility, expiresAt]);
   return { id, expiresAt };
 }
 
@@ -19,9 +20,11 @@ app.get('/raw/:id', async (req, res) => {
   const now = Date.now();
   if (p.expiresAt && p.expiresAt <= now) return res.status(410).end();
   if (p.visibility === 'PRIVATE' && p.ownerId !== req.user?.id) return res.status(404).end();
-  const maxAge = Math.min(3600, p.expiresAt ? Math.floor((p.expiresAt - now) / 1000) : 3600); // never beyond expiry
+  // never beyond expiry
+  const maxAge = Math.min(3600, p.expiresAt ? Math.floor((p.expiresAt - now) / 1000) : 3600);
   res.set('Cache-Control', p.visibility === 'PRIVATE' ? 'private, no-store' : `public, max-age=${maxAge}`);
-  res.set('ETag', `"${p.id}"`);                                       // immutable content: id is a perfect ETag
+  // immutable content: id is a perfect ETag
+  res.set('ETag', `"${p.id}"`);
   const obj = await s3.send(new GetObjectCommand({ Bucket: BUCKET, Key: `pastes/${p.id}` }));
   res.type('text/plain; charset=utf-8').send(Buffer.from(await obj.Body.transformToByteArray()));
 });

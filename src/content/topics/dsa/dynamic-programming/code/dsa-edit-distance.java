@@ -22,4 +22,5 @@ int minDistance(String a, String b) {
                       Math.min(dp[i - 1][j], dp[i][j - 1]));     // delete, insert
     return dp[a.length()][b.length()];
 }
-// LCS("abcde", "ace") = 3; edit("horse", "ros") = 3. O(n·m) time and space (O(min) with two rows).
+// LCS("abcde", "ace") = 3; edit("horse", "ros") = 3. O(n·m) time and space (O(min) with
+// two rows).

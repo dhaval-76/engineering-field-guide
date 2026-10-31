@@ -4,7 +4,8 @@ public class Registry {
 
     public static Registry getInstance() {
         if (instance == null) {                  // ① Thread A sees null
-            instance = new Registry();           // ② Thread B also saw null → two instances
+            // ② Thread B also saw null → two instances
+            instance = new Registry();
         }
         return instance;
     }

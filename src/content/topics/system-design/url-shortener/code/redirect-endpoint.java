@@ -10,7 +10,8 @@ class RedirectController {
         if (target == null) {
             Optional<Link> link = links.findByCode(code);
             if (link.isEmpty()) {
-                redis.opsForValue().set("link:" + code, "", Duration.ofMinutes(1));   // negative cache
+                // negative cache
+                redis.opsForValue().set("link:" + code, "", Duration.ofMinutes(1));
                 return ResponseEntity.notFound().build();
             }
             if (link.get().isExpired(Instant.now())) return ResponseEntity.status(HttpStatus.GONE).build();
@@ -20,7 +21,8 @@ class RedirectController {
             return ResponseEntity.notFound().build();
         }
 
-        // Fire and forget: KafkaTemplate.send is asynchronous; failures are logged, not surfaced.
+        // Fire and forget: KafkaTemplate.send is asynchronous; failures are logged, not
+        // surfaced.
         kafka.send("clicks", code, new ClickEvent(code, Instant.now(),
                 req.getHeader("Referer"), req.getHeader("User-Agent"), req.getRemoteAddr()));
 
@@ -40,7 +42,8 @@ class LinkService {
         String code = alias != null ? alias : ShortCodes.scrambled(ids.nextId());
         try {
             return links.saveAndFlush(new Link(code, url, ownerId, expiresAt, alias != null));
-        } catch (DataIntegrityViolationException taken) {     // UNIQUE(code) settles alias races
+        // UNIQUE(code) settles alias races
+        } catch (DataIntegrityViolationException taken) {
             throw new AliasTakenException(alias);              // → 409
         }
     }

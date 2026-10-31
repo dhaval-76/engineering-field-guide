@@ -1,4 +1,5 @@
-# Refresh tokens: random (not JWT), stored HASHED, single-use, rotated, grouped into a family per login.
+# Refresh tokens: random (not JWT), stored HASHED, single-use, rotated, grouped into a
+# family per login.
 import hashlib
 import secrets
 import uuid
@@ -17,9 +18,11 @@ def refresh(repo, tokens, presented: str, now: datetime | None = None) -> dict:
     if rt is None or rt.revoked_at or rt.expires_at <= now:
         raise InvalidGrant()
 
-    # UPDATE refresh_tokens SET used_at = :now WHERE id = :id AND used_at IS NULL  → rows changed
+    # UPDATE refresh_tokens SET used_at = :now WHERE id = :id AND used_at IS NULL  → rows
+    # changed
     if repo.mark_used_if_unused(rt.id, now) == 0:
-        repo.revoke_family(rt.family_id)      # reuse of an old token ⇒ possible theft: end that login everywhere
+        # reuse of an old token ⇒ possible theft: end that login everywhere
+        repo.revoke_family(rt.family_id)
         raise InvalidGrant()
 
     nxt = secrets.token_urlsafe(32)

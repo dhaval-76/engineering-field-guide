@@ -40,13 +40,16 @@ class PartitionLog:
         return self.next_offset - 1
 
     def read(self, from_offset: int, max_records: int = 100) -> list:
-        i = bisect.bisect_right([s.base_offset for s in self.segments], from_offset) - 1   # which segment
+        # which segment
+        i = bisect.bisect_right([s.base_offset for s in self.segments], from_offset) - 1
         if i < 0:
             return []
         seg = self.segments[i]
-        j = bisect.bisect_right(seg.index_offsets, from_offset) - 1                      # sparse index lookup
+        # sparse index lookup
+        j = bisect.bisect_right(seg.index_offsets, from_offset) - 1
         start = seg.index_slots[j] if j >= 0 else 0
-        return [r for r in seg.records[start:] if r[0] >= from_offset][:max_records]      # short scan
+        # short scan
+        return [r for r in seg.records[start:] if r[0] >= from_offset][:max_records]
 
     def enforce_retention(self, cutoff: float) -> None:
         """Delete whole old segments — never individual messages."""

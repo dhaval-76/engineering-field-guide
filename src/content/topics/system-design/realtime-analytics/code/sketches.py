@@ -1,7 +1,8 @@
 import hashlib
 from datetime import datetime, timezone
 
-# Unique visitors per hour with Redis HyperLogLog (redis-py): ~12 KB per key whatever the cardinality.
+# Unique visitors per hour with Redis HyperLogLog (redis-py): ~12 KB per key whatever the
+# cardinality.
 def track(r, user_id: str, at: datetime | None = None) -> None:
     key = f"uv:{(at or datetime.now(timezone.utc)):%Y-%m-%dT%H}"
     r.pfadd(key, user_id)
@@ -28,11 +29,14 @@ class TopK:
             col = self._col(row, item)
             self.table[row][col] += 1
             c = self.table[row][col]
-            estimate = c if estimate is None else min(estimate, c)   # min over rows limits over-counting
+            # min over rows limits over-counting
+            estimate = c if estimate is None else min(estimate, c)
         self.leaders[item] = estimate
-        if len(self.leaders) > self.k:                               # drop the smallest leader
+        # drop the smallest leader
+        if len(self.leaders) > self.k:
             del self.leaders[min(self.leaders, key=self.leaders.get)]
 
     def top(self) -> list[tuple[str, int]]:
         return sorted(self.leaders.items(), key=lambda kv: kv[1], reverse=True)
-# Per partition: keep a TopK each; every few seconds merge the partitions' candidates for the global top-K.
+# Per partition: keep a TopK each; every few seconds merge the partitions' candidates for
+# the global top-K.

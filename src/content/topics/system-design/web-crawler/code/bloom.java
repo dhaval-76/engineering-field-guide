@@ -12,9 +12,11 @@ class BloomFilter {
     private long[] positions(String item) throws Exception {
         byte[] d = MessageDigest.getInstance("SHA-256").digest(item.getBytes(StandardCharsets.UTF_8));
         long h1 = ByteBuffer.wrap(d, 0, 8).getLong(), h2 = ByteBuffer.wrap(d, 8, 8).getLong() | 1;
-        long a = Long.remainderUnsigned(h1, m), b = Long.remainderUnsigned(h2, m);   // reduce first: no overflow
+        // reduce first: no overflow
+        long a = Long.remainderUnsigned(h1, m), b = Long.remainderUnsigned(h2, m);
         long[] p = new long[k];
-        for (int i = 0; i < k; i++) p[i] = (a + i * b) % m;                       // double hashing
+        // double hashing
+        for (int i = 0; i < k; i++) p[i] = (a + i * b) % m;
         return p;
     }
 

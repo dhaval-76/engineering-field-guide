@@ -9,7 +9,8 @@ export function select(...columns) {
     build() {
       if (!q.table) throw new Error('from() is required');
       let sql = `SELECT ${columns.join(', ')} FROM ${q.table}`;
-      if (q.where.length) sql += ` WHERE ${q.where.join(' AND ')}`; // conditions use $n / ? placeholders
+      // conditions use $n / ? placeholders
+      if (q.where.length) sql += ` WHERE ${q.where.join(' AND ')}`;
       if (q.orderBy) sql += ` ORDER BY ${q.orderBy}`;
       if (q.limit !== null) sql += ` LIMIT ${Number(q.limit)}`;
       return Object.freeze({ sql, params: Object.freeze([...q.params]) });

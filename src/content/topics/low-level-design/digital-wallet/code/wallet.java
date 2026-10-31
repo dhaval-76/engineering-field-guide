@@ -1,4 +1,5 @@
-record Entry(String txnId, String account, long amount, String type) {}     // amount: + credit, − debit (paise)
+// amount: + credit, − debit (paise)
+record Entry(String txnId, String account, long amount, String type) {}
 
 class InsufficientFunds extends RuntimeException { InsufficientFunds(String a) { super("insufficient funds in " + a); } }
 
@@ -13,9 +14,12 @@ class WalletService {
     }
 
     private final Map<String, Account> accounts = new ConcurrentHashMap<>();
-    private final List<Entry> ledger = Collections.synchronizedList(new ArrayList<>());   // append-only
-    private final Map<String, String> idempotency = new ConcurrentHashMap<>();            // key → txnId
-    private final Map<String, long[]> holds = new ConcurrentHashMap<>();                  // holdId → {amount}
+    // append-only
+    private final List<Entry> ledger = Collections.synchronizedList(new ArrayList<>());
+    // key → txnId
+    private final Map<String, String> idempotency = new ConcurrentHashMap<>();
+    // holdId → {amount}
+    private final Map<String, long[]> holds = new ConcurrentHashMap<>();
     private final Map<String, String> holdAccount = new ConcurrentHashMap<>();
 
     void open(String id) { accounts.putIfAbsent(id, new Account(id)); }
@@ -38,11 +42,13 @@ class WalletService {
         if (from.equals(to)) throw new IllegalArgumentException("same account");
         String txnId = UUID.randomUUID().toString();
         String existing = idempotency.putIfAbsent(key, txnId);
-        if (existing != null) return existing;                      // retry of a request we already handled
+        // retry of a request we already handled
+        if (existing != null) return existing;
 
         accounts.computeIfAbsent(from, Account::new);
         Account a = accounts.get(from), b = accounts.get(to);
-        Account first = a.id.compareTo(b.id) < 0 ? a : b;           // lock in a global order: no deadlock
+        // lock in a global order: no deadlock
+        Account first = a.id.compareTo(b.id) < 0 ? a : b;
         Account second = first == a ? b : a;
         try {
             synchronized (first) {
@@ -56,7 +62,8 @@ class WalletService {
                 }
             }
         } catch (RuntimeException e) {
-            idempotency.remove(key, txnId);                         // failed: let a corrected retry run
+            // failed: let a corrected retry run
+            idempotency.remove(key, txnId);
             throw e;
         }
         return txnId;
@@ -77,14 +84,16 @@ class WalletService {
 
     /** Capture up to the held amount to a merchant and release the rest — atomically, under the same locks. */
     String capture(String holdId, String merchant, long amount, String idempotencyKey) {
-        long[] h = holds.remove(holdId);                            // claim the hold: a second capture finds nothing
+        // claim the hold: a second capture finds nothing
+        long[] h = holds.remove(holdId);
         if (h == null) throw new IllegalStateException("unknown or finished hold");
         String account = holdAccount.remove(holdId);
         try {
             if (amount > h[0]) throw new IllegalArgumentException("capture exceeds hold");
             return transfer(account, merchant, amount, idempotencyKey, false, h[0]);
         } catch (RuntimeException e) {
-            holdAccount.put(holdId, account);                       // nothing moved: restore the hold
+            // nothing moved: restore the hold
+            holdAccount.put(holdId, account);
             holds.put(holdId, h);
             throw e;
         }
@@ -92,7 +101,8 @@ class WalletService {
 
     void release(String holdId) {
         long[] h = holds.remove(holdId);
-        if (h == null) return;                                      // already captured/released: idempotent
+        // already captured/released: idempotent
+        if (h == null) return;
         Account a = accounts.get(holdAccount.remove(holdId));
         synchronized (a) { a.held -= h[0]; }
     }

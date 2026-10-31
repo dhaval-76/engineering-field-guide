@@ -12,9 +12,11 @@ record PartnerProperties(
     @Min(0) @Max(5) int retries) {}
 
 @SpringBootApplication
-@ConfigurationPropertiesScan              // registers all @ConfigurationProperties records
+// registers all @ConfigurationProperties records
+@ConfigurationPropertiesScan
 class ShopApplication { }
 
-// Typed, validated at startup (bad config fails fast), documented in one place — prefer over scattered @Value.
-// Precedence (highest first, simplified): command-line args → environment variables (PARTNER_RETRIES)
-// → profile-specific files (application-prod.yml) → application.yml → defaults.
+// Typed, validated at startup (bad config fails fast), documented in one place — prefer
+// over scattered @Value. Precedence (highest first, simplified): command-line args →
+// environment variables (PARTNER_RETRIES) → profile-specific files (application-prod.yml)
+// → application.yml → defaults.

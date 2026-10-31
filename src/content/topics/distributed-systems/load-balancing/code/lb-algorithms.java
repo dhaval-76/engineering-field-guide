@@ -17,11 +17,13 @@ class SmoothWeighted implements Balancer {
     public synchronized String pick() {
         int total = 0; String best = null;
         for (var e : weight.entrySet()) {
-            current.merge(e.getKey(), e.getValue(), Integer::sum);       // everyone gains its weight
+            // everyone gains its weight
+            current.merge(e.getKey(), e.getValue(), Integer::sum);
             total += e.getValue();
             if (best == null || current.get(e.getKey()) > current.get(best)) best = e.getKey();
         }
-        current.merge(best, -total, Integer::sum);                       // winner pays the total
+        // winner pays the total
+        current.merge(best, -total, Integer::sum);
         return best;
     }
 }

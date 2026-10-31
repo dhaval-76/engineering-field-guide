@@ -1,4 +1,5 @@
-// A tiny formula language: numbers, cell refs, + - * / and SUM(A1:B3). Each node: { eval(get), refs }.
+// A tiny formula language: numbers, cell refs, + - * / and SUM(A1:B3). Each node: {
+// eval(get), refs }.
 const num = (v) => ({ eval: () => v, refs: [] });
 const ref = (id) => ({ eval: (get) => get(id), refs: [id] });
 const OPS = { '+': (a, b) => a + b, '-': (a, b) => a - b, '*': (a, b) => a * b, '/': (a, b) => a / b };

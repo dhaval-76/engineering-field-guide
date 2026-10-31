@@ -4,13 +4,15 @@ int orangesRotting(int[][] grid) {
     int fresh = 0;
     for (int r = 0; r < grid.length; r++)
         for (int c = 0; c < grid[0].length; c++) {
-            if (grid[r][c] == 2) queue.offer(new int[]{r, c});   // ALL sources at minute 0
+            // ALL sources at minute 0
+            if (grid[r][c] == 2) queue.offer(new int[]{r, c});
             else if (grid[r][c] == 1) fresh++;
         }
     int minutes = 0;
     int[][] dirs = {{1, 0}, {-1, 0}, {0, 1}, {0, -1}};
     while (!queue.isEmpty() && fresh > 0) {
-        for (int i = queue.size(); i > 0; i--) {                  // one BFS level = one minute
+        // one BFS level = one minute
+        for (int i = queue.size(); i > 0; i--) {
             int[] cur = queue.poll();
             for (int[] d : dirs) {
                 int r = cur[0] + d[0], c = cur[1] + d[1];

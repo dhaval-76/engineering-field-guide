@@ -1,10 +1,13 @@
 class MedianFinder {
-    private final PriorityQueue<Integer> low = new PriorityQueue<>(Comparator.reverseOrder()); // max-heap
-    private final PriorityQueue<Integer> high = new PriorityQueue<>();                         // min-heap
+    // max-heap
+    private final PriorityQueue<Integer> low = new PriorityQueue<>(Comparator.reverseOrder());
+    // min-heap
+    private final PriorityQueue<Integer> high = new PriorityQueue<>();
 
     void addNum(int x) {
         low.offer(x);
-        high.offer(low.poll());                       // the largest of the low half moves up
+        // the largest of the low half moves up
+        high.offer(low.poll());
         if (high.size() > low.size()) low.offer(high.poll());   // keep low ≥ high in size
     }
 

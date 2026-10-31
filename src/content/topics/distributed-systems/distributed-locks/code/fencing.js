@@ -12,7 +12,8 @@ export class LeaseService {
   }
 }
 
-// The protected resource rejects writes carrying an older token than one it has already seen.
+// The protected resource rejects writes carrying an older token than one it has already
+// seen.
 export class FencedStorage {
   #highest = new Map();
   #data = new Map();

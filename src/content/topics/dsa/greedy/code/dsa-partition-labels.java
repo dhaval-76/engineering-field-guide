@@ -5,8 +5,10 @@ List<Integer> partitionLabels(String s) {
     List<Integer> sizes = new ArrayList<>();
     int start = 0, end = 0;
     for (int i = 0; i < s.length(); i++) {
-        end = Math.max(end, last[s.charAt(i) - 'a']);   // this part must reach every letter's last occurrence
-        if (i == end) {                                 // nothing inside extends further: close the part
+        // this part must reach every letter's last occurrence
+        end = Math.max(end, last[s.charAt(i) - 'a']);
+        // nothing inside extends further: close the part
+        if (i == end) {
             sizes.add(end - start + 1);
             start = i + 1;
         }

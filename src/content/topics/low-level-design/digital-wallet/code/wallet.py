@@ -24,9 +24,11 @@ class WalletService:
 
     def __init__(self):
         self._accounts: dict[str, _Account] = {}
-        self.ledger: list[tuple[str, str, int]] = []         # (txn_id, account, +credit/−debit)
+        # (txn_id, account, +credit/−debit)
+        self.ledger: list[tuple[str, str, int]] = []
         self._idem: dict[str, str] = {}
-        self._holds: dict[str, tuple[str, int]] = {}         # hold_id -> (account, amount)
+        # hold_id -> (account, amount)
+        self._holds: dict[str, tuple[str, int]] = {}
         self._registry = threading.Lock()
 
     def open(self, account_id: str) -> None:
@@ -50,12 +52,14 @@ class WalletService:
         if amount <= 0 or src == dst:
             raise ValueError("invalid transfer")
         txn_id = str(uuid.uuid4())
-        with self._registry:                                  # claim the idempotency key atomically
+        # claim the idempotency key atomically
+        with self._registry:
             if key in self._idem:
                 return self._idem[key]
             self._idem[key] = txn_id
         a, b = self._accounts[src], self._accounts[dst]
-        first, second = sorted((a, b), key=lambda acc: acc.id)   # global lock order: no deadlock
+        # global lock order: no deadlock
+        first, second = sorted((a, b), key=lambda acc: acc.id)
         try:
             with first.lock, second.lock:
                 if not allow_negative and a.available + release_held < amount:
@@ -66,7 +70,8 @@ class WalletService:
                 self.ledger += [(txn_id, src, -amount), (txn_id, dst, amount)]
         except Exception:
             with self._registry:
-                del self._idem[key]                           # failed: allow a corrected retry
+                # failed: allow a corrected retry
+                del self._idem[key]
             raise
         return txn_id
 
@@ -83,7 +88,8 @@ class WalletService:
 
     def capture(self, hold_id: str, merchant: str, amount: int, key: str) -> str:
         with self._registry:
-            claimed = self._holds.pop(hold_id, None)          # a second capture finds nothing
+            # a second capture finds nothing
+            claimed = self._holds.pop(hold_id, None)
         if claimed is None:
             raise KeyError("unknown or finished hold")
         account_id, held = claimed

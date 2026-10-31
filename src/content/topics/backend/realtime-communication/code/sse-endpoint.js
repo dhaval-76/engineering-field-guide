@@ -10,7 +10,8 @@ app.get('/orders/:id/events', async (req, res) => {
   });
   const send = (e) => res.write(`id: ${e.id}\nevent: status\ndata: ${JSON.stringify(e)}\n\n`);
 
-  for (const e of await eventStore.eventsAfter(id, req.get('Last-Event-ID'))) send(e); // catch up
+  // catch up
+  for (const e of await eventStore.eventsAfter(id, req.get('Last-Event-ID'))) send(e);
   const unsubscribe = eventBus.subscribe(`order:${id}`, send); // live events from pub/sub
   const heartbeat = setInterval(() => res.write(': ping\n\n'), 15_000);
 

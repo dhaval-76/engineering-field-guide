@@ -6,8 +6,10 @@ class GatewaySecurity {
             .authorizeExchange(ex -> ex
                 .pathMatchers("/api/v1/products/**").permitAll()       // public catalogue
                 .anyExchange().authenticated())
-            .oauth2ResourceServer(o -> o.jwt(Customizer.withDefaults())) // local signature + exp/iss/aud checks
-            .csrf(ServerHttpSecurity.CsrfSpec::disable)                  // token-based API
+            // local signature + exp/iss/aud checks
+            .oauth2ResourceServer(o -> o.jwt(Customizer.withDefaults()))
+            // token-based API
+            .csrf(ServerHttpSecurity.CsrfSpec::disable)
             .build();
     }
 

@@ -1,4 +1,5 @@
-# Optimistic: read with a version, write only if the version is unchanged; retry on conflict.
+# Optimistic: read with a version, write only if the version is unchanged; retry on
+# conflict.
 import random
 import time
 
@@ -14,6 +15,8 @@ def debit(conn, account_id: str, amount: int, attempts: int = 3) -> None:
             "UPDATE accounts SET balance = balance - %s, version = version + 1 WHERE id = %s AND version = %s",
             (amount, account_id, version)).rowcount
         if updated == 1:
-            return                                     # nobody changed the row since we read it
-        time.sleep(random.uniform(0, 0.02 * i))        # lost the race: back off with jitter, re-read
+            # nobody changed the row since we read it
+            return
+        # lost the race: back off with jitter, re-read
+        time.sleep(random.uniform(0, 0.02 * i))
     raise TooMuchContention(account_id)

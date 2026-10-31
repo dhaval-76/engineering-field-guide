@@ -13,4 +13,5 @@ function popcount(x) {
   return count;
 }
 
-const isPowerOfTwo = (x) => x > 0 && (x & (x - 1)) === 0;   // valid up to 2^30 (32-bit ops)
+// valid up to 2^30 (32-bit ops)
+const isPowerOfTwo = (x) => x > 0 && (x & (x - 1)) === 0;

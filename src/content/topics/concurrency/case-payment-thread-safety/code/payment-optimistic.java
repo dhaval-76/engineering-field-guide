@@ -2,7 +2,8 @@
 class Account {
     @Id private String id;
     private BigDecimal balance;
-    @Version private long version;        // UPDATE … SET balance=?, version=version+1 WHERE id=? AND version=?
+    // UPDATE … SET balance=?, version=version+1 WHERE id=? AND version=?
+    @Version private long version;
 }
 
 @Service
@@ -14,7 +15,8 @@ class WalletService {
         Account acc = repo.findById(accountId).orElseThrow();
         if (acc.getBalance().compareTo(amount) < 0) throw new InsufficientFundsException(accountId, amount);
         acc.setBalance(acc.getBalance().subtract(amount));
-        // On commit Hibernate's UPDATE matches 0 rows if someone else changed the row since we read it
-        // → optimistic-lock exception → the whole transaction is retried with fresh data.
+        // On commit Hibernate's UPDATE matches 0 rows if someone else changed the row
+        // since we read it → optimistic-lock exception → the whole transaction is retried
+        // with fresh data.
     }
 }

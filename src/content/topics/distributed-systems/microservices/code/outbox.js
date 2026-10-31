@@ -18,5 +18,5 @@ export async function placeOrder(pool, cmd) {
     c.release();
   }
 }
-// The relay (SELECT … FOR UPDATE SKIP LOCKED → publish → mark sent) is shown in Sagas, outbox and inbox.
-// Delivery is at-least-once: consumers must be idempotent.
+// The relay (SELECT … FOR UPDATE SKIP LOCKED → publish → mark sent) is shown in Sagas,
+// outbox and inbox. Delivery is at-least-once: consumers must be idempotent.

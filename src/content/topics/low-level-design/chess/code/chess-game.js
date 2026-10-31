@@ -1,4 +1,5 @@
-// uses moveGenerators from the model above; pieces are { kind, color }, squares are [file, rank]
+// uses moveGenerators from the model above; pieces are { kind, color }, squares are
+// [file, rank]
 export class Board {
   #grid = Array.from({ length: 8 }, () => new Array(8).fill(null));
   at([f, r]) { return this.#grid[f][r]; }

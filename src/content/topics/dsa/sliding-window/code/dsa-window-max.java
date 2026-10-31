@@ -1,11 +1,15 @@
 int[] maxSlidingWindow(int[] nums, int k) {
     int[] out = new int[nums.length - k + 1];
-    Deque<Integer> dq = new ArrayDeque<>();            // indices; their values strictly decrease
+    // indices; their values strictly decrease
+    Deque<Integer> dq = new ArrayDeque<>();
     for (int i = 0; i < nums.length; i++) {
-        if (!dq.isEmpty() && dq.peekFirst() <= i - k) dq.pollFirst();          // left the window
-        while (!dq.isEmpty() && nums[dq.peekLast()] <= nums[i]) dq.pollLast(); // dominated by nums[i]
+        // left the window
+        if (!dq.isEmpty() && dq.peekFirst() <= i - k) dq.pollFirst();
+        // dominated by nums[i]
+        while (!dq.isEmpty() && nums[dq.peekLast()] <= nums[i]) dq.pollLast();
         dq.offerLast(i);
-        if (i >= k - 1) out[i - k + 1] = nums[dq.peekFirst()];                // front = max
+        // front = max
+        if (i >= k - 1) out[i - k + 1] = nums[dq.peekFirst()];
     }
     return out;
 }

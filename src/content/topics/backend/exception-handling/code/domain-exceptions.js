@@ -25,7 +25,8 @@ throw new BusinessRuleError('insufficient_funds', 'Balance is too low for this p
 const STATUS = new Map([[NotFoundError, 404], [ConflictError, 409], [BusinessRuleError, 422]]);
 app.use((err, req, res, next) => {
   const status = [...STATUS].find(([type]) => err instanceof type)?.[1];
-  if (!status) return next(err); // unexpected → generic 500 handler (logged, no internals leaked)
+  // unexpected → generic 500 handler (logged, no internals leaked)
+  if (!status) return next(err);
   res.status(status).type('application/problem+json')
     .json({ type: `https://errors.example.com/${err.code}`, title: err.message, status, code: err.code, ...err.details });
 });

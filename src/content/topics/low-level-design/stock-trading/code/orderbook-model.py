@@ -19,7 +19,8 @@ class Order:
     type: OrderType
     limit_ticks: int | None        # None for MARKET
     qty: int
-    seq: int = 0                   # arrival sequence = time priority (assigned by the book)
+    # arrival sequence = time priority (assigned by the book)
+    seq: int = 0
     remaining: int = field(init=False)
     status: str = "OPEN"           # OPEN | PARTIALLY_FILLED | FILLED | CANCELLED
 

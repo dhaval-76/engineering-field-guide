@@ -8,9 +8,11 @@ from shop.orders import OrderRepository
 
 @pytest.fixture(scope="module")
 def engine():
-    with PostgresContainer("postgres:17-alpine", driver="psycopg") as pg:   # started once per module
+    # started once per module
+    with PostgresContainer("postgres:17-alpine", driver="psycopg") as pg:
         eng = create_engine(pg.get_connection_url())
-        migrate(eng)                                                       # the same migrations as production
+        # the same migrations as production
+        migrate(eng)
         yield eng
 
 @pytest.fixture
@@ -18,7 +20,8 @@ def repo(engine):
     with engine.connect() as conn:
         tx = conn.begin()
         yield OrderRepository(conn)
-        tx.rollback()                                                      # each test leaves no data behind
+        # each test leaves no data behind
+        tx.rollback()
 
 def test_find_with_lines_loads_lines(repo):
     customer_id = repo.create_customer("Asha")
@@ -28,4 +31,5 @@ def test_find_with_lines_loads_lines(repo):
 
 def test_reserve_refuses_when_stock_is_insufficient(repo):
     product_id = repo.create_product("BOOK", 1)
-    assert repo.reserve(product_id, 2) == 0                                # the atomic UPDATE refuses
+    # the atomic UPDATE refuses
+    assert repo.reserve(product_id, 2) == 0

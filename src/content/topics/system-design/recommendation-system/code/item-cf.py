@@ -14,7 +14,8 @@ def item_neighbours(interactions: dict[str, set[str]], top_n: int = 50) -> dict[
                 if i != j:
                     co[i][j] += 1
     return {i: heapq.nsmallest(top_n, ((-c / math.sqrt(users_of[i] * users_of[j]), j) for j, c in js.items()))
-            for i, js in co.items()}          # stored negated so nsmallest = most similar first
+            # stored negated so nsmallest = most similar first
+            for i, js in co.items()}
 
 def recommend(history: set[str], neighbours: dict[str, list[tuple[float, str]]], k: int) -> list[str]:
     """Online: score unseen items by summed similarity to what the user engaged with."""

@@ -1,6 +1,7 @@
 enum Color { WHITE, BLACK; Color opponent() { return this == WHITE ? BLACK : WHITE; } }
 
-record Square(int file, int rank) {                         // file 0–7 = a–h, rank 0–7 = 1–8
+// file 0–7 = a–h, rank 0–7 = 1–8
+record Square(int file, int rank) {
     boolean onBoard() { return file >= 0 && file < 8 && rank >= 0 && rank < 8; }
     Square plus(int df, int dr) { return new Square(file + df, rank + dr); }
 }
@@ -20,7 +21,8 @@ abstract sealed class Piece permits King, Queen, Rook, Bishop, Knight, Pawn {
             while (s.onBoard()) {
                 Optional<Piece> p = b.at(s);
                 if (p.isEmpty()) { out.add(s); }
-                else { if (p.get().color != color) out.add(s); break; }   // capture, then stop
+                // capture, then stop
+                else { if (p.get().color != color) out.add(s); break; }
                 s = s.plus(d[0], d[1]);
             }
         }
@@ -49,7 +51,8 @@ final class Knight extends Piece {
         List<Square> out = new ArrayList<>();
         for (int[] j : jumps) {
             Square s = from.plus(j[0], j[1]);
-            if (s.onBoard() && b.at(s).map(p -> p.color != color).orElse(true)) out.add(s);   // jumps; no path check
+            // jumps; no path check
+            if (s.onBoard() && b.at(s).map(p -> p.color != color).orElse(true)) out.add(s);
         }
         return out;
     }
@@ -63,7 +66,8 @@ final class King extends Piece {
             Square s = from.plus(df, dr);
             if (s.onBoard() && b.at(s).map(p -> p.color != color).orElse(true)) out.add(s);
         }
-        return out;                                             // castling handled by Game (needs history)
+        // castling handled by Game (needs history)
+        return out;
     }
 }
 final class Pawn extends Piece {
@@ -81,6 +85,7 @@ final class Pawn extends Piece {
             Square s = from.plus(df, dir);
             if (s.onBoard() && b.at(s).map(p -> p.color != color).orElse(false)) out.add(s);
         }
-        return out;                                             // en passant & promotion handled by Game
+        // en passant & promotion handled by Game
+        return out;
     }
 }

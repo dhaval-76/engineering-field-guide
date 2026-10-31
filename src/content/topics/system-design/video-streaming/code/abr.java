@@ -1,9 +1,9 @@
 record Rendition(String name, int kbps) {}
 
 /**
- * Adaptive bitrate selection, run before each segment download.
- * Throughput: exponentially weighted average of measured segment download rates.
- * Buffer rules: below a panic level drop to the lowest; step up only one rung at a time, with buffer to spare.
+ * Adaptive bitrate selection, run before each segment download. Throughput: exponentially
+ * weighted average of measured segment download rates. Buffer rules: below a panic level
+ * drop to the lowest; step up only one rung at a time, with buffer to spare.
  */
 class AbrController {
     private final List<Rendition> ladder;                 // sorted by bitrate, ascending
@@ -14,17 +14,23 @@ class AbrController {
 
     void onSegmentDownloaded(long bits, double seconds) {
         double sample = bits / 1000.0 / seconds;
-        estimateKbps = estimateKbps < 0 ? sample : 0.7 * estimateKbps + 0.3 * sample;   // smooth spikes
+        // smooth spikes
+        estimateKbps = estimateKbps < 0 ? sample : 0.7 * estimateKbps + 0.3 * sample;
     }
 
     Rendition next(double bufferSeconds) {
-        if (estimateKbps < 0) return ladder.get(current = 0);          // start low: fast first frame
-        if (bufferSeconds < 5) return ladder.get(current = 0);         // about to stall: safest rung
-        double budget = 0.8 * estimateKbps;                            // keep 20% headroom
+        // start low: fast first frame
+        if (estimateKbps < 0) return ladder.get(current = 0);
+        // about to stall: safest rung
+        if (bufferSeconds < 5) return ladder.get(current = 0);
+        // keep 20% headroom
+        double budget = 0.8 * estimateKbps;
         int best = 0;
         for (int i = 0; i < ladder.size(); i++) if (ladder.get(i).kbps() <= budget) best = i;
-        if (best > current) best = bufferSeconds > 15 ? current + 1 : current;   // climb slowly
-        current = best;                                                // drops happen immediately
+        // climb slowly
+        if (best > current) best = bufferSeconds > 15 ? current + 1 : current;
+        // drops happen immediately
+        current = best;
         return ladder.get(current);
     }
 }

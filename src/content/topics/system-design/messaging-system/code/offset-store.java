@@ -5,13 +5,15 @@ final class OffsetStore {
 
     /** Commit the NEXT offset to read — i.e. last processed + 1. */
     void commit(String group, String topic, int partition, long lastProcessed) {
-        committed.merge(new Key(group, topic, partition), lastProcessed + 1, Math::max);   // never move backwards by accident
+        // never move backwards by accident
+        committed.merge(new Key(group, topic, partition), lastProcessed + 1, Math::max);
     }
 
     /** Where a consumer starts: committed position, or the reset policy for a new group. */
     long startOffset(String group, String topic, int partition, long logStart, long logEnd, boolean earliest) {
         Long c = committed.get(new Key(group, topic, partition));
-        if (c == null || c < logStart) return earliest ? logStart : logEnd;   // new group, or data expired
+        // new group, or data expired
+        if (c == null || c < logStart) return earliest ? logStart : logEnd;
         return c;
     }
 }

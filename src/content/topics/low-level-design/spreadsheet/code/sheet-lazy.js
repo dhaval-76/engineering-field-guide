@@ -1,5 +1,5 @@
-// uses parse() from above
-// Alternative: mark dependents dirty on write, recompute on read (good when most cells are never viewed).
+// uses parse() from above Alternative: mark dependents dirty on write, recompute on read
+// (good when most cells are never viewed).
 export class LazySheet {
   #cells = new Map(); // id -> { expr, value }
   #dependents = new Map(); // id -> Set of readers
@@ -28,8 +28,10 @@ export class LazySheet {
   get = (id) => {
     const c = this.#cells.get(id);
     if (!c) return 0;
-    if (this.#dirty.delete(id)) c.value = c.expr.eval(this.get); // recursion pulls dirty inputs first
+    // recursion pulls dirty inputs first
+    if (this.#dirty.delete(id)) c.value = c.expr.eval(this.get);
     return c.value;
   };
 }
-// (Dependents of a replaced formula are not unlinked here, which only causes extra dirty marks.)
+// (Dependents of a replaced formula are not unlinked here, which only causes extra dirty
+// marks.)

@@ -1,4 +1,5 @@
-// prom-client histogram + an OpenTelemetry span: the step shows up as its own metric and in traces.
+// prom-client histogram + an OpenTelemetry span: the step shows up as its own metric and
+// in traces.
 import client from 'prom-client';
 import { trace } from '@opentelemetry/api';
 
@@ -20,4 +21,5 @@ export async function loadDashboard(userId) {
     }
   });
 }
-// Reading the numbers: p50 fine but p99 bad → specific inputs or contention; p50 bad → everything is slow.
+// Reading the numbers: p50 fine but p99 bad → specific inputs or contention; p50 bad →
+// everything is slow.

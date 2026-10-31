@@ -14,10 +14,12 @@ List<Integer> inorderIterative(TreeNode root) {
     Deque<TreeNode> stack = new ArrayDeque<>();
     TreeNode cur = root;
     while (cur != null || !stack.isEmpty()) {
-        while (cur != null) { stack.push(cur); cur = cur.left; }   // go left as far as possible
+        // go left as far as possible
+        while (cur != null) { stack.push(cur); cur = cur.left; }
         cur = stack.pop();
         out.add(cur.val);                                          // visit
-        cur = cur.right;                                           // then the right subtree
+        // then the right subtree
+        cur = cur.right;
     }
     return out;
 }

@@ -18,7 +18,8 @@ class NotificationService:
 
     def _deliver_once(self, user, n, channel) -> bool:
         if not self.log.claim(n.id, channel):
-            return True                                  # already sent on this channel: idempotent
+            # already sent on this channel: idempotent
+            return True
         try:
             self.senders[channel].send(user, n)
             self.log.mark_sent(n.id, channel)

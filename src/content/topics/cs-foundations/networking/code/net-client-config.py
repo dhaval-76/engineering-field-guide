@@ -1,4 +1,5 @@
-# httpx: a shared Client keeps a connection pool; http2=True needs `pip install httpx[http2]`
+# httpx: a shared Client keeps a connection pool; http2=True needs `pip install
+# httpx[http2]`
 import httpx
 
 client = httpx.Client(

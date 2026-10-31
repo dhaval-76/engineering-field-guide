@@ -26,7 +26,8 @@ def nearest_good_driver(ride, candidates):
 
 class Dispatcher:
     def __init__(self, index, strategy, offers):
-        self.index, self.strategy, self.offers = index, strategy, offers   # offers.offer_and_await(d, ride, s) -> bool
+        # offers.offer_and_await(d, ride, s) -> bool
+        self.index, self.strategy, self.offers = index, strategy, offers
 
     def match(self, ride, wanted: str):
         """Widen the radius until someone accepts or we give up."""

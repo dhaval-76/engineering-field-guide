@@ -1,4 +1,5 @@
-// Offline batch job: cosine similarity from co-occurrence; keep the top N neighbours per item.
+// Offline batch job: cosine similarity from co-occurrence; keep the top N neighbours per
+// item.
 export function itemNeighbours(interactions, topN = 50) {
   const usersOf = new Map();
   const co = new Map();

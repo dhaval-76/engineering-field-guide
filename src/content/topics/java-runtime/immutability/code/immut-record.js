@@ -1,4 +1,5 @@
-// Object.freeze is shallow; freeze nested objects too, or treat data as immutable by convention.
+// Object.freeze is shallow; freeze nested objects too, or treat data as immutable by
+// convention.
 const money = Object.freeze({ minorUnits: 500, currency: 'INR' });
 money.minorUnits = 0;            // ignored (throws in strict mode)
 

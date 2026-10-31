@@ -1,7 +1,8 @@
 @Service
 class LoginService {
     private final PasswordEncoder encoder = Argon2PasswordEncoder.defaultsForSpringSecurity_v5_8();
-    // A real hash of a random password: verifying against it costs the same as a real account.
+    // A real hash of a random password: verifying against it costs the same as a real
+    // account.
     private final String dummyHash = encoder.encode(UUID.randomUUID().toString());
     private final UserRepository users;
     private final LoginRateLimits limits;       // Redis: per IP and per account
@@ -12,11 +13,13 @@ class LoginService {
         if (!limits.tryIp(ip) || !limits.tryAccount(normalized)) throw new TooManyAttemptsException();
 
         Optional<User> user = users.findByEmail(normalized);
-        // Always run the slow hash, so response time doesn't reveal whether the account exists.
+        // Always run the slow hash, so response time doesn't reveal whether the account
+        // exists.
         boolean ok = encoder.matches(password, user.map(User::passwordHash).orElse(dummyHash));
         if (user.isEmpty() || !ok) {
             limits.recordFailure(normalized, ip);
-            throw new BadCredentialsException("Invalid email or password");   // one message for both cases
+            // one message for both cases
+            throw new BadCredentialsException("Invalid email or password");
         }
         limits.reset(normalized);
         if (user.get().mfaEnabled()) return LoginResult.mfaRequired(sessions.pendingMfa(user.get()));
@@ -30,7 +33,8 @@ class PasswordResets {
     private final JdbcTemplate jdbc;
     // users, mailer, sessions and encoder are injected like the fields above
 
-    public void request(String email) {                // always responds "if it exists, we sent a link"
+    // always responds "if it exists, we sent a link"
+    public void request(String email) {
         users.findByEmail(email).ifPresent(u -> {
             byte[] raw = new byte[32];
             random.nextBytes(raw);
@@ -50,6 +54,7 @@ class PasswordResets {
             RETURNING user_id""", rs -> rs.next() ? rs.getLong(1) : null, sha256(token));
         if (userId == null) throw new InvalidResetTokenException();
         users.updatePasswordHash(userId, encoder.encode(newPassword));
-        sessions.revokeAll(userId);                      // log out everywhere after a reset
+        // log out everywhere after a reset
+        sessions.revokeAll(userId);
     }
 }

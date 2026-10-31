@@ -36,5 +36,6 @@ class PhoneDirectory:
         while stack and len(out) < limit:
             cur = stack.pop()
             out.extend(cur.contacts)
-            stack.extend(child for child in reversed(cur.next) if child)   # so 0 is visited first
+            # so 0 is visited first
+            stack.extend(child for child in reversed(cur.next) if child)
         return out[:limit]

@@ -1,4 +1,5 @@
-// A uniform grid of ~1 km cells: updating a location is O(1); "nearby" scans the surrounding cells.
+// A uniform grid of ~1 km cells: updating a location is O(1); "nearby" scans the
+// surrounding cells.
 const CELL_DEG = 0.009; // ≈ 1 km of latitude
 const cellKey = (p) => `${Math.floor(p.lat / CELL_DEG)}:${Math.floor(p.lng / CELL_DEG)}`;
 

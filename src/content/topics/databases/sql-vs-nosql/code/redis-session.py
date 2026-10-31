@@ -13,7 +13,8 @@ def create_session(r, data: dict) -> str:
     return session_id
 
 def touch_session(r, session_id: str) -> dict | None:
-    raw = r.getex(_key(session_id), ex=TTL_SECONDS)       # read and slide the expiry atomically (Redis 6.2+)
+    # read and slide the expiry atomically (Redis 6.2+)
+    raw = r.getex(_key(session_id), ex=TTL_SECONDS)
     return None if raw is None else json.loads(raw)
 
 def invalidate_session(r, session_id: str) -> None:       # logout

@@ -5,8 +5,8 @@ export class Driver {
   constructor(id, vehicle, rating) {
     Object.assign(this, { id, vehicle, rating });
   }
-  // Only one ride can reserve a driver. Synchronous check-and-set is atomic on Node's event loop;
-  // across servers this becomes a Redis SET NX or a conditional DB update.
+  // Only one ride can reserve a driver. Synchronous check-and-set is atomic on Node's
+  // event loop; across servers this becomes a Redis SET NX or a conditional DB update.
   tryReserve() {
     if (this.status !== 'AVAILABLE') return false;
     this.status = 'OFFERED';
@@ -23,7 +23,8 @@ export const nearestGoodDriver = (ride, candidates) =>
 
 export class Dispatcher {
   constructor({ index, strategy, offers }) {
-    Object.assign(this, { index, strategy, offers }); // offers.offerAndAwait(driver, ride, ms) → Promise<boolean>
+    // offers.offerAndAwait(driver, ride, ms) → Promise<boolean>
+    Object.assign(this, { index, strategy, offers });
   }
 
   // Widen the radius until someone accepts or we give up.
@@ -31,7 +32,8 @@ export class Dispatcher {
     for (const radius of [1, 2, 4, 8]) {
       const candidates = this.index.near(ride.pickup, radius).filter((d) => d.vehicle === wanted && d.status === 'AVAILABLE');
       for (const d of this.strategy(ride, candidates)) {
-        if (!d.tryReserve()) continue;                    // another ride got this driver first
+        // another ride got this driver first
+        if (!d.tryReserve()) continue;
         if (await this.offers.offerAndAwait(d, ride, 15_000)) {
           ride.driverId = d.id;
           return d;

@@ -6,23 +6,27 @@ class OrderServiceTest {
     @Mock ApplicationEventPublisher events;
     // A real fixed clock; @Spy only so that @InjectMocks passes it to the constructor.
     @Spy  Clock clock = Clock.fixed(Instant.parse("2026-03-01T10:00:00Z"), ZoneOffset.UTC);
-    @InjectMocks OrderService service;              // real class, built with the mocks above
+    // real class, built with the mocks above
+    @InjectMocks OrderService service;
 
     @Captor ArgumentCaptor<Order> savedOrder;
-    @Captor ArgumentCaptor<Object> event;           // Object: matches publishEvent(Object) for POJO events
+    // Object: matches publishEvent(Object) for POJO events
+    @Captor ArgumentCaptor<Object> event;
 
     private final OrderRequest request = new OrderRequest("C-1", List.of(new Item("BOOK", 2)));
 
     @Test
     void placeOrder_chargesSavesAndPublishes() {
         when(payments.charge(eq("C-1"), any())).thenReturn(new Charge("ch_1", Charge.Status.SUCCEEDED));
-        when(orders.save(any(Order.class))).thenAnswer(inv -> inv.getArgument(0));   // return what was saved
+        // return what was saved
+        when(orders.save(any(Order.class))).thenAnswer(inv -> inv.getArgument(0));
 
         Order result = service.placeOrder(request);
 
         assertThat(result.status()).isEqualTo(OrderStatus.PAID);
 
-        verify(orders).save(savedOrder.capture());   // inspect the object the service built
+        // inspect the object the service built
+        verify(orders).save(savedOrder.capture());
         assertThat(savedOrder.getValue().customerId()).isEqualTo("C-1");
         assertThat(savedOrder.getValue().placedAt()).isEqualTo(Instant.parse("2026-03-01T10:00:00Z"));
 

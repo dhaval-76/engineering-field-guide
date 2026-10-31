@@ -1,4 +1,5 @@
-// Merge half-open [start, end) slots that overlap or touch. Input may be unsorted; not mutated.
+// Merge half-open [start, end) slots that overlap or touch. Input may be unsorted; not
+// mutated.
 export function mergeSlots(slots) {
   const sorted = slots.map(([s, e]) => [s, e]).sort((a, b) => a[0] - b[0]);
   const out = [];

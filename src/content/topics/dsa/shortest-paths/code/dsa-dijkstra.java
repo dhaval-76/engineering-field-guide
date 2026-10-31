@@ -13,7 +13,8 @@ int networkDelayTime(int[][] times, int n, int k) {
     while (!heap.isEmpty()) {
         int[] top = heap.poll();
         int d = top[0], u = top[1];
-        if (d > dist[u]) continue;                       // stale entry: u was settled more cheaply
+        // stale entry: u was settled more cheaply
+        if (d > dist[u]) continue;
         for (int[] edge : adj.get(u)) {
             int v = edge[0], nd = d + edge[1];
             if (nd < dist[v]) {                          // relax

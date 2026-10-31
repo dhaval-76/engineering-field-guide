@@ -1,4 +1,5 @@
-// Digits-only trie with contacts stored at the end node; prefix search returns contacts in digit order.
+// Digits-only trie with contacts stored at the end node; prefix search returns contacts
+// in digit order.
 export class PhoneDirectory {
   #root = { next: new Array(10).fill(null), contacts: [] };
 
@@ -23,7 +24,8 @@ export class PhoneDirectory {
     while (stack.length && out.length < limit) {
       const cur = stack.pop();
       out.push(...cur.contacts);
-      for (let i = 9; i >= 0; i--) if (cur.next[i]) stack.push(cur.next[i]); // so 0 is visited first
+      // so 0 is visited first
+      for (let i = 9; i >= 0; i--) if (cur.next[i]) stack.push(cur.next[i]);
     }
     return out.slice(0, limit);
   }

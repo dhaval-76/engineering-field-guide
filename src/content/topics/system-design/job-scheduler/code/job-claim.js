@@ -1,4 +1,5 @@
-// node-postgres. Claim due jobs with a lease and a fencing number; commit the claim before running anything.
+// node-postgres. Claim due jobs with a lease and a fencing number; commit the claim
+// before running anything.
 const LEASE_SECONDS = 60;
 
 export async function claim(pool, workerId, partitions, batch) {
@@ -21,7 +22,8 @@ export async function run(pool, job, handlers) {
     'UPDATE jobs SET lease_until = now() + make_interval(secs => $1) WHERE id = $2 AND fence = $3',
     [LEASE_SECONDS, job.id, job.fence]), 20_000);
   try {
-    await handlers[job.type](job.payload, job.fence);          // idempotent; fence passed to resources
+    // idempotent; fence passed to resources
+    await handlers[job.type](job.payload, job.fence);
     await finish(pool, job, 'SUCCEEDED', null, null);
   } catch (e) {
     const retryable = e.retryable !== false;

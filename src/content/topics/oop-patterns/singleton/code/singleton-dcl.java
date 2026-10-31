@@ -1,5 +1,6 @@
 public class Registry {
-    private static volatile Registry instance;  // volatile: no half-built object can be seen
+    // volatile: no half-built object can be seen
+    private static volatile Registry instance;
 
     private Registry() {}
 

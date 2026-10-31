@@ -6,7 +6,8 @@ export async function withSerializableTx(pool, work, maxAttempts = 5) {
     const client = await pool.connect();
     try {
       await client.query('BEGIN ISOLATION LEVEL SERIALIZABLE');
-      const result = await work(client);          // all reads and writes go through this client
+      // all reads and writes go through this client
+      const result = await work(client);
       await client.query('COMMIT');
       return result;
     } catch (err) {

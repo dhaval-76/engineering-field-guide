@@ -15,4 +15,5 @@ class CheckoutServiceTest {
         verify(orders).save(placed);
     }
 }
-// Runs in milliseconds. Reserve @SpringBootTest / slices (@WebMvcTest, @DataJpaTest) for wiring and integration.
+// Runs in milliseconds. Reserve @SpringBootTest / slices (@WebMvcTest, @DataJpaTest) for
+// wiring and integration.

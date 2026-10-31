@@ -1,4 +1,5 @@
-// 1. Single-flight inside one instance: concurrent misses for the same key share ONE load.
+// 1. Single-flight inside one instance: concurrent misses for the same key share ONE
+// load.
 //    Caffeine's AsyncLoadingCache does this natively; this is the idea.
 class SingleFlight<K, V> {
     private final ConcurrentHashMap<K, CompletableFuture<V>> inFlight = new ConcurrentHashMap<>();
@@ -6,7 +7,8 @@ class SingleFlight<K, V> {
     V get(K key, Function<K, V> loader) {
         CompletableFuture<V> mine = new CompletableFuture<>();
         CompletableFuture<V> existing = inFlight.putIfAbsent(key, mine);
-        if (existing != null) return existing.join();          // someone is already loading
+        // someone is already loading
+        if (existing != null) return existing.join();
         try {
             V v = loader.apply(key);
             mine.complete(v);
@@ -28,20 +30,24 @@ ProductView getWithLock(long id) {
         if (cached != null) return read(cached);
 
         String token = UUID.randomUUID().toString();             // identifies OUR lock
-        Boolean acquired = redis.opsForValue().setIfAbsent(lockKey, token, Duration.ofSeconds(5));  // SET NX EX
+        // SET NX EX
+        Boolean acquired = redis.opsForValue().setIfAbsent(lockKey, token, Duration.ofSeconds(5));
         if (Boolean.TRUE.equals(acquired)) {
             try {
                 ProductView v = load(id);
                 redis.opsForValue().set(key, write(v), jitter(TTL));
                 return v;
             } finally {
-                // Release only if it's still ours (it may have expired and been taken by another).
+                // Release only if it's still ours (it may have expired and been taken by
+                // another).
                 redis.execute(RELEASE_IF_OWNER, List.of(lockKey), token);
             }
         }
-        sleep(Duration.ofMillis(50));                            // someone else is loading: wait, re-check
+        // someone else is loading: wait, re-check
+        sleep(Duration.ofMillis(50));
     }
-    return load(id);                                             // give up waiting; protect latency
+    // give up waiting; protect latency
+    return load(id);
 }
 
 static final RedisScript<Long> RELEASE_IF_OWNER = RedisScript.of("""

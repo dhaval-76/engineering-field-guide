@@ -8,8 +8,10 @@ def place_order(conn, cmd: dict) -> dict:
             (cmd["customer_id"], cmd["total"])).fetchone()
         conn.execute(
             "INSERT INTO outbox (id, aggregate_type, aggregate_id, type, payload) "
-            "VALUES (gen_random_uuid(), 'Order', %s, 'OrderPlaced', %s)",          # event id: consumers de-duplicate
+            # event id: consumers de-duplicate
+            "VALUES (gen_random_uuid(), 'Order', %s, 'OrderPlaced', %s)",
             (str(order_id), Jsonb({"order_id": order_id, "customer_id": customer_id, "total": total})))
-    return {"id": order_id, "customer_id": customer_id, "total": total}       # ✗ never publish inside the tx
-# The relay (SELECT … FOR UPDATE SKIP LOCKED → publish → mark sent) is shown in Sagas, outbox and inbox.
-# Delivery is at-least-once: consumers must be idempotent.
+    # ✗ never publish inside the tx
+    return {"id": order_id, "customer_id": customer_id, "total": total}
+# The relay (SELECT … FOR UPDATE SKIP LOCKED → publish → mark sent) is shown in Sagas,
+# outbox and inbox. Delivery is at-least-once: consumers must be idempotent.

@@ -1,5 +1,5 @@
-// In-memory leaderboard on a sorted array: binary search to find positions.
-// Inserts shift elements (O(n)) — fine for thousands of players; use Redis sorted sets beyond that.
+// In-memory leaderboard on a sorted array: binary search to find positions. Inserts shift
+// elements (O(n)) — fine for thousands of players; use Redis sorted sets beyond that.
 const before = (a, b) => b.score - a.score || a.reachedAt - b.reachedAt || (a.player < b.player ? -1 : a.player > b.player ? 1 : 0);
 
 export class Leaderboard {

@@ -25,4 +25,5 @@ def assign(members: list[str], partitions: int) -> dict[str, list[int]]:
     out = {m: [] for m in ordered}
     for p in range(partitions):
         out[ordered[p % len(ordered)]].append(p)
-    return out                                      # members beyond the partition count get nothing
+    # members beyond the partition count get nothing
+    return out

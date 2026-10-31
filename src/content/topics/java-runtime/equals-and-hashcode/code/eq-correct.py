@@ -1,7 +1,8 @@
 from dataclasses import dataclass
 
 
-# frozen=True generates __eq__ and __hash__ from the fields, and makes instances immutable.
+# frozen=True generates __eq__ and __hash__ from the fields, and makes instances
+# immutable.
 @dataclass(frozen=True)
 class Money:
     amount_minor: int

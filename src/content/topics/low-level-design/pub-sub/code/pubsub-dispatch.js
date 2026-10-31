@@ -1,5 +1,5 @@
-// uses Broker from above
-// Push delivery for one group: poll, hand to the handler, retry with backoff, dead-letter, then commit.
+// uses Broker from above Push delivery for one group: poll, hand to the handler, retry
+// with backoff, dead-letter, then commit.
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 export class Dispatcher {
@@ -19,7 +19,8 @@ export class Dispatcher {
       }
       for (const m of batch) {
         await this.#deliver(m);
-        this.broker.commit(this.topic, this.group, m.offset + 1); // commit after handling: at-least-once
+        // commit after handling: at-least-once
+        this.broker.commit(this.topic, this.group, m.offset + 1);
       }
     }
   }
@@ -31,10 +32,12 @@ export class Dispatcher {
         return;
       } catch {
         if (attempt === this.maxAttempts) {
-          this.broker.publish(`${this.topic}.dlq`, m.key, m.payload); // poison message: don't block the topic
+          // poison message: don't block the topic
+          this.broker.publish(`${this.topic}.dlq`, m.key, m.payload);
           return;
         }
-        await sleep(100 * 2 ** attempt);                             // exponential backoff
+        // exponential backoff
+        await sleep(100 * 2 ** attempt);
       }
     }
   }

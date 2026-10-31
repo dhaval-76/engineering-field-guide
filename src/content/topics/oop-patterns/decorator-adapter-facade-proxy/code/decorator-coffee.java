@@ -16,5 +16,5 @@ record WithSyrup(Beverage inner, String flavour) implements Beverage {
 }
 
 Beverage order = new WithSyrup(new WithMilk(new Espresso()), "hazelnut");
-// "Espresso, milk, hazelnut syrup" — 170.00
-// Without decorators: EspressoWithMilk, EspressoWithMilkAndSyrup, … one class per combination.
+// "Espresso, milk, hazelnut syrup" — 170.00 Without decorators: EspressoWithMilk,
+// EspressoWithMilkAndSyrup, … one class per combination.

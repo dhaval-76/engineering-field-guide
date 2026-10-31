@@ -12,6 +12,7 @@ static boolean verify(String path, long expires, String sig, byte[] secret, long
     if (nowEpochSeconds > expires) return false;
     String expected = sign(path, expires, secret);
     String given = path + "?expires=" + expires + "&sig=" + sig;
-    return MessageDigest.isEqual(expected.getBytes(StandardCharsets.UTF_8),          // constant-time compare
+    // constant-time compare
+    return MessageDigest.isEqual(expected.getBytes(StandardCharsets.UTF_8),
                                  given.getBytes(StandardCharsets.UTF_8));
 }

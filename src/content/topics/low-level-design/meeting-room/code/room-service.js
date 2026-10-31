@@ -11,7 +11,8 @@ export class RoomFinder {
       .sort((a, b) => a.capacity - b.capacity);
   }
 
-  // With several processes (or an async gap) another booking can win between search and book.
+  // With several processes (or an async gap) another booking can win between search and
+  // book.
   bookBest(slot, people, needs, organizer, attendees = []) {
     for (const room of this.candidates(slot, people, needs)) {
       try {

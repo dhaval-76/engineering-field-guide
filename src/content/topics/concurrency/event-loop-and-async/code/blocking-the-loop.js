@@ -1,6 +1,7 @@
 // ✗ CPU-heavy work on the event loop: every other request waits for it.
 app.get('/report', (req, res) => {
-  const result = crunchNumbers(hugeDataset);     // 2 seconds of CPU → whole server frozen for 2 s
+  // 2 seconds of CPU → whole server frozen for 2 s
+  const result = crunchNumbers(hugeDataset);
   res.json(result);
 });
 
@@ -16,4 +17,5 @@ app.get('/report', async (req, res) => {
 });
 
 // ✓ I/O is fine: fetch, DB drivers and fs.promises don't block the loop while waiting.
-// Also avoid: fs.readFileSync, JSON.parse on huge payloads, catastrophic regexes, sync crypto.
+// Also avoid: fs.readFileSync, JSON.parse on huge payloads, catastrophic regexes, sync
+// crypto.

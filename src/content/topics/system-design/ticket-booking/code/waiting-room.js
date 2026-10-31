@@ -1,4 +1,5 @@
-// Virtual waiting room: a place in line for everyone, admission at a controlled rate, expiring sessions.
+// Virtual waiting room: a place in line for everyone, admission at a controlled rate,
+// expiring sessions.
 export class WaitingRoom {
   #seqOf = new Map(); // user -> place in line
   #admittedAt = new Map(); // seq -> time admitted
@@ -11,7 +12,8 @@ export class WaitingRoom {
   }
 
   join(userId) {
-    if (!this.#seqOf.has(userId)) this.#seqOf.set(userId, this.#nextSeq++); // refresh keeps your place
+    // refresh keeps your place
+    if (!this.#seqOf.has(userId)) this.#seqOf.set(userId, this.#nextSeq++);
     return this.#seqOf.get(userId);
   }
 

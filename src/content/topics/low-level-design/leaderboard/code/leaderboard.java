@@ -8,8 +8,10 @@ class Leaderboard {
             .thenComparing(Entry::player);
 
     private final Map<String, Entry> byPlayer = new HashMap<>();
-    private final TreeSet<Entry> ranking = new TreeSet<>(ORDER);         // red-black tree: O(log n) updates
-    private long clock = 0;                                              // logical time for tie-breaks
+    // red-black tree: O(log n) updates
+    private final TreeSet<Entry> ranking = new TreeSet<>(ORDER);
+    // logical time for tie-breaks
+    private long clock = 0;
 
     synchronized long addScore(String player, long delta) {
         Entry old = byPlayer.get(player);

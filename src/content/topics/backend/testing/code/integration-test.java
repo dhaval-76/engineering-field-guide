@@ -1,5 +1,6 @@
 @SpringBootTest                           // whole app, mock servlet environment
-@Import(TestcontainersConfig.class)       // shared containers: started once, reused by every class
+// shared containers: started once, reused by every class
+@Import(TestcontainersConfig.class)
 @AutoConfigureMockMvc
 class PlaceOrderFlowTest {
 

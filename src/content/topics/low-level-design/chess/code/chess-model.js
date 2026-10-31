@@ -1,4 +1,5 @@
-// Pieces differ only in how they generate moves, so a table of move generators replaces subclasses.
+// Pieces differ only in how they generate moves, so a table of move generators replaces
+// subclasses.
 const ORTHO = [[1, 0], [-1, 0], [0, 1], [0, -1]];
 const DIAG = [[1, 1], [1, -1], [-1, 1], [-1, -1]];
 const onBoard = ([f, r]) => f >= 0 && f < 8 && r >= 0 && r < 8;
@@ -33,10 +34,12 @@ export const moveGenerators = {
       out.push([f, r + dir]);
       if (r === start && !b.at([f, r + 2 * dir])) out.push([f, r + 2 * dir]);
     }
-    for (const df of [-1, 1]) {                                   // diagonal captures only
+    // diagonal captures only
+    for (const df of [-1, 1]) {
       const s = [f + df, r + dir];
       if (onBoard(s) && b.at(s) && b.at(s).color !== c) out.push(s);
     }
-    return out;                                                   // en passant & promotion handled by Game
+    // en passant & promotion handled by Game
+    return out;
   },
 };

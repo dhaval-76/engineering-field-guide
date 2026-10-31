@@ -2,7 +2,8 @@
 class RaftNode {
     long currentTerm = 0;
     String votedFor = null;
-    final List<Long> logTerms = new ArrayList<>();      // term of each entry; log index i is logTerms.get(i - 1)
+    // term of each entry; log index i is logTerms.get(i - 1)
+    final List<Long> logTerms = new ArrayList<>();
 
     long lastLogIndex() { return logTerms.size(); }
     long lastLogTerm()  { return logTerms.isEmpty() ? 0 : logTerms.get(logTerms.size() - 1); }
@@ -10,11 +11,13 @@ class RaftNode {
     /** RequestVote: grant at most one vote per term, and only to a candidate whose log is at least as up to date. */
     boolean handleRequestVote(long term, String candidate, long candLastIndex, long candLastTerm) {
         if (term < currentTerm) return false;                         // stale candidate
-        if (term > currentTerm) { currentTerm = term; votedFor = null; }  // newer term: step down, new vote
+        // newer term: step down, new vote
+        if (term > currentTerm) { currentTerm = term; votedFor = null; }
         boolean upToDate = candLastTerm > lastLogTerm()
                 || (candLastTerm == lastLogTerm() && candLastIndex >= lastLogIndex());
         if ((votedFor == null || votedFor.equals(candidate)) && upToDate) {
-            votedFor = candidate;                                     // persist before replying
+            // persist before replying
+            votedFor = candidate;
             return true;
         }
         return false;
@@ -28,7 +31,8 @@ class RaftNode {
     long advanceCommitIndex(long[] matchIndex, long commitIndex) {
         long[] sorted = matchIndex.clone();
         Arrays.sort(sorted);
-        long majorityIndex = sorted[(sorted.length - 1) / 2];           // replicated on a majority
+        // replicated on a majority
+        long majorityIndex = sorted[(sorted.length - 1) / 2];
         if (majorityIndex > commitIndex && logTerms.get((int) majorityIndex - 1) == currentTerm)
             return majorityIndex;
         return commitIndex;

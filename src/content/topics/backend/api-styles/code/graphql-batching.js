@@ -1,6 +1,7 @@
 import DataLoader from 'dataloader';
 
-// One set of loaders per request: batching within the request, no cache shared across users.
+// One set of loaders per request: batching within the request, no cache shared across
+// users.
 export function createContext({ user, db }) {
   return {
     user,

@@ -18,10 +18,12 @@ final class NearestSuitableCar implements DispatchStrategy {
             case IDLE -> Math.abs(here - target);
             case UP -> (target >= here && call.wants() == Direction.UP)
                     ? target - here                                   // on the way
-                    : (topFloor - here) + Math.abs(topFloor - target); // finish the sweep, then come back
+                    // finish the sweep, then come back
+                    : (topFloor - here) + Math.abs(topFloor - target);
             case DOWN -> (target <= here && call.wants() == Direction.DOWN)
                     ? here - target
-                    : here + target;                                 // sweep to ground (0), then up
+                    // sweep to ground (0), then up
+                    : here + target;
         };
     }
 }

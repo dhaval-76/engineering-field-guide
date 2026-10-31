@@ -6,7 +6,8 @@ public long placeOrder(DataSource ds, long customerId, long productId, int qty) 
             int reserved;
             try (PreparedStatement ps = con.prepareStatement(
                     "UPDATE products SET stock = stock - ? WHERE id = ? AND stock >= ?")) {
-                ps.setInt(1, qty); ps.setLong(2, productId); ps.setInt(3, qty);   // bound, never concatenated
+                // bound, never concatenated
+                ps.setInt(1, qty); ps.setLong(2, productId); ps.setInt(3, qty);
                 reserved = ps.executeUpdate();
             }
             if (reserved == 0) throw new OutOfStockException(productId);
@@ -18,7 +19,8 @@ public long placeOrder(DataSource ds, long customerId, long productId, int qty) 
                 ps.setLong(1, customerId); ps.setInt(2, qty); ps.setLong(3, productId);
                 try (ResultSet rs = ps.executeQuery()) { rs.next(); orderId = rs.getLong(1); }
             }
-            con.commit();                                          // both changes, or neither
+            // both changes, or neither
+            con.commit();
             return orderId;
         } catch (SQLException | RuntimeException e) {
             con.rollback();

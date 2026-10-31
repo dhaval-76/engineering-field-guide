@@ -1,4 +1,5 @@
-// The same token bucket shared by many app servers: state in Redis, check-and-update in one Lua script.
+// The same token bucket shared by many app servers: state in Redis, check-and-update in
+// one Lua script.
 private static final String TOKEN_BUCKET_LUA = """
     local key      = KEYS[1]
     local capacity = tonumber(ARGV[1])
@@ -18,5 +19,6 @@ private static final String TOKEN_BUCKET_LUA = """
 boolean tryAcquire(String clientId) {
     Long r = redis.execute(new DefaultRedisScript<>(TOKEN_BUCKET_LUA, Long.class),
             List.of("rl:" + clientId), "100", String.valueOf(50 / 1000.0), String.valueOf(clock.millis()));
-    return r != null && r == 1L;     // Lua runs atomically on the Redis server — no race between servers
+    // Lua runs atomically on the Redis server — no race between servers
+    return r != null && r == 1L;
 }

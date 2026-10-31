@@ -1,4 +1,5 @@
-// 1. Filters run before the DispatcherServlet: @RestControllerAdvice never sees their exceptions.
+// 1. Filters run before the DispatcherServlet: @RestControllerAdvice never sees their
+// exceptions.
 //    Spring Security has its own hooks for 401/403 — return problem+json from them too.
 @Bean
 SecurityFilterChain api(HttpSecurity http) throws Exception {

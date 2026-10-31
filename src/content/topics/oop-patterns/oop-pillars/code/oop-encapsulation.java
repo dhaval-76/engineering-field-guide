@@ -22,4 +22,5 @@ public class BankAccount {
     public long balance() { return balancePaise; }   // read access, no setter
 }
 
-// account.balancePaise = -1;   ← does not compile: the invariant "balance >= 0" is protected
+// account.balancePaise = -1;   ← does not compile: the invariant "balance >= 0" is
+// protected

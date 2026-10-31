@@ -6,10 +6,12 @@ public Order placeOrder(long customerId, List<LineRequest> lines) {
 
     Order order = new Order(customer);       // order.customer_id = customerId
     lines.forEach(l -> order.addLine(l.sku(), l.qty()));
-    em.persist(order);                       // INSERT INTO orders(customer_id, …) VALUES (42, …)
+    // INSERT INTO orders(customer_id, …) VALUES (42, …)
+    em.persist(order);
     return order;
-    // If customer 42 doesn't exist, the FK constraint fails at flush.
-    // Reading customer.getName() would trigger the SELECT (and EntityNotFoundException if missing).
+    // If customer 42 doesn't exist, the FK constraint fails at flush. Reading
+    // customer.getName() would trigger the SELECT (and EntityNotFoundException if
+    // missing).
 }
 
 @Transactional(readOnly = true)
@@ -19,4 +21,5 @@ public CustomerView show(long id) {
     return CustomerView.from(c);
 }
 
-// Spring Data equivalents: repo.findById(id) → Optional (find), repo.getReferenceById(id) → proxy
+// Spring Data equivalents: repo.findById(id) → Optional (find), repo.getReferenceById(id)
+// → proxy

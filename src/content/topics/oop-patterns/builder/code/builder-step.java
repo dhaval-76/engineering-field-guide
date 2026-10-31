@@ -25,4 +25,5 @@ public final class HttpRequest {
 }
 
 HttpRequest r = HttpRequest.newRequest().url("https://api.example.com/orders").post().body("{}").build();
-// HttpRequest.newRequest().url("…").get().body("{}")   ← does not compile: GET has no body step
+// HttpRequest.newRequest().url("…").get().body("{}")   ← does not compile: GET has no
+// body step

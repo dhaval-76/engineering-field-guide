@@ -18,7 +18,8 @@ class Vehicle:
     plate: str
     type: VehicleType
 
-# Which spot sizes a vehicle may use, smallest first (so cars don't take truck spots unnecessarily).
+# Which spot sizes a vehicle may use, smallest first (so cars don't take truck spots
+# unnecessarily).
 FITS_IN = {
     VehicleType.MOTORCYCLE: [SpotSize.SMALL, SpotSize.MEDIUM, SpotSize.LARGE],
     VehicleType.CAR: [SpotSize.MEDIUM, SpotSize.LARGE],

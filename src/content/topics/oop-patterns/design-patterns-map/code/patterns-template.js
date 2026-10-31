@@ -6,7 +6,8 @@ export class DataImport {
     this.save(valid);
     return { total: rows.length, imported: valid.length };
   }
-  parse(file) { throw new Error('subclass must implement parse()'); }   // varies: CSV, Excel, JSON
+  // varies: CSV, Excel, JSON
+  parse(file) { throw new Error('subclass must implement parse()'); }
   isValid(row) { return row.id != null; }                                // optional hook
   save(rows) { throw new Error('subclass must implement save()'); }
 }

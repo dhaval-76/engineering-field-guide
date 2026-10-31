@@ -1,6 +1,7 @@
 /**
- * Leaky bucket as a queue: requests wait in a bounded queue and are released at a constant rate.
- * Output is perfectly smooth — useful in front of a downstream that can only take N calls/second.
+ * Leaky bucket as a queue: requests wait in a bounded queue and are released at a
+ * constant rate. Output is perfectly smooth — useful in front of a downstream that can
+ * only take N calls/second.
  */
 final class LeakyBucket<T> implements AutoCloseable {
     private final BlockingQueue<T> queue;

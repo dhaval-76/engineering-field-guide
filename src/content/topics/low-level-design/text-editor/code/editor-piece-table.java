@@ -1,13 +1,15 @@
 /**
- * Piece table: the original text is never modified; inserted text is appended to an "add" buffer;
- * the document is a list of pieces pointing into either buffer. Edits only split/insert pieces.
+ * Piece table: the original text is never modified; inserted text is appended to an "add"
+ * buffer; the document is a list of pieces pointing into either buffer. Edits only
+ * split/insert pieces.
  */
 final class PieceTable implements Buffer {
     private record Piece(boolean fromAdd, int start, int length) {}
 
     private final String original;
     private final StringBuilder add = new StringBuilder();
-    private final List<Piece> pieces = new ArrayList<>();       // a balanced tree in real editors
+    // a balanced tree in real editors
+    private final List<Piece> pieces = new ArrayList<>();
 
     PieceTable(String original) {
         this.original = original;
@@ -16,13 +18,15 @@ final class PieceTable implements Buffer {
 
     public void insert(int pos, String text) {
         Piece inserted = new Piece(true, add.length(), text.length());
-        add.append(text);                                        // append-only: cheap, and old pieces stay valid
+        // append-only: cheap, and old pieces stay valid
+        add.append(text);
         int offset = 0;
         for (int i = 0; i <= pieces.size(); i++) {
             if (i == pieces.size()) { pieces.add(inserted); return; }
             Piece p = pieces.get(i);
             if (pos <= offset + p.length()) {
-                int split = pos - offset;                        // split p into [left][inserted][right]
+                // split p into [left][inserted][right]
+                int split = pos - offset;
                 List<Piece> replacement = new ArrayList<>();
                 if (split > 0) replacement.add(new Piece(p.fromAdd(), p.start(), split));
                 replacement.add(inserted);
@@ -47,8 +51,10 @@ final class PieceTable implements Buffer {
             if (cutFrom >= cutTo) { kept.add(p); continue; }                  // untouched
             CharSequence buf = p.fromAdd() ? add : original;
             removed.append(buf, p.start() + cutFrom - pStart, p.start() + cutTo - pStart);
-            if (cutFrom > pStart) kept.add(new Piece(p.fromAdd(), p.start(), cutFrom - pStart));            // left part
-            if (cutTo < pEnd) kept.add(new Piece(p.fromAdd(), p.start() + cutTo - pStart, pEnd - cutTo));   // right part
+            // left part
+            if (cutFrom > pStart) kept.add(new Piece(p.fromAdd(), p.start(), cutFrom - pStart));
+            // right part
+            if (cutTo < pEnd) kept.add(new Piece(p.fromAdd(), p.start() + cutTo - pStart, pEnd - cutTo));
         }
         pieces.clear();
         pieces.addAll(kept);

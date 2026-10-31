@@ -3,7 +3,8 @@ from datetime import datetime, timezone
 
 NEXT = {
     "REQUESTED": {"DRIVER_ASSIGNED", "CANCELLED"},
-    "DRIVER_ASSIGNED": {"DRIVER_ARRIVED", "REQUESTED", "CANCELLED"},   # back to REQUESTED if the driver drops
+    # back to REQUESTED if the driver drops
+    "DRIVER_ASSIGNED": {"DRIVER_ARRIVED", "REQUESTED", "CANCELLED"},
     "DRIVER_ARRIVED": {"IN_PROGRESS", "CANCELLED"},
     "IN_PROGRESS": {"COMPLETED"},
     "COMPLETED": set(),

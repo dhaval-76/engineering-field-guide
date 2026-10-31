@@ -14,7 +14,8 @@ const GEAR = (() => {
   return t;
 })();
 
-// Content-defined chunking with a gear rolling hash (BigInt keeps 64-bit arithmetic exact).
+// Content-defined chunking with a gear rolling hash (BigInt keeps 64-bit arithmetic
+// exact).
 export function chunk(data, minSize = 2048, avgBits = 13, maxSize = 65536) {
   const mask = ((1n << BigInt(avgBits)) - 1n) << BigInt(64 - avgBits);
   const chunks = [];

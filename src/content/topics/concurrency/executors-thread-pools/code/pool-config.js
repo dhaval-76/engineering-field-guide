@@ -1,4 +1,5 @@
-// Node: limit concurrent async work with a small semaphore-style limiter (p-limit does this).
+// Node: limit concurrent async work with a small semaphore-style limiter (p-limit does
+// this).
 export function limit(concurrency) {
   const queue = [];
   let active = 0;
@@ -12,4 +13,5 @@ export function limit(concurrency) {
 }
 
 const run = limit(10);
-await Promise.all(urls.map((u) => run(() => fetch(u))));   // at most 10 requests in flight
+// at most 10 requests in flight
+await Promise.all(urls.map((u) => run(() => fetch(u))));

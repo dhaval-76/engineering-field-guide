@@ -1,4 +1,5 @@
-// BEFORE — SQL injection, three responsibilities, hard-wired dependencies, growing if-chain.
+// BEFORE — SQL injection, three responsibilities, hard-wired dependencies, growing
+// if-chain.
 async function processUser(userId) {
   const user = await db.query(`SELECT * FROM users WHERE id=${userId}`);
   if (user.isAdmin) {
@@ -7,9 +8,9 @@ async function processUser(userId) {
   }
 }
 
-// AFTER
-// users: { findById(id), touchLastLogin(id) } — DIP: an abstraction with parameterised queries inside
-// hooks: [{ appliesTo(user), onLogin(user) }] — OCP: new behaviour = new hook
+// AFTER users: { findById(id), touchLastLogin(id) } — DIP: an abstraction with
+// parameterised queries inside hooks: [{ appliesTo(user), onLogin(user) }] — OCP: new
+// behaviour = new hook
 const adminReportHook = (mailer) => ({
   appliesTo: (u) => u.isAdmin,
   onLogin: (u) => mailer.sendAdminReport(u),

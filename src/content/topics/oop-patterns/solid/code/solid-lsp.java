@@ -3,9 +3,11 @@ class Bird { void fly() { /* ... */ } }
 class Penguin extends Bird {
     @Override void fly() { throw new UnsupportedOperationException(); }
 }
-void migrate(List<Bird> flock) { flock.forEach(Bird::fly); }   // 💥 when a Penguin is in the list
+// 💥 when a Penguin is in the list
+void migrate(List<Bird> flock) { flock.forEach(Bird::fly); }
 
-// ✓ Model the capability separately; every subtype can now do everything its type promises.
+// ✓ Model the capability separately; every subtype can now do everything its type
+// promises.
 abstract class Bird { abstract void move(); }
 interface Flyer { void fly(); }
 

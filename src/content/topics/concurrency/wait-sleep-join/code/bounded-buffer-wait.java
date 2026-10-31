@@ -5,8 +5,10 @@ class BoundedBuffer<T> {
     BoundedBuffer(int capacity) { this.capacity = capacity; }
 
     public synchronized void put(T item) throws InterruptedException {
-        while (items.size() == capacity) {   // WHILE, not if — re-check after every wakeup
-            wait();                          // releases the monitor so a consumer can take()
+        // WHILE, not if — re-check after every wakeup
+        while (items.size() == capacity) {
+            // releases the monitor so a consumer can take()
+            wait();
         }
         items.addLast(item);
         notifyAll();                         // wake consumers waiting for "not empty"
@@ -21,5 +23,5 @@ class BoundedBuffer<T> {
         return item;
     }
 }
-// notifyAll, not notify: producers and consumers wait on the same monitor,
-// and notify() could wake another producer while the only thing that can make progress is a consumer.
+// notifyAll, not notify: producers and consumers wait on the same monitor, and notify()
+// could wake another producer while the only thing that can make progress is a consumer.

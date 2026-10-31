@@ -12,4 +12,5 @@ const gateway = new StripeGateway(process.env.STRIPE_KEY);
 export const checkout = new CheckoutService({ gateway, orders });
 
 // In tests: new CheckoutService({ gateway: fakeGateway, orders: inMemoryOrders })
-// Frameworks such as NestJS (and libraries like awilix) automate this wiring with a container.
+// Frameworks such as NestJS (and libraries like awilix) automate this wiring with a
+// container.

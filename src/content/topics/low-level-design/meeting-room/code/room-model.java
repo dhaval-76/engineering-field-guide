@@ -12,7 +12,8 @@ final class Room {
     final String id;
     final int capacity;
     final Set<Amenity> amenities;
-    // Bookings keyed by start time — non-overlapping by construction, so neighbours are all we need to check.
+    // Bookings keyed by start time — non-overlapping by construction, so neighbours are
+    // all we need to check.
     private final TreeMap<Instant, Booking> byStart = new TreeMap<>();
 
     Room(String id, int capacity, Set<Amenity> amenities) { this.id = id; this.capacity = capacity; this.amenities = amenities; }
@@ -26,7 +27,8 @@ final class Room {
     }
 
     synchronized Booking book(TimeSlot s, String organizer, Set<String> attendees, String seriesId) {
-        if (!isFree(s)) throw new SlotTakenException(id, s);           // check and insert under one lock
+        // check and insert under one lock
+        if (!isFree(s)) throw new SlotTakenException(id, s);
         Booking b = new Booking(UUID.randomUUID().toString(), id, s, organizer, Set.copyOf(attendees), seriesId);
         byStart.put(s.start(), b);
         return b;

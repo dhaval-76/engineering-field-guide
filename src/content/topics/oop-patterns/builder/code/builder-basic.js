@@ -7,7 +7,8 @@ export function createUser({ name, email, age = 0, phone = null, role = 'USER', 
 
 const u = createUser({ name: 'Asha', email: 'asha@example.com', role: 'ADMIN', verified: true });
 
-// A fluent builder is still useful when steps accumulate (e.g. query or request builders):
+// A fluent builder is still useful when steps accumulate (e.g. query or request
+// builders):
 export class RequestBuilder {
   #method = 'GET'; #headers = {}; #body;
   constructor(url) { this.url = url; }

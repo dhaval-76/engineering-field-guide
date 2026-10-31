@@ -6,7 +6,8 @@ const KEY = 'leaderboard:season-12';
 export const addPoints = (playerId, points) => redis.zincrby(KEY, points, playerId);
 
 export async function top(n) {
-  const flat = await redis.zrange(KEY, 0, n - 1, 'REV', 'WITHSCORES');   // [id, score, id, score…]
+  // [id, score, id, score…]
+  const flat = await redis.zrange(KEY, 0, n - 1, 'REV', 'WITHSCORES');
   const out = [];
   for (let i = 0; i < flat.length; i += 2) {
     out.push({ rank: i / 2 + 1, playerId: flat[i], score: Number(flat[i + 1]) });

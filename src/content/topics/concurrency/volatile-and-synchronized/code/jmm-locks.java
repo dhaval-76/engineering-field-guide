@@ -15,7 +15,8 @@ class Account {
     private final ReentrantLock lock = new ReentrantLock();
     private long balance;
     boolean tryWithdraw(long amt) throws InterruptedException {
-        if (!lock.tryLock(200, TimeUnit.MILLISECONDS)) return false;   // don't wait forever
+        // don't wait forever
+        if (!lock.tryLock(200, TimeUnit.MILLISECONDS)) return false;
         try {
             if (balance < amt) return false;
             balance -= amt;

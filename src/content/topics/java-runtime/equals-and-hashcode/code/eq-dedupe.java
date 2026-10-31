@@ -1,7 +1,8 @@
 // Deduplicate users by email, case-insensitively.
 public record User(String email, String name) {
     public User {
-        email = email.trim().toLowerCase(Locale.ROOT);   // normalise once, so equals/hashCode stay simple
+        // normalise once, so equals/hashCode stay simple
+        email = email.trim().toLowerCase(Locale.ROOT);
     }
     // A record's equals/hashCode use ALL components — here that includes name.
     // If identity is "email only", override both to use only email:

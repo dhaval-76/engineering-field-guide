@@ -3,7 +3,8 @@ private static final ThreadLocal<SimpleDateFormat> FORMAT =
         ThreadLocal.withInitial(() -> new SimpleDateFormat("yyyy-MM-dd"));
 // Better today: DateTimeFormatter is immutable and thread-safe — no ThreadLocal needed.
 
-// 2. Logging context: SLF4J's MDC is a ThreadLocal map that log patterns can print (%X{traceId})
+// 2. Logging context: SLF4J's MDC is a ThreadLocal map that log patterns can print
+// (%X{traceId})
 MDC.put("traceId", traceId);
 try { handle(request); } finally { MDC.remove("traceId"); }
 

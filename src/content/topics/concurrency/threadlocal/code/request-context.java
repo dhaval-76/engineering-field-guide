@@ -15,7 +15,8 @@ public final class RequestContext {
         if (ctx == null) throw new IllegalStateException("no request context on this thread");
         return ctx;
     }
-    public static void close() { CURRENT.remove(); }      // the line that prevents the leak
+    // the line that prevents the leak
+    public static void close() { CURRENT.remove(); }
 
     public String userId() { return userId; }
     public String traceId() { return traceId; }
@@ -32,7 +33,8 @@ public class RequestContextFilter extends OncePerRequestFilter {
         try {
             chain.doFilter(req, res);
         } finally {
-            RequestContext.close();                          // pool threads are reused for the next request
+            // pool threads are reused for the next request
+            RequestContext.close();
         }
     }
 }

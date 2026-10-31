@@ -3,7 +3,8 @@ List<List<String>> groupAnagrams(String[] words) {
     for (String w : words) {
         int[] count = new int[26];
         for (char c : w.toCharArray()) count[c - 'a']++;
-        String key = Arrays.toString(count);               // e.g. "[1, 0, 0, 1, ...]" — O(k), no sorting
+        // e.g. "[1, 0, 0, 1, ...]" — O(k), no sorting
+        String key = Arrays.toString(count);
         groups.computeIfAbsent(key, k -> new ArrayList<>()).add(w);
     }
     return new ArrayList<>(groups.values());

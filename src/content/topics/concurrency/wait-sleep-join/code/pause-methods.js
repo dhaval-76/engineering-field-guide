@@ -1,6 +1,8 @@
-// JavaScript has one thread per event loop, so nothing "sleeps" — you await a timer or a promise.
+// JavaScript has one thread per event loop, so nothing "sleeps" — you await a timer or a
+// promise.
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-await sleep(200);                                  // other callbacks keep running meanwhile
+// other callbacks keep running meanwhile
+await sleep(200);
 
 // "join" a worker thread
 import { Worker } from 'node:worker_threads';

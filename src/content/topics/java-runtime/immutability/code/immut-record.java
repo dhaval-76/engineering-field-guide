@@ -1,6 +1,8 @@
-// A record = final class, private final fields, canonical constructor, accessors, equals/hashCode/toString.
+// A record = final class, private final fields, canonical constructor, accessors,
+// equals/hashCode/toString.
 public record Money(long minorUnits, Currency currency) {
-    public Money {                                           // compact constructor: validate / normalise
+    // compact constructor: validate / normalise
+    public Money {
         Objects.requireNonNull(currency);
         if (minorUnits < 0) throw new IllegalArgumentException("negative amount");
     }

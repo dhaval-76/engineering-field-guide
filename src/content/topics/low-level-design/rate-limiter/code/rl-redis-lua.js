@@ -1,4 +1,5 @@
-// The same token bucket shared by many app servers: state in Redis, check-and-update in one Lua script.
+// The same token bucket shared by many app servers: state in Redis, check-and-update in
+// one Lua script.
 const TOKEN_BUCKET_LUA = `
     local key      = KEYS[1]
     local capacity = tonumber(ARGV[1])

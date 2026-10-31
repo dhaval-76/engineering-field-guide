@@ -1,4 +1,5 @@
-// Factory Method: the base class defines the workflow and leaves ONE creation step to subclasses.
+// Factory Method: the base class defines the workflow and leaves ONE creation step to
+// subclasses.
 export class ReportExporter {
   export(report) {
     const writer = this.createWriter();   // ← the factory method
@@ -15,4 +16,5 @@ export class CsvExporter extends ReportExporter {
 export class PdfExporter extends ReportExporter {
   createWriter() { return new PdfWriter({ pageSize: 'A4' }); }
 }
-// In JavaScript a plain function parameter often replaces the subclass: exportReport(report, () => new CsvWriter())
+// In JavaScript a plain function parameter often replaces the subclass:
+// exportReport(report, () => new CsvWriter())

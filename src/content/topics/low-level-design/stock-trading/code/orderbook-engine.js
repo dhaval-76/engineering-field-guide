@@ -1,4 +1,5 @@
-// Compact JS version: arrays sorted by price then sequence (fine for teaching; use a tree/heap for speed).
+// Compact JS version: arrays sorted by price then sequence (fine for teaching; use a
+// tree/heap for speed).
 export class OrderBook {
   bids = []; // sorted: price desc, seq asc
   asks = []; // sorted: price asc, seq asc

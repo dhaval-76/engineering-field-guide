@@ -18,7 +18,8 @@ final class StockTicker {                                     // the subject
         for (PriceListener l : listeners.getOrDefault(symbol, List.of())) {
             try {
                 l.onPriceChange(symbol, old, price);
-            } catch (RuntimeException e) {                     // one bad listener must not stop the rest
+            // one bad listener must not stop the rest
+            } catch (RuntimeException e) {
                 log.warn("listener failed for {}", symbol, e);
             }
         }

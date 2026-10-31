@@ -9,14 +9,16 @@ record Completion(String text, int inputTokens, int outputTokens, String provide
 class LlmGateway {
     private final List<LlmProvider> chain;                  // primary first
     private final long tokensPerMinute;
-    private final Map<String, long[]> usage = new ConcurrentHashMap<>();   // tenant -> {minute, tokens}
+    // tenant -> {minute, tokens}
+    private final Map<String, long[]> usage = new ConcurrentHashMap<>();
 
     LlmGateway(List<LlmProvider> chain, long tokensPerMinute) {
         this.chain = chain; this.tokensPerMinute = tokensPerMinute;
     }
 
     Completion complete(Prompt p, long nowMillis) {
-        long estimate = p.text().length() / 4 + p.maxTokens();             // rough worst case
+        // rough worst case
+        long estimate = p.text().length() / 4 + p.maxTokens();
         reserve(p.tenant(), estimate, nowMillis);
         List<String> errors = new ArrayList<>();
         for (LlmProvider provider : chain) {
@@ -25,10 +27,12 @@ class LlmGateway {
                 adjust(p.tenant(), c.inputTokens() + c.outputTokens() - estimate, nowMillis);
                 return c;
             } catch (Exception e) {
-                errors.add(provider.name() + ": " + e.getMessage());  // try the next provider
+                // try the next provider
+                errors.add(provider.name() + ": " + e.getMessage());
             }
         }
-        adjust(p.tenant(), -estimate, nowMillis);                          // nothing was spent
+        // nothing was spent
+        adjust(p.tenant(), -estimate, nowMillis);
         throw new IllegalStateException("all providers failed " + errors);
     }
 

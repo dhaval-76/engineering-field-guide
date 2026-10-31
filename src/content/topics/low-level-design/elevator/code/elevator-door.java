@@ -10,7 +10,8 @@ final class Door {
             case OPENING -> e == DoorEvent.OPENED ? DoorState.OPEN : state;
             case OPEN    -> (e == DoorEvent.CLOSE_REQUESTED || e == DoorEvent.TIMEOUT) ? DoorState.CLOSING : state;
             case CLOSING -> switch (e) {
-                case OBSTRUCTION, OPEN_REQUESTED -> DoorState.OPENING;     // safety: always re-open
+                // safety: always re-open
+                case OBSTRUCTION, OPEN_REQUESTED -> DoorState.OPENING;
                 case CLOSED_FULLY -> DoorState.CLOSED;
                 default -> state;
             };

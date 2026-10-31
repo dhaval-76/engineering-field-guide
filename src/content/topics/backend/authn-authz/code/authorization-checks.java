@@ -11,8 +11,10 @@ class OrderService {
 
     // Better for lists and for hiding existence: scope the QUERY to the caller
     public List<OrderView> myOrders(Authentication auth, Cursor cursor) {
-        return orders.findByCustomerId(auth.getName(), cursor);      // never findAll() then filter
+        // never findAll() then filter
+        return orders.findByCustomerId(auth.getName(), cursor);
     }
 }
-// Return 404 rather than 403 for "exists but not yours" if ids are guessable and existence is sensitive.
-// Test both: no token → 401; valid token without permission → 403/404; someone else's id → 404.
+// Return 404 rather than 403 for "exists but not yours" if ids are guessable and
+// existence is sensitive. Test both: no token → 401; valid token without permission →
+// 403/404; someone else's id → 404.

@@ -4,7 +4,8 @@ function shortestPath(grid) {
   const seen = grid.map((row) => row.map(() => false));
   const queue = [[0, 0, 0]];
   seen[0][0] = true;
-  for (let head = 0; head < queue.length; head++) {          // index instead of shift(): O(1)
+  // index instead of shift(): O(1)
+  for (let head = 0; head < queue.length; head++) {
     const [r, c, d] = queue[head];
     if (r === rows - 1 && c === cols - 1) return d;
     for (const [dr, dc] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {

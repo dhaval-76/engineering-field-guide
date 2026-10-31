@@ -4,16 +4,18 @@
 const chains = new Map();
 function withAccountLock(id, fn) {
   const prev = chains.get(id) ?? Promise.resolve();
-  const next = prev.then(fn, fn);                 // run after the previous holder finishes (even if it failed)
+  // run after the previous holder finishes (even if it failed)
+  const next = prev.then(fn, fn);
   chains.set(id, next.catch(() => {}));
   return next;
 }
 
 export const withdraw = (account, amount) => withAccountLock(account.id, async () => {
   if (account.balance < amount) throw new Error('insufficient funds');
-  await audit.record(account.id, amount);         // the await no longer lets another withdrawal in between
+  // the await no longer lets another withdrawal in between
+  await audit.record(account.id, amount);
   account.balance -= amount;
 });
 
-// ✓ Several app servers: the database must do it atomically
-// UPDATE accounts SET balance = balance - $1 WHERE id = $2 AND balance >= $1;   -- 0 rows ⇒ insufficient
+// ✓ Several app servers: the database must do it atomically UPDATE accounts SET balance =
+// balance - $1 WHERE id = $2 AND balance >= $1;   -- 0 rows ⇒ insufficient

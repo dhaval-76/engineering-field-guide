@@ -2,7 +2,8 @@
 @Import(ApiExceptionHandler.class)
 class OrderErrorsTest {
     @Autowired MockMvc mvc;
-    @MockitoBean OrderService orders;                   // Spring Boot 3.4+ (@MockBean before)
+    // Spring Boot 3.4+ (@MockBean before)
+    @MockitoBean OrderService orders;
 
     @Test
     void invalidBody_returns400WithFieldErrors() throws Exception {

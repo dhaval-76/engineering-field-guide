@@ -9,7 +9,8 @@ export async function getProduct(id) {
 
   const { rows } = await db.query('SELECT id, name, price FROM products WHERE id = $1', [id]);
   if (rows.length === 0) {
-    await redis.set(key, 'null', 'EX', 30).catch(() => {}); // negative cache: stops penetration
+    // negative cache: stops penetration
+    await redis.set(key, 'null', 'EX', 30).catch(() => {});
     return null;
   }
   await redis.set(key, JSON.stringify(rows[0]), 'EX', jitter(TTL_SECONDS)).catch(() => {});
@@ -17,6 +18,8 @@ export async function getProduct(id) {
 }
 
 export async function changePrice(id, price) {
-  await db.query('UPDATE products SET price = $1 WHERE id = $2', [price, id]);  // autocommit
-  await redis.del(`product:v1:${id}`);                                           // after the commit
+  // autocommit
+  await db.query('UPDATE products SET price = $1 WHERE id = $2', [price, id]);
+  // after the commit
+  await redis.del(`product:v1:${id}`);
 }

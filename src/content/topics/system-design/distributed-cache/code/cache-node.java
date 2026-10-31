@@ -1,13 +1,14 @@
 /**
- * One cache node, Redis-style: lazy + sampled active expiry, and approximate LRU eviction by sampling.
- * Keys also live in an array so a random key can be picked in O(1).
+ * One cache node, Redis-style: lazy + sampled active expiry, and approximate LRU eviction
+ * by sampling. Keys also live in an array so a random key can be picked in O(1).
  */
 class CacheNode {
     private static final class Item { String value; long expiresAt; long lastAccess; int slot; }
 
     private final int capacity, samples;
     private final Map<String, Item> items = new HashMap<>();
-    private final List<String> keys = new ArrayList<>();          // for O(1) random sampling
+    // for O(1) random sampling
+    private final List<String> keys = new ArrayList<>();
     private final Random random;
     private long evictions = 0;
 
@@ -66,7 +67,8 @@ class CacheNode {
         return removed;
     }
 
-    private void remove(String key) {                             // swap-remove keeps the array dense
+    // swap-remove keeps the array dense
+    private void remove(String key) {
         Item it = items.remove(key);
         String last = keys.remove(keys.size() - 1);
         if (!last.equals(key)) { keys.set(it.slot, last); items.get(last).slot = it.slot; }

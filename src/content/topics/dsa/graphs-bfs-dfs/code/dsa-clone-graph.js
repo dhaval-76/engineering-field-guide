@@ -4,7 +4,8 @@ function cloneGraph(node) {
   const dfs = (n) => {
     if (copies.has(n)) return copies.get(n);
     const copy = { val: n.val, neighbors: [] };
-    copies.set(n, copy);                          // before visiting neighbours: handles cycles
+    // before visiting neighbours: handles cycles
+    copies.set(n, copy);
     copy.neighbors = n.neighbors.map(dfs);
     return copy;
   };

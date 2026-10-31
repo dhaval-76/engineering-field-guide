@@ -19,7 +19,8 @@ class Dispatcher:
                 continue
             for m in batch:
                 self._deliver(m)
-                self.broker.commit(self.topic, self.group, m.offset + 1)   # commit after handling: at-least-once
+                # commit after handling: at-least-once
+                self.broker.commit(self.topic, self.group, m.offset + 1)
 
     def _deliver(self, m) -> None:
         for attempt in range(1, self.max_attempts + 1):
@@ -28,9 +29,11 @@ class Dispatcher:
                 return
             except Exception:
                 if attempt == self.max_attempts:
-                    self.broker.publish(f"{self.topic}.dlq", m.key, m.payload)   # poison message: move on
+                    # poison message: move on
+                    self.broker.publish(f"{self.topic}.dlq", m.key, m.payload)
                     return
-                time.sleep(0.1 * 2 ** attempt)                                # exponential backoff
+                # exponential backoff
+                time.sleep(0.1 * 2 ** attempt)
 
     def stop(self) -> None:
         self._stop.set()

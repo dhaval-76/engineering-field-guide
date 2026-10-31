@@ -1,4 +1,5 @@
-// Factory Method: the base class defines the workflow and leaves ONE creation step to subclasses.
+// Factory Method: the base class defines the workflow and leaves ONE creation step to
+// subclasses.
 abstract class ReportExporter {
     public final byte[] export(Report report) {        // template of the algorithm
         Writer writer = createWriter();                // ← the factory method

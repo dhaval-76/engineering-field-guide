@@ -1,4 +1,5 @@
-// In-process event bus: handlers per event type, run asynchronously and isolated from each other.
+// In-process event bus: handlers per event type, run asynchronously and isolated from
+// each other.
 export class EventBus {
   #handlers = new Map(); // type -> Set<handler>
 
@@ -14,7 +15,8 @@ export class EventBus {
         try {
           await h(event);
         } catch (err) {
-          console.error(`handler failed for ${event.type}`, err); // one bad handler doesn't stop the others
+          // one bad handler doesn't stop the others
+          console.error(`handler failed for ${event.type}`, err);
         }
       });
     }
@@ -22,6 +24,6 @@ export class EventBus {
 }
 // Node's built-in EventEmitter is synchronous: a throwing listener breaks the emit call.
 
-// const bus = new EventBus();
-// const unsubscribe = bus.subscribe('OrderPlaced', (e) => email.send(e));
-// bus.publish({ type: 'OrderPlaced', orderId: 'o-1', customerId: 'c-9', totalPaise: 1000 });
+// const bus = new EventBus(); const unsubscribe = bus.subscribe('OrderPlaced', (e) =>
+// email.send(e)); bus.publish({ type: 'OrderPlaced', orderId: 'o-1', customerId: 'c-9',
+// totalPaise: 1000 });

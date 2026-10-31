@@ -23,7 +23,8 @@ public final class OrderSummaryService {
             .orTimeout(300, MILLISECONDS);
 
         return price.thenCombine(inStock, (p, ok) -> ok ? ItemView.available(item, p) : ItemView.unavailable(item))
-            .exceptionally(ex -> ItemView.unavailable(item));   // one bad item never fails the whole response
+            // one bad item never fails the whole response
+            .exceptionally(ex -> ItemView.unavailable(item));
     }
 }
 

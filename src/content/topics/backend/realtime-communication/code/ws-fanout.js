@@ -3,14 +3,16 @@ import { WebSocketServer } from 'ws';
 import Redis from 'ioredis';
 
 const pub = new Redis(process.env.REDIS_URL);
-const sub = new Redis(process.env.REDIS_URL); // a subscribed connection can't run other commands
+// a subscribed connection can't run other commands
+const sub = new Redis(process.env.REDIS_URL);
 const rooms = new Map(); // room -> Set<socket>
 
 const wss = new WebSocketServer({ port: 8080 });
 sub.psubscribe('room:*');
 sub.on('pmessage', (_pattern, room, payload) => {
   for (const ws of rooms.get(room) ?? []) {
-    if (ws.bufferedAmount > 1_000_000) ws.terminate(); // too slow: drop rather than buffer forever
+    // too slow: drop rather than buffer forever
+    if (ws.bufferedAmount > 1_000_000) ws.terminate();
     else ws.send(payload);
   }
 });

@@ -1,4 +1,5 @@
-// Composite: files and directories share one shape, so traversal code treats them uniformly.
+// Composite: files and directories share one shape, so traversal code treats them
+// uniformly.
 class Node {
   parent = null;
   modified = Date.now();
@@ -40,7 +41,8 @@ export class DirNode extends Node {
     return this.children.reduce((sum, c) => sum + c.size, 0); // recursive by composition
   }
   get children() {
-    return [...this.#children.values()].sort((a, b) => (a.name < b.name ? -1 : 1)); // sorted for ls
+    // sorted for ls
+    return [...this.#children.values()].sort((a, b) => (a.name < b.name ? -1 : 1));
   }
   child(name) {
     return this.#children.get(name) ?? null;

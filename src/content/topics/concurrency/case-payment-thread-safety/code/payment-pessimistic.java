@@ -1,6 +1,7 @@
 interface AccountRepository extends JpaRepository<Account, String> {
     @Lock(LockModeType.PESSIMISTIC_WRITE)                    // SELECT … FOR UPDATE
-    @Query("select a from Account a where a.id in :ids order by a.id")   // consistent order → no deadlock
+    // consistent order → no deadlock
+    @Query("select a from Account a where a.id in :ids order by a.id")
     List<Account> lockAll(@Param("ids") Collection<String> ids);
 }
 
@@ -16,8 +17,10 @@ class TransferService {
         from.setBalance(from.getBalance().subtract(amount));
         to.setBalance(to.getBalance().add(amount));
 
-        Transfer t = transfers.save(Transfer.completed(fromId, toId, amount));   // ledger row, same transaction
-        outbox.save(OutboxEvent.of("TransferCompleted", t));                     // published after commit
+        // ledger row, same transaction
+        Transfer t = transfers.save(Transfer.completed(fromId, toId, amount));
+        // published after commit
+        outbox.save(OutboxEvent.of("TransferCompleted", t));
         return t;
     }   // commit releases both row locks
 }

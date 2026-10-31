@@ -7,9 +7,11 @@ class ConfigError(Exception):
 
 def read_config(path: str) -> dict:
     try:
-        with open(path) as f:            # context manager: closes the file even on exceptions
+        # context manager: closes the file even on exceptions
+        with open(path) as f:
             return json.load(f)
     except FileNotFoundError:
         raise                            # let callers decide
     except json.JSONDecodeError as e:
-        raise ConfigError(f"invalid config {path}") from e   # 'from e' keeps the cause chain
+        # 'from e' keeps the cause chain
+        raise ConfigError(f"invalid config {path}") from e

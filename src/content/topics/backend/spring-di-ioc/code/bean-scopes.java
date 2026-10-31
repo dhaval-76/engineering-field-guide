@@ -1,4 +1,5 @@
-@Component                     // singleton (default): one instance per container, shared by all threads
+// singleton (default): one instance per container, shared by all threads
+@Component
 class PriceCalculator { }      // → must be stateless or thread-safe
 
 @Component
@@ -7,12 +8,14 @@ class ReportBuilder { private final List<Row> rows = new ArrayList<>(); }
 
 @Service
 class ReportService {
-    private final ObjectProvider<ReportBuilder> builders;   // ✓ ask for a fresh prototype per use
+    // ✓ ask for a fresh prototype per use
+    private final ObjectProvider<ReportBuilder> builders;
 
     ReportService(ObjectProvider<ReportBuilder> builders) { this.builders = builders; }
 
     Report monthly() {
-        ReportBuilder b = builders.getObject();             // new ReportBuilder every call
+        // new ReportBuilder every call
+        ReportBuilder b = builders.getObject();
         return b.addMonth().build();
     }
 }
@@ -20,5 +23,6 @@ class ReportService {
 //   the prototype scope only applies when the container is asked again.
 
 @Component
-@RequestScope                  // one per HTTP request; injected into singletons via a scoped proxy
+// one per HTTP request; injected into singletons via a scoped proxy
+@RequestScope
 class RequestAudit { }

@@ -1,4 +1,5 @@
-// build: spring-boot-starter-cache, caffeine (local) and/or spring-boot-starter-data-redis
+// build: spring-boot-starter-cache, caffeine (local) and/or
+// spring-boot-starter-data-redis
 @Configuration
 @EnableCaching
 class CacheConfig {
@@ -18,7 +19,8 @@ class CacheConfig {
 
 @Service
 class ProductQueries {
-    // Cache-aside via proxy. sync = true: one loader per key per instance (stampede protection).
+    // Cache-aside via proxy. sync = true: one loader per key per instance (stampede
+    // protection).
     @Cacheable(cacheNames = "products", key = "#id", sync = true)
     public ProductView get(long id) {
         return repo.findView(id).orElseThrow(() -> new NotFoundException("product", id));
@@ -32,7 +34,8 @@ class ProductCommands {
         repo.findById(id).orElseThrow().setPrice(price);
         events.publishEvent(new ProductChanged(id));
     }
-    // ✗ @CacheEvict here can evict BEFORE commit: a concurrent reader could reload the old
+    // ✗ @CacheEvict here can evict BEFORE commit: a concurrent reader could reload the
+    // old
     //   row into the cache and keep it until the TTL expires.
 }
 

@@ -14,7 +14,8 @@ final class LegacyGatewayAdapter implements PaymentProcessor {
     public PaymentResult pay(Payment p) {
         Map<String, String> response = gateway.initiatePayment(Map.of(
             "txn_ref", p.id(),
-            "amt", p.amount().movePointRight(2).toPlainString(),   // rupees → paise as text
+            // rupees → paise as text
+            "amt", p.amount().movePointRight(2).toPlainString(),
             "cur", p.currency().getCurrencyCode()));
         return switch (response.getOrDefault("status", "E")) {
             case "S" -> PaymentResult.success(response.get("gateway_ref"));

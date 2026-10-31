@@ -11,5 +11,5 @@ final class ExponentialBackoff implements RetryPolicy {
         return Optional.of(Duration.ofMillis(ThreadLocalRandom.current().nextLong(ceiling + 1)));
     }
 }
-// Jitter spreads retries out so thousands of failed tasks don't all retry at the same instant
-// and hammer a recovering dependency ("thundering herd").
+// Jitter spreads retries out so thousands of failed tasks don't all retry at the same
+// instant and hammer a recovering dependency ("thundering herd").

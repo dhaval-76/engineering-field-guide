@@ -7,7 +7,8 @@ record Withdrawn(long cents) implements AccountEvent {}
 record Account(String id, boolean open, long balance, int version) {
     static final Account EMPTY = new Account(null, false, 0, 0);
 
-    Account apply(AccountEvent e) {                     // pure: no validation, events are facts
+    // pure: no validation, events are facts
+    Account apply(AccountEvent e) {
         return switch (e) {
             case Opened o    -> new Account(o.accountId(), true, 0, version + 1);
             case Deposited d -> new Account(id, open, balance + d.cents(), version + 1);
@@ -21,7 +22,8 @@ record Account(String id, boolean open, long balance, int version) {
         return a;
     }
 
-    // Command handlers: check invariants against current state, return new events (or reject).
+    // Command handlers: check invariants against current state, return new events (or
+    // reject).
     List<AccountEvent> open(String accountId, String owner) {
         if (open) throw new IllegalStateException("already open");
         return List.of(new Opened(accountId, owner));
@@ -40,10 +42,12 @@ record Account(String id, boolean open, long balance, int version) {
     }
 }
 
-// Handling a command: load → decide → append with the version we read (optimistic concurrency).
+// Handling a command: load → decide → append with the version we read (optimistic
+// concurrency).
 void withdraw(EventStore store, String accountId, long cents) {
     List<AccountEvent> history = store.load(accountId);
     Account account = Account.replay(history);
     List<AccountEvent> newEvents = account.withdraw(cents);
-    store.append(accountId, account.version(), newEvents);   // fails if someone appended meanwhile → retry
+    // fails if someone appended meanwhile → retry
+    store.append(accountId, account.version(), newEvents);
 }

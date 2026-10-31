@@ -9,5 +9,5 @@ int characterReplacement(String s, int k) {
     }
     return best;
 }
-// maxFreq may be stale (too high) after shrinking; that only stops the window from growing,
-// never yields a wrong larger answer. "AABABBA", k = 1 → 4.
+// maxFreq may be stale (too high) after shrinking; that only stops the window from
+// growing, never yields a wrong larger answer. "AABABBA", k = 1 → 4.

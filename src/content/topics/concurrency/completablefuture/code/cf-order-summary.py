@@ -8,7 +8,8 @@ async def summarize(order, pricing, inventory) -> list[dict]:
                 pricing.price_of(item.sku), inventory.in_stock(item.sku, item.qty)), timeout=0.3)
             if in_stock:
                 return {"item": item, "price": price, "status": "AVAILABLE"}
-        except Exception:                               # timeout or error from either call
+        # timeout or error from either call
+        except Exception:
             pass
         return {"item": item, "price": None, "status": "UNAVAILABLE"}
 

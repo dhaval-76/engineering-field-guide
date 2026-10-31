@@ -1,12 +1,14 @@
 // Two cache levels in front of the database.
 import { LRUCache } from 'lru-cache';
 
-const local = new LRUCache({ max: 50_000, ttl: 30_000 }); // Level 1: in-process — microseconds, short TTL
+// Level 1: in-process — microseconds, short TTL
+const local = new LRUCache({ max: 50_000, ttl: 30_000 });
 
 export async function getProduct(id) {
   let v = local.get(id);
   if (v) return v;
-  const cached = await redis.get(`product:v1:${id}`);    // Level 2: shared across instances
+  // Level 2: shared across instances
+  const cached = await redis.get(`product:v1:${id}`);
   if (cached) v = JSON.parse(cached);
   else {
     v = await repo.findView(id);
@@ -17,10 +19,12 @@ export async function getProduct(id) {
   return v;
 }
 
-// Shed load early, keep the request path fast; slow work goes to consumers of the outbox event.
+// Shed load early, keep the request path fast; slow work goes to consumers of the outbox
+// event.
 app.post('/orders', async (req, res) => {
   if (!(await perClient.tryAcquire(req.get('X-Api-Key')))) return res.status(429).set('Retry-After', '1').end();
-  res.status(201).json(await orders.place(req.body));    // DB transaction + outbox row only
+  // DB transaction + outbox row only
+  res.status(201).json(await orders.place(req.body));
 });
 
 // Worker: retried independently; never slows checkout.

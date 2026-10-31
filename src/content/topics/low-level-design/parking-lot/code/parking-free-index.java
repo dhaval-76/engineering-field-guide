@@ -1,6 +1,7 @@
 /**
- * O(log n) allocation instead of scanning every spot: one sorted set of free spots per size.
- * The set is ordered by "distance" (floor, then spot number), so pollFirst() returns the nearest.
+ * O(log n) allocation instead of scanning every spot: one sorted set of free spots per
+ * size. The set is ordered by "distance" (floor, then spot number), so pollFirst()
+ * returns the nearest.
  */
 final class FreeSpotIndex {
     private final Map<SpotSize, ConcurrentSkipListSet<ParkingSpot>> free = new EnumMap<>(SpotSize.class);

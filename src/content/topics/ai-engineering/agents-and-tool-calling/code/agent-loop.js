@@ -1,5 +1,6 @@
-// model.next(history, tools) -> { text, toolCalls: [{ id, name, args }] }  (empty toolCalls = final answer)
-// tool: { name, description, jsonSchema, changesData, run(args) -> string | Promise<string> }
+// model.next(history, tools) -> { text, toolCalls: [{ id, name, args }] }  (empty
+// toolCalls = final answer) tool: { name, description, jsonSchema, changesData, run(args)
+// -> string | Promise<string> }
 export async function runAgent({ model, tools, maxSteps = 8 }, userRequest, mayRun) {
   const byName = new Map(tools.map((t) => [t.name, t]));
   const history = [{ role: 'user', text: userRequest }];

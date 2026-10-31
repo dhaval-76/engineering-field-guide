@@ -1,5 +1,6 @@
-// Piece table: the original text is never modified; inserted text is appended to an "add" buffer;
-// the document is a list of pieces pointing into either buffer. Edits only split, drop or insert pieces.
+// Piece table: the original text is never modified; inserted text is appended to an "add"
+// buffer; the document is a list of pieces pointing into either buffer. Edits only split,
+// drop or insert pieces.
 export class PieceTable {
   #original;
   #add = '';
@@ -30,7 +31,8 @@ export class PieceTable {
     this.#pieces.push(inserted);
   }
 
-  // Keep the parts of each piece outside [pos, pos + len); return the removed text (for undo).
+  // Keep the parts of each piece outside [pos, pos + len); return the removed text (for
+  // undo).
   delete(pos, len) {
     let removed = '';
     let offset = 0;

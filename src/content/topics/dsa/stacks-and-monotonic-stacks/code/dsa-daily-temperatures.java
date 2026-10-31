@@ -1,6 +1,7 @@
 int[] dailyTemperatures(int[] temps) {
     int[] answer = new int[temps.length];             // default 0: no warmer day
-    Deque<Integer> waiting = new ArrayDeque<>();      // indices; temps decreasing bottom → top
+    // indices; temps decreasing bottom → top
+    Deque<Integer> waiting = new ArrayDeque<>();
     for (int i = 0; i < temps.length; i++) {
         while (!waiting.isEmpty() && temps[i] > temps[waiting.peek()]) {
             int j = waiting.pop();

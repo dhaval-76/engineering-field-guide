@@ -1,4 +1,5 @@
-# Content-addressed versions: full snapshots every N saves, deltas in between; head moves with a CAS.
+# Content-addressed versions: full snapshots every N saves, deltas in between; head moves
+# with a CAS.
 import hashlib
 
 SNAPSHOT_EVERY = 10
@@ -10,7 +11,8 @@ def save(conn, page_id: int, expected_head: int, content: str, author_id: int, m
     data = content.encode()
     h = hashlib.sha256(data).hexdigest()
     with conn.transaction():
-        if not blobs.exists(h):                      # identical content (or a restore) stores nothing
+        # identical content (or a restore) stores nothing
+        if not blobs.exists(h):
             parent = blobs.get(versions.get(expected_head).content_hash)
             if parent.chain_length + 1 >= SNAPSHOT_EVERY:
                 blobs.put_full(h, data)
@@ -19,7 +21,8 @@ def save(conn, page_id: int, expected_head: int, content: str, author_id: int, m
         vid = versions.insert(conn, page_id, expected_head, h, author_id, message)
         if conn.execute("UPDATE pages SET head_id = %s WHERE id = %s AND head_id = %s",
                         (vid, page_id, expected_head)).rowcount == 0:
-            raise ConcurrentEdit(page_id)            # rolls back; the client must rebase or merge
+            # rolls back; the client must rebase or merge
+            raise ConcurrentEdit(page_id)
         return vid
 
 def read(h: str) -> str:

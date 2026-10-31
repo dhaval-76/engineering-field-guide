@@ -3,7 +3,8 @@ seat = table.get_item(Key={"pk": "show#991", "sk": "seat#C7"}, ConsistentRead=Tr
 
 table.put_item(
     Item={"pk": "show#991", "sk": "seat#C7", "holder": user_id},
-    ConditionExpression="attribute_not_exists(holder)",   # ConditionalCheckFailedException if taken
+    # ConditionalCheckFailedException if taken
+    ConditionExpression="attribute_not_exists(holder)",
 )
 
 # MongoDB (pymongo)

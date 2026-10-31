@@ -24,6 +24,7 @@ class OrderGraphQlController {
 
     @MutationMapping
     CancelOrderPayload cancelOrder(@Argument CancelOrderInput input, @AuthenticationPrincipal User user) {
-        return orders.cancel(input.orderId(), user);   // authorization lives in the service, not the schema
+        // authorization lives in the service, not the schema
+        return orders.cancel(input.orderId(), user);
     }
 }

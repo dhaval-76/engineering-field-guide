@@ -5,5 +5,6 @@ function subsetsByMask(nums) {
 }
 
 function* submasks(mask) {
-  for (let sub = mask; sub; sub = (sub - 1) & mask) yield sub;   // every non-empty subset of mask's bits
+  // every non-empty subset of mask's bits
+  for (let sub = mask; sub; sub = (sub - 1) & mask) yield sub;
 }

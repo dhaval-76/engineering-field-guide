@@ -8,17 +8,21 @@ record Result(Product product, List<Integer> change, String message) {
 
 class VendingMachine {
     enum State { IDLE, HAS_CREDIT, OUT_OF_SERVICE }
-    static final Set<Integer> ACCEPTED = Set.of(1, 2, 5, 10, 20);       // coin denominations (₹)
+    // coin denominations (₹)
+    static final Set<Integer> ACCEPTED = Set.of(1, 2, 5, 10, 20);
 
     private final Map<String, Product> products = new HashMap<>();
     private final Map<String, Integer> stock = new HashMap<>();
-    private final Map<Integer, Integer> coinBox = new TreeMap<>();      // denomination → count
-    private final List<Integer> inserted = new ArrayList<>();           // this customer's coins
+    // denomination → count
+    private final Map<Integer, Integer> coinBox = new TreeMap<>();
+    // this customer's coins
+    private final List<Integer> inserted = new ArrayList<>();
     private State state = State.IDLE;
 
     // ---- customer actions ----
     synchronized boolean insertCoin(int coin) {
-        if (state == State.OUT_OF_SERVICE || !ACCEPTED.contains(coin)) return false;   // drops to the return tray
+        // drops to the return tray
+        if (state == State.OUT_OF_SERVICE || !ACCEPTED.contains(coin)) return false;
         inserted.add(coin);
         state = State.HAS_CREDIT;
         return true;
@@ -31,10 +35,12 @@ class VendingMachine {
         int credit = credit();
         if (credit < p.price()) return Result.refused("Insert ₹" + (p.price() - credit) + " more");
 
-        Map<Integer, Integer> pool = new TreeMap<>(coinBox);            // change may reuse the customer's coins
+        // change may reuse the customer's coins
+        Map<Integer, Integer> pool = new TreeMap<>(coinBox);
         inserted.forEach(c -> pool.merge(c, 1, Integer::sum));
         Optional<Map<Integer, Integer>> change = makeChange(credit - p.price(), pool);
-        if (change.isEmpty()) return Result.refused("Exact change only");   // keep credit; customer can cancel
+        // keep credit; customer can cancel
+        if (change.isEmpty()) return Result.refused("Exact change only");
 
         // Commit: everything below happens together.
         inserted.forEach(c -> coinBox.merge(c, 1, Integer::sum));
@@ -46,11 +52,13 @@ class VendingMachine {
         stock.merge(code, -1, Integer::sum);
         inserted.clear();
         state = State.IDLE;
-        return Result.vended(p, coinsOut);                               // hardware: dispense, then pay out
+        // hardware: dispense, then pay out
+        return Result.vended(p, coinsOut);
     }
 
     synchronized List<Integer> cancel() {
-        List<Integer> refund = List.copyOf(inserted);                    // return the exact coins inserted
+        // return the exact coins inserted
+        List<Integer> refund = List.copyOf(inserted);
         inserted.clear();
         if (state == State.HAS_CREDIT) state = State.IDLE;
         return refund;
@@ -76,7 +84,8 @@ class VendingMachine {
                 for (int k = 0; k <= Math.min(count, a / coin); k++)
                     if (best[i][a - k * coin] + k < best[i + 1][a]) {
                         best[i + 1][a] = best[i][a - k * coin] + k;
-                        take[i + 1][a] = k;                               // how many of coin i we used
+                        // how many of coin i we used
+                        take[i + 1][a] = k;
                     }
         }
         if (best[d][amount] >= inf) return Optional.empty();

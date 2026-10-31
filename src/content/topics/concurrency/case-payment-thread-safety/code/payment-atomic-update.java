@@ -9,6 +9,7 @@ class AccountDao {
         int rows = jdbc.update(
             "UPDATE accounts SET balance = balance - ? WHERE id = ? AND balance >= ?",
             amount, accountId, amount);
-        return rows == 1;               // 0 rows → insufficient funds (or unknown account)
+        // 0 rows → insufficient funds (or unknown account)
+        return rows == 1;
     }
 }

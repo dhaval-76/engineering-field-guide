@@ -17,7 +17,8 @@ int search(int[] nums, int target) {
 
 /** Last index with nums[i] == target, or -1. */
 int lastIndex(int[] nums, int target) {
-    int i = lowerBound(nums, target + 1) - 1;    // first index > target, minus one (careful near Integer.MAX_VALUE)
+    // first index > target, minus one (careful near Integer.MAX_VALUE)
+    int i = lowerBound(nums, target + 1) - 1;
     return i >= 0 && nums[i] == target ? i : -1;
 }
 

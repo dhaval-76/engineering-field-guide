@@ -14,7 +14,8 @@ def nearest_suitable_car(top_floor: int):
             return abs(here - target)
         if car.direction == "UP":
             return target - here if target >= here and call.wants == "UP" else (top_floor - here) + abs(top_floor - target)
-        return here - target if target <= here and call.wants == "DOWN" else here + target   # sweep to 0, then up
+        # sweep to 0, then up
+        return here - target if target <= here and call.wants == "DOWN" else here + target
 
     def choose(call: HallCall, cars: list):
         return min(cars, key=lambda c: (cost(c, call), c.pending_stops))

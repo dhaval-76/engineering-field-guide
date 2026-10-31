@@ -10,15 +10,18 @@ void relayOnce() {
         if (batch.isEmpty()) return;
 
         List<CompletableFuture<?>> sends = batch.stream()
-                .map(r -> kafka.send(new ProducerRecord<>("orders", r.aggregateId(), r.payload()))) // key = order id
+                // key = order id
+                .map(r -> kafka.send(new ProducerRecord<>("orders", r.aggregateId(), r.payload())))
                 .<CompletableFuture<?>>map(f -> f)
                 .toList();
-        CompletableFuture.allOf(sends.toArray(CompletableFuture[]::new)).join();  // wait for broker acks
+        // wait for broker acks
+        CompletableFuture.allOf(sends.toArray(CompletableFuture[]::new)).join();
 
         jdbc.update("UPDATE outbox SET published_at = now() WHERE id = ANY(?)",
                 (Object) batch.stream().map(OutboxRow::id).toArray(Long[]::new));
     });
-    // A crash after send but before commit republishes the batch → consumers must be idempotent.
+    // A crash after send but before commit republishes the batch → consumers must be
+    // idempotent.
 }
 
 // Consumer with an inbox: duplicate deliveries are ignored atomically with the effect.
@@ -29,5 +32,6 @@ public void onOrderEvent(ConsumerRecord<String, String> rec) {
     int inserted = jdbc.update(
             "INSERT INTO inbox (consumer, event_id) VALUES ('shipping', ?) ON CONFLICT DO NOTHING", eventId);
     if (inserted == 0) return;                       // already handled
-    shipments.createFor(rec.key(), rec.value());     // same DB transaction as the inbox row
+    // same DB transaction as the inbox row
+    shipments.createFor(rec.key(), rec.value());
 }

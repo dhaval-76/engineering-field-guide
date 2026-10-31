@@ -15,7 +15,8 @@ int minimumEffortPath(int[][] heights) {
         for (int[] d : dirs) {
             int nr = r + d[0], nc = c + d[1];
             if (nr < 0 || nr >= rows || nc < 0 || nc >= cols) continue;
-            int ne = Math.max(e, Math.abs(heights[nr][nc] - heights[r][c]));   // max, not sum
+            // max, not sum
+            int ne = Math.max(e, Math.abs(heights[nr][nc] - heights[r][c]));
             if (ne < effort[nr][nc]) { effort[nr][nc] = ne; heap.offer(new int[]{ne, nr, nc}); }
         }
     }

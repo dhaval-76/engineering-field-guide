@@ -1,7 +1,9 @@
-// execute(Runnable): fire-and-forget; an exception goes to the thread's UncaughtExceptionHandler (often just logged)
+// execute(Runnable): fire-and-forget; an exception goes to the thread's
+// UncaughtExceptionHandler (often just logged)
 pool.execute(() -> sendEmail(order));
 
-// submit(Callable): returns a Future; get() re-throws the task's failure as ExecutionException
+// submit(Callable): returns a Future; get() re-throws the task's failure as
+// ExecutionException
 Future<Receipt> f = pool.submit(() -> charge(order));
 try {
     Receipt r = f.get(2, TimeUnit.SECONDS);           // always bound waits

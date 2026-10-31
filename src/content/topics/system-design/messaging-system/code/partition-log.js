@@ -1,5 +1,6 @@
-// One partition, in memory for clarity: segments named by base offset, each with a sparse index.
-// A real broker keeps each segment as a file plus an index file; the lookups are the same.
+// One partition, in memory for clarity: segments named by base offset, each with a sparse
+// index. A real broker keeps each segment as a file plus an index file; the lookups are
+// the same.
 const SEGMENT_BYTES = 1 << 20;   // roll at 1 MB here (1 GB in Kafka)
 const INDEX_EVERY_BYTES = 4096;  // one index entry per ~4 KB
 
@@ -14,11 +15,13 @@ export class PartitionLog {
   append(key, value, now = Date.now()) {
     let seg = this.segments.at(-1);
     if (seg.bytes >= SEGMENT_BYTES) seg = this.#roll();
-    const size = (key?.length ?? 0) + value.length + 16;          // record header + payload
+    // record header + payload
+    const size = (key?.length ?? 0) + value.length + 16;
     const position = seg.bytes;
     seg.records.push({ offset: this.nextOffset, key, value, position });
     if (position - seg.lastIndexed >= INDEX_EVERY_BYTES || seg.index.length === 0) {
-      seg.index.push([this.nextOffset, seg.records.length - 1]);   // sparse: offset → slot
+      // sparse: offset → slot
+      seg.index.push([this.nextOffset, seg.records.length - 1]);
       seg.lastIndexed = position;
     }
     seg.bytes += size;
@@ -27,12 +30,15 @@ export class PartitionLog {
   }
 
   read(fromOffset, maxRecords = 100) {
-    const seg = floor(this.segments, fromOffset, (s) => s.baseOffset);  // which segment holds it
+    // which segment holds it
+    const seg = floor(this.segments, fromOffset, (s) => s.baseOffset);
     if (!seg) return [];
-    const near = floor(seg.index, fromOffset, (e) => e[0]);            // binary search the sparse index
+    // binary search the sparse index
+    const near = floor(seg.index, fromOffset, (e) => e[0]);
     const out = [];
     for (let i = near ? near[1] : 0; i < seg.records.length && out.length < maxRecords; i++)
-      if (seg.records[i].offset >= fromOffset) out.push(seg.records[i]);   // short sequential scan
+      // short sequential scan
+      if (seg.records[i].offset >= fromOffset) out.push(seg.records[i]);
     return out;
   }
 

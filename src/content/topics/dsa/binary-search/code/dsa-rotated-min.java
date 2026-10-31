@@ -3,7 +3,8 @@ int findMin(int[] nums) {
     while (lo < hi) {
         int mid = lo + (hi - lo) / 2;
         if (nums[mid] > nums[hi]) lo = mid + 1;   // the drop is to the right of mid
-        else hi = mid;                            // mid is in the lower part: min at mid or left
+        // mid is in the lower part: min at mid or left
+        else hi = mid;
     }
     return nums[lo];
 }

@@ -1,4 +1,5 @@
-// The same transform in JavaScript (ops: {type:'ins', pos, text} | {type:'del', pos, len})
+// The same transform in JavaScript (ops: {type:'ins', pos, text} | {type:'del', pos,
+// len})
 export function transform(op, applied, opWinsTies) {
   if (op.type === 'ins') {
     if (applied.type === 'ins') {
@@ -7,7 +8,8 @@ export function transform(op, applied, opWinsTies) {
     }
     if (op.pos <= applied.pos) return op;
     if (op.pos >= applied.pos + applied.len) return { ...op, pos: op.pos - applied.len };
-    return { ...op, pos: applied.pos, text: '' };   // typed inside a range someone deleted: dropped (same rule both ways)
+    // typed inside a range someone deleted: dropped (same rule both ways)
+    return { ...op, pos: applied.pos, text: '' };
   }
   if (applied.type === 'ins') {
     if (applied.pos <= op.pos) return { ...op, pos: op.pos + applied.text.length };

@@ -19,7 +19,8 @@ class OrderBook:
         while o.remaining and opposite:
             best = opposite[0][2]
             if best.status == "CANCELLED":
-                heapq.heappop(opposite)                              # lazy deletion of cancelled orders
+                # lazy deletion of cancelled orders
+                heapq.heappop(opposite)
                 continue
             if o.type is OrderType.LIMIT and (o.limit_ticks < best.limit_ticks if buy else o.limit_ticks > best.limit_ticks):
                 break                                                # no longer crosses
@@ -34,9 +35,11 @@ class OrderBook:
         if o.remaining and o.type is OrderType.LIMIT:                # rest on the book
             heapq.heappush(self.bids if buy else self.asks, ((-o.limit_ticks if buy else o.limit_ticks), o.seq, o))
         elif o.remaining:
-            o.status = "CANCELLED"                                   # market remainder doesn't rest
+            # market remainder doesn't rest
+            o.status = "CANCELLED"
         return trades
 
     def cancel(self, o: "Order") -> None:
         if o.status in ("OPEN", "PARTIALLY_FILLED"):
-            o.status = "CANCELLED"                                   # removed lazily when it reaches the top
+            # removed lazily when it reaches the top
+            o.status = "CANCELLED"

@@ -1,4 +1,5 @@
-// What ArrayBlockingQueue does inside: one lock, two conditions, so producers and consumers wait separately.
+// What ArrayBlockingQueue does inside: one lock, two conditions, so producers and
+// consumers wait separately.
 class BoundedQueue<T> {
     private final Object[] items;
     private int head, tail, count;
@@ -15,7 +16,8 @@ class BoundedQueue<T> {
             items[tail] = item;
             tail = (tail + 1) % items.length;
             count++;
-            notEmpty.signal();          // wake one consumer — only consumers wait on notEmpty
+            // wake one consumer — only consumers wait on notEmpty
+            notEmpty.signal();
         } finally {
             lock.unlock();
         }

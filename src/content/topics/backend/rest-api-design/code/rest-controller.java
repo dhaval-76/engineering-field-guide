@@ -15,13 +15,15 @@ class OrderController {
 
     @GetMapping("/{id}")
     OrderResponse get(@PathVariable String id) {
-        return OrderResponse.from(orders.find(id));                 // throws OrderNotFound → 404 via @ControllerAdvice
+        // throws OrderNotFound → 404 via @ControllerAdvice
+        return OrderResponse.from(orders.find(id));
     }
 
     @PatchMapping(path = "/{id}", consumes = "application/merge-patch+json")
     OrderResponse update(@PathVariable String id, @RequestHeader("If-Match") String etag,
                          @RequestBody OrderPatch patch) {
-        return OrderResponse.from(orders.patch(id, patch, etag));   // stale ETag → 412 Precondition Failed
+        // stale ETag → 412 Precondition Failed
+        return OrderResponse.from(orders.patch(id, patch, etag));
     }
 
     @DeleteMapping("/{id}")

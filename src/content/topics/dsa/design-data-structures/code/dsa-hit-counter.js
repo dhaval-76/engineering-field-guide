@@ -1,4 +1,5 @@
-// Queue of [second, count]: O(1) amortised, memory proportional to distinct seconds in the window.
+// Queue of [second, count]: O(1) amortised, memory proportional to distinct seconds in
+// the window.
 class HitCounter {
   static WINDOW = 300;
   #buckets = [];
@@ -10,7 +11,8 @@ class HitCounter {
       this.#total -= this.#buckets[this.#head++][1];
     }
     if (this.#head > 1024 && this.#head * 2 > this.#buckets.length) {
-      this.#buckets = this.#buckets.slice(this.#head);   // compact so memory tracks the window
+      // compact so memory tracks the window
+      this.#buckets = this.#buckets.slice(this.#head);
       this.#head = 0;
     }
   }

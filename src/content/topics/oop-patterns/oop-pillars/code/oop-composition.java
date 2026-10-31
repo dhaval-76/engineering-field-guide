@@ -1,5 +1,6 @@
 // ✗ Inheritance for code reuse: Stack exposes every List method, so callers
-//   can insert in the middle and break LIFO. (java.util.Stack extends Vector — a known mistake.)
+// can insert in the middle and break LIFO. (java.util.Stack extends Vector — a known
+// mistake.)
 class BadStack<T> extends ArrayList<T> {
     void push(T t) { add(t); }
     T pop() { return remove(size() - 1); }

@@ -6,8 +6,10 @@ function fibMemo(n, memo = new Map()) {                                    // O(
   return memo.get(n);
 }
 
-function fib(n) {                                                          // O(n), O(1) space
-  let [prev, cur] = [0n, 1n];                                              // BigInt: no overflow
+// O(n), O(1) space
+function fib(n) {
+  // BigInt: no overflow
+  let [prev, cur] = [0n, 1n];
   for (let i = 0; i < n; i++) [prev, cur] = [cur, prev + cur];
   return prev;
 }

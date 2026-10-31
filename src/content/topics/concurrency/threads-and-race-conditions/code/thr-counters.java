@@ -16,7 +16,9 @@ class AtomicCounter {
 class AdderCounter {
     private final LongAdder count = new LongAdder();
     void increment() { count.increment(); }
-    long get() { return count.sum(); }     // not an atomic snapshot while writers are active
+    // not an atomic snapshot while writers are active
+    long get() { return count.sum(); }
 }
 
-// What CAS does in one CPU instruction:  if (value == expected) { value = next; return true; } else return false;
+// What CAS does in one CPU instruction:  if (value == expected) { value = next; return
+// true; } else return false;

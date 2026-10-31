@@ -11,10 +11,12 @@ def create_paste(owner_id: str, content: str, ttl: timedelta | None, visibility:
     paste_id = scrambled(ids.next_id())
     expires_at = datetime.now(timezone.utc) + ttl if ttl else None
     s3.put_object(Bucket=BUCKET, Key=f"pastes/{paste_id}", Body=data,
-                  ContentType="text/plain; charset=utf-8")                      # content first…
+                  # content first…
+                  ContentType="text/plain; charset=utf-8")
     with pool.connection() as conn:
         conn.execute("INSERT INTO pastes (id, owner_id, size, visibility, expires_at) VALUES (%s, %s, %s, %s, %s)",
-                     (paste_id, owner_id, len(data), visibility, expires_at))   # …then metadata
+                     # …then metadata
+                     (paste_id, owner_id, len(data), visibility, expires_at))
     return {"id": paste_id, "expires_at": expires_at}
 
 @app.get("/raw/{paste_id}")
@@ -27,8 +29,10 @@ def raw(paste_id: str, user=Depends(optional_user)):
         raise HTTPException(410)
     if p.visibility == "PRIVATE" and (user is None or user.id != p.owner_id):
         raise HTTPException(404)
-    max_age = 3600 if not p.expires_at else min(3600, int((p.expires_at - now).total_seconds()))   # ≤ time left
+    # ≤ time left
+    max_age = 3600 if not p.expires_at else min(3600, int((p.expires_at - now).total_seconds()))
     body = s3.get_object(Bucket=BUCKET, Key=f"pastes/{p.id}")["Body"].read()
     return Response(body, media_type="text/plain; charset=utf-8", headers={
         "Cache-Control": "private, no-store" if p.visibility == "PRIVATE" else f"public, max-age={max_age}",
-        "ETag": f'"{p.id}"'})                                                   # immutable content: id is the ETag
+        # immutable content: id is the ETag
+        "ETag": f'"{p.id}"'})

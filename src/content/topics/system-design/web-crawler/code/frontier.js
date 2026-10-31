@@ -14,7 +14,8 @@ export class PoliteFrontier {
   queues = new Map();
   delay = new Map(); // robots.txt Crawl-delay or adaptive
   nextAllowed = new Map();
-  readyAt = new Map(); // host -> time it may next be fetched (only hosts with queued URLs)
+  // host -> time it may next be fetched (only hosts with queued URLs)
+  readyAt = new Map();
   seen = new Set(); // a Bloom filter at web scale
 
   constructor(defaultDelaySeconds = 1) {

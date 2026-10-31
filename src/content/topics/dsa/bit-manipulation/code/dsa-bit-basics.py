@@ -15,4 +15,5 @@ def count_bits(n):
 
 def is_power_of_two(x):
     return x > 0 and x & (x - 1) == 0
-# Python ints are unbounded: x.bit_count() (3.10+) counts set bits; negatives have infinite leading 1s.
+# Python ints are unbounded: x.bit_count() (3.10+) counts set bits; negatives have
+# infinite leading 1s.

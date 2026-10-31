@@ -16,7 +16,8 @@ class FeedService {
         List<Candidate> candidates = new ArrayList<>();
         if (cached != null) cached.forEach(t -> candidates.add(new Candidate(Long.parseLong(t.getValue()), t.getScore())));
 
-        // 2. Pulled posts from celebrities this user follows (a handful of indexed reads).
+        // 2. Pulled posts from celebrities this user follows (a handful of indexed
+        // reads).
         for (long celebrity : graph.celebritiesFollowedBy(userId))
             posts.latestByAuthor(celebrity, maxScore, 5)
                  .forEach(p -> candidates.add(new Candidate(p.id(), p.createdAtMillis())));

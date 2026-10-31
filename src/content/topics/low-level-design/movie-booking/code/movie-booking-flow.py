@@ -34,7 +34,8 @@ class BookingService:
             self.release(hold)
             raise PaymentFailed(result.reason)
         if not all(self.seats.get(hold["show_id"], i).confirm(hold["id"], self.clock()) for i in hold["seat_ids"]):
-            self.payments.refund(result.payment_id, "hold expired")    # expired while the user was paying
+            # expired while the user was paying
+            self.payments.refund(result.payment_id, "hold expired")
             self.release(hold)
             raise HoldExpired(hold["id"])
         return self.bookings.save({**hold, "payment_id": result.payment_id, "status": "CONFIRMED"})

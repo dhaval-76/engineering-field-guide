@@ -7,10 +7,12 @@ breaker = pybreaker.CircuitBreaker(fail_max=5, reset_timeout=20)
 
 class Retryable(Exception): ...
 
-@breaker                                            # outermost here: open circuit → fail fast
+# outermost here: open circuit → fail fast
+@breaker
 @retry(
     stop=stop_after_attempt(3),
-    wait=wait_random_exponential(multiplier=0.1, max=1),   # exponential backoff with jitter
+    # exponential backoff with jitter
+    wait=wait_random_exponential(multiplier=0.1, max=1),
     retry=retry_if_exception_type((httpx.TransportError, Retryable)),
     reraise=True,
 )

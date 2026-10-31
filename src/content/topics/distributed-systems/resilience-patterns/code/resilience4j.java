@@ -11,14 +11,16 @@
 //     slow-call-rate-threshold: 50          # …and can open it on their own
 //     wait-duration-in-open-state: 20s
 //     permitted-number-of-calls-in-half-open-state: 3
-//     ignore-exceptions: [com.shop.inventory.ProductNotFoundException]   # 404s aren't failures
+// ignore-exceptions: [com.shop.inventory.ProductNotFoundException]   # 404s aren't
+// failures
 //   retry.instances.inventory:
 //     max-attempts: 3                       # 1 call + 2 retries
 //     wait-duration: 100ms
 //     enable-exponential-backoff: true
 //     exponential-backoff-multiplier: 2
 //     enable-randomized-wait: true          # jitter
-//     retry-exceptions: [java.io.IOException, org.springframework.web.client.ResourceAccessException]
+// retry-exceptions: [java.io.IOException,
+// org.springframework.web.client.ResourceAccessException]
 //   bulkhead.instances.inventory:
 //     max-concurrent-calls: 20              # at most 20 threads waiting on inventory
 //     max-wait-duration: 0                  # full → fail immediately
@@ -26,13 +28,14 @@
 
 @Service
 class InventoryGateway {
-    private final InventoryClient client;    // HTTP client with connect 300 ms / read 800 ms timeouts
+    // HTTP client with connect 300 ms / read 800 ms timeouts
+    private final InventoryClient client;
     private final StockCache cache;
 
     InventoryGateway(InventoryClient client, StockCache cache) { this.client = client; this.cache = cache; }
 
-    // Order applied: Retry( CircuitBreaker( Bulkhead( call ) ) ). The HTTP read timeout is the
-    // time limit; no TimeLimiter/CompletableFuture needed for a blocking client.
+    // Order applied: Retry( CircuitBreaker( Bulkhead( call ) ) ). The HTTP read timeout
+    // is the time limit; no TimeLimiter/CompletableFuture needed for a blocking client.
     @Retry(name = "inventory")
     @CircuitBreaker(name = "inventory", fallbackMethod = "lastKnown")
     @Bulkhead(name = "inventory")
@@ -46,7 +49,8 @@ class InventoryGateway {
     // or the bulkhead is full.
     Stock lastKnown(String sku, Throwable cause) {
         return cache.lastKnown(sku)
-            .map(Stock::markedStale)         // "in stock (as of 10:02)" — callers can show a hint
+            // "in stock (as of 10:02)" — callers can show a hint
+            .map(Stock::markedStale)
             .orElseThrow(() -> new InventoryUnavailableException(sku, cause));
     }
 }

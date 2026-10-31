@@ -4,7 +4,8 @@ final class CompositeCommand implements Command {
     CompositeCommand(List<Command> steps) { this.steps = List.copyOf(steps); }
     public void execute(Buffer b) { steps.forEach(s -> s.execute(b)); }
     public void undo(Buffer b) {
-        for (ListIterator<Command> it = steps.listIterator(steps.size()); it.hasPrevious(); ) it.previous().undo(b);   // reverse order
+        // reverse order
+        for (ListIterator<Command> it = steps.listIterator(steps.size()); it.hasPrevious(); ) it.previous().undo(b);
     }
 }
 

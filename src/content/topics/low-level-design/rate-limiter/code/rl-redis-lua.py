@@ -1,4 +1,5 @@
-# The same token bucket shared by many app servers: state in Redis, check-and-update in one Lua script.
+# The same token bucket shared by many app servers: state in Redis, check-and-update in
+# one Lua script.
 import time
 import redis
 
@@ -20,7 +21,8 @@ TOKEN_BUCKET_LUA = """
 """
 
 r = redis.Redis()
-token_bucket = r.register_script(TOKEN_BUCKET_LUA)       # EVALSHA with automatic fallback to EVAL
+# EVALSHA with automatic fallback to EVAL
+token_bucket = r.register_script(TOKEN_BUCKET_LUA)
 
 def try_acquire(client_id: str, capacity: int = 100, per_second: float = 50) -> bool:
     # Lua runs atomically on the Redis server — no race between app servers

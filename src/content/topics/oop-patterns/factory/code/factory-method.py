@@ -20,4 +20,5 @@ class CsvExporter(ReportExporter):
 class PdfExporter(ReportExporter):
     def create_writer(self):
         return PdfWriter(page_size="A4")
-# In Python a callable parameter often replaces the subclass: export_report(report, writer_factory=CsvWriter)
+# In Python a callable parameter often replaces the subclass: export_report(report,
+# writer_factory=CsvWriter)

@@ -34,7 +34,8 @@ class Room:
         self.id, self.capacity, self.amenities = id, capacity, frozenset(amenities)
         self._starts: list[datetime] = []          # sorted; bookings never overlap
         self._bookings: list[Booking] = []         # parallel to _starts
-        self.lock = threading.RLock()              # re-entrant: series booking holds it across calls
+        # re-entrant: series booking holds it across calls
+        self.lock = threading.RLock()
 
     def is_free(self, s: TimeSlot) -> bool:
         """O(log n): only the booking just before and the one just after can overlap."""

@@ -19,7 +19,8 @@ class FencedStorage {
 
     synchronized boolean write(String key, String value, long token) {
         long seen = highestToken.getOrDefault(key, 0L);
-        if (token < seen) return false;                      // a stale lock holder woke up late
+        // a stale lock holder woke up late
+        if (token < seen) return false;
         highestToken.put(key, token);
         data.put(key, value);
         return true;

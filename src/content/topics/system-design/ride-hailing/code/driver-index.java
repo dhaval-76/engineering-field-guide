@@ -1,6 +1,7 @@
 /** In-memory index of moving drivers for one city shard: frequent updates, expiry, nearest-k by rings. */
 class DriverIndex {
-    static final double CELL = 0.01;                                   // degrees ≈ 1.1 km of latitude
+    // degrees ≈ 1.1 km of latitude
+    static final double CELL = 0.01;
     private record Driver(double lat, double lon, double seenAt, boolean available) {}
     private record Cell(long y, long x) {}
 
@@ -15,7 +16,8 @@ class DriverIndex {
     synchronized void update(String id, double lat, double lon, boolean available, double now) {
         Driver old = drivers.get(id);
         if (old != null && !cellOf(old.lat(), old.lon()).equals(cellOf(lat, lon)))
-            cells.get(cellOf(old.lat(), old.lon())).remove(id);       // moved to another cell
+            // moved to another cell
+            cells.get(cellOf(old.lat(), old.lon())).remove(id);
         drivers.put(id, new Driver(lat, lon, now, available));
         cells.computeIfAbsent(cellOf(lat, lon), c -> new HashSet<>()).add(id);
     }
@@ -28,7 +30,8 @@ class DriverIndex {
         return true;
     }
 
-    synchronized int evictStale(double now) {                          // drivers whose app stopped reporting
+    // drivers whose app stopped reporting
+    synchronized int evictStale(double now) {
         List<String> gone = drivers.entrySet().stream()
                 .filter(e -> now - e.getValue().seenAt() > staleAfter).map(Map.Entry::getKey).toList();
         for (String id : gone) {
@@ -41,13 +44,15 @@ class DriverIndex {
     /** Search rings of cells outward until k drivers are found that are closer than any unvisited cell. */
     synchronized List<String> nearest(double lat, double lon, int k, double maxKm, double now) {
         Cell c = cellOf(lat, lon);
-        double cellKm = CELL * 111 * Math.max(Math.cos(Math.toRadians(lat)), 0.1);   // narrowest side
+        // narrowest side
+        double cellKm = CELL * 111 * Math.max(Math.cos(Math.toRadians(lat)), 0.1);
         int maxRing = (int) Math.ceil(maxKm / cellKm) + 1;
         List<Map.Entry<Double, String>> found = new ArrayList<>();
         for (int ring = 0; ring <= maxRing; ring++) {
             for (int dy = -ring; dy <= ring; dy++)
                 for (int dx = -ring; dx <= ring; dx++) {
-                    if (Math.max(Math.abs(dy), Math.abs(dx)) != ring) continue;          // outer ring only
+                    // outer ring only
+                    if (Math.max(Math.abs(dy), Math.abs(dx)) != ring) continue;
                     for (String id : cells.getOrDefault(new Cell(c.y() + dy, c.x() + dx), Set.of())) {
                         Driver d = drivers.get(id);
                         if (!d.available() || now - d.seenAt() > staleAfter) continue;

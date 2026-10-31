@@ -10,5 +10,6 @@ class CachingCatalog:
         # `condition` makes concurrent misses for one id wait for a single load
         self.by_id = cached(cache, condition=threading.Condition())(real.by_id)
 
-# Other proxy flavours: access control (check permissions before delegating), lazy loading,
-# remote proxies (an HTTP/gRPC client stub), and __getattr__-based proxies that forward any call.
+# Other proxy flavours: access control (check permissions before delegating), lazy
+# loading, remote proxies (an HTTP/gRPC client stub), and __getattr__-based proxies that
+# forward any call.

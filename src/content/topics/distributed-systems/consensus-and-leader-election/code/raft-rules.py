@@ -4,7 +4,8 @@ class RaftNode:
     def __init__(self):
         self.current_term = 0
         self.voted_for: str | None = None
-        self.log_terms: list[int] = []        # term of each entry; log index i is log_terms[i - 1]
+        # term of each entry; log index i is log_terms[i - 1]
+        self.log_terms: list[int] = []
 
     def last_log_index(self) -> int:
         return len(self.log_terms)

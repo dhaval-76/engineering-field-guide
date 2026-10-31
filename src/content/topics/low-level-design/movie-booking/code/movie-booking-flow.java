@@ -17,7 +17,8 @@ final class BookingService {
         for (String seatId : seatIds.stream().sorted().toList()) {
             ShowSeat s = seats.get(showId, seatId);
             if (!s.tryHold(holdId, clock.instant(), HOLD_TTL)) {
-                taken.forEach(t -> t.release(holdId));           // roll back the partial hold
+                // roll back the partial hold
+                taken.forEach(t -> t.release(holdId));
                 throw new SeatUnavailableException(seatId);
             }
             taken.add(s);
@@ -34,7 +35,8 @@ final class BookingService {
         }
         boolean allConfirmed = hold.seatIds().stream()
                 .allMatch(id -> seats.get(hold.showId(), id).confirm(hold.id(), clock.instant()));
-        if (!allConfirmed) {                                     // hold expired while the user was paying
+        // hold expired while the user was paying
+        if (!allConfirmed) {
             payments.refund(result.paymentId(), "hold expired");
             release(hold);
             throw new HoldExpiredException(hold.id());

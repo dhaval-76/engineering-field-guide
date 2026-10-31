@@ -10,7 +10,8 @@ class LFUCache:
         self.capacity = capacity
         self._values: dict[Hashable, Any] = {}
         self._freq: dict[Hashable, int] = {}
-        self._buckets: defaultdict[int, OrderedDict] = defaultdict(OrderedDict)  # freq -> keys, oldest first
+        # freq -> keys, oldest first
+        self._buckets: defaultdict[int, OrderedDict] = defaultdict(OrderedDict)
         self._min_freq = 0
 
     def get(self, key: Hashable) -> Any | None:
@@ -43,7 +44,8 @@ class LFUCache:
 
     def _evict(self) -> None:
         bucket = self._buckets[self._min_freq]
-        victim, _ = bucket.popitem(last=False)          # oldest key in the lowest-frequency bucket
+        # oldest key in the lowest-frequency bucket
+        victim, _ = bucket.popitem(last=False)
         if not bucket:
             del self._buckets[self._min_freq]
         del self._values[victim]

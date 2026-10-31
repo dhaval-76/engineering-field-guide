@@ -23,7 +23,8 @@ class Account:
     balance: int = 0
     version: int = 0
 
-    def apply(self, e: Event) -> "Account":          # pure: events are facts, no validation
+    # pure: events are facts, no validation
+    def apply(self, e: Event) -> "Account":
         match e:
             case Opened(account_id=aid):
                 return Account(aid, True, 0, self.version + 1)
@@ -58,4 +59,5 @@ def replay(history: list[Event]) -> Account:
 
 def handle_withdraw(store, account_id: str, cents: int) -> None:
     state = replay(store.load(account_id))
-    store.append(account_id, state.version, state.withdraw(cents))   # optimistic concurrency
+    # optimistic concurrency
+    store.append(account_id, state.version, state.withdraw(cents))

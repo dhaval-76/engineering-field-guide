@@ -38,11 +38,13 @@ final class SnakeGame {
         if (next.row() < 0 || next.row() >= rows || next.col() < 0 || next.col() >= cols) return end();
 
         boolean eats = next.equals(foodAt);
-        if (!eats) {                                          // the tail moves away THIS tick…
+        // the tail moves away THIS tick…
+        if (!eats) {
             Cell tail = body.removeLast();
             occupied.remove(tail);
         }
-        if (occupied.contains(next)) return end();          // …so moving into the old tail cell is legal
+        // …so moving into the old tail cell is legal
+        if (occupied.contains(next)) return end();
         body.addFirst(next);
         occupied.add(next);
 
@@ -63,7 +65,8 @@ interface FoodSpawner { Cell spawn(int rows, int cols, Set<Cell> occupied); }
 /** Rejection sampling: fast while the board is mostly empty; fall back to scanning when crowded. */
 final class RandomFood implements FoodSpawner {
     private final Random rnd;
-    RandomFood(Random rnd) { this.rnd = rnd; }                // seeded Random → reproducible tests
+    // seeded Random → reproducible tests
+    RandomFood(Random rnd) { this.rnd = rnd; }
     public Cell spawn(int rows, int cols, Set<Cell> occupied) {
         for (int tries = 0; tries < 32; tries++) {
             Cell c = new Cell(rnd.nextInt(rows), rnd.nextInt(cols));

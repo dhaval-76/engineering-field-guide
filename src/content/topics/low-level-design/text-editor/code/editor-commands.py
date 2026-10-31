@@ -38,6 +38,7 @@ class DeleteText:
     def __init__(self, pos: int, length: int):
         self.pos, self.length, self.removed = pos, length, ""
     def execute(self, b) -> None:
-        self.removed = b.delete(self.pos, self.length)   # remember what was removed for undo
+        # remember what was removed for undo
+        self.removed = b.delete(self.pos, self.length)
     def undo(self, b) -> None:
         b.insert(self.pos, self.removed)

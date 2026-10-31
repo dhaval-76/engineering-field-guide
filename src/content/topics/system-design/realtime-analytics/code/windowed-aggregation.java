@@ -1,5 +1,6 @@
-// Kafka Streams: revenue per product per minute, by event time, exactly-once, late data up to 5 minutes.
-// props: processing.guarantee=exactly_once_v2, default.timestamp.extractor=PurchaseTimeExtractor (event time)
+// Kafka Streams: revenue per product per minute, by event time, exactly-once, late data
+// up to 5 minutes. props: processing.guarantee=exactly_once_v2,
+// default.timestamp.extractor=PurchaseTimeExtractor (event time)
 StreamsBuilder b = new StreamsBuilder();
 
 b.stream("purchases", Consumed.with(Serdes.String(), purchaseSerde))
@@ -8,9 +9,11 @@ b.stream("purchases", Consumed.with(Serdes.String(), purchaseSerde))
  .aggregate(Revenue::zero,
             (productId, p, acc) -> acc.add(p.amountMinor()),
             Materialized.with(Serdes.String(), revenueSerde))
- .suppress(Suppressed.untilWindowCloses(Suppressed.BufferConfig.unbounded()))   // emit once per window
+ // emit once per window
+ .suppress(Suppressed.untilWindowCloses(Suppressed.BufferConfig.unbounded()))
  .toStream()
- .map((w, rev) -> KeyValue.pair(w.key() + "@" + w.window().startTime(), rev))  // idempotent upsert key
+ // idempotent upsert key
+ .map((w, rev) -> KeyValue.pair(w.key() + "@" + w.window().startTime(), rev))
  .to("revenue-per-minute");
 
 // Flink equivalent (DataStream API):

@@ -26,9 +26,11 @@ class UserServiceTest {
 
         service.deleteUser("U1");
 
-        InOrder inOrder = inOrder(users, events);            // the event only after the delete
+        // the event only after the delete
+        InOrder inOrder = inOrder(users, events);
         inOrder.verify(users).delete(alice);
-        inOrder.verify(events).publishEvent((Object) new UserDeleted("U1"));   // records compare by value
+        // records compare by value
+        inOrder.verify(events).publishEvent((Object) new UserDeleted("U1"));
     }
 
     @Test

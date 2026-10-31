@@ -1,4 +1,5 @@
-// Decides where a notification goes: dedup, preferences, quiet hours (user's time zone), frequency caps.
+// Decides where a notification goes: dedup, preferences, quiet hours (user's time zone),
+// frequency caps.
 export class NotificationRouter {
   #seen = new Map(); // dedupKey -> epoch seconds   (Redis SET NX EX in production)
   #marketing = new Map(); // userId -> [send times]
@@ -35,5 +36,6 @@ export class NotificationRouter {
 function inQuietHours(nowMs, { quietStart, quietEnd, timeZone }) {
   if (!quietStart) return false;
   const hm = new Intl.DateTimeFormat('en-GB', { timeZone, hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(nowMs);
-  return quietStart < quietEnd ? hm >= quietStart && hm < quietEnd : hm >= quietStart || hm < quietEnd; // "HH:MM" compares as text
+  // "HH:MM" compares as text
+  return quietStart < quietEnd ? hm >= quietStart && hm < quietEnd : hm >= quietStart || hm < quietEnd;
 }

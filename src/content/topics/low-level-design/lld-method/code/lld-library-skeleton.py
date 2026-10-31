@@ -52,7 +52,8 @@ class Loan:
         self.returned_on = on
         self.copy.mark_returned()
 
-FinePolicy = Callable[[Loan, date], int]       # Strategy: rules vary by membership (returns paise)
+# Strategy: rules vary by membership (returns paise)
+FinePolicy = Callable[[Loan, date], int]
 
 class LibraryService(Protocol):                # Step 3: the operations we agreed on
     def borrow(self, member_id: str, barcode: str) -> Loan: ...

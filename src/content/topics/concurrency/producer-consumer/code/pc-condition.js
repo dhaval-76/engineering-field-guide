@@ -1,4 +1,5 @@
-// An async bounded queue: producers wait when full, consumers wait when empty — no busy polling.
+// An async bounded queue: producers wait when full, consumers wait when empty — no busy
+// polling.
 export class BoundedQueue {
   #items = [];
   #notFull = [];   // resolvers of waiting producers

@@ -21,7 +21,8 @@ class SnakeGame:
             return self._end()
         eats = bool(self.food) and self.food[0] == nxt
         if not eats:
-            self.occupied.discard(self.body.pop())   # the tail leaves first, so following it is legal
+            # the tail leaves first, so following it is legal
+            self.occupied.discard(self.body.pop())
         if nxt in self.occupied:
             return self._end()
         self.body.appendleft(nxt)

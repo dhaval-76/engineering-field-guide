@@ -26,11 +26,13 @@ def apply_event(conn, order_id: int, event_id: str, nxt: str, actor: str) -> boo
                 raise _Ignored()                             # duplicate delivery
             (current,) = conn.execute("SELECT status FROM orders WHERE id = %s", (order_id,)).fetchone()
             if nxt not in NEXT[current]:
-                raise _Ignored()                             # late or invalid event (log it)
+                # late or invalid event (log it)
+                raise _Ignored()
             moved = conn.execute("UPDATE orders SET status = %s, updated_at = now() WHERE id = %s AND status = %s",
                                  (nxt, order_id, current)).rowcount
             if moved == 0:
-                raise ConcurrentStatusChange(order_id)       # another actor won; caller retries
+                # another actor won; caller retries
+                raise ConcurrentStatusChange(order_id)
             conn.execute("INSERT INTO order_status_history (order_id, status, actor, at) VALUES (%s, %s, %s, now())",
                          (order_id, nxt, actor))
             conn.execute("INSERT INTO outbox (id, type, aggregate_id, payload) "
@@ -38,4 +40,5 @@ def apply_event(conn, order_id: int, event_id: str, nxt: str, actor: str) -> boo
                          (str(order_id), Jsonb({"orderId": order_id, "status": nxt})))
         return True
     except _Ignored:
-        return False                                         # rolled back: nothing recorded
+        # rolled back: nothing recorded
+        return False

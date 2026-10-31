@@ -9,7 +9,8 @@ class FreeSpotIndex:
         self._free = {size: [] for size in SpotSize}
         for s in spots:
             heapq.heappush(self._free[s.size], (s.floor, s.id, s))
-        self._lock = threading.Lock()            # pop + push must not interleave across threads
+        # pop + push must not interleave across threads
+        self._lock = threading.Lock()
 
     def claim(self, vehicle_type) -> "ParkingSpot | None":
         with self._lock:

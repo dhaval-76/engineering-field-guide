@@ -1,4 +1,5 @@
-// Semaphore: at most 10 concurrent calls to a fragile downstream (a counter + a queue of waiters).
+// Semaphore: at most 10 concurrent calls to a fragile downstream (a counter + a queue of
+// waiters).
 class Semaphore {
   #waiters = [];
   constructor(permits) { this.permits = permits; }

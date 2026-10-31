@@ -12,11 +12,13 @@ class Mutex {
   }
   release() {
     const next = this.#waiters.shift();
-    if (next) next(true); else this.#locked = false;          // hand over directly to the next waiter
+    // hand over directly to the next waiter
+    if (next) next(true); else this.#locked = false;
   }
 }
 
-// Break "no preemption": if the second lock isn't available soon, release the first and retry.
+// Break "no preemption": if the second lock isn't available soon, release the first and
+// retry.
 export async function transfer(from, to, amount, budgetMs = 1000) {
   const deadline = Date.now() + budgetMs;
   while (Date.now() < deadline) {
@@ -31,7 +33,8 @@ export async function transfer(from, to, amount, budgetMs = 1000) {
         }
       } finally { from.mutex.release(); }
     }
-    await new Promise((r) => setTimeout(r, 1 + Math.random() * 19)); // RANDOM backoff — avoids livelock
+    // RANDOM backoff — avoids livelock
+    await new Promise((r) => setTimeout(r, 1 + Math.random() * 19));
   }
   return false;
 }

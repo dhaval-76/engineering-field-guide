@@ -16,7 +16,8 @@ final class Driver {
     DriverStatus status() { return status.get(); }
 }
 
-interface DriverIndex { List<Driver> near(Location p, double radiusKm); }   // grid / geohash / quadtree
+// grid / geohash / quadtree
+interface DriverIndex { List<Driver> near(Location p, double radiusKm); }
 
 interface MatchingStrategy { List<Driver> rank(Ride ride, List<Driver> candidates); }
 
@@ -32,7 +33,8 @@ final class NearestGoodDriver implements MatchingStrategy {
 final class Dispatcher {
     private final DriverIndex index;
     private final MatchingStrategy strategy;
-    private final OfferChannel offers;                         // push notification to the driver app
+    // push notification to the driver app
+    private final OfferChannel offers;
     private final Duration offerTimeout = Duration.ofSeconds(15);
 
     Dispatcher(DriverIndex index, MatchingStrategy strategy, OfferChannel offers) {
@@ -45,7 +47,8 @@ final class Dispatcher {
             List<Driver> candidates = index.near(ride.pickup(), radius).stream()
                     .filter(d -> d.vehicle == wanted && d.status() == DriverStatus.AVAILABLE).toList();
             for (Driver d : strategy.rank(ride, candidates)) {
-                if (!d.tryReserve()) continue;                  // another ride got this driver first
+                // another ride got this driver first
+                if (!d.tryReserve()) continue;
                 if (offers.offerAndAwait(d, ride, offerTimeout)) {
                     ride.assign(d.id, clock.instant());
                     return Optional.of(d);

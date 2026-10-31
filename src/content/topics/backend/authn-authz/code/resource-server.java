@@ -1,6 +1,7 @@
 // Spring Boot 3: let Spring Security validate JWTs — don't hand-write a JWT filter.
 // application.yml
-//   spring.security.oauth2.resourceserver.jwt.issuer-uri: https://auth.example.com/realms/shop
+// spring.security.oauth2.resourceserver.jwt.issuer-uri:
+// https://auth.example.com/realms/shop
 //   (Spring fetches the issuer's JWKS public keys and checks signature, iss and exp)
 
 @Configuration
@@ -9,14 +10,16 @@ class SecurityConfig {
     @Bean
     SecurityFilterChain api(HttpSecurity http) throws Exception {
         return http
-            .csrf(csrf -> csrf.disable())                // OK only because auth is a bearer header, not a cookie
+            // OK only because auth is a bearer header, not a cookie
+            .csrf(csrf -> csrf.disable())
             .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(a -> a
                 .requestMatchers("/actuator/health").permitAll()
                 .requestMatchers(HttpMethod.GET, "/v1/orders/**").hasAuthority("SCOPE_orders:read")
                 .requestMatchers("/v1/admin/**").hasRole("ADMIN")
                 .anyRequest().authenticated())
-            .oauth2ResourceServer(o -> o.jwt(Customizer.withDefaults()))   // missing/invalid token → 401
+            // missing/invalid token → 401
+            .oauth2ResourceServer(o -> o.jwt(Customizer.withDefaults()))
             .build();
     }
 

@@ -24,7 +24,8 @@ it('deletes an existing user, then publishes the event', async () => {
 
   await new UserService({ users, events }).deleteUser('U1');
 
-  expect(calls).toEqual(['delete', 'publish']);                            // the event only after the delete
+  // the event only after the delete
+  expect(calls).toEqual(['delete', 'publish']);
   expect(events.publish).toHaveBeenCalledWith({ type: 'UserDeleted', userId: 'U1' });
 });
 

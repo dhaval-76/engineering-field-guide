@@ -11,7 +11,8 @@ class OrderServiceImpl extends OrderServiceGrpc.OrderServiceImplBase {
 
 // Client: reuse one channel per target; always set a deadline per call.
 ManagedChannel channel = ManagedChannelBuilder.forTarget("dns:///orders.internal:443")
-        .defaultLoadBalancingPolicy("round_robin")      // spread calls across pods, not one HTTP/2 connection
+        // spread calls across pods, not one HTTP/2 connection
+        .defaultLoadBalancingPolicy("round_robin")
         .build();
 OrderServiceGrpc.OrderServiceBlockingStub stub = OrderServiceGrpc.newBlockingStub(channel);
 

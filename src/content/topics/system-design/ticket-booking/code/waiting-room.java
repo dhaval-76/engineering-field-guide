@@ -1,13 +1,15 @@
 /**
- * Virtual waiting room for an on-sale: everyone gets a place in line, and users are let into the
- * booking flow at a rate the inventory service can handle. Admission expires so stalled users free their slot.
+ * Virtual waiting room for an on-sale: everyone gets a place in line, and users are let
+ * into the booking flow at a rate the inventory service can handle. Admission expires so
+ * stalled users free their slot.
  */
 class WaitingRoom {
     private final int admitPerTick;
     private final long sessionMillis;
     private final Map<String, Long> seqOf = new HashMap<>();       // user → place in line
     private final Map<Long, Long> admittedAt = new HashMap<>();    // seq → when admitted
-    private long nextSeq = 0, admittedUpTo = 0;                    // seq < admittedUpTo are admitted
+    // seq < admittedUpTo are admitted
+    private long nextSeq = 0, admittedUpTo = 0;
 
     WaitingRoom(int admitPerTick, long sessionMillis) { this.admitPerTick = admitPerTick; this.sessionMillis = sessionMillis; }
 

@@ -1,4 +1,5 @@
-// step: { name, execute(ctx), compensate(ctx) } — both idempotent; log.record persists progress.
+// step: { name, execute(ctx), compensate(ctx) } — both idempotent; log.record persists
+// progress.
 export async function runSaga(sagaId, steps, ctx, log, compensationAttempts = 5) {
   const done = [];
   for (const step of steps) {

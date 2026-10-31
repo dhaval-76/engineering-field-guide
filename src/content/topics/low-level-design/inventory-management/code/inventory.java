@@ -10,7 +10,8 @@ class MostStockFirst implements AllocationStrategy {
     public Optional<String> choose(String sku, int qty, Map<String, Integer> available) {
         return available.entrySet().stream().filter(e -> e.getValue() >= qty)
                 .max(Comparator.<Map.Entry<String, Integer>>comparingInt(Map.Entry::getValue)
-                        .thenComparing(Map.Entry::getKey, Comparator.reverseOrder()))   // tie: alphabetical
+                        // tie: alphabetical
+                        .thenComparing(Map.Entry::getKey, Comparator.reverseOrder()))
                 .map(Map.Entry::getKey);
     }
 }
@@ -54,7 +55,8 @@ class InventoryService {
     synchronized boolean confirm(String reservationId, long now) {
         expire(now);
         Reservation r = reservations.remove(reservationId);
-        if (r == null) return false;                                    // expired or unknown: re-reserve
+        // expired or unknown: re-reserve
+        if (r == null) return false;
         Level l = levels.get(r.key());
         l.reserved -= r.qty();
         l.onHand -= r.qty();
@@ -76,7 +78,8 @@ class InventoryService {
     void addListener(LowStockListener l) { listeners.add(l); }
     synchronized List<String> movements() { return List.copyOf(movements); }
 
-    private void expire(long now) {                                     // lazily free abandoned carts
+    // lazily free abandoned carts
+    private void expire(long now) {
         reservations.values().removeIf(r -> {
             if (r.expiresAt() > now) return false;
             release(r, "EXPIRE");
@@ -92,7 +95,8 @@ class InventoryService {
     private void checkReorder(String sku) {
         int total = available(sku);
         Integer point = reorderPoint.get(sku);
-        if (point != null && total <= point) listeners.forEach(l -> l.onLowStock(sku, total));   // Observer
+        // Observer
+        if (point != null && total <= point) listeners.forEach(l -> l.onLowStock(sku, total));
     }
 
     private Level level(String warehouse, String sku) {

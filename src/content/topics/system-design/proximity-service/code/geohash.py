@@ -45,7 +45,8 @@ def neighbours(gh: str) -> list[str]:
             lat = lat_c + dy * h
             if not -90 <= lat <= 90:
                 continue
-            lon = (lon_c + dx * w + 540) % 360 - 180              # wrap at the antimeridian
+            # wrap at the antimeridian
+            lon = (lon_c + dx * w + 540) % 360 - 180
             cells.append(encode(lat, lon, len(gh)))
     return sorted(set(cells))
 

@@ -1,4 +1,5 @@
-interface FahrenheitSource { double readingF(); }        // what the chart library expects (target)
+// what the chart library expects (target)
+interface FahrenheitSource { double readingF(); }
 interface CelsiusSensor    { double temperatureC(); }   // what we have (adaptee)
 
 final class CelsiusToFahrenheit implements FahrenheitSource {

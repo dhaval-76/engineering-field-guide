@@ -11,4 +11,5 @@ def get_checkout(db: Session = Depends(get_db)) -> CheckoutService:
 def checkout(cart: Cart, service: CheckoutService = Depends(get_checkout)):
     return service.place(cart)
 
-# Tests: app.dependency_overrides[get_checkout] = lambda: CheckoutService(FakeGateway(), InMemoryOrders())
+# Tests: app.dependency_overrides[get_checkout] = lambda: CheckoutService(FakeGateway(),
+# InMemoryOrders())

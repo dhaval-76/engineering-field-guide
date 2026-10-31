@@ -1,4 +1,5 @@
-// Fare policy as a function (strategy). Money in paise; distances in km; durations in minutes.
+// Fare policy as a function (strategy). Money in paise; distances in km; durations in
+// minutes.
 export const standardFare = (rates) => ({ vehicle, km, minutes }, surge) => {
   const r = rates[vehicle];
   const raw = r.base + r.perKm * km + r.perMinute * minutes;

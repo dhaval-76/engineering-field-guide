@@ -1,4 +1,5 @@
-# contextvars work for both threads and asyncio tasks (each task gets a copy of the context).
+# contextvars work for both threads and asyncio tasks (each task gets a copy of the
+# context).
 from contextvars import ContextVar
 
 trace_id: ContextVar[str | None] = ContextVar("trace_id", default=None)

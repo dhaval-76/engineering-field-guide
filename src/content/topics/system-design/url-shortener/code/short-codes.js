@@ -1,6 +1,7 @@
 const ALPHABET = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
 const SPACE = 62n ** 7n;              // 3,521,614,606,208 seven-character codes
-const MULTIPLIER = 1_580_030_173n;    // coprime with 62^7 → multiplication mod 62^7 is a bijection
+// coprime with 62^7 → multiplication mod 62^7 is a bijection
+const MULTIPLIER = 1_580_030_173n;
 
 // Fixed-width base62 so every code has 7 characters. BigInt: ids exceed 2^53 safely.
 export function encode(n) {
@@ -22,14 +23,16 @@ export function decode(code) {
   return n;
 }
 
-// Spread consecutive ids across the code space so codes aren't sequential (not encryption).
+// Spread consecutive ids across the code space so codes aren't sequential (not
+// encryption).
 export function scrambled(id) {
   const n = BigInt(id);
   if (n < 0n || n >= SPACE) throw new Error('id out of range');
   return encode((n * MULTIPLIER) % SPACE);
 }
 
-// Each instance reserves 10,000 ids at a time, so creating a link needs no shared call per link.
+// Each instance reserves 10,000 ids at a time, so creating a link needs no shared call
+// per link.
 export class IdRange {
   #next = 0n;
   #end = 0n;
@@ -46,4 +49,5 @@ export class IdRange {
     return this.#next++;
   }
 }
-// (Two concurrent nextId() calls at a block boundary could both fetch a block — wasteful, never duplicate.)
+// (Two concurrent nextId() calls at a block boundary could both fetch a block — wasteful,
+// never duplicate.)

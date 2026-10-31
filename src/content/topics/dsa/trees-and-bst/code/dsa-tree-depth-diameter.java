@@ -17,4 +17,5 @@ private int height(TreeNode n) {
     bestDiameter = Math.max(bestDiameter, l + r); // path bending at n
     return 1 + Math.max(l, r);
 }
-// O(n): each node computes its height once (calling maxDepth inside a loop would be O(n²))
+// O(n): each node computes its height once (calling maxDepth inside a loop would be
+// O(n²))

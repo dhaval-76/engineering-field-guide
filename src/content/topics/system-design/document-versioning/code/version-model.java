@@ -9,7 +9,8 @@ class PageVersions {
     public long save(long pageId, long expectedHead, String content, long authorId, String message) {
         byte[] bytes = content.getBytes(StandardCharsets.UTF_8);
         byte[] hash = sha256(bytes);
-        if (!blobs.exists(hash)) {                              // identical content (or a restore) stores nothing
+        // identical content (or a restore) stores nothing
+        if (!blobs.exists(hash)) {
             Blob parent = blobs.get(versions.get(expectedHead).contentHash());
             if (parent.chainLength() + 1 >= SNAPSHOT_EVERY) blobs.putFull(hash, bytes);
             else blobs.putDelta(hash, parent.hash(), Delta.between(blobs.read(parent.hash()), bytes),
@@ -17,7 +18,8 @@ class PageVersions {
         }
         long id = versions.insert(pageId, expectedHead, hash, authorId, message);
         int moved = jdbc.update("UPDATE pages SET head_id = ? WHERE id = ? AND head_id = ?", id, pageId, expectedHead);
-        if (moved == 0) throw new ConcurrentEditException(pageId);   // rolls back; client must rebase or merge
+        // rolls back; client must rebase or merge
+        if (moved == 0) throw new ConcurrentEditException(pageId);
         return id;
     }
 

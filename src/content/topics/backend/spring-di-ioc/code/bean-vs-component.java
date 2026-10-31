@@ -1,6 +1,8 @@
-// @Component and its stereotypes: Spring finds the class by scanning and calls its constructor
+// @Component and its stereotypes: Spring finds the class by scanning and calls its
+// constructor
 @Service       class OrderService { … }          // business logic (no extra behaviour)
-@Repository    class JpaOrderStore { … }         // data access; also translates SQL exceptions to DataAccessException
+// data access; also translates SQL exceptions to DataAccessException
+@Repository    class JpaOrderStore { … }
 @RestController class OrderController { … }      // web; @Controller + @ResponseBody
 
 // @Bean: YOU write the construction code in a @Configuration class — for classes you don't own,
@@ -15,7 +17,8 @@ class ClientsConfig {
             .build();
     }
 
-    @Bean("reportsMapper")                      // a second ObjectMapper, chosen with @Qualifier("reportsMapper")
+    // a second ObjectMapper, chosen with @Qualifier("reportsMapper")
+    @Bean("reportsMapper")
     ObjectMapper reportsMapper() {
         return JsonMapper.builder().enable(SerializationFeature.INDENT_OUTPUT).build();
     }

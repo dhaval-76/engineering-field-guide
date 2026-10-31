@@ -1,8 +1,10 @@
 final class ShortCodes {
     private static final char[] ALPHABET =
         "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ".toCharArray();
-    private static final BigInteger SPACE = BigInteger.valueOf(3_521_614_606_208L);  // 62^7: every 7-char code
-    // Coprime with 62^7 = 2^7 · 31^7 (odd, not a multiple of 31) → multiplication mod 62^7 is a bijection
+    // 62^7: every 7-char code
+    private static final BigInteger SPACE = BigInteger.valueOf(3_521_614_606_208L);
+    // Coprime with 62^7 = 2^7 · 31^7 (odd, not a multiple of 31) → multiplication mod
+    // 62^7 is a bijection
     private static final BigInteger MULTIPLIER = BigInteger.valueOf(1_580_030_173L);
 
     /** Fixed-width base62 so every code has 7 characters. */
@@ -22,7 +24,8 @@ final class ShortCodes {
     static String scrambled(long id) {
         BigInteger n = BigInteger.valueOf(id);
         if (n.signum() < 0 || n.compareTo(SPACE) >= 0) throw new IllegalArgumentException("id out of range");
-        return encode(n.multiply(MULTIPLIER).mod(SPACE).longValueExact());   // 128-bit math: no overflow
+        // 128-bit math: no overflow
+        return encode(n.multiply(MULTIPLIER).mod(SPACE).longValueExact());
     }
 
     private static int indexOf(char c) {

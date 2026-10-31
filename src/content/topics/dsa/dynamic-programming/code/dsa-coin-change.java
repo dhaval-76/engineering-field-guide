@@ -14,10 +14,11 @@ int coinChange(int[] coins, int amount) {
 long countWays(int[] coins, int amount) {
     long[] ways = new long[amount + 1];
     ways[0] = 1;
-    for (int c : coins)                         // coins OUTER: each combination counted once
+    // coins OUTER: each combination counted once
+    for (int c : coins)
         for (int a = c; a <= amount; a++)
             ways[a] += ways[a - c];
     return ways[amount];
 }
-// Swapping the loops (amounts outer) would count ordered sequences (permutations) instead.
-// O(amount × coins) time, O(amount) space.
+// Swapping the loops (amounts outer) would count ordered sequences (permutations)
+// instead. O(amount × coins) time, O(amount) space.

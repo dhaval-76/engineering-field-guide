@@ -25,12 +25,14 @@ class TaskScheduler:
 
     def cancel(self, task_id: int) -> None:
         with self._cv:
-            self._cancelled.add(task_id)          # skipped when it reaches the top of the heap
+            # skipped when it reaches the top of the heap
+            self._cancelled.add(task_id)
 
     def _push(self, run_at: float, task_id: int, task) -> None:
         with self._cv:
             heapq.heappush(self._heap, (run_at, task_id, task))
-            self._cv.notify()                     # wake the dispatcher: this may be the new earliest task
+            # wake the dispatcher: this may be the new earliest task
+            self._cv.notify()
 
     def _dispatch(self) -> None:
         with self._cv:
@@ -66,4 +68,5 @@ class TaskScheduler:
             self._running = False
             self._cv.notify()
         self._pool.shutdown(wait=True)
-# In-memory: a restart loses scheduled tasks. Durable schedules belong in a database or queue.
+# In-memory: a restart loses scheduled tasks. Durable schedules belong in a database or
+# queue.

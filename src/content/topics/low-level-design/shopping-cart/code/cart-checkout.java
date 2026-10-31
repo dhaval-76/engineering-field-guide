@@ -16,9 +16,11 @@ final class CheckoutService {
         if (existing.isPresent()) return existing.get();
 
         Cart cart = carts.get(cartId);
-        PriceBreakdown price = pricing.price(cart, promotions.activeFor(cart));          // re-price: never trust client prices
+        // re-price: never trust client prices
+        PriceBreakdown price = pricing.price(cart, promotions.activeFor(cart));
 
-        Reservation hold = inventory.reserveAll(cart.lines(), Duration.ofMinutes(15));    // all-or-nothing, conditional updates
+        // all-or-nothing, conditional updates
+        Reservation hold = inventory.reserveAll(cart.lines(), Duration.ofMinutes(15));
         try {
             PaymentResult paid = payments.charge(price.payablePaise(), method, checkoutId);
             if (!paid.succeeded()) throw new PaymentDeclined(paid.reason());
@@ -33,6 +35,8 @@ final class CheckoutService {
     }
 }
 
-// InventoryService.reserveAll, in SQL, for each line (inside one transaction, SKUs in sorted order):
+// InventoryService.reserveAll, in SQL, for each line (inside one transaction, SKUs in
+// sorted order):
 //   UPDATE stock SET available = available - :qty, reserved = reserved + :qty
-//    WHERE sku = :sku AND available >= :qty;          -- 0 rows → out of stock → roll back everything
+// WHERE sku = :sku AND available >= :qty;          -- 0 rows → out of stock → roll back
+// everything

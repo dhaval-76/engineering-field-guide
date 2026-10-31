@@ -14,6 +14,7 @@ def with_serializable_tx(pool, work, max_attempts=5):
         except RETRYABLE:
             if attempt == max_attempts:
                 raise
-            time.sleep(random.uniform(0, min(1.0, 0.02 * 2 ** attempt)))   # jittered backoff
+            # jittered backoff
+            time.sleep(random.uniform(0, min(1.0, 0.02 * 2 ** attempt)))
 
 # with_serializable_tx(pool, lambda conn: take_off_call(conn, "alice", 1))

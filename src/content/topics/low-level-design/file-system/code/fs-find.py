@@ -4,7 +4,8 @@ import re
 import time
 from typing import Callable
 
-Filter = Callable[["Node"], bool]       # each find option is a predicate (Specification pattern)
+# each find option is a predicate (Specification pattern)
+Filter = Callable[["Node"], bool]
 
 def name(glob: str) -> Filter:
     rx = re.compile(fnmatch.translate(glob))
@@ -39,5 +40,5 @@ def find(start, flt: Filter, max_depth: float = float("inf")) -> list:
             stack.extend((c, depth + 1) for c in n.children)
     return out
 
-# find /src -name "*.java" -size +1k ! -name "*Test*"
-# hits = find(fs.resolve("/src"), all_of(name("*.java"), size_at_least(1024), negate(name("*Test*"))))
+# find /src -name "*.java" -size +1k ! -name "*Test*" hits = find(fs.resolve("/src"),
+# all_of(name("*.java"), size_at_least(1024), negate(name("*Test*"))))

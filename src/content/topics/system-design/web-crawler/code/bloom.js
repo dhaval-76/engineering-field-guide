@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
 
-// "Have we seen this URL?" in ~10 bits per URL. No false negatives; a tunable rate of false positives.
+// "Have we seen this URL?" in ~10 bits per URL. No false negatives; a tunable rate of
+// false positives.
 export class BloomFilter {
   constructor(expected, fpRate) {
     this.m = Math.ceil((-expected * Math.log(fpRate)) / Math.log(2) ** 2);
@@ -13,7 +14,8 @@ export class BloomFilter {
     const h1 = d.readBigUInt64BE(0);
     const h2 = d.readBigUInt64BE(8) | 1n;
     const m = BigInt(this.m);
-    for (let i = 0n; i < BigInt(this.k); i++) yield Number((h1 + i * h2) % m); // double hashing
+    // double hashing
+    for (let i = 0n; i < BigInt(this.k); i++) yield Number((h1 + i * h2) % m);
   }
 
   add(item) {

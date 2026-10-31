@@ -1,5 +1,5 @@
-// Node runs JavaScript on one thread, so `count++` can't be torn — but check-then-act ACROSS an await
-// races exactly like threads do: other requests run while this one waits.
+// Node runs JavaScript on one thread, so `count++` can't be torn — but check-then-act
+// ACROSS an await races exactly like threads do: other requests run while this one waits.
 let balance = 1000;
 
 async function withdraw(amount) {

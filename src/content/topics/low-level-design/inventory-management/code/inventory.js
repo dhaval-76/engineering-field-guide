@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 
-// Strategy: choose a warehouse that can fill the whole quantity (most stock first, then alphabetical).
+// Strategy: choose a warehouse that can fill the whole quantity (most stock first, then
+// alphabetical).
 export const mostStockFirst = (sku, qty, available) =>
   [...available.entries()]
     .filter(([, n]) => n >= qty)

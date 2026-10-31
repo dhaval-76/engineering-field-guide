@@ -1,6 +1,7 @@
 // Provider-neutral types; a thin client maps them to the provider's tool-calling format.
 record ToolCall(String id, String name, Map<String, Object> args) {}
-record Reply(String text, List<ToolCall> toolCalls) {}               // no tool calls = final answer
+// no tool calls = final answer
+record Reply(String text, List<ToolCall> toolCalls) {}
 record Msg(String role, String text, List<ToolCall> calls, String toolCallId) {}
 record Tool(String name, String description, String jsonSchema, boolean changesData,
             Function<Map<String, Object>, String> run) {}
@@ -32,11 +33,13 @@ class Agent {
                 else if (!mayRun.test(tool, call.args())) result = "error: not permitted";
                 else {
                     try { result = tool.run().apply(call.args()); }
-                    catch (RuntimeException e) { result = "error: " + e.getMessage(); }  // let the model recover
+                    // let the model recover
+                    catch (RuntimeException e) { result = "error: " + e.getMessage(); }
                 }
                 history.add(new Msg("tool", result, List.of(), call.id()));
             }
         }
-        return "Stopped after " + maxSteps + " steps without finishing.";        // budget, not an infinite loop
+        // budget, not an infinite loop
+        return "Stopped after " + maxSteps + " steps without finishing.";
     }
 }

@@ -1,4 +1,5 @@
-// Levels, a dotted-name logger hierarchy with inherited levels, pluggable appenders and formatters.
+// Levels, a dotted-name logger hierarchy with inherited levels, pluggable appenders and
+// formatters.
 import { AsyncLocalStorage } from 'node:async_hooks';
 
 export const Level = { DEBUG: 10, INFO: 20, WARN: 30, ERROR: 40 };

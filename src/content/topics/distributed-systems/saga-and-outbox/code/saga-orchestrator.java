@@ -1,10 +1,13 @@
 interface SagaStep {
     String name();
-    void execute(Map<String, Object> ctx) throws Exception;     // local transaction in one service (idempotent)
-    void compensate(Map<String, Object> ctx) throws Exception;  // semantic undo (idempotent, retryable)
+    // local transaction in one service (idempotent)
+    void execute(Map<String, Object> ctx) throws Exception;
+    // semantic undo (idempotent, retryable)
+    void compensate(Map<String, Object> ctx) throws Exception;
 }
 
-interface SagaLog { void record(String sagaId, String step, String state); }   // a table in production
+// a table in production
+interface SagaLog { void record(String sagaId, String step, String state); }
 
 enum SagaResult { COMPLETED, COMPENSATED, NEEDS_ATTENTION }
 
@@ -34,7 +37,8 @@ class SagaOrchestrator {
     }
 
     private SagaResult compensate(String sagaId, List<SagaStep> completed, Map<String, Object> ctx) {
-        for (int i = completed.size() - 1; i >= 0; i--) {                 // undo in reverse order
+        // undo in reverse order
+        for (int i = completed.size() - 1; i >= 0; i--) {
             SagaStep step = completed.get(i);
             boolean ok = false;
             for (int attempt = 0; attempt < compensationAttempts && !ok; attempt++) {
@@ -42,7 +46,8 @@ class SagaOrchestrator {
                 catch (Exception e) { /* back off and retry: compensations must eventually succeed */ }
             }
             log.record(sagaId, step.name(), ok ? "COMPENSATED" : "COMPENSATION_FAILED");
-            if (!ok) return SagaResult.NEEDS_ATTENTION;                   // page a human; don't guess
+            // page a human; don't guess
+            if (!ok) return SagaResult.NEEDS_ATTENTION;
         }
         log.record(sagaId, "saga", "COMPENSATED");
         return SagaResult.COMPENSATED;

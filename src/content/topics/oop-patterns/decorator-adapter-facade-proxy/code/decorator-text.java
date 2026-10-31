@@ -4,4 +4,5 @@ record Bold(Text inner)      implements Text { public String render() { return "
 record Italic(Text inner)    implements Text { public String render() { return "<i>" + inner.render() + "</i>"; } }
 record Underline(Text inner) implements Text { public String render() { return "<u>" + inner.render() + "</u>"; } }
 
-new Underline(new Italic(new Bold(new Plain("Hello")))).render();   // <u><i><b>Hello</b></i></u>
+// <u><i><b>Hello</b></i></u>
+new Underline(new Italic(new Bold(new Plain("Hello")))).render();

@@ -1,12 +1,15 @@
 import org.testcontainers.postgresql.PostgreSQLContainer;   // Testcontainers 2.x package
 
-@DataJpaTest                                              // JPA slice; each test rolls back
-@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)  // keep our DB, no H2
+// JPA slice; each test rolls back
+@DataJpaTest
+// keep our DB, no H2
+@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @Testcontainers
 class OrderRepositoryTest {
 
     @Container
-    @ServiceConnection                                    // Boot wires URL, user and password
+    // Boot wires URL, user and password
+    @ServiceConnection
     static PostgreSQLContainer postgres = new PostgreSQLContainer("postgres:17-alpine");
 
     @Autowired OrderRepository repo;
@@ -20,7 +23,8 @@ class OrderRepositoryTest {
         o.addLine("PEN", 1);
         em.persist(o);
         em.flush();
-        em.clear();                                       // force a real read, not the 1st-level cache
+        // force a real read, not the 1st-level cache
+        em.clear();
 
         List<Order> found = repo.findWithLines(c.getId());
 

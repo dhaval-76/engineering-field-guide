@@ -21,7 +21,8 @@ export function dispatcher(strategy, partnersNearby) {
   };
 }
 
-// Pricing strategy: ₹20 for the first 2 km, ₹8/km after, times surge, minus discount, never negative.
+// Pricing strategy: ₹20 for the first 2 km, ₹8/km after, times surge, minus discount,
+// never negative.
 export function deliveryFeePaise(order, surge, discountPaise) {
   const base = 2000 + Math.round(Math.max(0, km(order.pickup, order.drop) - 2) * 800);
   return Math.max(0, Math.round(base * surge) - discountPaise);

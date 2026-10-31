@@ -3,7 +3,8 @@
 SseEmitter orderEvents(@PathVariable String id,
                        @RequestHeader(value = "Last-Event-ID", required = false) String lastEventId,
                        @AuthenticationPrincipal User user) {
-    orders.checkCanRead(user, id);                                   // authorize once, at connect
+    // authorize once, at connect
+    orders.checkCanRead(user, id);
     SseEmitter emitter = new SseEmitter(Duration.ofMinutes(30).toMillis());
 
     Consumer<OrderEvent> send = e -> {
@@ -13,11 +14,14 @@ SseEmitter orderEvents(@PathVariable String id,
             emitter.completeWithError(ex);                           // client went away
         }
     };
-    eventStore.eventsAfter(id, lastEventId).forEach(send);          // catch up after a reconnect
-    Subscription sub = eventBus.subscribe("order:" + id, send);      // live events from pub/sub
+    // catch up after a reconnect
+    eventStore.eventsAfter(id, lastEventId).forEach(send);
+    // live events from pub/sub
+    Subscription sub = eventBus.subscribe("order:" + id, send);
     ScheduledFuture<?> heartbeat = scheduler.scheduleAtFixedRate(() -> {
         try { emitter.send(SseEmitter.event().comment("ping")); } catch (IOException ignored) { }
-    }, 15, 15, TimeUnit.SECONDS);                                    // keeps proxies from closing idle streams
+    // keeps proxies from closing idle streams
+    }, 15, 15, TimeUnit.SECONDS);
 
     Runnable cleanup = () -> { sub.cancel(); heartbeat.cancel(false); };
     emitter.onCompletion(cleanup);

@@ -15,5 +15,7 @@ function hasDuplicateSorted(a) {
   return false;
 }
 
-// Hidden O(n²): includes() is O(n), and string += in a loop copies repeatedly in some engines
-const uniqueSlow = (xs) => xs.filter((x, i) => xs.indexOf(x) === i);   // use [...new Set(xs)] → O(n)
+// Hidden O(n²): includes() is O(n), and string += in a loop copies repeatedly in some
+// engines
+// use [...new Set(xs)] → O(n)
+const uniqueSlow = (xs) => xs.filter((x, i) => xs.indexOf(x) === i);

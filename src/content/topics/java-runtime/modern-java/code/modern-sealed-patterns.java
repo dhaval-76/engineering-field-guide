@@ -11,7 +11,9 @@ String describe(PaymentResult r) {
         case Declined(var reason, var retry) when retry -> "declined, retry: " + reason;
         case Declined(var reason, var ignored)       -> "declined: " + reason;
         case Pending p                               -> "pending until " + p.checkAfter();
-    };   // no default: adding a new PaymentResult type makes this a compile error until handled
+    // no default: adding a new PaymentResult type makes this a compile error until
+    // handled
+    };
 }
 
 // Pattern matching for instanceof (Java 16)

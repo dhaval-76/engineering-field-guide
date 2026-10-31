@@ -1,4 +1,5 @@
-interface SpotSelector {                                      // Strategy: which free spot to try first
+// Strategy: which free spot to try first
+interface SpotSelector {
     Stream<ParkingSpot> candidates(Vehicle v, List<ParkingSpot> spots);
 }
 
@@ -12,7 +13,8 @@ final class NearestSmallestFit implements SpotSelector {
     }
 }
 
-interface PricingPolicy { Money feeFor(Ticket t, Instant exit); }   // Strategy: how much to charge
+// Strategy: how much to charge
+interface PricingPolicy { Money feeFor(Ticket t, Instant exit); }
 
 final class HourlyWithDailyCap implements PricingPolicy {
     private final Map<VehicleType, Money> hourly;
@@ -22,7 +24,8 @@ final class HourlyWithDailyCap implements PricingPolicy {
     }
     public Money feeFor(Ticket t, Instant exit) {
         long minutes = Math.max(1, Duration.between(t.entry(), exit).toMinutes());
-        long hours = (minutes + 59) / 60;                                     // started hours are charged
+        // started hours are charged
+        long hours = (minutes + 59) / 60;
         long days = hours / 24, rest = hours % 24;
         VehicleType type = t.vehicle().type();
         Money restFee = hourly.get(type).times(rest).min(dailyCap.get(type));
@@ -30,7 +33,8 @@ final class HourlyWithDailyCap implements PricingPolicy {
     }
 }
 
-interface SpotListener { void spotChanged(ParkingSpot spot, boolean nowFree); }   // Observer: display boards
+// Observer: display boards
+interface SpotListener { void spotChanged(ParkingSpot spot, boolean nowFree); }
 
 final class ParkingLot {
     private final List<ParkingSpot> spots;
@@ -58,7 +62,8 @@ final class ParkingLot {
                 return Optional.of(t);
             }
         }
-        return Optional.empty();                                         // full for this vehicle type
+        // full for this vehicle type
+        return Optional.empty();
     }
 
     public Money quote(String ticketId) {
@@ -69,12 +74,14 @@ final class ParkingLot {
         Ticket t = ticket(ticketId);
         Money due = pricing.feeFor(t, clock.instant());
         if (amount.compareTo(due) < 0) throw new IllegalArgumentException("due " + due);
-        t.markPaid(due);                                                 // throws if already paid
+        // throws if already paid
+        t.markPaid(due);
     }
 
     public void exit(String ticketId) {
         Ticket t = ticket(ticketId);
-        t.close();                                                       // throws unless paid
+        // throws unless paid
+        t.close();
         active.remove(ticketId);
         t.spot().release();
         listeners.forEach(l -> l.spotChanged(t.spot(), true));

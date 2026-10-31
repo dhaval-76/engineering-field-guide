@@ -26,7 +26,8 @@ class SmoothWeighted:
         with self._lock:
             for s, w in self.weights.items():
                 self.current[s] += w
-            best = max(self.weights, key=lambda s: self.current[s])   # first max wins ties
+            # first max wins ties
+            best = max(self.weights, key=lambda s: self.current[s])
             self.current[best] -= sum(self.weights.values())
             return best
 

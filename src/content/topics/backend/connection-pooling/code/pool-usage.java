@@ -1,4 +1,5 @@
-// Plain JDBC: try-with-resources returns the connection to the pool even when an exception is thrown
+// Plain JDBC: try-with-resources returns the connection to the pool even when an
+// exception is thrown
 try (Connection c = dataSource.getConnection();
      PreparedStatement ps = c.prepareStatement("SELECT id, total FROM orders WHERE customer_id = ?")) {
     ps.setString(1, customerId);

@@ -17,5 +17,5 @@ export function createRouter({ bucketToDatabase, pinnedTenants = new Map(), pool
   };
 }
 
-// const pool = router.poolFor(req.tenantId);
-// await pool.query('SELECT … FROM orders WHERE tenant_id = $1 AND id = $2', [req.tenantId, id]);
+// const pool = router.poolFor(req.tenantId); await pool.query('SELECT … FROM orders WHERE
+// tenant_id = $1 AND id = $2', [req.tenantId, id]);

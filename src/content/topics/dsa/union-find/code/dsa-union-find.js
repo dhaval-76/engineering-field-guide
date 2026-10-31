@@ -6,7 +6,8 @@ class UnionFind {
   }
   find(x) {
     while (this.parent[x] !== x) {
-      this.parent[x] = this.parent[this.parent[x]];   // path halving: a simple form of compression
+      // path halving: a simple form of compression
+      this.parent[x] = this.parent[this.parent[x]];
       x = this.parent[x];
     }
     return x;

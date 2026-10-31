@@ -1,8 +1,10 @@
-# FastAPI: authorization in dependencies and in the queries — never trust ids from the client alone.
+# FastAPI: authorization in dependencies and in the queries — never trust ids from the
+# client alone.
 from fastapi import Depends, HTTPException
 
 def require_role(*roles: str):
-    def check(user: dict = Depends(current_user)) -> dict:     # current_user verifies the JWT
+    # current_user verifies the JWT
+    def check(user: dict = Depends(current_user)) -> dict:
         if not set(roles) & set(user.get("roles", [])):
             raise HTTPException(403)
         return user
@@ -18,11 +20,13 @@ def delete_order(order_id: str, user: dict = Depends(require_role("ADMIN"))):
 def get_order(order_id: str, user: dict = Depends(current_user)):
     order = orders.view(order_id)
     if order is None or (order.customer_id != user["sub"] and "SUPPORT" not in user.get("roles", [])):
-        raise HTTPException(404)          # 404, not 403: don't reveal that someone else's order exists
+        # 404, not 403: don't reveal that someone else's order exists
+        raise HTTPException(404)
     return order
 
 # Better for lists: scope the QUERY to the caller (never find_all() then filter)
 @app.get("/me/orders")
 def my_orders(cursor: str | None = None, user: dict = Depends(current_user)):
     return orders.find_by_customer_id(user["sub"], cursor)
-# Test all three: no token → 401; valid token without permission → 403/404; someone else's id → 404.
+# Test all three: no token → 401; valid token without permission → 403/404; someone else's
+# id → 404.

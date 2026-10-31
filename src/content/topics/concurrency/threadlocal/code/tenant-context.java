@@ -9,12 +9,13 @@ public class TenantFilter extends OncePerRequestFilter {
     @Override
     protected void doFilterInternal(HttpServletRequest req, HttpServletResponse res, FilterChain chain)
             throws ServletException, IOException {
-        // Simplified: in production take the tenant from the authenticated token's claims,
-        // never from a header the client controls.
+        // Simplified: in production take the tenant from the authenticated token's
+        // claims, never from a header the client controls.
         String tenant = req.getHeader("X-Tenant-Id");
         if (tenant == null) { res.sendError(400, "missing tenant"); return; }
         TenantContext.set(tenant);
-        MDC.put("tenant", tenant);                  // every log line gets [tenant] via %X{tenant}
+        // every log line gets [tenant] via %X{tenant}
+        MDC.put("tenant", tenant);
         try {
             chain.doFilter(req, res);
         } finally {
@@ -23,4 +24,5 @@ public class TenantFilter extends OncePerRequestFilter {
         }
     }
 }
-// Services and repositories call TenantContext.get(); log pattern: "%d [%X{tenant}] %msg%n"
+// Services and repositories call TenantContext.get(); log pattern: "%d [%X{tenant}]
+// %msg%n"

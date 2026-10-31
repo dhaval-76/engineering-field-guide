@@ -1,4 +1,5 @@
-// Hybrid feed read: pushed ids from the user's Redis sorted set + pulled posts from followed celebrities.
+// Hybrid feed read: pushed ids from the user's Redis sorted set + pulled posts from
+// followed celebrities.
 const PAGE = 20;
 
 // cursor: null for the first page, otherwise { score, postId } of the last item shown
@@ -22,7 +23,9 @@ export async function readFeed(userId, cursor) {
     .map((c) => posts.latestByAuthor(c, cursor?.score ?? Infinity, 5)))).flat()
     .map((p) => ({ postId: p.id, score: p.createdAtMillis }));
   const { page, next } = mergePage(cached, pulled, cursor);
-  const views = (await posts.getMany(page.map((c) => c.postId)))     // hydrate in one batch
-    .filter((p) => !p.deleted && !graph.isBlocked(userId, p.authorId)); // filter at read time
+  // hydrate in one batch
+  const views = (await posts.getMany(page.map((c) => c.postId)))
+    // filter at read time
+    .filter((p) => !p.deleted && !graph.isBlocked(userId, p.authorId));
   return { views, next };
 }

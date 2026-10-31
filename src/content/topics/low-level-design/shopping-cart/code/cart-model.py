@@ -12,11 +12,13 @@ class CartLine:
 class Cart:
     """Stores intent (what and how many), not prices — prices are looked up when pricing."""
 
-    def __init__(self, cart_id: str, owner_id: str):        # owner: user id or a guest session id
+    # owner: user id or a guest session id
+    def __init__(self, cart_id: str, owner_id: str):
         self.cart_id, self.owner_id = cart_id, owner_id
         self._lines: dict[str, int] = {}                    # insertion order kept
         self._coupons: dict[str, None] = {}                 # ordered set
-        self.version = 0                                    # optimistic locking when persisted
+        # optimistic locking when persisted
+        self.version = 0
 
     def add(self, sku: str, qty: int) -> None:
         CartLine(sku, qty)                                  # validates

@@ -25,12 +25,14 @@ class Group:
         e = Expense(str(uuid.uuid4()), paid_by, amount, owed, description)
         with self._lock:
             self.expenses.append(e)
-            self._net[paid_by] += amount                     # payer fronted the whole amount
+            # payer fronted the whole amount
+            self._net[paid_by] += amount
             for person, share in owed.items():
                 self._net[person] -= share
         return e
 
-    def record_payment(self, frm: str, to: str, amount: int) -> None:   # a settle-up is just a transfer
+    # a settle-up is just a transfer
+    def record_payment(self, frm: str, to: str, amount: int) -> None:
         with self._lock:
             self._net[frm] += amount
             self._net[to] -= amount

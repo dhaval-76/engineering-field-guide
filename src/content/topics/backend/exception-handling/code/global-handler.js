@@ -9,7 +9,8 @@ class DomainError extends Error {
 app.use((err, req, res, next) => {
   if (res.headersSent) return next(err);
   const known = err instanceof DomainError;
-  if (!known) req.log.error({ err }, 'unhandled error');           // log the stack, don't return it
+  // log the stack, don't return it
+  if (!known) req.log.error({ err }, 'unhandled error');
   const status = known ? err.status : 500;
   res.status(status).type('application/problem+json').json({
     type: `https://api.example.com/problems/${known ? err.code : 'internal_error'}`,
@@ -19,4 +20,5 @@ app.use((err, req, res, next) => {
     traceId: req.id,
   });
 });
-// Express 5 forwards rejected promises from async handlers to this middleware automatically.
+// Express 5 forwards rejected promises from async handlers to this middleware
+// automatically.

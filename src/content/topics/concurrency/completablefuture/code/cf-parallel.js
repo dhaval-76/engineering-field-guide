@@ -5,7 +5,8 @@ async function buildPage(productId) {
 
   const [product, stock, price] = await Promise.all([
     withTimeout(productService.get(productId), 300),
-    withTimeout(inventoryService.get(productId), 300).catch(() => Inventory.UNKNOWN),   // fallback
+    // fallback
+    withTimeout(inventoryService.get(productId), 300).catch(() => Inventory.UNKNOWN),
     withTimeout(pricingService.get(productId), 300),
   ]);
   return { product, stock, price };

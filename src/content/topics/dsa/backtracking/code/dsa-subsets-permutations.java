@@ -4,10 +4,12 @@ List<List<Integer>> subsets(int[] nums) {
     return out;
 }
 private void collectSubsets(int[] nums, int start, List<Integer> path, List<List<Integer>> out) {
-    out.add(new ArrayList<>(path));                       // every node of the tree is a subset
+    // every node of the tree is a subset
+    out.add(new ArrayList<>(path));
     for (int i = start; i < nums.length; i++) {
         path.add(nums[i]);
-        collectSubsets(nums, i + 1, path, out);           // only later elements: no reordered duplicates
+        // only later elements: no reordered duplicates
+        collectSubsets(nums, i + 1, path, out);
         path.remove(path.size() - 1);
     }
 }

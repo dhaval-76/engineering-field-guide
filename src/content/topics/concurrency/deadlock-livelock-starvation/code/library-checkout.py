@@ -3,7 +3,8 @@ import threading
 class Library:
     def __init__(self):
         self._checked_out: dict[str, str] = {}          # book_id → user_id
-        self._guard = threading.Lock()                   # protects the dict and the lock registry
+        # protects the dict and the lock registry
+        self._guard = threading.Lock()
         self._locks: dict[str, threading.Lock] = {}
 
     def checkout(self, user_id: str, book_id: str) -> bool:
@@ -16,7 +17,8 @@ class Library:
 
     def return_book(self, user_id: str, book_id: str) -> bool:
         with self._guard:
-            if self._checked_out.get(book_id) != user_id:   # only the holder can return it
+            # only the holder can return it
+            if self._checked_out.get(book_id) != user_id:
                 return False
             del self._checked_out[book_id]
             return True

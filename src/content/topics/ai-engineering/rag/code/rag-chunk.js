@@ -1,4 +1,5 @@
-// Split text into ~maxWords-word chunks on paragraph boundaries, carrying `overlap` words forward.
+// Split text into ~maxWords-word chunks on paragraph boundaries, carrying `overlap` words
+// forward.
 export function chunk(text, maxWords, overlap) {
   const chunks = [];
   let current = [];

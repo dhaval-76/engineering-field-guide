@@ -12,7 +12,8 @@ class Event:
     payload: str
 
 
-# broker: any callable send(event) that raises on failure, e.g. producer.produce(...) + flush(timeout)
+# broker: any callable send(event) that raises on failure, e.g. producer.produce(...) +
+# flush(timeout)
 Broker = Callable[[Event], None]
 
 
@@ -47,7 +48,8 @@ class FileSpool:
         self.head += 1
         self.done += 1
         if self.head == len(self.queue):
-            # Reset the offset first, then drop the log: a crash in between replays, never skips.
+            # Reset the offset first, then drop the log: a crash in between replays, never
+            # skips.
             self._write_offset(0)
             if os.path.exists(self.log):
                 os.remove(self.log)

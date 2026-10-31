@@ -9,7 +9,8 @@ private boolean match(char[][] b, String word, int i, int r, int c) {
     if (i == word.length()) return true;
     if (r < 0 || r >= b.length || c < 0 || c >= b[0].length || b[r][c] != word.charAt(i)) return false;
     char saved = b[r][c];
-    b[r][c] = '#';                                            // mark as on the current path
+    // mark as on the current path
+    b[r][c] = '#';
     boolean found = match(b, word, i + 1, r + 1, c) || match(b, word, i + 1, r - 1, c)
                  || match(b, word, i + 1, r, c + 1) || match(b, word, i + 1, r, c - 1);
     b[r][c] = saved;                                          // unmark when backtracking

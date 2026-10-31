@@ -1,7 +1,8 @@
 // 1. Seen set: "have I met this before?"
 boolean containsDuplicate(int[] nums) {
     Set<Integer> seen = new HashSet<>();
-    for (int x : nums) if (!seen.add(x)) return true;   // add returns false if already present
+    // add returns false if already present
+    for (int x : nums) if (!seen.add(x)) return true;
     return false;
 }
 

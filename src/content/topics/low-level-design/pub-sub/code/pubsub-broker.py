@@ -10,7 +10,8 @@ class Message:
 @dataclass
 class _Topic:
     log: list[Message] = field(default_factory=list)
-    base_offset: int = 0                                  # offset of log[0] after retention trims
+    # offset of log[0] after retention trims
+    base_offset: int = 0
     committed: dict[str, int] = field(default_factory=dict)
     lock: threading.Lock = field(default_factory=threading.Lock)
 

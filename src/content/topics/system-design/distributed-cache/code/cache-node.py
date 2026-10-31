@@ -6,7 +6,8 @@ class CacheNode:
 
     def __init__(self, capacity: int, samples: int = 5, seed: int | None = None):
         self.capacity, self.samples = capacity, samples
-        self._items: dict[str, list] = {}       # key -> [value, expires_at, last_access, slot]
+        # key -> [value, expires_at, last_access, slot]
+        self._items: dict[str, list] = {}
         self._keys: list[str] = []              # dense list for O(1) random picks
         self._rnd = random.Random(seed)
         self._lock = threading.Lock()

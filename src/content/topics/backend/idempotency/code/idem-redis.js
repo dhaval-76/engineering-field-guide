@@ -5,7 +5,8 @@ if (first === null) {
   const stored = await redis.get(k);
   if (stored === 'IN_PROGRESS') return res.status(409).set('Retry-After', '1').end();
   const { code, body } = JSON.parse(stored);
-  return res.status(code).json(body);                         // replay the original response
+  // replay the original response
+  return res.status(code).json(body);
 }
 const { code, body } = await action();
 await redis.set(k, JSON.stringify({ code, body }), { EX: 86_400 });

@@ -20,13 +20,15 @@ def transform(op, applied, op_wins_ties: bool):
             return op
         if op.pos >= applied.pos + applied.length:
             return replace(op, pos=op.pos - applied.length)
-        return Ins(applied.pos, "")              # typed inside a deleted range: dropped (same rule both ways)
+        # typed inside a deleted range: dropped (same rule both ways)
+        return Ins(applied.pos, "")
     if isinstance(applied, Ins):
         if applied.pos <= op.pos:
             return replace(op, pos=op.pos + len(applied.text))
         if applied.pos >= op.pos + op.length:
             return op
-        return replace(op, length=op.length + len(applied.text))   # delete the text inserted inside our range
+        # delete the text inserted inside our range
+        return replace(op, length=op.length + len(applied.text))
     s, e, ds, de = op.pos, op.pos + op.length, applied.pos, applied.pos + applied.length
     if e <= ds:
         return op

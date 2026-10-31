@@ -18,7 +18,8 @@ from unittest.mock import Mock, call
 import pytest
 
 def test_delete_existing_user_deletes_then_publishes():
-    parent = Mock()                                   # attach both mocks to one parent to check call ORDER
+    # attach both mocks to one parent to check call ORDER
+    parent = Mock()
     users, events = parent.users, parent.events
     alice = {"id": "U1"}
     users.find_by_id.return_value = alice

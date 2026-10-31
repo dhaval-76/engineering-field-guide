@@ -5,7 +5,8 @@ const hmacHex = (data, secret) => createHmac('sha256', secret).update(data).dige
 // Sender: sign "timestamp.body".
 export const signatureHeader = (body, timestamp, secret) => `t=${timestamp},v1=${hmacHex(`${timestamp}.${body}`, secret)}`;
 
-// Receiver: verify the RAW body (before JSON parsing), constant-time compare, reject stale timestamps.
+// Receiver: verify the RAW body (before JSON parsing), constant-time compare, reject
+// stale timestamps.
 export function verify(body, header, secret, now, toleranceSeconds = 300) {
   const parts = Object.fromEntries(header.split(',').map((p) => p.split('=', 2)));
   const t = Number(parts.t);

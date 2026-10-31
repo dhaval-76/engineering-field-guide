@@ -1,13 +1,16 @@
 public final class Library {
-    private final ConcurrentHashMap<String, String> checkedOut = new ConcurrentHashMap<>();   // bookId → userId
+    // bookId → userId
+    private final ConcurrentHashMap<String, String> checkedOut = new ConcurrentHashMap<>();
 
     /** At most one user can hold a book; different books never block each other. */
     public boolean checkout(String userId, String bookId) {
-        return checkedOut.putIfAbsent(bookId, userId) == null;     // atomic per key, no explicit lock
+        // atomic per key, no explicit lock
+        return checkedOut.putIfAbsent(bookId, userId) == null;
     }
 
     public boolean returnBook(String userId, String bookId) {
-        return checkedOut.remove(bookId, userId);                  // only the holder can return it
+        // only the holder can return it
+        return checkedOut.remove(bookId, userId);
     }
 
     /** Swap two books between users atomically: lock in a global order to avoid deadlock. */

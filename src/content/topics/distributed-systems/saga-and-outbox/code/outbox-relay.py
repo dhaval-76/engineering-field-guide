@@ -1,4 +1,5 @@
-# Polling relay with psycopg 3 + confluent-kafka. Several instances can run: SKIP LOCKED splits the work.
+# Polling relay with psycopg 3 + confluent-kafka. Several instances can run: SKIP LOCKED
+# splits the work.
 import psycopg
 from confluent_kafka import Producer
 
@@ -18,6 +19,7 @@ def relay_once(conn: psycopg.Connection) -> int:
                              on_delivery=lambda err, msg: err and errors.append(err))
         producer.flush()                                  # wait for broker acks
         if errors:
-            raise RuntimeError(f"publish failed: {errors[0]}")   # rollback → retried later
+            # rollback → retried later
+            raise RuntimeError(f"publish failed: {errors[0]}")
         conn.execute("UPDATE outbox SET published_at = now() WHERE id = ANY(%s)", ([r[0] for r in rows],))
         return len(rows)

@@ -13,12 +13,14 @@ export class Group {
     const owed = split(amount, participants);
     const e = { id: randomUUID(), paidBy, amount, owed, description };
     this.expenses.push(e);
-    this.#add(paidBy, amount);                                 // payer fronted the whole amount
+    // payer fronted the whole amount
+    this.#add(paidBy, amount);
     for (const [person, share] of owed) this.#add(person, -share);
     return e;
   }
 
-  recordPayment(from, to, amount) {                            // a settle-up is just a transfer
+  // a settle-up is just a transfer
+  recordPayment(from, to, amount) {
     this.#add(from, amount);
     this.#add(to, -amount);
   }

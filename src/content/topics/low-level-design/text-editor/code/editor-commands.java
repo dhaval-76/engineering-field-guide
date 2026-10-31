@@ -27,7 +27,8 @@ final class InsertText implements Command {
 
 final class DeleteText implements Command {
     private final int pos, len;
-    private String removed;                                       // captured on execute, needed for undo
+    // captured on execute, needed for undo
+    private String removed;
     DeleteText(int pos, int len) { this.pos = pos; this.len = len; }
     public void execute(Buffer b) { removed = b.delete(pos, len); }
     public void undo(Buffer b)    { b.insert(pos, removed); }
@@ -43,7 +44,8 @@ final class Editor {
     void apply(Command c) {
         c.execute(buffer);                     // the command applies itself once…
         Command top = undo.peek();
-        if (top == null || !top.absorb(c)) {   // …and is either merged into the previous step or pushed
+        // …and is either merged into the previous step or pushed
+        if (top == null || !top.absorb(c)) {
             undo.push(c);
             if (undo.size() > maxHistory) undo.removeLast();   // oldest history drops off
         }

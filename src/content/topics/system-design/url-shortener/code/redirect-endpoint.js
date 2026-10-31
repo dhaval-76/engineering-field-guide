@@ -27,7 +27,8 @@ export async function createLink(url, alias, expiresAt, ownerId) {
   try {
     return await links.insert({ code, url, ownerId, expiresAt, custom: Boolean(alias) });
   } catch (e) {
-    if (e.code === '23505') throw Object.assign(new Error('alias taken'), { status: 409 }); // UNIQUE(code) settles races
+    // UNIQUE(code) settles races
+    if (e.code === '23505') throw Object.assign(new Error('alias taken'), { status: 409 });
     throw e;
   }
 }

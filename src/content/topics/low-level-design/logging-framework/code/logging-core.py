@@ -13,7 +13,8 @@ class Level(IntEnum):
     WARN = 30
     ERROR = 40
 
-context: contextvars.ContextVar[dict] = contextvars.ContextVar("log_context", default={})   # like an MDC
+# like an MDC
+context: contextvars.ContextVar[dict] = contextvars.ContextVar("log_context", default={})
 
 @dataclass(frozen=True)
 class LogEvent:

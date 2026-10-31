@@ -18,8 +18,9 @@ export class ParkingLot {
     return () => this.#listeners.delete(fn);
   }
 
-  // Node runs this synchronously on one thread, so "find a free spot and claim it" can't interleave
-  // with another request. (With multiple processes the claim must move to a database or Redis.)
+  // Node runs this synchronously on one thread, so "find a free spot and claim it" can't
+  // interleave with another request. (With multiple processes the claim must move to a
+  // database or Redis.)
   park(vehicle) {
     const fits = FITS[vehicle.type];
     const spot = this.#spots

@@ -25,12 +25,15 @@ class OrderTracking {
 
         OrderStatus current = OrderStatus.valueOf(jdbc.queryForObject(
             "SELECT status FROM orders WHERE id = ?", String.class, orderId));
-        if (!current.canMoveTo(next)) return false;                // late or invalid event: ignore (and log)
+        // late or invalid event: ignore (and log)
+        if (!current.canMoveTo(next)) return false;
 
-        // Conditional update: if another actor changed the status meanwhile, nothing happens.
+        // Conditional update: if another actor changed the status meanwhile, nothing
+        // happens.
         int moved = jdbc.update("UPDATE orders SET status = ?, updated_at = now() WHERE id = ? AND status = ?",
                                 next.name(), orderId, current.name());
-        if (moved == 0) throw new ConcurrentStatusChangeException(orderId);   // retried by the caller
+        // retried by the caller
+        if (moved == 0) throw new ConcurrentStatusChangeException(orderId);
 
         jdbc.update("INSERT INTO order_status_history (order_id, status, actor, at) VALUES (?, ?, ?, now())",
                     orderId, next.name(), actor);

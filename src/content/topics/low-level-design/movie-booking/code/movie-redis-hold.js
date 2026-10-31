@@ -10,4 +10,5 @@ export async function holdSeat(redis, showId, seatId, holdId) {
 export async function releaseSeat(redis, showId, seatId, holdId) {
   return (await redis.eval(RELEASE_IF_OWNER, 1, `hold:${showId}:${seatId}`, holdId)) === 1;
 }
-// The database row is still the source of truth for BOOKED; Redis only arbitrates short-lived holds.
+// The database row is still the source of truth for BOOKED; Redis only arbitrates
+// short-lived holds.

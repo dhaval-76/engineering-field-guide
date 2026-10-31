@@ -3,7 +3,8 @@ class Account {
     private double balance;
 
     public void debit(double amount) {
-        if (balance >= amount) {        // T1 and T2 both read 1000 and both pass the check
+        // T1 and T2 both read 1000 and both pass the check
+        if (balance >= amount) {
             balance -= amount;          // both subtract 900 → -800
         }
     }

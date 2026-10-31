@@ -29,7 +29,8 @@ export class VendingMachine {
   constructor(products, io) {
     Object.assign(this, { products, ...io }); // io: { display, refund, release }
   }
-  insertCoin(paise) { this.state.insertCoin(this, paise); }   // no switch on an enum anywhere
+  // no switch on an enum anywhere
+  insertCoin(paise) { this.state.insertCoin(this, paise); }
   select(code) { this.state.select(this, code); }
   cancel() { this.state.cancel(this); }
   dispense(p) {

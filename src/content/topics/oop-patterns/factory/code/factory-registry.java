@@ -19,7 +19,8 @@ public class PaymentProcessors {
 
     public PaymentProcessors(List<PaymentProcessor> all) {
         this.byMethod = all.stream().collect(Collectors.toUnmodifiableMap(PaymentProcessor::supports, p -> p));
-        // toUnmodifiableMap throws on duplicate keys — two beans claiming UPI fail at startup, not at checkout.
+        // toUnmodifiableMap throws on duplicate keys — two beans claiming UPI fail at
+        // startup, not at checkout.
     }
 
     public PaymentProcessor forMethod(PaymentMethod m) {

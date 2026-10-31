@@ -1,7 +1,9 @@
-// npm i luxon — JavaScript Date has no time-zone arithmetic; Luxon keeps 10:00 at 10:00 across DST.
+// npm i luxon — JavaScript Date has no time-zone arithmetic; Luxon keeps 10:00 at 10:00
+// across DST.
 import { DateTime } from 'luxon';
 
-// rule: { firstDay: '2026-10-19', until: '2026-11-13', weekdays: [1, 3] (1 = Monday), start: '10:00', minutes: 30, zone }
+// rule: { firstDay: '2026-10-19', until: '2026-11-13', weekdays: [1, 3] (1 = Monday),
+// start: '10:00', minutes: 30, zone }
 export function expand(rule) {
   const out = [];
   const [h, m] = rule.start.split(':').map(Number);
@@ -14,7 +16,8 @@ export function expand(rule) {
   return out;
 }
 
-// All-or-nothing: Node runs this synchronously, so nothing can book in between the checks and the inserts.
+// All-or-nothing: Node runs this synchronously, so nothing can book in between the checks
+// and the inserts.
 export function bookSeries(room, rule, organizer, attendees = []) {
   const seriesId = crypto.randomUUID();
   const slots = expand(rule);

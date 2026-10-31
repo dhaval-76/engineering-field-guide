@@ -9,8 +9,10 @@ class AccessDenied(Exception):
 
 class DocumentAccess:
     def __init__(self, permissions):
-        self.permissions = permissions                    # OpenFGA/SpiceDB client, a replicated service
-        self._recent = TTLCache(maxsize=100_000, ttl=5)   # short TTL: revocations take effect within seconds
+        # OpenFGA/SpiceDB client, a replicated service
+        self.permissions = permissions
+        # short TTL: revocations take effect within seconds
+        self._recent = TTLCache(maxsize=100_000, ttl=5)
 
     def require_edit(self, user_id: str, doc_id: str) -> None:
         key = (user_id, "edit", doc_id)
@@ -27,4 +29,5 @@ class DocumentAccess:
         return [d for d in candidates if f"document:{d.id}" in allowed]
 
     def share(self, doc_id: str, with_user_id: str) -> None:
-        self.permissions.write(f"document:{doc_id}", "editor", f"user:{with_user_id}")   # a new tuple
+        # a new tuple
+        self.permissions.write(f"document:{doc_id}", "editor", f"user:{with_user_id}")

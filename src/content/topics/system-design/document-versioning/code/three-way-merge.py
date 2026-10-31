@@ -13,6 +13,8 @@ def merge(base: dict, ours: dict, theirs: dict) -> tuple[dict, list]:
         elif t == b:                                             # only ours changed
             if o is not None:
                 merged[bid] = o
-        else:                                                    # both changed differently
+        # both changed differently
+        else:
             conflicts.append({"block_id": bid, "base": b, "ours": o, "theirs": t})
-    return merged, conflicts                                     # real implementations also merge block ORDER
+    # real implementations also merge block ORDER
+    return merged, conflicts

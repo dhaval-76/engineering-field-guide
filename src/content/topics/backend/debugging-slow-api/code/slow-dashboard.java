@@ -8,13 +8,16 @@ Dashboard load(String userId) {
 Dashboard loadFast(String userId) {
     var user    = supplyAsync(() -> users.get(userId), io).orTimeout(1, SECONDS);
     var recent  = supplyAsync(() -> orders.recent(userId), io)
-                      .completeOnTimeout(List.of(), 1, SECONDS);                 // optional panel
+                      // optional panel
+                      .completeOnTimeout(List.of(), 1, SECONDS);
     var unread  = supplyAsync(() -> notifications.unreadCount(userId), io)
-                      .exceptionally(e -> -1L);                                  // show "–" on failure
+                      // show "–" on failure
+                      .exceptionally(e -> -1L);
     var balance = supplyAsync(() -> accounts.balance(userId), io).orTimeout(1, SECONDS);
 
     return allOf(user, recent, unread, balance)
         .thenApply(v -> new Dashboard(user.join(), recent.join(), unread.join(), balance.join()))
         .join();
 }
-// Then ask why each call takes 750 ms: a missing index? no cache? a chatty downstream? — and fix that too.
+// Then ask why each call takes 750 ms: a missing index? no cache? a chatty downstream? —
+// and fix that too.

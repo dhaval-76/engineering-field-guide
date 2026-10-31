@@ -1,7 +1,8 @@
 from dataclasses import dataclass, field
 
-# A frozen dataclass gives an immutable value object; __post_init__ validates across fields.
-# Keyword arguments with defaults cover optional fields, so Python rarely needs a builder class.
+# A frozen dataclass gives an immutable value object; __post_init__ validates across
+# fields. Keyword arguments with defaults cover optional fields, so Python rarely needs a
+# builder class.
 @dataclass(frozen=True)
 class Pizza:
     size: str
@@ -10,7 +11,8 @@ class Pizza:
     extra_cheese: bool = False
 
     def __post_init__(self):
-        object.__setattr__(self, "toppings", tuple(self.toppings))   # defensive, immutable copy
+        # defensive, immutable copy
+        object.__setattr__(self, "toppings", tuple(self.toppings))
         if self.crust == "STUFFED" and self.size != "LARGE":
             raise ValueError("stuffed crust is only available in LARGE")
 

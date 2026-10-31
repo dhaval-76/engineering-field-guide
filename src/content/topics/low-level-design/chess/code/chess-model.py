@@ -50,4 +50,5 @@ class Piece:
             p = board.at((f + df, r + d)) if on_board(f + df, r + d) else None
             if p is not None and p.color != self.color:
                 out.append((f + df, r + d))
-        return out                                  # en passant & promotion handled by Game
+        # en passant & promotion handled by Game
+        return out

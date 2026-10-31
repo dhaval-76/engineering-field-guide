@@ -1,4 +1,5 @@
-// Node already has a timer queue; a scheduler adds ids, cancellation, repeats and retries on top.
+// Node already has a timer queue; a scheduler adds ids, cancellation, repeats and retries
+// on top.
 export class TaskScheduler {
   #timers = new Map();
 
@@ -24,4 +25,5 @@ export class TaskScheduler {
     this.#timers.delete(id);
   }
 }
-// Timers live in process memory: a restart loses them. Durable schedules belong in a database/queue.
+// Timers live in process memory: a restart loses them. Durable schedules belong in a
+// database/queue.

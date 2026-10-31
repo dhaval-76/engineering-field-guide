@@ -1,4 +1,5 @@
-// try-with-resources: close() is called automatically, in reverse order, even on exceptions.
+// try-with-resources: close() is called automatically, in reverse order, even on
+// exceptions.
 static List<String> readLines(Path file) throws IOException {
     try (BufferedReader reader = Files.newBufferedReader(file)) {
         return reader.lines().toList();

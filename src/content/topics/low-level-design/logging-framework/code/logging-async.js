@@ -1,5 +1,5 @@
-// uses Level from above
-// Node has one thread, so "async" means: enqueue now, write in batches later, off the request's path.
+// uses Level from above Node has one thread, so "async" means: enqueue now, write in
+// batches later, off the request's path.
 export class AsyncAppender {
   #buffer = [];
   #scheduled = false;
@@ -13,7 +13,8 @@ export class AsyncAppender {
   append(e) {
     if (this.closed) return;
     if (this.#buffer.length >= this.capacity && e.level < Level.WARN) {
-      this.dropped++;                       // full: drop DEBUG/INFO, count it; warnings and errors always queue
+      // full: drop DEBUG/INFO, count it; warnings and errors always queue
+      this.dropped++;
       return;
     }
     this.#buffer.push(e);
@@ -30,7 +31,8 @@ export class AsyncAppender {
     for (const e of batch) this.target.append(e);
   }
 
-  close() {                                 // call on shutdown so nothing buffered is lost
+  // call on shutdown so nothing buffered is lost
+  close() {
     this.closed = true;
     this.#flush();
   }

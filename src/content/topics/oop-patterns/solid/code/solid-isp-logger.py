@@ -1,6 +1,7 @@
 from typing import Protocol
 
-# ✗ One interface for every destination: log(), log_to_file(), log_to_db(), log_to_splunk()...
+# ✗ One interface for every destination: log(), log_to_file(), log_to_db(),
+# log_to_splunk()...
 
 # ✓ One small contract; destinations are separate implementations (or composed sinks).
 class LogSink(Protocol):

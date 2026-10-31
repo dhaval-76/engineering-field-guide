@@ -1,4 +1,5 @@
-// Reproduce exhaustion: pool of 2, ten requests that each hold a connection for 2 s, timeout 3 s.
+// Reproduce exhaustion: pool of 2, ten requests that each hold a connection for 2 s,
+// timeout 3 s.
 @SpringBootTest(properties = {
     "spring.datasource.hikari.maximum-pool-size=2",
     "spring.datasource.hikari.connection-timeout=3000" })
@@ -21,6 +22,7 @@ class PoolExhaustionTest {
                 .toList();
             for (Future<String> r : results) System.out.println(r.get());
         }
-        // Expect: 2 finish after ~2 s, 2 after ~4 s (waited ~2 s), the rest time out at 3 s of waiting.
+        // Expect: 2 finish after ~2 s, 2 after ~4 s (waited ~2 s), the rest time out at 3
+        // s of waiting.
     }
 }

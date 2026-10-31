@@ -13,4 +13,5 @@ def verify(path: str, expires: int, sig: str, secret: bytes, now_epoch_seconds: 
     if now_epoch_seconds > expires:
         return False
     expected = sign(path, expires, secret)
-    return hmac.compare_digest(expected, f"{path}?expires={expires}&sig={sig}")   # constant time
+    # constant time
+    return hmac.compare_digest(expected, f"{path}?expires={expires}&sig={sig}")

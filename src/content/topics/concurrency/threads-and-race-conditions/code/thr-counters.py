@@ -15,9 +15,11 @@ class LockedCounter:
         with self._lock:
             return self._count
 
-# 2. itertools.count: next() is a single C-level call, atomic under the GIL (CPython detail —
+# 2. itertools.count: next() is a single C-level call, atomic under the GIL (CPython
+# detail —
 #    not guaranteed on free-threaded builds; prefer the lock when in doubt)
 ids = itertools.count(1)
 next_id = next(ids)
 
-# 3. Across processes: multiprocessing.Value(..., lock=True), or Redis INCR across servers.
+# 3. Across processes: multiprocessing.Value(..., lock=True), or Redis INCR across
+# servers.

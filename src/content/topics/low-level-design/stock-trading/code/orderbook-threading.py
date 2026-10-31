@@ -11,11 +11,13 @@ class MatchingEngine:
         self._trade_sink = trade_sink
 
     def submit(self, o: "Order") -> Future:
-        shard = self._shards[zlib.crc32(o.symbol.encode()) % len(self._shards)]   # same symbol → same thread
+        # same symbol → same thread
+        shard = self._shards[zlib.crc32(o.symbol.encode()) % len(self._shards)]
         return shard.submit(self._match, o)
 
     def _match(self, o: "Order"):
-        book = self._books.setdefault(o.symbol, OrderBook(o.symbol))   # only this shard touches this symbol
+        # only this shard touches this symbol
+        book = self._books.setdefault(o.symbol, OrderBook(o.symbol))
         trades = book.submit(o)
         for t in trades:
             self._trade_sink(t)
@@ -27,5 +29,6 @@ class MatchingEngine:
 
 def risk_allows(o: "Order", available_cash: int, sellable_qty: int, last_price: int) -> bool:
     """Pre-trade risk check before an order ever reaches the book."""
-    price = -(-last_price * 105 // 100) if o.type is OrderType.MARKET else o.limit_ticks   # 5% buffer for market buys
+    # 5% buffer for market buys
+    price = -(-last_price * 105 // 100) if o.type is OrderType.MARKET else o.limit_ticks
     return available_cash >= price * o.remaining if o.side is Side.BUY else sellable_qty >= o.remaining

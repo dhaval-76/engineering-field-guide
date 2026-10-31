@@ -1,7 +1,8 @@
 /** Fixed window: one counter per (key, window). Cheap, but allows 2× the limit across a boundary. */
 final class FixedWindowLimiter implements RateLimiter {
     private final int limit; private final long windowNanos; private final Ticker ticker;
-    private final ConcurrentHashMap<String, long[]> state = new ConcurrentHashMap<>();   // {windowStart, count}
+    // {windowStart, count}
+    private final ConcurrentHashMap<String, long[]> state = new ConcurrentHashMap<>();
 
     FixedWindowLimiter(int limit, Duration window, Ticker ticker) { this.limit = limit; this.windowNanos = window.toNanos(); this.ticker = ticker; }
 
@@ -37,12 +38,14 @@ final class SlidingLogLimiter implements RateLimiter {
 }
 
 /**
- * Sliding window counter: two counters per key; estimate the rolling count by weighting the previous
- * window by how much of it still overlaps. O(1) memory, smooths the boundary burst.
+ * Sliding window counter: two counters per key; estimate the rolling count by weighting
+ * the previous window by how much of it still overlaps. O(1) memory, smooths the boundary
+ * burst.
  */
 final class SlidingWindowCounterLimiter implements RateLimiter {
     private final int limit; private final long windowNanos; private final Ticker ticker;
-    private final ConcurrentHashMap<String, long[]> state = new ConcurrentHashMap<>();   // {window, current, previous}
+    // {window, current, previous}
+    private final ConcurrentHashMap<String, long[]> state = new ConcurrentHashMap<>();
 
     SlidingWindowCounterLimiter(int limit, Duration window, Ticker ticker) { this.limit = limit; this.windowNanos = window.toNanos(); this.ticker = ticker; }
 

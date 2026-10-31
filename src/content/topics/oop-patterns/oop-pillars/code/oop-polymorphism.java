@@ -5,7 +5,8 @@ record Circle(double r) implements Shape          { public double area() { retur
 record Rectangle(double w, double h) implements Shape { public double area() { return w * h; } }
 record Triangle(double b, double h) implements Shape  { public double area() { return 0.5 * b * h; } }
 
-// Runtime polymorphism (dynamic dispatch): one call site, the right method chosen per object.
+// Runtime polymorphism (dynamic dispatch): one call site, the right method chosen per
+// object.
 double total(List<Shape> shapes) {
     double sum = 0;
     for (Shape s : shapes) sum += s.area();

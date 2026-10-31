@@ -2,7 +2,8 @@ int numIslands(char[][] grid) {
     int count = 0;
     for (int r = 0; r < grid.length; r++)
         for (int c = 0; c < grid[0].length; c++)
-            if (grid[r][c] == '1') { count++; sink(grid, r, c); }   // each new land cell = new island
+            // each new land cell = new island
+            if (grid[r][c] == '1') { count++; sink(grid, r, c); }
     return count;
 }
 

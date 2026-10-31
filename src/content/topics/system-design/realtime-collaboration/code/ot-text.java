@@ -11,13 +11,15 @@ final class Ot {
                         ? new Insert(ins.pos() + a.text().length(), ins.text()) : ins;
                 case Delete d -> ins.pos() <= d.pos() ? ins
                         : ins.pos() >= d.pos() + d.len() ? new Insert(ins.pos() - d.len(), ins.text())
-                        : new Insert(d.pos(), "");      // typed inside a deleted range: dropped (matches the rule below)
+                        // typed inside a deleted range: dropped (matches the rule below)
+                        : new Insert(d.pos(), "");
             };
             case Delete del -> switch (applied) {
                 case Insert a -> a.pos() <= del.pos()
                         ? new Delete(del.pos() + a.text().length(), del.len())
                         : a.pos() >= del.pos() + del.len() ? del
-                        : new Delete(del.pos(), del.len() + a.text().length());   // the delete swallows text typed inside it
+                        // the delete swallows text typed inside it
+                        : new Delete(del.pos(), del.len() + a.text().length());
                 case Delete d -> transformDelete(del, d);
             };
         };
@@ -27,8 +29,10 @@ final class Ot {
         int start = del.pos(), end = del.pos() + del.len();
         int dStart = d.pos(), dEnd = d.pos() + d.len();
         if (end <= dStart) return del;                                  // entirely before
-        if (start >= dEnd) return new Delete(start - d.len(), del.len()); // entirely after
-        int overlap = Math.min(end, dEnd) - Math.max(start, dStart);    // part already deleted
+        // entirely after
+        if (start >= dEnd) return new Delete(start - d.len(), del.len());
+        // part already deleted
+        int overlap = Math.min(end, dEnd) - Math.max(start, dStart);
         return new Delete(Math.min(start, dStart), del.len() - overlap);
     }
 
@@ -40,4 +44,5 @@ final class Ot {
     }
 }
 // Convergence check: for concurrent a and b from the same doc,
-//   apply(apply(doc, a), transform(b, a, false)) equals apply(apply(doc, b), transform(a, b, true))
+// apply(apply(doc, a), transform(b, a, false)) equals apply(apply(doc, b), transform(a,
+// b, true))

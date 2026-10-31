@@ -6,7 +6,8 @@ ListNode mergeKLists(ListNode[] lists) {
         ListNode smallest = heap.poll();
         tail.next = smallest;
         tail = smallest;
-        if (smallest.next != null) heap.offer(smallest.next);   // its successor joins the race
+        // its successor joins the race
+        if (smallest.next != null) heap.offer(smallest.next);
     }
     return dummy.next;
 }

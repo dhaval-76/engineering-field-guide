@@ -3,6 +3,7 @@ export const newOrder = ({ id, userId, symbol, side, type = 'LIMIT', limit = nul
   if (!['BUY', 'SELL'].includes(side)) throw new Error(`bad side ${side}`);
   if (type === 'LIMIT' && !Number.isInteger(limit)) throw new Error('limit orders need an integer tick price');
   if (!(Number.isInteger(qty) && qty > 0)) throw new Error('qty must be a positive integer');
-  return { id, userId, symbol, side, type, limit, qty, remaining: qty, status: 'OPEN' }; // seq assigned by the book
+  // seq assigned by the book
+  return { id, userId, symbol, side, type, limit, qty, remaining: qty, status: 'OPEN' };
 };
 // trade: { symbol, buy: orderId, sell: orderId, price: ticks, qty, seq }

@@ -1,6 +1,6 @@
-// Static catalogue (rarely changes): movies, theatres, screens with seat layouts.
-// A show is a movie on a screen at a time. Availability lives on ShowSeat — the same physical seat
-// is free for the 6 pm show and booked for the 9 pm show.
+// Static catalogue (rarely changes): movies, theatres, screens with seat layouts. A show
+// is a movie on a screen at a time. Availability lives on ShowSeat — the same physical
+// seat is free for the 6 pm show and booked for the 9 pm show.
 
 export class ShowSeat {
   status = 'AVAILABLE'; // AVAILABLE | HELD | BOOKED
@@ -12,7 +12,8 @@ export class ShowSeat {
   }
 
   tryHold(holdId, now, ttlMs) {
-    if (this.status === 'HELD' && this.#holdExpiresAt <= now) this.status = 'AVAILABLE'; // lazy expiry
+    // lazy expiry
+    if (this.status === 'HELD' && this.#holdExpiresAt <= now) this.status = 'AVAILABLE';
     if (this.status !== 'AVAILABLE') return false;
     this.status = 'HELD';
     this.#holdId = holdId;

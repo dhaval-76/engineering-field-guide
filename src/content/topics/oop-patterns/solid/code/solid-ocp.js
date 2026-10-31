@@ -1,4 +1,5 @@
-// A registry of strategies: adding a discount registers a function; price() never changes.
+// A registry of strategies: adding a discount registers a function; price() never
+// changes.
 const discounts = new Map([
   ['FLAT', (order) => order.total - 100],
   ['PERCENT', (order) => order.total * 0.9],

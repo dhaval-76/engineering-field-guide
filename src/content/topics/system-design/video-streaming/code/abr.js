@@ -19,7 +19,8 @@ export class AbrController {
     this.ladder.forEach((r, i) => {
       if (r.kbps <= budget) best = i;
     });
-    if (best > this.#current) best = bufferSeconds > 15 ? this.#current + 1 : this.#current; // climb one rung
+    // climb one rung
+    if (best > this.#current) best = bufferSeconds > 15 ? this.#current + 1 : this.#current;
     this.#current = best;
     return this.ladder[best];
   }

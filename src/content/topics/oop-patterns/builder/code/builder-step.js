@@ -1,5 +1,6 @@
-// Step builder: each step returns an object exposing only the next legal call, so
-// "url, then method, then (body only for POST/PUT), then build" is enforced. (TypeScript checks it at compile time.)
+// Step builder: each step returns an object exposing only the next legal call, so "url,
+// then method, then (body only for POST/PUT), then build" is enforced. (TypeScript checks
+// it at compile time.)
 export function newRequest() {
   const req = { headers: {}, timeoutMs: 5000 };
   const buildStep = {
@@ -17,4 +18,5 @@ export function newRequest() {
 }
 
 const r = newRequest().url('https://api.example.com/orders').post().body('{}').build();
-// newRequest().url('…').get().body('{}')   ← TypeError: body is not a function (GET has no body step)
+// newRequest().url('…').get().body('{}')   ← TypeError: body is not a function (GET has
+// no body step)

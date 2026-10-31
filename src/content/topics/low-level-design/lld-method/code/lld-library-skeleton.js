@@ -22,7 +22,8 @@ export class BookCopy {             // a Book HAS many copies; a copy is not a B
 export class Loan {
   returnedOn = null;
   constructor(id, member, copy, due) {
-    Object.assign(this, { id, member, copy, due }); // dates as 'YYYY-MM-DD' strings compare correctly
+    // dates as 'YYYY-MM-DD' strings compare correctly
+    Object.assign(this, { id, member, copy, due });
   }
   isOverdue(today) {
     return this.returnedOn === null && today > this.due;

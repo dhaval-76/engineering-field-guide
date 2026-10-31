@@ -17,7 +17,8 @@ async def relay():
         room, payload = msg["channel"].decode(), msg["data"].decode()
         for ws in list(rooms[room]):
             try:
-                await asyncio.wait_for(ws.send_text(payload), timeout=5)   # slow client: give up
+                # slow client: give up
+                await asyncio.wait_for(ws.send_text(payload), timeout=5)
             except Exception:
                 rooms[room].discard(ws)
 

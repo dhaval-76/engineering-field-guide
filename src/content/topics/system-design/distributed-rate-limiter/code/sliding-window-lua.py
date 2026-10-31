@@ -2,7 +2,8 @@ import redis
 from pathlib import Path
 
 r = redis.Redis(socket_timeout=0.005)
-sliding_window = r.register_script(Path("sliding_window.lua").read_text())   # same Lua as the Java tab
+# same Lua as the Java tab
+sliding_window = r.register_script(Path("sliding_window.lua").read_text())
 
 def check(key: str, limit: int, window_seconds: int) -> tuple[bool, int, int]:
     try:

@@ -8,7 +8,8 @@ final class GridIndex implements DriverIndex {
     private static int row(Location p) { return (int) Math.floor(p.lat() / CELL_DEG); }
     private static int col(Location p) { return (int) Math.floor(p.lng() / CELL_DEG); }
 
-    void update(Driver d, Location p) {                          // called on every GPS ping (every few seconds)
+    // called on every GPS ping (every few seconds)
+    void update(Driver d, Location p) {
         long newKey = key(row(p), col(p));
         Long oldKey = cellOf.put(d.id, newKey);
         if (oldKey != null && oldKey != newKey) cells.getOrDefault(oldKey, Set.of()).remove(d);

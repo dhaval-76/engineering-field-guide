@@ -6,7 +6,8 @@ export const nearestSuitableCar = (topFloor) => (call, cars) => {
     if (car.direction === 'IDLE') return Math.abs(here - target);
     if (car.direction === 'UP')
       return target >= here && call.wants === 'UP' ? target - here : topFloor - here + Math.abs(topFloor - target);
-    return target <= here && call.wants === 'DOWN' ? here - target : here + target; // sweep to ground (0), then up
+    // sweep to ground (0), then up
+    return target <= here && call.wants === 'DOWN' ? here - target : here + target;
   };
   return cars.reduce((best, c) =>
     cost(c) < cost(best) || (cost(c) === cost(best) && c.pendingStops < best.pendingStops) ? c : best);

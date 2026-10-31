@@ -1,4 +1,5 @@
-record Item(String sku, int qty) {}                 // immutable: safe to share between copies
+// immutable: safe to share between copies
+record Item(String sku, int qty) {}
 
 final class Order {
     final List<Item> items;

@@ -3,7 +3,8 @@ enum CopyStatus { AVAILABLE, ON_LOAN, RESERVED, LOST }
 
 record Book(String isbn, String title, List<String> authors) {}
 
-final class BookCopy {                       // a Book HAS many copies; a copy is not a Book
+// a Book HAS many copies; a copy is not a Book
+final class BookCopy {
     private final String barcode;
     private final Book book;
     private CopyStatus status = CopyStatus.AVAILABLE;
@@ -30,7 +31,8 @@ final class Loan {
     void close(LocalDate on) { returnedOn = on; copy.markReturned(); }
 }
 
-interface FinePolicy { Money fineFor(Loan loan, LocalDate returnedOn); }   // Strategy: rules vary by membership
+// Strategy: rules vary by membership
+interface FinePolicy { Money fineFor(Loan loan, LocalDate returnedOn); }
 
 interface LibraryService {                   // Step 3: the operations we agreed on
     Loan borrow(String memberId, String barcode);

@@ -3,7 +3,8 @@ import heapq
 
 def simplify(net_balances: dict[str, int]) -> list[tuple[str, str, int]]:
     """net_balances in paise; positive = is owed money. Returns (from, to, amount) transfers."""
-    creditors = [(-bal, p) for p, bal in net_balances.items() if bal > 0]  # max-heaps via negation
+    # max-heaps via negation
+    creditors = [(-bal, p) for p, bal in net_balances.items() if bal > 0]
     debtors = [(bal, p) for p, bal in net_balances.items() if bal < 0]
     heapq.heapify(creditors)
     heapq.heapify(debtors)

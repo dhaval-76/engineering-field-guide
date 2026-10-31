@@ -10,7 +10,8 @@ for o in orders:
 orders = session.scalars(
     select(Order)
     .where(Order.customer_id == customer_id)
-    .options(selectinload(Order.lines), joinedload(Order.customer))  # joined for many-to-one
+    # joined for many-to-one
+    .options(selectinload(Order.lines), joinedload(Order.customer))
     .limit(20)
 ).all()
 

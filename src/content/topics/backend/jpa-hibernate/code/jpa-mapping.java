@@ -11,12 +11,14 @@ public class Order {
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)  // default would be EAGER
     @JoinColumn(name = "customer_id")
-    private Customer customer;                         // no cascade: a different aggregate
+    // no cascade: a different aggregate
+    private Customer customer;
 
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<OrderLine> lines = new HashSet<>();    // inverse side; LAZY by default
 
-    @Enumerated(EnumType.STRING)                       // ORDINAL breaks when someone reorders the enum
+    // ORDINAL breaks when someone reorders the enum
+    @Enumerated(EnumType.STRING)
     private Status status = Status.NEW;
 
     protected Order() {}                               // JPA needs a no-arg constructor
@@ -42,7 +44,8 @@ public class Order {
 public class OrderLine {
     @Id @GeneratedValue(strategy = GenerationType.SEQUENCE) private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)   // the OWNING side: holds order_id
+    // the OWNING side: holds order_id
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "order_id")
     private Order order;
 

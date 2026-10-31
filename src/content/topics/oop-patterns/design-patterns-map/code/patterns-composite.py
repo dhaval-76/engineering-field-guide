@@ -13,4 +13,5 @@ class Folder:
     children: tuple
     def size_bytes(self) -> int: return sum(c.size_bytes() for c in self.children)
 
-# Folder("src", (FileLeaf("a.py", 1200), Folder("util", (FileLeaf("b.py", 300),)))).size_bytes()  → 1500
+# Folder("src", (FileLeaf("a.py", 1200), Folder("util", (FileLeaf("b.py",
+# 300),)))).size_bytes()  → 1500

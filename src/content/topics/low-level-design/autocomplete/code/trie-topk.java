@@ -1,6 +1,7 @@
 /**
  * Ranked autocomplete: every node caches the top K completions under it, so a query is
- * O(prefix length) — walk down and read the cached list. Updates touch only the word's path.
+ * O(prefix length) — walk down and read the cached list. Updates touch only the word's
+ * path.
  */
 final class RankedAutocomplete {
     private static final int K = 5;
@@ -8,7 +9,8 @@ final class RankedAutocomplete {
 
     private static final class Node {
         final Map<Character, Node> next = new HashMap<>();
-        final List<Scored> top = new ArrayList<>();          // at most K, sorted by score desc, then word
+        // at most K, sorted by score desc, then word
+        final List<Scored> top = new ArrayList<>();
     }
 
     private final Node root = new Node();
@@ -28,7 +30,8 @@ final class RankedAutocomplete {
     }
 
     private static void update(Node n, Scored s) {
-        n.top.removeIf(x -> x.word().equals(s.word()));      // no duplicate entries for the same phrase
+        // no duplicate entries for the same phrase
+        n.top.removeIf(x -> x.word().equals(s.word()));
         n.top.add(s);
         n.top.sort(Comparator.comparingLong(Scored::score).reversed().thenComparing(Scored::word));
         if (n.top.size() > K) n.top.remove(n.top.size() - 1);
@@ -43,5 +46,6 @@ final class RankedAutocomplete {
         return n.top.stream().map(Scored::word).toList();
     }
 }
-// Note: if a phrase's score can DROP (decay, deletion), a node may need a refill from its subtree,
-// because the K-th best was evicted earlier. Rebuilding the caches periodically (offline) avoids that.
+// Note: if a phrase's score can DROP (decay, deletion), a node may need a refill from its
+// subtree, because the K-th best was evicted earlier. Rebuilding the caches periodically
+// (offline) avoids that.

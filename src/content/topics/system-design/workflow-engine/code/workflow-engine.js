@@ -1,10 +1,13 @@
-// A step worker: idempotent per (run, step), side effects keyed by the same id, next steps via the outbox.
+// A step worker: idempotent per (run, step), side effects keyed by the same id, next
+// steps via the outbox.
 export async function executeStep(task, { runs, connectors, inTx }) {
   const run = await runs.load(task.runId);
   const step = run.definition.steps[task.stepId];
 
-  if (await runs.isDone(run.id, step.id)) {                    // redelivered after a crash: skip
-    await runs.enqueueNext(run, step);                         // idempotent: same task ids
+  // redelivered after a crash: skip
+  if (await runs.isDone(run.id, step.id)) {
+    // idempotent: same task ids
+    await runs.enqueueNext(run, step);
     return;
   }
   if (step.condition && !evaluate(step.condition, run.context)) {
@@ -18,7 +21,8 @@ export async function executeStep(task, { runs, connectors, inTx }) {
   await inTx(async (tx) => {
     if (outcome.kind === 'done') {
       await runs.recordDone(tx, run.id, step.id, outcome.output);
-      await runs.outboxNext(tx, run, step);                    // next step task(s) in the SAME transaction
+      // next step task(s) in the SAME transaction
+      await runs.outboxNext(tx, run, step);
     } else if (outcome.kind === 'retryLater') {
       await runs.park(tx, run.id, step.id, outcome.wakeAt);    // e.g. 429 Retry-After
     } else {

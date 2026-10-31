@@ -1,4 +1,5 @@
-// A single node's in-memory store with TTL. Value and expiry live together, so overwrites can't leave stale TTLs.
+// A single node's in-memory store with TTL. Value and expiry live together, so overwrites
+// can't leave stale TTLs.
 export class KvNode {
   #data = new Map(); // key -> { value, expiresAt } (0 = no expiry)
 
@@ -17,7 +18,8 @@ export class KvNode {
   }
 
   put(key, value, ttlMs = 0) {
-    this.#data.set(key, { value, expiresAt: ttlMs ? this.now() + ttlMs : 0 }); // replaces value AND expiry together
+    // replaces value AND expiry together
+    this.#data.set(key, { value, expiresAt: ttlMs ? this.now() + ttlMs : 0 });
   }
 
   delete(key) {

@@ -1,4 +1,5 @@
-// Check-then-act on a balance: two threads both see 1000 ≥ 500 and both withdraw → balance 500, not 0.
+// Check-then-act on a balance: two threads both see 1000 ≥ 500 and both withdraw →
+// balance 500, not 0.
 
 // ✓ Lock: the check and the update happen as one step
 class Account {
@@ -16,10 +17,11 @@ class LockFreeAccount {
         while (true) {
             long current = balance.get();
             if (current < amount) throw new InsufficientFundsException();
-            if (balance.compareAndSet(current, current - amount)) return;   // lost the race → retry
+            // lost the race → retry
+            if (balance.compareAndSet(current, current - amount)) return;
         }
     }
 }
 
-// ✓ Several app servers: the database must do it atomically
-// UPDATE accounts SET balance = balance - :amt WHERE id = :id AND balance >= :amt;   -- 0 rows ⇒ insufficient
+// ✓ Several app servers: the database must do it atomically UPDATE accounts SET balance =
+// balance - :amt WHERE id = :id AND balance >= :amt;   -- 0 rows ⇒ insufficient

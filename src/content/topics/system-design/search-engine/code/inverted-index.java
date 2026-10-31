@@ -3,7 +3,8 @@ final class InvertedIndex {
     private static final double K1 = 1.2, B = 0.75;                     // BM25 defaults
     private static final Set<String> STOP = Set.of("the", "a", "an", "and", "of", "on", "to", "in");
 
-    private final Map<String, Map<String, Integer>> postings = new HashMap<>();   // term → (docId → tf)
+    // term → (docId → tf)
+    private final Map<String, Map<String, Integer>> postings = new HashMap<>();
     private final Map<String, Integer> docLength = new HashMap<>();
     private long totalLength;
 
@@ -20,9 +21,11 @@ final class InvertedIndex {
         Map<String, Double> scores = new HashMap<>();
         for (String term : analyse(query)) {
             Map<String, Integer> docs = postings.getOrDefault(term, Map.of());
-            double idf = Math.log(1 + (n - docs.size() + 0.5) / (docs.size() + 0.5));   // rare terms weigh more
+            // rare terms weigh more
+            double idf = Math.log(1 + (n - docs.size() + 0.5) / (docs.size() + 0.5));
             docs.forEach((doc, tf) -> {
-                double norm = tf * (K1 + 1) / (tf + K1 * (1 - B + B * docLength.get(doc) / avgLen));   // saturation + length
+                // saturation + length
+                double norm = tf * (K1 + 1) / (tf + K1 * (1 - B + B * docLength.get(doc) / avgLen));
                 scores.merge(doc, idf * norm, Double::sum);
             });
         }
@@ -38,7 +41,8 @@ final class InvertedIndex {
             .toList();
     }
 
-    private static String stem(String t) {                               // toy stemmer; real ones: Porter/Snowball
+    // toy stemmer; real ones: Porter/Snowball
+    private static String stem(String t) {
         for (String suffix : List.of("ing", "es", "s")) if (t.length() > suffix.length() + 2 && t.endsWith(suffix))
             return t.substring(0, t.length() - suffix.length());
         return t;

@@ -4,7 +4,9 @@ int leastInterval(char[] tasks, int n) {
     for (char t : tasks) count[t - 'A']++;
     int maxCount = Arrays.stream(count).max().getAsInt();
     int tiedForMax = (int) Arrays.stream(count).filter(c -> c == maxCount).count();
-    int framed = (maxCount - 1) * (n + 1) + tiedForMax;   // frame built around the most frequent task
-    return Math.max(tasks.length, framed);                 // enough other tasks → no idle needed
+    // frame built around the most frequent task
+    int framed = (maxCount - 1) * (n + 1) + tiedForMax;
+    // enough other tasks → no idle needed
+    return Math.max(tasks.length, framed);
 }
 // ["A","A","A","B","B","B"], n = 2 → 8 (A B _ A B _ A B)

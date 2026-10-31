@@ -15,10 +15,12 @@ class Dispatcher implements Runnable {
     @Override public void run() {
         while (running) {
             List<Message> batch = broker.poll(topic, group, 100);
-            if (batch.isEmpty()) { sleepQuietly(50); continue; }      // or block until publish notifies
+            // or block until publish notifies
+            if (batch.isEmpty()) { sleepQuietly(50); continue; }
             for (Message m : batch) {
                 deliver(m);
-                broker.commit(topic, group, m.offset() + 1);          // commit after handling: at-least-once
+                // commit after handling: at-least-once
+                broker.commit(topic, group, m.offset() + 1);
             }
         }
     }
@@ -27,11 +29,13 @@ class Dispatcher implements Runnable {
         for (int attempt = 1; ; attempt++) {
             try { handler.accept(m); return; }
             catch (RuntimeException e) {
-                if (attempt == maxAttempts) {                           // poison message: don't block the topic
+                // poison message: don't block the topic
+                if (attempt == maxAttempts) {
                     broker.publish(topic + ".dlq", m.key(), m.payload());
                     return;
                 }
-                sleepQuietly(100L << attempt);                          // exponential backoff
+                // exponential backoff
+                sleepQuietly(100L << attempt);
             }
         }
     }

@@ -1,6 +1,7 @@
 final class HashRing {
     private final int virtualNodesPerNode;
-    private final NavigableMap<Long, String> ring = new TreeMap<>();   // token → physical node
+    // token → physical node
+    private final NavigableMap<Long, String> ring = new TreeMap<>();
 
     HashRing(int virtualNodesPerNode) { this.virtualNodesPerNode = virtualNodesPerNode; }
 
@@ -31,4 +32,5 @@ final class HashRing {
         } catch (NoSuchAlgorithmException e) { throw new IllegalStateException(e); }
     }
 }
-// new HashRing(128) → addNode("A"), addNode("B"), addNode("C") → replicasFor("cart:42", 3)
+// new HashRing(128) → addNode("A"), addNode("B"), addNode("C") → replicasFor("cart:42",
+// 3)

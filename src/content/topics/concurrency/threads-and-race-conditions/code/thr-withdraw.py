@@ -1,6 +1,7 @@
 import threading
 
-# Check-then-act on a balance: two threads both see 1000 ≥ 500 and both withdraw → 500, not 0.
+# Check-then-act on a balance: two threads both see 1000 ≥ 500 and both withdraw → 500,
+# not 0.
 
 class InsufficientFunds(Exception):
     pass
@@ -18,5 +19,5 @@ class Account:
                 raise InsufficientFunds()
             self.balance -= amount
 
-# ✓ Several app servers: the database must do it atomically
-# UPDATE accounts SET balance = balance - %s WHERE id = %s AND balance >= %s;   -- 0 rows ⇒ insufficient
+# ✓ Several app servers: the database must do it atomically UPDATE accounts SET balance =
+# balance - %s WHERE id = %s AND balance >= %s;   -- 0 rows ⇒ insufficient

@@ -20,7 +20,8 @@ class HasCredit(State):
         if m.credit < p["price"]:
             return m.display(f"Insert {p['price'] - m.credit} more")
         m.state = DISPENSING
-        m.dispense(p)                         # dispensing → idle when done, returns change
+        # dispensing → idle when done, returns change
+        m.dispense(p)
 
     def cancel(self, m):
         m.refund(m.credit)

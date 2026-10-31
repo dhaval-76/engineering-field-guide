@@ -11,7 +11,8 @@ NOW = datetime(2026, 3, 1, 10, tzinfo=timezone.utc)
 @pytest.fixture
 def deps():
     orders = Mock()
-    orders.save.side_effect = lambda order: order | {"id": "O-1"}   # return what was saved
+    # return what was saved
+    orders.save.side_effect = lambda order: order | {"id": "O-1"}
     payments, events = AsyncMock(), Mock()
     return orders, payments, events
 
@@ -27,7 +28,8 @@ async def test_charges_saves_and_publishes(service, deps):        # pytest-async
     result = await service.place_order(REQUEST)
 
     assert result["status"] == "PAID"
-    saved = orders.save.call_args.args[0]                          # like an ArgumentCaptor
+    # like an ArgumentCaptor
+    saved = orders.save.call_args.args[0]
     assert saved["customer_id"] == "C-1" and saved["placed_at"] == NOW
     events.publish.assert_called_once_with({"type": "OrderPlaced", "order_id": "O-1"})
 

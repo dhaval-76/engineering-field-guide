@@ -8,7 +8,8 @@ final class Cart {
     private final String ownerId;                       // user id, or a guest session id
     private final Map<String, CartLine> lines = new LinkedHashMap<>();
     private final Set<String> couponCodes = new LinkedHashSet<>();
-    private long version;                               // optimistic locking when persisted
+    // optimistic locking when persisted
+    private long version;
 
     Cart(String cartId, String ownerId) { this.cartId = cartId; this.ownerId = ownerId; }
 

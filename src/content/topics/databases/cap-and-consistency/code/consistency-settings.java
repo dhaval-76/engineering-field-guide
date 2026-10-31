@@ -2,7 +2,8 @@
 GetItemResponse seat = dynamo.getItem(GetItemRequest.builder()
     .tableName("seats")
     .key(Map.of("pk", AttributeValue.fromS("show#991"), "sk", AttributeValue.fromS("seat#C7")))
-    .consistentRead(true)                 // strongly consistent: reads the leader of the partition
+    // strongly consistent: reads the leader of the partition
+    .consistentRead(true)
     .build());
 
 // Conditional write = compare-and-set on one item: only reserve if still free.
@@ -10,17 +11,21 @@ dynamo.putItem(PutItemRequest.builder()
     .tableName("seats")
     .item(Map.of("pk", AttributeValue.fromS("show#991"), "sk", AttributeValue.fromS("seat#C7"),
                  "holder", AttributeValue.fromS(userId)))
-    .conditionExpression("attribute_not_exists(holder)")   // ConditionalCheckFailedException if taken
+    // ConditionalCheckFailedException if taken
+    .conditionExpression("attribute_not_exists(holder)")
     .build());
 
 // MongoDB (Java driver): durability and freshness per collection or operation.
 MongoCollection<Document> orders = db.getCollection("orders")
-    .withWriteConcern(WriteConcern.MAJORITY)          // acknowledged by a majority: survives failover
-    .withReadConcern(ReadConcern.MAJORITY)            // only data a majority has acknowledged
+    // acknowledged by a majority: survives failover
+    .withWriteConcern(WriteConcern.MAJORITY)
+    // only data a majority has acknowledged
+    .withReadConcern(ReadConcern.MAJORITY)
     .withReadPreference(ReadPreference.primary());    // latest data
 
 MongoCollection<Document> catalogue = db.getCollection("products")
-    .withReadPreference(ReadPreference.secondaryPreferred());   // stale is fine: lower latency
+    // stale is fine: lower latency
+    .withReadPreference(ReadPreference.secondaryPreferred());
 // Causal consistency for one user's session: ClientSession with causallyConsistent(true)
 
 // Cassandra (DataStax driver 4): per statement.

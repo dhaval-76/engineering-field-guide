@@ -13,13 +13,15 @@ final class KvNode {
         long now = clock.millis();
         Entry e = data.get(key);
         if (e == null) return Optional.empty();
-        if (e.expired(now)) { data.remove(key, e); return Optional.empty(); }   // lazy expiry; only this exact entry
+        // lazy expiry; only this exact entry
+        if (e.expired(now)) { data.remove(key, e); return Optional.empty(); }
         return Optional.of(e.value());
     }
 
     void put(String key, byte[] value, Duration ttl) {
         long expiresAt = ttl == null ? 0 : clock.millis() + ttl.toMillis();
-        data.put(key, new Entry(value, expiresAt));          // replaces value AND expiry atomically
+        // replaces value AND expiry atomically
+        data.put(key, new Entry(value, expiresAt));
     }
 
     void delete(String key) { data.remove(key); }

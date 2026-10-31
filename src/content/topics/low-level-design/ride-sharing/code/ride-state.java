@@ -3,7 +3,8 @@ enum RideStatus {
 
     private static final Map<RideStatus, Set<RideStatus>> NEXT = Map.of(
         REQUESTED,       EnumSet.of(DRIVER_ASSIGNED, CANCELLED),
-        DRIVER_ASSIGNED, EnumSet.of(DRIVER_ARRIVED, REQUESTED, CANCELLED),   // → REQUESTED: driver backed out, re-match
+        // → REQUESTED: driver backed out, re-match
+        DRIVER_ASSIGNED, EnumSet.of(DRIVER_ARRIVED, REQUESTED, CANCELLED),
         DRIVER_ARRIVED,  EnumSet.of(IN_PROGRESS, CANCELLED),
         IN_PROGRESS,     EnumSet.of(COMPLETED),
         COMPLETED,       EnumSet.noneOf(RideStatus.class),

@@ -2,6 +2,7 @@
 int[] findRedundantConnection(int[][] edges) {
     UnionFind uf = new UnionFind(edges.length + 1);
     for (int[] e : edges)
-        if (!uf.union(e[0], e[1])) return e;     // endpoints already connected → this edge closes a cycle
+        // endpoints already connected → this edge closes a cycle
+        if (!uf.union(e[0], e[1])) return e;
     return new int[0];
 }

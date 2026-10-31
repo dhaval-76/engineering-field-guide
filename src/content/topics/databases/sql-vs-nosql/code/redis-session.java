@@ -8,9 +8,11 @@ class SessionStore {
 
     String create(SessionData data) throws JsonProcessingException {
         byte[] bytes = new byte[32];
-        new SecureRandom().nextBytes(bytes);                         // unguessable id, not a UUID v4 from Math.random
+        // unguessable id, not a UUID v4 from Math.random
+        new SecureRandom().nextBytes(bytes);
         String id = Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
-        redis.opsForValue().set(key(id), json.writeValueAsString(data), TTL);   // SET … EX 1800
+        // SET … EX 1800
+        redis.opsForValue().set(key(id), json.writeValueAsString(data), TTL);
         return id;
     }
 
@@ -24,4 +26,5 @@ class SessionStore {
 
     private static String key(String id) { return "session:" + id; }
 }
-// Spring Session (spring-session-data-redis) does all of this for HttpSession transparently.
+// Spring Session (spring-session-data-redis) does all of this for HttpSession
+// transparently.

@@ -1,4 +1,5 @@
-// In-memory log-based pub/sub: each topic is an append-only log; each consumer group has its own offset.
+// In-memory log-based pub/sub: each topic is an append-only log; each consumer group has
+// its own offset.
 export class Broker {
   #topics = new Map(); // name -> { log: [], baseOffset, committed: Map(group -> offset) }
 

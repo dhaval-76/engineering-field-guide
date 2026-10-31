@@ -13,8 +13,10 @@ class CheckoutService:
         if (existing := self.orders.find_by_checkout_id(checkout_id)) is not None:
             return existing
         cart = self.carts.get(cart_id)
-        price = self.pricing.price(cart, self.promotions.active_for(cart))       # re-price: never trust the client
-        hold = self.inventory.reserve_all(cart.lines(), timedelta(minutes=15))  # all-or-nothing
+        # re-price: never trust the client
+        price = self.pricing.price(cart, self.promotions.active_for(cart))
+        # all-or-nothing
+        hold = self.inventory.reserve_all(cart.lines(), timedelta(minutes=15))
         try:
             paid = self.payments.charge(price["payable"], method, idempotency_key=checkout_id)
             if not paid.succeeded:

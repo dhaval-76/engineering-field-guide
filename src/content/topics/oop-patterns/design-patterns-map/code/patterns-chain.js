@@ -1,4 +1,5 @@
-// Chain of Responsibility: each handler handles, rejects, or calls next() — exactly how Express middleware works.
+// Chain of Responsibility: each handler handles, rejects, or calls next() — exactly how
+// Express middleware works.
 export function pipeline(handlers, endpoint) {
   const run = (i, req) => (i === handlers.length ? endpoint(req) : handlers[i](req, (r) => run(i + 1, r)));
   return (req) => run(0, req);

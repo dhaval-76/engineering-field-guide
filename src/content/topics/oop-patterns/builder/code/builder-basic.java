@@ -30,7 +30,8 @@ public final class User {
             if (name == null || name.isBlank()) throw new IllegalStateException("name is required");
             if (email == null || !email.contains("@")) throw new IllegalStateException("valid email is required");
             if (age < 0 || age > 150) throw new IllegalStateException("age out of range: " + age);
-            return new User(this);             // validated, immutable, safe to share between threads
+            // validated, immutable, safe to share between threads
+            return new User(this);
         }
     }
 }

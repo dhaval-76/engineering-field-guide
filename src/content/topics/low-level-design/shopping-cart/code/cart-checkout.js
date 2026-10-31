@@ -1,4 +1,5 @@
-// `checkoutId` comes from the client and makes the whole operation idempotent (double-clicks, retries).
+// `checkoutId` comes from the client and makes the whole operation idempotent
+// (double-clicks, retries).
 export class CheckoutService {
   constructor({ carts, pricing, promotions, inventory, payments, orders }) {
     Object.assign(this, { carts, pricing, promotions, inventory, payments, orders });
@@ -9,9 +10,11 @@ export class CheckoutService {
     if (existing) return existing;
 
     const cart = await this.carts.get(cartId);
-    const price = await this.pricing.price(cart, await this.promotions.activeFor(cart)); // re-price: never trust the client
+    // re-price: never trust the client
+    const price = await this.pricing.price(cart, await this.promotions.activeFor(cart));
 
-    const hold = await this.inventory.reserveAll(cart.lines(), { minutes: 15 });       // all-or-nothing
+    // all-or-nothing
+    const hold = await this.inventory.reserveAll(cart.lines(), { minutes: 15 });
     try {
       const paid = await this.payments.charge(price.payable, method, { idempotencyKey: checkoutId });
       if (!paid.succeeded) throw new Error(`payment declined: ${paid.reason}`);

@@ -9,7 +9,8 @@ class TrackingStream {
                                              Principal user) {
         orders.requireOwner(id, user);
 
-        // 1. Catch-up: history after the last event the browser saw (or the full timeline).
+        // 1. Catch-up: history after the last event the browser saw (or the full
+        // timeline).
         Flux<StatusView> history = Flux.fromIterable(orders.historyAfter(id, lastSeen == null ? 0 : lastSeen));
 
         // 2. Live: changes published for this order while the stream is open.
@@ -18,7 +19,8 @@ class TrackingStream {
 
         return Flux.concat(history, live)
             .map(s -> ServerSentEvent.builder(s).id(String.valueOf(s.sequence())).event("status").build())
-            .mergeWith(Flux.interval(Duration.ofSeconds(25))       // keep proxies from closing idle streams
+            // keep proxies from closing idle streams
+            .mergeWith(Flux.interval(Duration.ofSeconds(25))
                 .map(i -> ServerSentEvent.<StatusView>builder().comment("ping").build()));
     }
 }

@@ -10,7 +10,8 @@ class RedisLock {
 
     /** Returns the token if acquired, empty otherwise. */
     Optional<String> tryAcquire(String key, Duration ttl) {
-        String token = UUID.randomUUID().toString();               // identifies this holder
+        // identifies this holder
+        String token = UUID.randomUUID().toString();
         try (Jedis j = pool.getResource()) {
             String ok = j.set(key, token, SetParams.setParams().nx().px(ttl.toMillis()));
             return "OK".equals(ok) ? Optional.of(token) : Optional.empty();
@@ -24,7 +25,8 @@ class RedisLock {
         }
     }
 
-    boolean extend(String key, String token, Duration ttl) {         // heartbeat for long work
+    // heartbeat for long work
+    boolean extend(String key, String token, Duration ttl) {
         try (Jedis j = pool.getResource()) {
             return Long.valueOf(1).equals(j.eval(EXTEND, List.of(key), List.of(token, String.valueOf(ttl.toMillis()))));
         }

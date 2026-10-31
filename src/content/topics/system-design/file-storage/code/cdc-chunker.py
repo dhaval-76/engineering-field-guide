@@ -17,7 +17,8 @@ def chunk(data: bytes, min_size: int = 2048, avg_bits: int = 13, max_size: int =
     mask = ((1 << avg_bits) - 1) << (64 - avg_bits)          # test the high bits
     chunks, start, h = [], 0, 0
     for i, b in enumerate(data):
-        h = ((h << 1) + GEAR[b]) & 0xFFFFFFFFFFFFFFFF         # gear hash: old bytes shift out
+        # gear hash: old bytes shift out
+        h = ((h << 1) + GEAR[b]) & 0xFFFFFFFFFFFFFFFF
         size = i - start + 1
         if (size >= min_size and (h & mask) == 0) or size >= max_size:
             chunks.append(data[start:i + 1])

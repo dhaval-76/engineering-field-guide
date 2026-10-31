@@ -20,7 +20,8 @@ log = logging.getLogger("checkout")
 
 def checkout(cart, channel: str):
     with tracer.start_as_current_span("checkout") as span:
-        span.set_attribute("cart.id", cart.id)            # high cardinality: span attribute, not a metric label
+        # high cardinality: span attribute, not a metric label
+        span.set_attribute("cart.id", cart.id)
         span.set_attribute("channel", channel)
         start, outcome = time.perf_counter(), "ok"
         try:

@@ -1,4 +1,5 @@
-// In-memory index of moving drivers for one city shard: frequent updates, expiry, nearest-k by rings.
+// In-memory index of moving drivers for one city shard: frequent updates, expiry,
+// nearest-k by rings.
 const CELL = 0.01; // degrees ≈ 1.1 km of latitude
 const cellKey = (lat, lon) => `${Math.floor(lat / CELL)}:${Math.floor(lon / CELL)}`;
 

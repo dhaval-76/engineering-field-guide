@@ -16,8 +16,10 @@ class RoomSocketHandler extends TextWebSocketHandler implements MessageListener 
         String room = "room:" + m.get("room").asText();
         switch (m.get("type").asText()) {
             case "join" -> rooms.computeIfAbsent(room, r -> ConcurrentHashMap.newKeySet())
-                    .add(new ConcurrentWebSocketSessionDecorator(session, 5_000, 64 * 1024)); // send timeout + buffer limit
-            case "say" -> redis.convertAndSend(room, message.getPayload());                // publish to every instance
+                    // send timeout + buffer limit
+                    .add(new ConcurrentWebSocketSessionDecorator(session, 5_000, 64 * 1024));
+            // publish to every instance
+            case "say" -> redis.convertAndSend(room, message.getPayload());
         }
     }
 
@@ -26,7 +28,8 @@ class RoomSocketHandler extends TextWebSocketHandler implements MessageListener 
         String room = new String(message.getChannel(), StandardCharsets.UTF_8);
         TextMessage out = new TextMessage(message.getBody());
         for (WebSocketSession s : rooms.getOrDefault(room, Set.of())) {
-            try { s.sendMessage(out); } catch (Exception e) { closeQuietly(s); }   // slow/broken client
+            // slow/broken client
+            try { s.sendMessage(out); } catch (Exception e) { closeQuietly(s); }
         }
     }
 

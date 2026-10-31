@@ -1,13 +1,14 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-// event = { id, key, payload }; the id lets consumers drop duplicates a replay can produce.
-// broker = { async send(event) } — e.g. await producer.send(...) with acks; it must throw on failure.
+// event = { id, key, payload }; the id lets consumers drop duplicates a replay can
+// produce. broker = { async send(event) } — e.g. await producer.send(...) with acks; it
+// must throw on failure.
 
 /**
- * Durable spool: an append-only log plus a separate "how many are done" offset.
- * Put it on a persistent volume. A crash between the broker's ack and removeHead() re-sends
- * that event (at-least-once).
+ * Durable spool: an append-only log plus a separate "how many are done" offset. Put it on
+ * a persistent volume. A crash between the broker's ack and removeHead() re-sends that
+ * event (at-least-once).
  */
 export class FileSpool {
   constructor(dir) {
@@ -35,7 +36,8 @@ export class FileSpool {
     this.queue.shift();
     this.done++;
     if (this.queue.length === 0) {
-      // Reset the offset first, then drop the log: a crash in between replays (duplicates), never skips.
+      // Reset the offset first, then drop the log: a crash in between replays
+      // (duplicates), never skips.
       this.#writeOffset(0);
       fs.rmSync(this.log, { force: true });
       this.done = 0;
@@ -81,9 +83,10 @@ export class Breaker {
 }
 
 /**
- * Publishes when the broker is healthy; otherwise spools durably and replays later, rate-limited.
- * While a key has spooled events, new events for that key queue behind them (per-key order).
- * As with Kafka itself, await one same-key publish before starting the next.
+ * Publishes when the broker is healthy; otherwise spools durably and replays later,
+ * rate-limited. While a key has spooled events, new events for that key queue behind them
+ * (per-key order). As with Kafka itself, await one same-key publish before starting the
+ * next.
  */
 export class ResilientPublisher {
   #spooledPerKey = new Map();

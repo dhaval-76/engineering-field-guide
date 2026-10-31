@@ -6,10 +6,12 @@ class Leaderboard {
     Leaderboard(StringRedisTemplate redis) { this.redis = redis; }
 
     void addPoints(String playerId, double points) {
-        redis.opsForZSet().incrementScore(KEY, playerId, points);    // ZINCRBY — atomic, O(log n)
+        // ZINCRBY — atomic, O(log n)
+        redis.opsForZSet().incrementScore(KEY, playerId, points);
     }
 
-    List<Entry> top(int n) {                                          // ZRANGE … REV WITHSCORES
+    // ZRANGE … REV WITHSCORES
+    List<Entry> top(int n) {
         var tuples = redis.opsForZSet().reverseRangeWithScores(KEY, 0, n - 1);
         List<Entry> out = new ArrayList<>();
         int rank = 1;
