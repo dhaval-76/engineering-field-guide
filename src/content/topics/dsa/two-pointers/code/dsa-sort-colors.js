@@ -1,5 +1,5 @@
-// Dutch national flag: sort an array of 0s, 1s and 2s in one pass, in place.
-// Invariant: [0, low) are 0s · [low, mid) are 1s · [mid, high] unknown · (high, end] are 2s
+// Dutch national flag: sort an array of 0s, 1s and 2s in one pass, in place. Invariant:
+// [0, low) are 0s · [low, mid) are 1s · [mid, high] unknown · (high, end] are 2s
 function sortColors(nums) {
   let low = 0;
   let mid = 0;

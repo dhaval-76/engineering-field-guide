@@ -1,4 +1,5 @@
-// Does s2 contain a permutation (anagram) of s1? Fixed window of length |s1| with letter counts.
+// Does s2 contain a permutation (anagram) of s1? Fixed window of length |s1| with letter
+// counts.
 boolean checkInclusion(String s1, String s2) {
     if (s1.length() > s2.length()) return false;
     int[] diff = new int[26];              // count in window − count in s1
@@ -8,7 +9,8 @@ boolean checkInclusion(String s1, String s2) {
     for (int right = 0; right < s2.length(); right++) {
         mismatched += change(diff, s2.charAt(right) - 'a', +1);             // enters
         if (right >= s1.length())
-            mismatched += change(diff, s2.charAt(right - s1.length()) - 'a', -1); // leaves
+            // leaves
+            mismatched += change(diff, s2.charAt(right - s1.length()) - 'a', -1);
         if (mismatched == 0) return true;
     }
     return false;

@@ -22,6 +22,16 @@ practice:
     solution: |
       Insert all numbers into a set. For each value whose `x − 1` is not in the set, it starts a run: count upward while `x + length` is in the set and track the maximum. Each number is examined by at most one run, so the total work is O(n) on average, with O(n) space. Sorting would give O(n log n).
     solutionCode: dsa-longest-consecutive
+  - task: Return an array where each element is the product of all the others, without division, in O(n).
+    hint: Product except i = product of the left part × product of the right part.
+    solution: |
+      First pass left to right: `out[i]` = product of `nums[0..i-1]` (start with 1). Second pass right to left with a running `right` product: `out[i] *= right; right *= nums[i]`. O(n) time, O(1) extra space besides the output, and zeros are handled naturally.
+    solutionCode: dsa-product-except-self
+  - task: Return the k most frequent values in O(n).
+    hint: A value's frequency is between 1 and n.
+    solution: |
+      Count with a hash map. Create n + 1 buckets; put each value into the bucket of its frequency. Walk buckets from n down to 1, collecting values until you have k. O(n) time and space; a size-k min-heap is the O(n log k) alternative when n is huge and k small.
+    solutionCode: dsa-top-k-frequent
 quiz:
   - q: In two sum with a hash map, why insert the current number after checking for its partner?
     options: [It's faster, So a number can't pair with itself, Maps require it, To keep indices sorted]

@@ -1,4 +1,5 @@
-// Does s2 contain a permutation (anagram) of s1? Fixed window of length |s1| with letter counts.
+// Does s2 contain a permutation (anagram) of s1? Fixed window of length |s1| with letter
+// counts.
 function checkInclusion(s1, s2) {
   if (s1.length > s2.length) return false;
   const diff = new Array(26).fill(0); // count in window − count in s1

@@ -1,36 +1,51 @@
 ---
 title: Arrays, Hashing and Prefix Sums
-summary: The most common interview pattern — trading memory for time with hash maps and sets, counting with frequency maps, grouping by a canonical key, and answering range and subarray questions with prefix sums.
+summary: The most common interview pattern — trading memory for time with hash maps and sets, counting, grouping by a canonical key, bucket counting for top-k, and answering range and subarray questions with prefix sums.
 track: dsa
 order: 10
 tags: [dsa, arrays, hashing, hash-map, prefix-sum, patterns]
-aliases: [hashing pattern, hash map, hash set, frequency count, counting, two sum, group anagrams, contains duplicate, top k frequent, longest consecutive sequence, prefix sum, subarray sum equals k, product of array except self, running sum]
+aliases: [hashing pattern, hash map, hash set, frequency count, counting, two sum, group anagrams, contains duplicate, valid anagram, top k frequent, bucket sort, longest consecutive sequence, prefix sum, subarray sum equals k, product of array except self, running sum, range sum query, difference array]
 prerequisites: [cs-foundations/complexity]
-related: [java-runtime/hashmap-internals, java-runtime/collections]
+related: [java-runtime/hashmap-internals, java-runtime/collections, dsa/sliding-window, dsa/heaps-and-top-k]
 quickRef:
   points:
     - '"Have I seen X before?" / "how many times?" → a **hash set / hash map**: O(1) average per lookup, O(n) space.'
     - '**Complement lookup**: for each x, check whether `target − x` was already seen (two sum).'
-    - '**Canonical key** to group equivalent items: sorted letters, character counts, normalised form.'
+    - '**Canonical key** groups equivalent items: sorted letters, character counts, a normalised form.'
     - '**Prefix sums**: `sum(i..j) = prefix[j+1] − prefix[i]`; with a map of prefix counts, count subarrays summing to k in O(n).'
-    - 'If values are small integers in a known range, an **array as a map** is faster and simpler.'
+    - '**Prefix and suffix products/maxima** answer "everything except i" questions without division.'
+    - 'Values are small integers in a known range → an **array as a map** (or buckets) is faster and simpler.'
   complexity: 'Typical: O(n) time, O(n) space (vs O(n²) brute force).'
-  useWhen: 'The brute force compares pairs or re-scans ranges, and the input fits in memory.'
-lastReviewed: 2026-10-30
+  useWhen: 'The brute force compares pairs or re-scans ranges, and the data fits in memory.'
+lastReviewed: 2026-10-31
 ---
+
+## Why it matters
+
+A large share of interview problems — and a lot of everyday backend code — boils down to one of three questions: *have I seen this before?*, *how many of each are there?*, and *what is the total over this range?* Answered naively, each one means scanning the data again for every element: **O(n²)**. A hash map answers the first two in O(1) per element, and a prefix-sum array answers the third in O(1) per range, so the whole problem becomes **O(n)**.
+
+The trade is memory for time: O(n) extra space to drop a factor of n from the running time. With 10⁵ elements that is the difference between 10¹⁰ operations (minutes) and 10⁵ (a millisecond). Interviewers usually expect you to spot this trade first, before anything cleverer.
+
+<Callout type="analogy">
+A cloakroom ticket system. Instead of searching every coat on the rack for yours, you hand over a ticket and the attendant goes straight to the right hook. Hashing turns "search" into "go directly to". A prefix sum is the running total on a bank statement: to know what you spent between the 5th and the 20th, subtract two balances — no need to add up every transaction again.
+</Callout>
 
 ## Recognise it
 
-- The brute force has nested loops looking for a **matching element** → remember elements in a map instead.
+- The brute force has **nested loops looking for a matching element** → remember elements in a map instead.
 - You need **counts** or **groups** → a frequency map, or a map from a canonical key to a list.
-- The question is about **subarray sums** or ranges → prefix sums (plus a map for "how many/which ranges").
-- Constraint n up to 10⁵–10⁶ → O(n) or O(n log n) expected.
+- The question is about **subarray sums or ranges** → prefix sums (plus a map for "how many / which ranges").
+- "For each i, combine everything **except** i" → prefix and suffix arrays.
+- Constraints of n up to 10⁵–10⁶ signal that O(n) or O(n log n) is expected.
 
-<Callout type="analogy">
-A cloakroom ticket system. Instead of searching every coat on the rack for yours (O(n) each time), you hand over a ticket number and the attendant goes straight to the hook (O(1)). Hashing turns "search" into "go directly to".
-</Callout>
+## What a hash lookup really costs
 
-<Walkthrough id="two-sum-map" />
+"O(1)" hides details that matter when you defend a solution:
+
+- **Average, not worst case.** A good hash function spreads keys across buckets; many collisions degrade a bucket to a list (Java turns long chains into balanced trees, so the worst case is O(log n) there). See [HashMap internals](../../java-runtime/hashmap-internals/).
+- **Hashing the key costs time too.** Hashing a string of length k is O(k), so grouping n words of length k is O(n·k), not O(n).
+- **Memory is real.** Measured on JDK 22, a `HashMap<Integer, Integer>` costs about **71 bytes per entry** once the entry object, two boxed `Integer`s and the bucket table are counted — a million entries is about 70 MB. An `int[]` indexed by value uses 4 bytes per slot.
+- **Keys must be stable.** Java arrays hash by identity, so `int[]` keys never match; use a `String`, a `List`, or a record. Never mutate an object while it's a key.
 
 ## Templates
 
@@ -40,51 +55,108 @@ A cloakroom ticket system. Instead of searching every coat on the rack for yours
 
 ### Two sum
 
-Return indices of two numbers adding to a target. For each number, the partner we need is `target − x`; check the map of values seen so far, then add the current one.
+**Problem.** Return the indices of two numbers that add up to a target. `[2,7,11,15]`, target 9 → `[0,1]`.
+
+**Insight.** For each `x`, its partner must be `target − x`. Keep a map of values seen so far → index. Check for the partner **before** inserting `x`, so an element never pairs with itself.
+
+<Walkthrough id="two-sum-map" />
 
 <CodeTabs id="dsa-two-sum" title="Two sum — O(n) with a value → index map" />
 
+**Why not sort and use two pointers?** Sorting loses the original indices (you'd have to carry them along) and costs O(n log n). If the input were already sorted and only values were needed, [two pointers](../two-pointers/) would use O(1) space instead.
+
 ### Group anagrams
 
-Words are anagrams when they have the same letter counts. Use a canonical key — the sorted word (O(k log k)) or a 26-count signature (O(k)) — and group by it.
+**Problem.** Group words that are anagrams of each other. `["eat","tea","tan","ate","nat","bat"]` → `[["eat","tea","ate"],["tan","nat"],["bat"]]`.
+
+**Insight.** Anagrams have the same letters with the same counts, so map every word to a **canonical key** that is equal exactly for anagrams: the sorted word (`"aet"`, O(k log k)) or a 26-count signature (`"1#0#0#…"`, O(k)). Then group by the key.
 
 <CodeTabs id="dsa-group-anagrams" title="Group anagrams — group by a canonical key" />
 
+The same idea groups anything up to an equivalence: emails up to case and dots, points up to rotation, log lines up to their template.
+
+### Top k frequent elements
+
+**Problem.** The k values that occur most often. `[1,1,1,2,2,3]`, k = 2 → `[1,2]`.
+
+**Insight.** Count with a map. Then, instead of sorting by count (O(n log n)) or using a heap (O(n log k), see [Heaps](../heaps-and-top-k/)), notice that a frequency is between 1 and n. Put each value into **bucket number = its frequency**, then walk the buckets from n down and take the first k values: **O(n)**.
+
+<CodeTabs id="dsa-top-k-frequent" title="Top k frequent — count, then bucket by frequency" />
+
 ### Subarray sum equals k
 
-Count contiguous subarrays summing to k (numbers may be negative, so a sliding window doesn't work). A subarray `(i, j]` sums to k exactly when `prefix[j] − prefix[i] = k`, i.e. some earlier prefix equals `prefix[j] − k`. Keep a map of prefix-sum counts.
+**Problem.** Count the contiguous subarrays whose sum is k. Numbers may be negative. `[1,1,1]`, k = 2 → 2.
+
+**Insight.** With `prefix[j]` = sum of the first j elements, the subarray `(i, j]` sums to `prefix[j] − prefix[i]`. It equals k exactly when an **earlier** prefix equals `prefix[j] − k`. So walk the array keeping a map from prefix sum → how many times it has occurred; at each step add the count of `prefix − k`. Seed the map with `{0: 1}` for subarrays that start at index 0.
+
+| j | x | prefix | need prefix − k | count of need | total |
+|---|---|---|---|---|---|
+| — | — | 0 | — | — | 0 |
+| 0 | 1 | 1 | −1 | 0 | 0 |
+| 1 | 1 | 2 | 0 | 1 | 1 |
+| 2 | 1 | 3 | 1 | 1 | 2 |
 
 <CodeTabs id="dsa-subarray-sum-k" title="Subarray sum equals k — prefix sums + counts" />
 
+**Why not a sliding window?** A window needs the sum to grow when the window grows; with negative numbers it can shrink, so you can't tell which pointer to move. Prefix sums don't care about signs.
+
+### Product of array except self
+
+**Problem.** `out[i]` = product of all elements except `nums[i]`, without division. `[1,2,3,4]` → `[24,12,8,6]`.
+
+**Insight.** The product except `i` is (product of everything **left** of i) × (product of everything **right** of i). One pass left-to-right stores the left products in the output; a second pass right-to-left multiplies in a running right product. Division would fail on zeros; this doesn't.
+
+<CodeTabs id="dsa-product-except-self" title="Product except self — prefix and suffix products" />
+
 ### Longest consecutive sequence
 
-Find the longest run of consecutive integers in an unsorted array in O(n). Put everything in a set; only start counting from numbers whose predecessor is absent (the start of a run), so each number is visited at most twice.
+**Problem.** The length of the longest run of consecutive integers, in O(n). `[100,4,200,1,3,2]` → 4 (`1,2,3,4`).
+
+**Insight.** Sorting gives O(n log n). For O(n), put every number in a set and only start counting at numbers whose predecessor is **absent** — the start of a run. Each number is then visited at most twice (once in the outer loop, once while extending a run).
 
 <CodeTabs id="dsa-longest-consecutive" title="Longest consecutive sequence — O(n) with a set" />
 
-## Complexity
+## Prefix sums beyond one dimension
+
+- **Range sum queries**: build `prefix` once in O(n), answer any `sum(i..j)` in O(1).
+- **2-D prefix sums**: `P[r][c]` = sum of the rectangle from (0,0) to (r−1,c−1); any sub-rectangle sum is `P[r2][c2] − P[r1][c2] − P[r2][c1] + P[r1][c1]`.
+- **Difference arrays** (the reverse): to add `v` to every element in `[i, j]` for many ranges, do `diff[i] += v; diff[j+1] −= v`, then take a prefix sum once at the end — O(1) per update.
+- **Prefix XOR / prefix counts** work the same way for "subarrays with XOR k" or "with equal 0s and 1s" (map 0 → −1 and look for a repeated prefix).
+
+## Complexity at a glance
 
 | Problem | Brute force | With hashing / prefix sums |
 |---|---|---|
 | Two sum | O(n²) | O(n) time, O(n) space |
-| Group anagrams | O(n² · k) comparing pairs | O(n · k) with count keys |
-| Subarray sum = k | O(n²) or O(n³) | O(n) time, O(n) space |
+| Group anagrams | O(n² · k) | O(n · k) with count keys |
+| Top k frequent | O(n log n) sort | O(n) with buckets |
+| Subarray sum = k | O(n²) | O(n) time, O(n) space |
+| Product except self | O(n²) | O(n) time, O(1) extra |
 | Longest consecutive | O(n log n) sort | O(n) time, O(n) space |
+
+## Talking through it in an interview
+
+- Start from the brute force, name the repeated work ("for each element I search the rest"), and remove it with a map.
+- Say what the map stores and **when** you insert relative to when you look up.
+- Mention the space cost and the average-case caveat of hashing.
+- If memory is constrained or the input is sorted, offer the alternative (sorting + two pointers, or an array indexed by value).
 
 <Pitfalls>
 
-- **Adding the current element before checking** in two sum — an element pairs with itself.
-- **Forgetting `prefixCount[0] = 1`** — subarrays starting at index 0 are missed.
-- **Mutable or array keys** — Java arrays use identity `hashCode`; use a `String` or `List` key (or `Arrays.toString`).
+- **Inserting before checking** in two sum — an element pairs with itself.
+- **Forgetting `count[0] = 1`** in prefix-sum counting — subarrays starting at index 0 are missed.
+- **Mutable or array keys** — Java arrays hash by identity; use a `String`, `List` or record key.
 - **Sliding window for sums with negative numbers** — use prefix sums instead.
-- **Integer overflow** in prefix sums — use `long`.
+- **Integer overflow** in prefix sums and products — use `long` (or note the constraint).
+- **Claiming O(n) when keys are strings** — hashing a key of length k costs O(k).
 
 </Pitfalls>
 
 <KeyTakeaways>
 
-- Hash maps/sets turn "search for a partner" into O(1) lookups.
-- Canonical keys group equivalent items.
-- Prefix sums + a count map solve subarray-sum questions in O(n), even with negatives.
+- Hash maps and sets turn "search for a partner" into O(1) average lookups.
+- Canonical keys group equivalent items; bucket counting beats sorting when values are bounded.
+- Prefix sums answer range questions in O(1) and, with a count map, subarray-sum questions in O(n) — even with negatives.
+- Prefix and suffix passes answer "everything except i" without division.
 
 </KeyTakeaways>

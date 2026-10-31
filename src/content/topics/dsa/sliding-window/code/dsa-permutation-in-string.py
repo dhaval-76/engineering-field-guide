@@ -1,4 +1,5 @@
-# Does s2 contain a permutation (anagram) of s1? Fixed window of length |s1| with letter counts.
+# Does s2 contain a permutation (anagram) of s1? Fixed window of length |s1| with letter
+# counts.
 def check_inclusion(s1: str, s2: str) -> bool:
     if len(s1) > len(s2):
         return False
