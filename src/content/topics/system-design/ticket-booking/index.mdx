@@ -1,0 +1,89 @@
+---
+title: 'Design: Ticket Booking (BookMyShow, Ticketmaster)'
+summary: Selling limited seats under extreme demand — seat holds without double booking, a virtual waiting room for on-sales, sharding inventory by event, cached seat maps, payments with hold expiry, and bot defence.
+track: system-design
+order: 275
+tags: [system-design, case-study, booking, concurrency, high-contention]
+aliases: [design bookmyshow, design ticketmaster, ticket booking system, event ticketing, seat reservation, seat hold, double booking, flash sale, on sale spike, virtual waiting room, queue it, admission token, hot event, seat map, bot protection, scalping]
+prerequisites: [low-level-design/movie-booking, databases/transactions-isolation]
+related: [low-level-design/inventory-management, system-design/payment-system, system-design/distributed-rate-limiter, system-design/cdn]
+quickRef:
+  points:
+    - '**No double booking**: hold a seat with a single conditional write (only if available or the hold expired); confirm after payment.'
+    - '**Holds expire** (≈ 5–10 min) so abandoned checkouts return seats automatically.'
+    - '**Virtual waiting room** for hot on-sales: queue everyone at the CDN, admit at the rate the booking system can serve.'
+    - '**Shard inventory by event** — contention is per event, and events are independent.'
+    - '**Cache seat maps** with short TTLs; the hold is the source of truth, not the map.'
+  useWhen: '"Design BookMyShow / Ticketmaster / flight or hotel booking", and any flash sale of limited inventory.'
+lastReviewed: 2026-10-30
+---
+
+## Requirements
+
+**Functional**: browse events and shows; view a seat map; select seats; hold them while paying; confirm and issue tickets; cancel and refund.
+**Non-functional**: never sell a seat twice; stay responsive during on-sales with millions of simultaneous users; fair ordering; resist bots.
+
+The object model — shows, seats, holds, bookings — is in [Design a movie booking system](../../low-level-design/movie-booking/). This page is about **scale and contention**.
+
+## Estimates
+
+| | |
+|---|---|
+| Normal traffic | 10 M bookings/day across thousands of events ≈ 120/s |
+| Hot on-sale | 2 M fans for 60,000 seats within ~10 minutes |
+| Hot-event reads | seat map refreshes from 2 M clients — must come from cache/CDN, not the seats DB |
+| Hot-event writes | holds ≤ seats × a few attempts — tens of thousands, but concentrated on the best rows |
+
+## High-level design
+
+<Diagram id="ticket-arch" caption="Hot events route through a waiting room; admitted users browse cached seat maps and hold seats through an event-sharded inventory service using conditional updates; payment confirms or the hold expires." />
+
+## Holding seats without double booking
+
+The hold must be one atomic check-and-set per seat — a conditional `UPDATE` (only if available or the previous hold expired), a Redis `SET seat:{show}:{seat} {user} NX EX 480`, or both. Multi-seat holds are all-or-nothing in one transaction.
+
+<CodeTabs id="movie-booking-sql" title="Conditional UPDATE as the hold, with lazy expiry (from the LLD design)" />
+
+- **Expiry** returns seats from abandoned checkouts; payment callbacks arriving after expiry are refunded rather than confirmed.
+- **Idempotent payment** with a key per booking attempt ([Payment system](../payment-system/)).
+- **General admission** (no seat numbers) is a counter per section — use the bucketed counters from [inventory management](../../low-level-design/inventory-management/).
+
+## Surviving on-sales: the waiting room
+
+<Walkthrough id="onsale" />
+
+<CodeTabs id="waiting-room" title="A waiting room: idempotent joins, batch admission per tick, positions and expiring admission" />
+
+- The queue page is static and CDN-served, so millions of waiting clients cost almost nothing; clients poll their position occasionally.
+- Admission rate is set from booking-system capacity and remaining inventory; admitted users get a **signed, expiring token** checked by the booking API ([CDN signed URLs](../cdn/) use the same idea).
+- Randomise order among users who arrived before the sale opened, so refreshing at 09:59:59.9 isn't an advantage; enforce one queue entry per verified account.
+- Close the queue as soon as sold + held reaches capacity, and tell waiting users.
+
+## Read path and sharding
+
+- **Seat maps**: cache availability per section with a TTL of a second or two and update from hold events; tolerate brief staleness — the hold decides.
+- **Shard by event (show)**: holds for one event live in one partition, keeping transactions local; a hot event can get dedicated capacity.
+- **Search and browse** come from a read-optimised catalogue (search index + cache), separate from inventory.
+
+## Bots and fairness
+
+Rate limits per account, device and IP ([Distributed rate limiter](../distributed-rate-limiter/)); CAPTCHA or proof-of-work at queue entry; verified accounts; purchase limits per account; and anomaly detection on holding patterns (many holds, no payments).
+
+<Pitfalls>
+
+- **Check availability, then book** in two steps — double booking under load.
+- **Holds without expiry** — seats locked forever by abandoned carts.
+- **Serving seat maps from the primary database** during an on-sale.
+- **Letting everyone into the booking flow at once** — the system collapses and nobody gets tickets.
+- **First-come by request timestamp** at the opening second — rewards bots and refresh spamming.
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- Atomic, expiring holds prevent double booking; payment confirms or the hold lapses.
+- Waiting rooms convert an impossible spike into a steady, fair flow.
+- Shard inventory by event; cache seat maps; the hold is the source of truth.
+- Plan bot defence and fairness from the start.
+
+</KeyTakeaways>

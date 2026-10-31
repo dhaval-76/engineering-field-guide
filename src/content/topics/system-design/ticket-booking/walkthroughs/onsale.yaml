@@ -1,0 +1,27 @@
+title: An on-sale for a stadium concert
+frames:
+  - caption: '60,000 seats; 2 million fans arrive in the first minutes. Without protection, every one of them hammers the seat map and hold APIs, and most requests fail on contention for the same front rows.'
+    panels:
+      - kind: kv
+        label: demand vs supply
+        pairs: [[fans, '2,000,000'], [seats, '60,000'], [ratio, { v: '33 per seat', tone: bad }]]
+  - caption: 'Fans land on a **static waiting-room page** served by the CDN and receive a place in line. Refreshing keeps their place; bots are filtered before joining.'
+    panels:
+      - kind: rows
+        label: queue
+        items: ['#1 … #2,000,000', { v: 'your position: 48,213', tone: accent }]
+  - caption: 'The waiting room admits, say, **2,000 fans per minute** — what the booking flow can serve with fast responses — and issues each a short-lived signed token.'
+    panels:
+      - kind: rows
+        label: admitted batch
+        items: [{ v: '#1–#2,000 → booking (10-min session)', tone: ok }, '#2,001… still waiting']
+  - caption: 'Admitted fans pick seats; each hold is a **conditional update** (only if still available) with an 8-minute expiry. Two fans clicking the same seat: one wins, the other is told immediately to pick again.'
+    panels:
+      - kind: rows
+        label: holds
+        items: [{ v: 'A-12 held for fan #18 (expires 8 min)', tone: ok }, { v: 'A-12 for fan #44 → already held', tone: warn }]
+  - caption: 'Paid holds become tickets; abandoned holds expire and the seats return. Admission continues until inventory runs out, then everyone still waiting is told promptly — no one waits hours for a sold-out show.'
+    panels:
+      - kind: kv
+        label: progress
+        pairs: [[sold, '58,900'], [held, '1,100'], [queue, { v: 'closes when held + sold = capacity', tone: muted }]]

@@ -1,0 +1,10 @@
+flowchart TD
+  U[Fans] --> CDN[CDN<br/>event pages · static waiting room]
+  CDN --> WR[Waiting room service<br/>queue position · admission tokens]
+  WR -- admitted, signed token --> BK[Booking API<br/>token check · rate limits · bot defence]
+  BK --> SM[Seat map service<br/>cached availability per section]
+  BK --> HOLD[Inventory / hold service<br/>sharded by event]
+  HOLD --> DB[(Seats DB<br/>conditional updates)]
+  BK --> PAY[Payments<br/>idempotent, hold expiry]
+  PAY --> CONF[Confirm → tickets · email · QR]
+  HOLD -. seat changes .-> SM

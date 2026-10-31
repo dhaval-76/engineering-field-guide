@@ -1,0 +1,37 @@
+questions:
+  - q: Design a ticketing system that can handle a stadium concert on-sale with 2 million fans for 60,000 seats.
+    think: Correctness of seats, and surviving the spike.
+    answer: |
+      **Waiting room**: event pages and a static queue page on the CDN; fans join a queue (one entry per verified account, randomised among pre-opening arrivals) and poll their position; the queue service admits batches at the rate the booking system can serve and issues signed, expiring tokens. **Booking**: admitted users see cached seat maps (per-section availability, 1–2 s TTL, updated by hold events); selecting seats triggers an all-or-nothing hold via conditional updates in an event-sharded inventory store, with an 8-minute expiry. **Payment**: idempotent, linked to the hold; success confirms and issues tickets; failure or expiry releases seats; late payments are refunded. **Fairness/bots**: per-account limits, rate limiting, CAPTCHA at entry, anomaly detection. **Close-out**: stop admission when sold + held reaches capacity and notify the queue.
+  - q: 'Two users clicked the same seat at the same millisecond and both got a confirmation. How did that happen, and how do you prevent it?'
+    think: Check-then-act.
+    answer: |
+      The code read the seat as available and then wrote a booking in separate steps; both requests passed the read before either wrote. Make the hold a single atomic conditional write: `UPDATE seat SET status='HELD', holder=…, hold_expires=… WHERE id=… AND (status='AVAILABLE' OR (status='HELD' AND hold_expires < now()))` and check that exactly one row changed (or Redis `SET … NX`). Add a unique constraint on (show, seat) for confirmed bookings as a final guard, and make payment confirmation verify the hold still belongs to the payer.
+followUps:
+  - q: Why use a waiting room instead of just scaling up?
+    intuition: The bottleneck is the seats, not the servers.
+    approach: |
+      All fans compete for the same few thousand best seats; more servers only produce more contention, failed holds and retries. A waiting room converts the burst into a controlled flow matched to inventory and backend capacity, gives users a predictable, fair experience, and lets you stop the queue when seats run out. The waiting page itself is static and cheap to serve at any scale.
+  - q: How long should a seat hold last?
+    intuition: Long enough to pay, short enough to recycle.
+    approach: |
+      Typically 5–10 minutes: enough for payment including 3-D Secure, short enough that abandoned seats return quickly during high demand. Show a countdown, extend once if payment is in progress, and release on explicit cancel. On-sales may use shorter holds than normal browsing.
+  - q: How do you keep the seat map accurate under heavy load?
+    intuition: Approximate display, exact hold.
+    approach: |
+      Serve the map from a cache updated by hold/confirm events and short TTLs, accepting a second or two of staleness. The authoritative check happens at hold time; if a displayed seat was just taken, the hold fails fast and the UI refreshes that section. Never read the primary inventory database for every map view during an on-sale.
+practice:
+  - task: Implement a virtual waiting room with idempotent joins, batch admission per tick, queue positions, and admission that expires.
+    hint: Assign sequence numbers; admitted = sequence below a moving watermark; remember when each was admitted.
+    solution: |
+      `join` assigns the next sequence number unless the user already has one. `tick` moves the admitted watermark forward by the batch size (not beyond the queue length), recording the admission time for each newly admitted sequence. `position` is the user's sequence minus the watermark plus one (zero once admitted). `mayBook` is true when the sequence is below the watermark and the admission is younger than the session length.
+    solutionCode: waiting-room
+quiz:
+  - q: What prevents two users from holding the same seat?
+    options: [Showing a fresh seat map, A single conditional write that only succeeds if the seat is available, Faster databases, A longer hold time]
+    correct: 1
+    why: Only one atomic compare-and-set can succeed for the seat.
+  - q: Why serve the waiting-room page from a CDN?
+    options: [For SEO, Millions of waiting clients then cost almost nothing to the backend, CDNs process payments, To hold seats]
+    correct: 1
+    why: Static pages at the edge absorb the spike; only admitted users reach the booking system.
