@@ -1,0 +1,27 @@
+title: Editing one file on two devices
+frames:
+  - caption: '`notes.txt` is at version 3 everywhere. The laptop edits it: the client re-chunks the file (content-defined) and finds only **one** chunk changed.'
+    panels:
+      - kind: kv
+        label: laptop
+        pairs: [[base version, '3'], [chunks, 'a1 b7 c3 → a1 b9 c3'], [to upload, { v: 'b9 only', tone: ok }]]
+  - caption: 'The laptop uploads chunk b9 directly to object storage (presigned URL), then commits "version 4 = [a1, b9, c3], based on 3". The server''s current version is 3, so the commit succeeds and a change is journaled.'
+    panels:
+      - kind: rows
+        label: server
+        items: [{ v: 'commit v4 (base 3) ✓', tone: ok }, 'journal: ns 1, seq 2 → notes.txt v4']
+  - caption: 'Meanwhile the phone, offline, also edited version 3. When it reconnects it commits "version 4 based on 3" — but the server is already at 4. The conditional update matches **0 rows**.'
+    panels:
+      - kind: rows
+        label: phone commit
+        items: [{ v: 'base 3 ≠ current 4 → conflict', tone: bad }]
+  - caption: 'Nothing is lost: the phone''s edit is saved as **"notes (Asha''s phone conflicted copy).txt"** and the user decides. Silently picking a winner would discard someone''s work.'
+    panels:
+      - kind: rows
+        label: result
+        items: ['notes.txt — v4 (laptop)', { v: "notes (phone's conflicted copy).txt — new file", tone: warn }]
+  - caption: 'Other devices were waiting on a long-poll; they''re told "namespace 1 changed", fetch journal entries after their cursor, download only chunks they lack, and advance the cursor.'
+    panels:
+      - kind: rows
+        label: desktop sync
+        items: ['notify: ns 1 changed', 'GET changes after cursor 1 → seq 2', { v: 'download chunk b9 only', tone: ok }]

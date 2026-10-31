@@ -1,0 +1,101 @@
+---
+title: 'Design: File Storage and Sync (Dropbox, Google Drive)'
+summary: A file sync service — content-defined chunking and deduplication, metadata vs blob storage, presigned and resumable uploads, a change journal with cursors for sync, conflict copies, sharing, versioning and garbage collection.
+track: system-design
+order: 255
+tags: [system-design, case-study, storage, sync, object-storage]
+aliases: [design dropbox, design google drive, file sync, cloud storage design, onedrive, chunking, content defined chunking, rabin fingerprint, deduplication, block storage, object storage, s3, presigned url, resumable upload, multipart upload, delta sync, sync conflict, conflicted copy, change journal, cursor, long polling, file versioning]
+prerequisites: [system-design/approach-and-estimation, databases/sharding]
+related: [system-design/cdn, system-design/document-versioning, system-design/notification-system, system-design/realtime-collaboration]
+quickRef:
+  points:
+    - 'Split **metadata** (files, versions, chunk lists — relational, sharded) from **bytes** (chunks in object storage).'
+    - 'Files are lists of **chunks named by SHA-256** — identical chunks are stored once; edits upload only changed chunks.'
+    - '**Content-defined chunking** keeps boundaries stable when bytes are inserted (1 of 189 chunks changed vs 245 of 245 fixed-size, measured).'
+    - 'Clients upload **directly to object storage** via presigned URLs, then **commit** a version conditioned on their base version.'
+    - 'Sync = **change journal + cursor**, woken by long-poll/WebSocket; concurrent edits become **conflicted copies**.'
+  useWhen: '"Design Dropbox / Google Drive / OneDrive", file upload services, backup systems.'
+lastReviewed: 2026-10-30
+---
+
+## Requirements
+
+**Functional**: upload, download, and sync files across a user's devices; offline edits; share files and folders; version history and trash.
+**Non-functional**: never lose data; efficient on bandwidth (only send changes); large files (GBs) with resumable uploads; changes visible on other devices within seconds; 500 M users.
+
+## Estimates
+
+| | |
+|---|---|
+| Users / data | 500 M users × ~10 GB average used ≈ 5 EB logical; dedup and compression reduce physical storage |
+| Uploads | 100 M file changes/day ≈ 1,200/s, peaks 5×; mostly small files, a long tail of huge ones |
+| Metadata | ~200 files per user × 500 M ≈ 100 B file rows — must be sharded (by user/namespace) |
+| Bandwidth | the expensive part — chunk-level delta sync and dedup matter more than CPU |
+
+## High-level design
+
+<Diagram id="file-sync" caption="The client asks which chunks the server lacks, uploads only those straight to object storage, then commits a new version. Other devices are notified, read the journal after their cursor, and download only missing chunks." />
+
+<Steps>
+
+1. **Client**: watches the file system, keeps a local DB of known files, versions and chunk hashes, and chunks changed files.
+2. **Upload**: send the chunk hash list; the server replies with hashes it doesn't have; upload those via **presigned URLs** directly to object storage (multipart and resumable for big files).
+3. **Commit**: create a new version (ordered chunk list) only if the client's base version is still current — otherwise it's a conflict.
+4. **Notify**: a lightweight notification service tells other devices "namespace changed" (long-poll or WebSocket).
+5. **Sync down**: devices fetch journal entries after their cursor, update metadata, and download missing chunks.
+
+</Steps>
+
+## Chunking and deduplication
+
+<Chart
+  type="bar"
+  title="Chunks that must be re-uploaded after inserting 1 byte near the start of a 2 MB file (measured)"
+  unit="%"
+  bars={[
+    ['Fixed 8 KiB chunks', 100, 'bad'],
+    ['Content-defined chunks (~10 KiB average)', 0.5, 'ok'],
+  ]}
+  caption="Fixed-size chunks all shift by one byte, so every hash changes (245 of 245). Content-defined boundaries depend on the bytes themselves, so only the chunk containing the edit changes (1 of 189)."
+/>
+
+<CodeTabs id="cdc-chunker" title="Content-defined chunking with a gear rolling hash, and chunk ids by SHA-256" />
+
+- Chunk ids are content hashes, so identical chunks across versions, files and even users are stored once.
+- Dedup across users leaks information ("does anyone have this file?") — many services dedupe per user or per organisation only, especially with client-side encryption.
+- Reference counts (or periodic mark-and-sweep over live versions) let unreferenced chunks be garbage-collected after a grace period.
+
+## Metadata, commits and sync
+
+<CodeTabs id="file-metadata" title="Metadata schema: chunks, files, versions and a change journal; the missing-chunks query, conditional commit and cursor sync" />
+
+<Walkthrough id="file-sync-conflict" />
+
+- The **conditional commit** (`WHERE current_version = base_version`) is optimistic concurrency; a miss becomes a conflicted copy rather than a lost edit.
+- The **journal** gives each namespace an ordered change list; clients hold a cursor and catch up after being offline — the same pattern as event logs ([Kafka deep dive](../kafka-deep-dive/)).
+- **Sharing** maps a shared folder to its own namespace; members' clients sync that namespace too, and ACLs are checked on every metadata call.
+
+## Large files and reliability
+
+- **Multipart, resumable uploads**: chunk uploads are independent and idempotent (same hash, same content), so a dropped connection resumes from the missing chunks.
+- **Durability**: object storage replicates or erasure-codes across zones (eleven nines); metadata is replicated and backed up — losing metadata loses the map to every chunk.
+- **Downloads** of shared or popular files go through a CDN with signed URLs ([CDN](../cdn/)).
+
+<Pitfalls>
+
+- **Storing files in the database** or streaming every byte through API servers.
+- **Fixed-size chunks** — one inserted byte re-uploads the whole file.
+- **Last-writer-wins on conflicts** — silently discards edits.
+- **Polling the whole file tree** instead of a journal with cursors.
+- **Deleting chunks immediately** when a version is removed — races with in-flight commits that reference them.
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- Separate metadata from blobs; upload blobs directly with presigned URLs.
+- Content-defined chunking + content hashes give delta sync and dedup.
+- Commit versions with optimistic concurrency; turn conflicts into conflicted copies.
+- Sync with a change journal and cursors, triggered by lightweight notifications.
+
+</KeyTakeaways>

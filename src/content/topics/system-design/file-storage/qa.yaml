@@ -1,0 +1,37 @@
+questions:
+  - q: Design Dropbox.
+    think: Bytes vs metadata, what moves over the network, and how devices learn about changes.
+    answer: |
+      **Client**: file watcher, local metadata DB, content-defined chunker. **Storage**: chunks in object storage keyed by SHA-256; metadata (namespaces, files, versions as ordered chunk lists, ACLs, change journal) in a sharded relational store. **Upload**: client sends chunk hashes, server returns the missing ones, client uploads them via presigned URLs (multipart/resumable), then commits a new version conditioned on its base version; mismatch → conflicted copy. **Sync**: commits append to a per-namespace journal and trigger a notification; devices long-poll/WebSocket for "something changed", fetch journal entries after their cursor and download only missing chunks. **Sharing**: shared folders are separate namespaces with ACLs. **Versions and trash**: keep old versions for N days; garbage-collect unreferenced chunks with ref counts or mark-and-sweep. **Scale**: shard metadata by namespace, CDN for downloads, dedup per account, monitor bandwidth.
+  - q: 'A user edits one paragraph in a 500 MB file and the client re-uploads the whole file. How do you fix it?'
+    think: What identifies "the same data"?
+    answer: |
+      Chunk files and upload only chunks the server lacks. With fixed-size chunks an insertion shifts every later chunk, so use **content-defined chunking**: a rolling hash over a sliding window decides boundaries based on content, so boundaries resynchronise right after the edit and only the chunk(s) containing it change. Name chunks by content hash, ask the server which hashes it's missing, and upload just those. Compression and per-chunk retries further reduce transfer.
+followUps:
+  - q: How are conflicts detected and handled?
+    intuition: Optimistic concurrency on versions.
+    approach: |
+      Each client edit records the base version it started from. The commit updates the file only if the server's current version still equals that base; otherwise another device committed first. Instead of overwriting, the server saves the second edit as a conflicted copy and both devices sync it, letting the user resolve. (Real-time collaborative editors use OT/CRDTs instead — see real-time collaboration.)
+  - q: Why upload chunks directly to object storage?
+    intuition: Keep API servers out of the byte path.
+    approach: |
+      Streaming gigabytes through application servers wastes their CPU, memory and network and limits throughput. Presigned URLs authorise one specific object upload for a short time, so clients write straight to object storage, which is built for massive parallel throughput, while the API handles only small metadata calls.
+  - q: How does a device catch up after a week offline?
+    intuition: A cursor into an ordered log.
+    approach: |
+      The device stored the last journal sequence it applied. On reconnect it requests changes after that cursor, page by page, applies metadata updates, downloads missing chunks, and advances the cursor. If the journal was compacted beyond its cursor, it falls back to a full listing and reconciliation.
+practice:
+  - task: Implement content-defined chunking and show that inserting one byte changes far fewer chunks than fixed-size chunking.
+    hint: Gear hash — h = (h << 1) + GEAR[byte]; cut when the top bits are zero and the chunk is above a minimum size.
+    solution: |
+      Build a fixed table of 256 random 64-bit values. Scan bytes, updating the rolling hash; cut a chunk when the size exceeds the minimum and the hash's top k bits are zero (average ≈ 2^k bytes), or at the maximum size. Hash each chunk with SHA-256. On a 2 MB random file, inserting a byte at offset 1000 changed 1 of 189 content-defined chunks versus all 245 fixed 8 KiB chunks.
+    solutionCode: cdc-chunker
+quiz:
+  - q: Why are chunks named by their SHA-256 hash?
+    options: [Encryption, Identical content gets the same name and is stored once, Faster downloads, Required by object storage]
+    correct: 1
+    why: Content addressing enables deduplication and makes uploads idempotent.
+  - q: 'A commit says "base version 3" but the file is at version 4. What should happen?'
+    options: [Overwrite version 4, Reject and discard the edit, Save the edit as a conflicted copy, Merge bytes automatically]
+    correct: 2
+    why: Neither edit is lost; the user resolves the conflict.
