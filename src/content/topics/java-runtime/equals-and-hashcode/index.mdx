@@ -14,7 +14,7 @@ quickRef:
     - Use the same fields in both methods; prefer `Objects.equals`/`Objects.hash` — or a **record**, which generates both.
     - 'Never compare wrapper types (`Integer`, `Long`) with `==`: values in −128..127 are cached and accidentally work.'
   useWhen: Defining value objects, using custom keys in maps/sets, or debugging "duplicates" and "missing" entries.
-lastReviewed: 2026-10-30
+lastReviewed: 2026-10-31
 ---
 
 ## Why it matters
@@ -24,6 +24,12 @@ Hash-based collections find things in two steps: `hashCode()` picks the bucket, 
 <Callout type="analogy">
 Two copies of the same book are *equal* (same title, same edition) but they are not the *same* physical book. `==` asks "is this the very same copy?"; `equals` asks "is this the same book?". A library index must file both copies under the same shelf label — that's what consistent `hashCode` guarantees.
 </Callout>
+
+## How a hash collection uses them
+
+<Walkthrough id="hashset-lookup" />
+
+`hashCode` decides **where to look**; `equals` decides **whether it's a match**. If two equal objects can produce different hash codes, the collection looks in the wrong place and never asks `equals` at all — which is why overriding only `equals` silently breaks `HashSet`, `HashMap` keys and `distinct()`.
 
 ## Identity vs equality
 

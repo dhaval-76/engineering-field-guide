@@ -1,0 +1,36 @@
+title: Why a HashSet needs both equals and hashCode
+frames:
+  - caption: '`Point` overrides `equals` (same x and y) but **not** `hashCode`, so each object gets an identity-based hash. `set.add(new Point(1, 2))` lands in bucket 3.'
+    panels:
+      - kind: array
+        label: buckets
+        items: ['0', '1', '2', { v: 'P(1,2) #A', tone: accent }, '4', '5', '6', '7']
+      - kind: kv
+        label: Call
+        pairs: [[add, 'new Point(1,2) → hash → bucket 3']]
+  - caption: '`set.contains(new Point(1, 2))` — an equal point, but a different object, so a different identity hash: bucket 6. Bucket 6 is empty, `equals` is never even called, and the answer is **false**.'
+    panels:
+      - kind: array
+        label: buckets
+        items: ['0', '1', '2', 'P(1,2) #A', '4', '5', { v: 'looked here', tone: bad }, '7']
+      - kind: kv
+        label: Call
+        pairs: [[contains, { v: 'false — wrong', tone: bad }]]
+  - caption: 'Adding it again stores a **second** "equal" point: the set now holds duplicates. Nothing throws.'
+    panels:
+      - kind: array
+        label: buckets
+        items: ['0', '1', '2', 'P(1,2) #A', '4', '5', { v: 'P(1,2) #B', tone: bad }, '7']
+  - caption: 'Fix: `hashCode` computed from x and y (`Objects.hash(x, y)`). Equal points now always pick the same bucket, where `equals` confirms the match: `contains` is **true** and duplicates are rejected.'
+    panels:
+      - kind: array
+        label: buckets
+        items: ['0', '1', '2', '3', '4', { v: 'P(1,2)', tone: ok }, '6', '7']
+      - kind: kv
+        label: Call
+        pairs: [[contains, { v: 'true', tone: ok }]]
+  - caption: 'One more trap: **mutating a key after inserting it**. Change the stored point to (9, 9) and its hash changes, but it still sits in bucket 5 — filed under its old hash. `contains(P(9,9))` looks in another bucket and fails; even `remove` can''t find it. Keys must be immutable.'
+    panels:
+      - kind: array
+        label: buckets
+        items: ['0', { v: 'looked here', tone: bad }, '2', '3', '4', { v: 'P(9,9) — stale', tone: warn }, '6', '7']
