@@ -4,7 +4,7 @@ summary: Systematically exploring every candidate with choose–explore–unchoo
 track: dsa
 order: 140
 tags: [dsa, backtracking, recursion, search, patterns]
-aliases: [backtracking, recursion, decision tree, subsets, power set, permutations, combinations, combination sum, n queens, word search, sudoku solver, palindrome partitioning, generate parentheses, letter combinations of a phone number, pruning, choose explore unchoose, state space search]
+aliases: [backtracking, recursion, decision tree, subsets, subsets ii, subsets with duplicates, power set, permutations, combinations, combination sum, n queens, word search, sudoku solver, palindrome partitioning, generate parentheses, letter combinations of a phone number, pruning, choose explore unchoose, state space search]
 prerequisites: [dsa/trees-and-bst, cs-foundations/complexity]
 related: [dsa/dynamic-programming, dsa/graphs-bfs-dfs]
 quickRef:
@@ -16,69 +16,141 @@ quickRef:
     - 'Copy the current path when recording a result — the list keeps changing.'
   complexity: 'Exponential: O(2ⁿ · n) subsets, O(n! · n) permutations; feasible only for small n (≈ 10–20).'
   useWhen: '"Generate all…", "find every combination/arrangement", constraint puzzles, or when n is small and no DP structure exists.'
-lastReviewed: 2026-10-30
+lastReviewed: 2026-10-31
 ---
+
+## Why it matters
+
+Some questions have no shortcut: *list every valid arrangement*, *find any assignment that satisfies all constraints*. The answer itself may be exponential in size (a set of n items has 2ⁿ subsets), so no algorithm can avoid exploring a lot. Backtracking explores that space **systematically and without waste**: it builds a candidate one choice at a time, and abandons a partial candidate the moment it can't lead anywhere useful.
+
+That abandoning — **pruning** — is the whole game. The same search can be hopeless or instant depending on how early invalid branches are cut. Backtracking powers Sudoku and constraint solvers, regex engines with backtracking semantics, game-tree search, configuration and scheduling tools, and test-case generators.
+
+<Callout type="analogy">
+Finding your way through a maze by trying a corridor, and when it dead-ends, walking back to the last junction and trying the next corridor. Chalk marks (the "unchoose" step) make sure you leave the maze exactly as you found it for the next attempt — and an experienced explorer doesn't even enter a corridor they can see is blocked.
+</Callout>
 
 ## Recognise it
 
 - "Return **all** subsets / permutations / combinations / partitions / valid arrangements."
-- Constraint satisfaction: N-Queens, Sudoku, word search in a grid.
-- Small n (≤ ~20) — a hint that exponential search is intended.
-- If the question asks only for a **count** or **best value** and subproblems repeat, consider [dynamic programming](../dynamic-programming/) instead.
-
-<Callout type="analogy">
-Finding your way through a maze by trying a corridor, and when it dead-ends, walking back to the last junction and trying the next corridor. Chalk marks (the "unchoose" step) make sure you leave the maze as you found it for the next attempt.
-</Callout>
-
-<Walkthrough id="subsets-tree" />
+- Constraint satisfaction: N-Queens, Sudoku, word search, placing items under rules.
+- Small n (≤ ~20) — a strong hint that an exponential search is intended.
+- If the question asks only for a **count** or the **best value** and subproblems repeat, prefer [dynamic programming](../dynamic-programming/) — backtracking would recompute the same subproblems exponentially often.
 
 ## The template
 
+Backtracking is a depth-first search over a **decision tree**: each level makes one choice, each node is a partial candidate, and leaves are complete candidates.
+
+<Walkthrough id="subsets-tree" />
+
 <CodeTabs id="dsa-backtrack-template" title="Choose → explore → unchoose" />
+
+<Steps>
+
+1. **Base case**: is the partial candidate complete (or a valid answer)? Record a **copy** of it.
+2. **Choose**: for each option still allowed at this level, add it to the candidate.
+3. **Explore**: recurse to the next level.
+4. **Unchoose**: remove the option, restoring the state for the next sibling.
+
+</Steps>
+
+Three questions define any backtracking solution: *what is one choice?*, *which options are allowed next?*, and *when can I stop early?*
 
 ## Worked problems
 
+### Subsets and permutations
+
+**Subsets**: at each element, include it or not — 2ⁿ leaves. Equivalently, every node of the "pick an element after the last one" tree is a subset. **Permutations**: at each position, any unused element — n! leaves; a `used[]` array makes "unused" O(1).
+
 <CodeTabs id="dsa-subsets-permutations" title="Subsets and permutations" />
+
+### Subsets with duplicates
+
+**Problem.** `[1,2,2]` has 8 index-subsets but only 6 distinct ones.
+
+**Insight.** Sort, so equal values sit together. At one depth of the tree, choosing the first `2` or the second `2` as the next element produces exactly the same subtrees — so take only the **first** of equal siblings: skip `nums[i]` when `i > start` and `nums[i] == nums[i − 1]`. The same rule removes duplicates from permutations and combination sums.
+
+<CodeTabs id="dsa-subsets-dup" title="Subsets II — skip equal siblings at the same depth" />
 
 ### Combination sum with pruning
 
-Each candidate may be used repeatedly. Sort the candidates so the loop can stop as soon as one exceeds the remaining target.
+**Problem.** Combinations of candidates (each usable repeatedly) that sum to a target.
+
+**Insight.** Pass a start index so combinations are generated in non-decreasing order (no `[2,3]` and `[3,2]` duplicates), and recurse with the **same** index to allow reuse. Sort the candidates so that the loop can **stop** — not just skip — as soon as one exceeds the remaining target: every later candidate is bigger.
 
 <CodeTabs id="dsa-combination-sum" title="Combination sum — reuse allowed, prune on sorted input" />
 
+### Generate parentheses
+
+**Problem.** All balanced strings of n pairs of parentheses.
+
+**Insight.** Generating all 2²ⁿ strings and filtering is wasteful. Instead, only make choices that keep the prefix valid: add `(` while fewer than n are used, and `)` only while it would close an open one (`close < open`). Every leaf is then a valid answer — no dead ends at all. The count is the Catalan number (1, 1, 2, 5, 14, 42, …).
+
+<CodeTabs id="dsa-generate-parentheses" title="Generate parentheses — choices that keep the prefix valid" />
+
 ### Word search in a grid
 
-DFS from every cell, marking cells on the current path so they aren't reused, and restoring them when backtracking.
+**Insight.** Start a DFS from every cell matching the first letter; from a cell, try the four neighbours for the next letter. Mark cells on the **current path** so a letter isn't reused, and unmark them when backtracking (the path may pass through that cell later along a different route). Prune immediately when a cell doesn't match the next letter.
 
 <CodeTabs id="dsa-word-search" title="Word search — grid DFS with in-place marking" />
 
+To search **many** words at once in the same grid, put the words in a trie and walk the trie alongside the DFS ([Autocomplete / tries](../../low-level-design/autocomplete/)).
+
 ### N-Queens
 
-Place one queen per row; track used columns and both diagonals in sets (`row − col` and `row + col` identify diagonals) so each placement check is O(1).
+**Insight.** Place one queen per row (so rows never clash) and keep sets of used **columns** and both **diagonals**: cells on the same "\" diagonal share `row − col`, on the same "/" diagonal share `row + col`. Each safety check becomes O(1), and an unsafe column is never entered.
 
 <CodeTabs id="dsa-n-queens" title="N-Queens — rows by recursion, columns and diagonals in sets" />
 
-| Problem | Branching | Size of the search |
-|---|---|---|
-| Subsets | include / exclude | 2ⁿ |
-| Permutations | any unused element | n! |
-| Combinations (k of n) | elements after the last pick | C(n, k) |
-| N-Queens | safe columns in the next row | far fewer than nⁿ thanks to pruning |
+How much pruning matters, counted for the 8×8 board:
+
+<Chart
+  type="bar"
+  title="8-Queens: candidates examined by each strategy (counted)"
+  bars={[
+    ['Any column per row, check at the end (8⁸)', 16777216, 'bad'],
+    ['One per row and column, check diagonals at the end (8!)', 40320, 'warn'],
+    ['Prune columns and diagonals at each placement', 2056, 'ok'],
+  ]}
+  log
+  caption="Log scale. Checking constraints as early as possible turns 16.8 million candidate boards into 2,056 placements, which find all 92 solutions."
+/>
+
+## Estimating the cost
+
+| Problem | Branching | Size of the search | Practical limit |
+|---|---|---|---|
+| Subsets | include / exclude | 2ⁿ (× n to copy each) | n ≈ 20 |
+| Permutations | any unused element | n! (× n) | n ≈ 10 |
+| Combinations (k of n) | elements after the last pick | C(n, k) | depends on k |
+| Generate parentheses | `(` or `)` while valid | Catalan(n) ≈ 4ⁿ / n^1.5 | n ≈ 12–14 |
+| N-Queens | safe columns in the next row | far below n! with pruning | n ≈ 12–15 |
+
+A useful sanity check before coding: 2²⁰ ≈ 10⁶ and 10! ≈ 3.6 × 10⁶ are fine; 2³⁰ ≈ 10⁹ and 13! ≈ 6 × 10⁹ are not.
+
+## Talking through it in an interview
+
+- Describe the decision tree: what one level decides, what the options are.
+- Say how you avoid duplicates (start index, sorting and skipping equal siblings, `used[]`).
+- Name your pruning rule and why it's safe.
+- Give the output-sensitive complexity (2ⁿ · n for subsets) and the practical input limit.
+- If they ask for a count or an optimum, check whether subproblems repeat — then switch to DP.
 
 <Pitfalls>
 
 - **Forgetting to undo** a choice — state leaks into sibling branches.
-- **Adding the live path** to results instead of a copy.
-- **Duplicates** from repeated input values — sort and skip `nums[i] == nums[i−1]` at the same depth.
-- **Weak pruning** — exploring branches that are already invalid.
-- **Using backtracking for counting problems with overlapping subproblems** — exponential where DP would be polynomial.
+- **Adding the live path** to the results instead of a copy.
+- **Duplicates** from repeated input values — sort and skip `nums[i] == nums[i−1]` when `i > start`.
+- **`continue` where `break` is valid** — on sorted input, once a candidate is too big, all later ones are too.
+- **Weak pruning** — checking constraints only at the leaves.
+- **Backtracking for counting problems with overlapping subproblems** — exponential where DP would be polynomial.
 
 </Pitfalls>
 
 <KeyTakeaways>
 
-- Backtracking = DFS over choices with undo.
+- Backtracking = DFS over choices with undo: choose, explore, unchoose.
 - Subsets 2ⁿ, permutations n!, combinations C(n, k) — small inputs only.
-- Prune early, skip duplicate siblings, and copy results.
+- Prune as early as possible; only make choices that can still succeed.
+- Skip equal siblings to avoid duplicates; copy results when recording them.
 
 </KeyTakeaways>

@@ -22,6 +22,16 @@ practice:
     solution: |
       For each starting cell, run `match(i, r, c)`: fail if out of bounds or the letter doesn't match `word[i]`; succeed if `i` reaches the word's length. Temporarily replace the cell with a marker so the path can't reuse it, try the four neighbours for `i + 1`, then restore the letter. Worst case O(R·C·4^L); pruning by first letter, or checking letter counts first, speeds it up.
     solutionCode: dsa-word-search
+  - task: Generate all balanced parentheses strings with n pairs.
+    hint: Which choices keep a prefix valid?
+    solution: |
+      Recurse with counts `open` and `close`. Add `(` if `open < n`; add `)` if `close < open`. When the length reaches 2n, record the string. No invalid prefix is ever built, so there are no dead ends; the number of results is the nth Catalan number.
+    solutionCode: dsa-generate-parentheses
+  - task: Return all distinct subsets of a list that may contain duplicates.
+    hint: Which branches of the tree produce identical subtrees?
+    solution: |
+      Sort. Recurse with a start index; record the current path at every node. In the loop, skip `nums[i]` when `i > start` and it equals `nums[i − 1]` — choosing a second equal value at the same depth repeats the first one's subtree. Choose, recurse with `i + 1`, unchoose.
+    solutionCode: dsa-subsets-dup
 quiz:
   - q: How many permutations does a list of 8 distinct elements have?
     options: ['256', '40,320', '64', '8']

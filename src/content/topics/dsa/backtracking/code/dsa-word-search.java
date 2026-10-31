@@ -7,7 +7,8 @@ boolean exist(char[][] board, String word) {
 
 private boolean match(char[][] b, String word, int i, int r, int c) {
     if (i == word.length()) return true;
-    if (r < 0 || r >= b.length || c < 0 || c >= b[0].length || b[r][c] != word.charAt(i)) return false;
+    if (r < 0 || r >= b.length || c < 0 || c >= b[0].length) return false;
+    if (b[r][c] != word.charAt(i)) return false;
     char saved = b[r][c];
     // mark as on the current path
     b[r][c] = '#';

@@ -3,7 +3,8 @@ List<List<Integer>> subsets(int[] nums) {
     collectSubsets(nums, 0, new ArrayList<>(), out);
     return out;
 }
-private void collectSubsets(int[] nums, int start, List<Integer> path, List<List<Integer>> out) {
+private void collectSubsets(int[] nums, int start,
+                            List<Integer> path, List<List<Integer>> out) {
     // every node of the tree is a subset
     out.add(new ArrayList<>(path));
     for (int i = start; i < nums.length; i++) {
@@ -19,7 +20,8 @@ List<List<Integer>> permute(int[] nums) {
     collectPermutations(nums, new boolean[nums.length], new ArrayList<>(), out);
     return out;
 }
-private void collectPermutations(int[] nums, boolean[] used, List<Integer> path, List<List<Integer>> out) {
+private void collectPermutations(int[] nums, boolean[] used,
+                                 List<Integer> path, List<List<Integer>> out) {
     if (path.size() == nums.length) { out.add(new ArrayList<>(path)); return; }
     for (int i = 0; i < nums.length; i++) {
         if (used[i]) continue;

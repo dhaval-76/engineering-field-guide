@@ -7,7 +7,8 @@ List<List<Integer>> combinationSum(int[] candidates, int target) {
     return out;
 }
 
-private void search(int[] c, int remaining, int start, List<Integer> path, List<List<Integer>> out) {
+private void search(int[] c, int remaining, int start,
+                    List<Integer> path, List<List<Integer>> out) {
     if (remaining == 0) { out.add(new ArrayList<>(path)); return; }
     for (int i = start; i < c.length; i++) {
         // prune: every later candidate is larger too
