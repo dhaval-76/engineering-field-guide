@@ -1,0 +1,8 @@
+stateDiagram-v2
+  direction TB
+  [*] --> Idle
+  Idle --> HasCredit: insertCoin()
+  HasCredit --> HasCredit: more coins, or can't buy yet
+  HasCredit --> Idle: cancel() refunds credit
+  HasCredit --> Dispensing: select() paid, in stock
+  Dispensing --> Idle: dispensed, change returned

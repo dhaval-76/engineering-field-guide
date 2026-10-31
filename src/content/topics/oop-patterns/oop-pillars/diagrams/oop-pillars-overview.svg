@@ -1,52 +1,38 @@
-<svg viewBox="0 0 680 146" xmlns="http://www.w3.org/2000/svg">
-  <!-- Encapsulation -->
-  <rect x="4" y="4" width="152" height="136" rx="10" fill="var(--d-info-soft)" stroke="var(--d-info)" stroke-width="1.5"></rect>
-  <rect x="4" y="4" width="152" height="30" rx="10" fill="var(--d-info)"></rect>
-  <rect x="4" y="24" width="152" height="10" fill="var(--d-info)"></rect>
-  <text x="80" y="24" text-anchor="middle" font-family="var(--font-mono)" font-size="10" fill="var(--d-bg)" font-weight="600">ENCAPSULATION</text>
-  <rect x="14" y="44" width="132" height="20" rx="4" fill="var(--d-info)" opacity=".85"></rect>
-  <text x="80" y="58" text-anchor="middle" font-family="var(--font-sans)" font-size="11" fill="var(--d-bg)">- balance (private)</text>
-  <rect x="14" y="70" width="132" height="18" rx="4" fill="var(--d-bg)"></rect>
-  <text x="80" y="83" text-anchor="middle" font-family="var(--font-sans)" font-size="11" fill="var(--d-text)">+ deposit(amount)</text>
-  <rect x="14" y="93" width="132" height="18" rx="4" fill="var(--d-bg)"></rect>
-  <text x="80" y="106" text-anchor="middle" font-family="var(--font-sans)" font-size="11" fill="var(--d-text)">+ withdraw(amount)</text>
-  <text x="80" y="130" text-anchor="middle" font-family="var(--font-sans)" font-size="10" fill="var(--d-muted)">Private data, public API</text>
-
-  <!-- Abstraction -->
-  <rect x="172" y="4" width="152" height="136" rx="10" fill="var(--d-plum-soft)" stroke="var(--d-plum)" stroke-width="1.5"></rect>
-  <rect x="172" y="4" width="152" height="30" rx="10" fill="var(--d-plum)"></rect>
-  <rect x="172" y="24" width="152" height="10" fill="var(--d-plum)"></rect>
-  <text x="248" y="24" text-anchor="middle" font-family="var(--font-mono)" font-size="10" fill="var(--d-bg)" font-weight="600">ABSTRACTION</text>
-  <rect x="182" y="44" width="132" height="20" rx="4" fill="var(--d-plum)" opacity=".85"></rect>
-  <text x="248" y="57" text-anchor="middle" font-family="var(--font-sans)" font-size="11" fill="var(--d-bg)" font-style="italic">«interface» Payments</text>
-  <text x="248" y="78" text-anchor="middle" font-family="var(--font-sans)" font-size="11" fill="var(--d-text)">+ charge()</text>
-  <text x="248" y="98" text-anchor="middle" font-family="var(--font-sans)" font-size="11" fill="var(--d-text)">+ refund()</text>
-  <text x="248" y="126" text-anchor="middle" font-family="var(--font-sans)" font-size="10" fill="var(--d-muted)">Define WHAT, hide HOW</text>
-
-  <!-- Inheritance -->
-  <rect x="340" y="4" width="152" height="136" rx="10" fill="var(--d-ok-soft)" stroke="var(--d-ok)" stroke-width="1.5"></rect>
-  <rect x="340" y="4" width="152" height="30" rx="10" fill="var(--d-ok)"></rect>
-  <rect x="340" y="24" width="152" height="10" fill="var(--d-ok)"></rect>
-  <text x="416" y="24" text-anchor="middle" font-family="var(--font-mono)" font-size="10" fill="var(--d-bg)" font-weight="600">INHERITANCE</text>
-  <rect x="360" y="44" width="112" height="20" rx="4" fill="var(--d-ok)" opacity=".85"></rect>
-  <text x="416" y="58" text-anchor="middle" font-family="var(--font-sans)" font-size="11" fill="var(--d-bg)">BankAccount</text>
-  <line x1="416" y1="64" x2="416" y2="80" stroke="var(--d-ok)" stroke-width="2"></line>
-  <polygon points="410,80 422,80 416,90" fill="var(--d-bg)" stroke="var(--d-ok)" stroke-width="1.5"></polygon>
-  <rect x="360" y="91" width="112" height="20" rx="4" fill="var(--d-bg)" stroke="var(--d-ok)" stroke-width="1"></rect>
-  <text x="416" y="105" text-anchor="middle" font-family="var(--font-sans)" font-size="11" fill="var(--d-text)">SavingsAccount</text>
-  <text x="416" y="128" text-anchor="middle" font-family="var(--font-sans)" font-size="10" fill="var(--d-muted)">IS-A relationship</text>
-
-  <!-- Polymorphism -->
-  <rect x="508" y="4" width="168" height="136" rx="10" fill="var(--d-warn-soft)" stroke="var(--d-warn)" stroke-width="1.5"></rect>
-  <rect x="508" y="4" width="168" height="30" rx="10" fill="var(--d-warn)"></rect>
-  <rect x="508" y="24" width="168" height="10" fill="var(--d-warn)"></rect>
-  <text x="592" y="24" text-anchor="middle" font-family="var(--font-mono)" font-size="10" fill="var(--d-bg)" font-weight="600">POLYMORPHISM</text>
-  <rect x="518" y="44" width="148" height="20" rx="4" fill="var(--d-warn)" opacity=".85"></rect>
-  <text x="592" y="57" text-anchor="middle" font-family="var(--font-sans)" font-size="11" fill="var(--d-bg)">shape.draw() →</text>
-  <rect x="518" y="70" width="64" height="18" rx="4" fill="var(--d-bg)" stroke="var(--d-warn)" stroke-width="1"></rect>
-  <text x="550" y="83" text-anchor="middle" font-family="var(--font-sans)" font-size="11" fill="var(--d-text)">Circle ○</text>
-  <rect x="590" y="70" width="68" height="18" rx="4" fill="var(--d-bg)" stroke="var(--d-warn)" stroke-width="1"></rect>
-  <text x="624" y="83" text-anchor="middle" font-family="var(--font-sans)" font-size="11" fill="var(--d-text)">Square □</text>
-  <text x="592" y="116" text-anchor="middle" font-family="var(--font-sans)" font-size="10" fill="var(--d-muted)">One call,</text>
-  <text x="592" y="130" text-anchor="middle" font-family="var(--font-sans)" font-size="10" fill="var(--d-muted)">many behaviours</text>
+<svg viewBox="0 0 340 300" xmlns="http://www.w3.org/2000/svg" font-family="var(--font-sans)" font-size="12">
+  <g stroke-width="1.5">
+    <rect x="6" y="6" width="160" height="140" rx="8" fill="var(--d-info-soft)" stroke="var(--d-info)"/>
+    <rect x="174" y="6" width="160" height="140" rx="8" fill="var(--d-plum-soft)" stroke="var(--d-plum)"/>
+    <rect x="6" y="154" width="160" height="140" rx="8" fill="var(--d-ok-soft)" stroke="var(--d-ok)"/>
+    <rect x="174" y="154" width="160" height="140" rx="8" fill="var(--d-warn-soft)" stroke="var(--d-warn)"/>
+  </g>
+  <g font-weight="700" letter-spacing=".04em" font-size="11.5">
+    <text x="18" y="28" fill="var(--d-info)">ENCAPSULATION</text>
+    <text x="186" y="28" fill="var(--d-plum)">ABSTRACTION</text>
+    <text x="18" y="176" fill="var(--d-ok)">INHERITANCE</text>
+    <text x="186" y="176" fill="var(--d-warn)">POLYMORPHISM</text>
+  </g>
+  <g font-family="var(--font-mono)" font-size="11" fill="var(--d-text)">
+    <text x="18" y="52">- balance (private)</text>
+    <text x="18" y="70">+ deposit(amount)</text>
+    <text x="18" y="88">+ withdraw(amount)</text>
+    <text x="186" y="52">«interface» Payments</text>
+    <text x="186" y="70">+ charge()</text>
+    <text x="186" y="88">+ refund()</text>
+    <text x="18" y="200">BankAccount</text>
+    <text x="34" y="218">↑ extends</text>
+    <text x="18" y="236">SavingsAccount</text>
+    <text x="186" y="200">shape.draw()</text>
+    <text x="196" y="218">→ Circle ○</text>
+    <text x="196" y="236">→ Square □</text>
+  </g>
+  <g font-size="11" fill="var(--d-muted)">
+    <text x="18" y="124">private data, a public API</text>
+    <text x="18" y="138">that protects its rules</text>
+    <text x="186" y="124">say WHAT, hide HOW</text>
+    <text x="186" y="138">callers see the interface</text>
+    <text x="18" y="272">"is-a": reuse and</text>
+    <text x="18" y="286">specialise a parent</text>
+    <text x="186" y="272">one call, the object</text>
+    <text x="186" y="286">decides what happens</text>
+  </g>
 </svg>

@@ -1,0 +1,21 @@
+classDiagram
+  direction TB
+  class StockTicker {
+    -listeners
+    +subscribe(l)
+    +unsubscribe(l)
+    +update(symbol, price)
+  }
+  class PriceListener {
+    <<interface>>
+    +onPriceChange(symbol, price)
+  }
+  class PriceAlert {
+    sends an SMS
+  }
+  class AuditLogger {
+    writes a log line
+  }
+  StockTicker o-- PriceListener : calls each
+  PriceListener <|.. PriceAlert
+  PriceListener <|.. AuditLogger

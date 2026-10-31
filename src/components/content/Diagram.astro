@@ -81,6 +81,11 @@ const fits = natural > 0 && natural <= 560;
     color: var(--ink);
     border-color: var(--ink-3);
   }
+  @media (max-width: 600px) {
+    .canvas {
+      padding: 8px 4px;
+    }
+  }
   @media (min-width: 1280px) {
     .wide {
       width: min(100%, 960px);

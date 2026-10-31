@@ -1,54 +1,31 @@
-<svg viewBox="0 0 720 250" xmlns="http://www.w3.org/2000/svg" font-family="var(--font-sans)" font-size="12">
-  <defs>
-    <marker id="wp-a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="var(--d-stroke)"/></marker>
-  </defs>
-  <!-- Decorator: nested layers -->
-  <text x="20" y="20" fill="var(--d-muted)" font-weight="600" letter-spacing=".05em">DECORATOR — same interface, stacked behaviour</text>
-  <rect x="20" y="32" width="320" height="200" rx="10" fill="var(--d-plum-soft)" stroke="var(--d-plum)" stroke-width="1.4"/>
-  <text x="32" y="52" fill="var(--d-plum)" font-weight="600">Metered</text>
-  <rect x="40" y="62" width="280" height="160" rx="9" fill="var(--d-info-soft)" stroke="var(--d-info)" stroke-width="1.4"/>
-  <text x="52" y="82" fill="var(--d-info)" font-weight="600">Logging</text>
-  <rect x="60" y="92" width="240" height="120" rx="8" fill="var(--d-warn-soft)" stroke="var(--d-warn)" stroke-width="1.4"/>
-  <text x="72" y="112" fill="var(--d-warn)" font-weight="600">Retrying</text>
-  <rect x="80" y="122" width="200" height="80" rx="7" fill="var(--d-fill)" stroke="var(--d-stroke)" stroke-width="1.6"/>
-  <text x="180" y="158" text-anchor="middle" fill="var(--d-text)" font-weight="600">CardGatewayProcessor</text>
-  <text x="180" y="176" text-anchor="middle" fill="var(--d-muted)" font-size="11">the real work</text>
-  <text x="180" y="244" text-anchor="middle" fill="var(--d-muted)" font-size="11">Every layer is a PaymentProcessor that wraps a PaymentProcessor.</text>
-
-  <!-- Adapter -->
-  <text x="380" y="20" fill="var(--d-muted)" font-weight="600" letter-spacing=".05em">ADAPTER — different interface, translated</text>
-  <rect x="380" y="34" width="96" height="40" rx="6" fill="var(--d-fill)" stroke="var(--d-stroke)"/>
-  <text x="428" y="58" text-anchor="middle" fill="var(--d-text)">Your code</text>
-  <path d="M476 54 L512 54" stroke="var(--d-stroke)" stroke-width="1.3" marker-end="url(#wp-a)"/>
-  <rect x="514" y="34" width="96" height="40" rx="6" fill="var(--d-accent-soft)" stroke="var(--d-accent)" stroke-width="1.5"/>
-  <text x="562" y="52" text-anchor="middle" fill="var(--d-text)" font-weight="600">Adapter</text>
-  <text x="562" y="66" text-anchor="middle" fill="var(--d-muted)" font-size="10">pay(Payment)</text>
-  <path d="M610 54 L646 54" stroke="var(--d-stroke)" stroke-width="1.3" marker-end="url(#wp-a)"/>
-  <rect x="648" y="34" width="64" height="40" rx="6" fill="var(--d-fill)" stroke="var(--d-stroke)" stroke-dasharray="4 3"/>
-  <text x="680" y="52" text-anchor="middle" fill="var(--d-text)" font-size="11">Legacy</text>
-  <text x="680" y="66" text-anchor="middle" fill="var(--d-muted)" font-size="10">Map API</text>
-
-  <!-- Facade -->
-  <text x="380" y="110" fill="var(--d-muted)" font-weight="600" letter-spacing=".05em">FACADE — one simple entry, many subsystems</text>
-  <rect x="380" y="124" width="110" height="40" rx="6" fill="var(--d-ok-soft)" stroke="var(--d-ok)" stroke-width="1.5"/>
-  <text x="435" y="148" text-anchor="middle" fill="var(--d-text)" font-weight="600">checkout()</text>
-  <g stroke="var(--d-stroke)" stroke-width="1.2" fill="none">
-    <path d="M490 136 L540 122" marker-end="url(#wp-a)"/>
-    <path d="M490 144 L540 144" marker-end="url(#wp-a)"/>
-    <path d="M490 152 L540 166" marker-end="url(#wp-a)"/>
+<svg viewBox="0 0 340 470" xmlns="http://www.w3.org/2000/svg" font-family="var(--font-sans)" font-size="12">
+  <g stroke-width="1.5">
+    <rect x="6" y="6" width="328" height="128" rx="8" fill="var(--d-info-soft)" stroke="var(--d-info)"/>
+    <rect x="6" y="142" width="328" height="100" rx="8" fill="var(--d-plum-soft)" stroke="var(--d-plum)"/>
+    <rect x="6" y="250" width="328" height="100" rx="8" fill="var(--d-ok-soft)" stroke="var(--d-ok)"/>
+    <rect x="6" y="358" width="328" height="106" rx="8" fill="var(--d-warn-soft)" stroke="var(--d-warn)"/>
   </g>
-  <text x="546" y="126" fill="var(--d-text)" font-size="11">Pricing · Inventory</text>
-  <text x="546" y="148" fill="var(--d-text)" font-size="11">Payments</text>
-  <text x="546" y="170" fill="var(--d-text)" font-size="11">Orders · Notifications</text>
-
-  <!-- Proxy -->
-  <text x="380" y="204" fill="var(--d-muted)" font-weight="600" letter-spacing=".05em">PROXY — same interface, controls access</text>
-  <rect x="380" y="214" width="96" height="30" rx="6" fill="var(--d-fill)" stroke="var(--d-stroke)"/>
-  <text x="428" y="233" text-anchor="middle" fill="var(--d-text)">Caller</text>
-  <path d="M476 229 L512 229" stroke="var(--d-stroke)" stroke-width="1.3" marker-end="url(#wp-a)"/>
-  <rect x="514" y="214" width="96" height="30" rx="6" fill="var(--d-info-soft)" stroke="var(--d-info)" stroke-width="1.5"/>
-  <text x="562" y="233" text-anchor="middle" fill="var(--d-text)" font-size="11">cache / auth / lazy</text>
-  <path d="M610 229 L646 229" stroke="var(--d-stroke)" stroke-width="1.3" stroke-dasharray="4 3" marker-end="url(#wp-a)"/>
-  <rect x="648" y="214" width="64" height="30" rx="6" fill="var(--d-fill)" stroke="var(--d-stroke)"/>
-  <text x="680" y="233" text-anchor="middle" fill="var(--d-text)" font-size="11">Real</text>
+  <g font-weight="700" letter-spacing=".04em" font-size="11.5">
+    <text x="18" y="28" fill="var(--d-info)">DECORATOR — same interface, added behaviour</text>
+    <text x="18" y="164" fill="var(--d-plum)">ADAPTER — different interface, translated</text>
+    <text x="18" y="272" fill="var(--d-ok)">FACADE — one simple entry to many parts</text>
+    <text x="18" y="380" fill="var(--d-warn)">PROXY — same interface, controlled access</text>
+  </g>
+  <g font-family="var(--font-mono)" font-size="11" fill="var(--d-text)">
+    <text x="18" y="52">Metered(Logging(Retrying(</text>
+    <text x="34" y="70">CardGatewayProcessor)))</text>
+    <text x="18" y="190">your code → pay(Payment)</text>
+    <text x="34" y="208">Adapter → legacy.submit(Map)</text>
+    <text x="18" y="298">checkout() → pricing · inventory</text>
+    <text x="104" y="316">payments · orders · email</text>
+    <text x="18" y="406">caller → Proxy → real service</text>
+    <text x="34" y="424">(cache · auth check · lazy load)</text>
+  </g>
+  <g font-size="11" fill="var(--d-muted)">
+    <text x="18" y="96">each layer is a PaymentProcessor wrapping one —</text>
+    <text x="18" y="112">stack them in any order, add or remove freely</text>
+    <text x="18" y="232">makes an old or third-party API fit yours</text>
+    <text x="18" y="340">hides how many subsystems a task needs</text>
+    <text x="18" y="452">callers can't tell; it decides whether to forward</text>
+  </g>
 </svg>

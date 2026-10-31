@@ -1,36 +1,30 @@
-<svg viewBox="0 0 680 110" xmlns="http://www.w3.org/2000/svg">
-  <rect x="0" y="0" width="124" height="100" rx="8" fill="var(--d-info-soft)" stroke="var(--d-info)" stroke-width="1.5"></rect>
-  <text x="62" y="24" text-anchor="middle" font-family="var(--font-mono)" font-size="20" font-weight="600" fill="var(--d-info)">S</text>
-  <text x="62" y="42" text-anchor="middle" font-family="var(--font-mono)" font-size="9" fill="var(--d-info)">Single Resp.</text>
-  <text x="62" y="62" text-anchor="middle" font-family="var(--font-sans)" font-size="10" fill="var(--d-text)">One class,</text>
-  <text x="62" y="78" text-anchor="middle" font-family="var(--font-sans)" font-size="10" fill="var(--d-text)">one reason</text>
-  <text x="62" y="92" text-anchor="middle" font-family="var(--font-sans)" font-size="10" fill="var(--d-text)">to change</text>
-
-  <rect x="138" y="0" width="124" height="100" rx="8" fill="var(--d-plum-soft)" stroke="var(--d-plum)" stroke-width="1.5"></rect>
-  <text x="200" y="24" text-anchor="middle" font-family="var(--font-mono)" font-size="20" font-weight="600" fill="var(--d-plum)">O</text>
-  <text x="200" y="42" text-anchor="middle" font-family="var(--font-mono)" font-size="9" fill="var(--d-plum)">Open/Closed</text>
-  <text x="200" y="62" text-anchor="middle" font-family="var(--font-sans)" font-size="10" fill="var(--d-text)">Extend,</text>
-  <text x="200" y="78" text-anchor="middle" font-family="var(--font-sans)" font-size="10" fill="var(--d-text)">don't</text>
-  <text x="200" y="92" text-anchor="middle" font-family="var(--font-sans)" font-size="10" fill="var(--d-text)">modify</text>
-
-  <rect x="276" y="0" width="124" height="100" rx="8" fill="var(--d-ok-soft)" stroke="var(--d-ok)" stroke-width="1.5"></rect>
-  <text x="338" y="24" text-anchor="middle" font-family="var(--font-mono)" font-size="20" font-weight="600" fill="var(--d-ok)">L</text>
-  <text x="338" y="42" text-anchor="middle" font-family="var(--font-mono)" font-size="9" fill="var(--d-ok)">Liskov Subst.</text>
-  <text x="338" y="62" text-anchor="middle" font-family="var(--font-sans)" font-size="10" fill="var(--d-text)">Subtypes</text>
-  <text x="338" y="78" text-anchor="middle" font-family="var(--font-sans)" font-size="10" fill="var(--d-text)">honor the</text>
-  <text x="338" y="92" text-anchor="middle" font-family="var(--font-sans)" font-size="10" fill="var(--d-text)">contract</text>
-
-  <rect x="414" y="0" width="124" height="100" rx="8" fill="var(--d-warn-soft)" stroke="var(--d-warn)" stroke-width="1.5"></rect>
-  <text x="476" y="24" text-anchor="middle" font-family="var(--font-mono)" font-size="20" font-weight="600" fill="var(--d-warn)">I</text>
-  <text x="476" y="42" text-anchor="middle" font-family="var(--font-mono)" font-size="9" fill="var(--d-warn)">Interface Seg.</text>
-  <text x="476" y="62" text-anchor="middle" font-family="var(--font-sans)" font-size="10" fill="var(--d-text)">Small,</text>
-  <text x="476" y="78" text-anchor="middle" font-family="var(--font-sans)" font-size="10" fill="var(--d-text)">focused</text>
-  <text x="476" y="92" text-anchor="middle" font-family="var(--font-sans)" font-size="10" fill="var(--d-text)">interfaces</text>
-
-  <rect x="552" y="0" width="128" height="100" rx="8" fill="var(--d-bad-soft)" stroke="var(--d-bad)" stroke-width="1.5"></rect>
-  <text x="616" y="24" text-anchor="middle" font-family="var(--font-mono)" font-size="20" font-weight="600" fill="var(--d-bad)">D</text>
-  <text x="616" y="42" text-anchor="middle" font-family="var(--font-mono)" font-size="9" fill="var(--d-bad)">Dependency Inv.</text>
-  <text x="616" y="62" text-anchor="middle" font-family="var(--font-sans)" font-size="10" fill="var(--d-text)">Depend on</text>
-  <text x="616" y="78" text-anchor="middle" font-family="var(--font-sans)" font-size="10" fill="var(--d-text)">abstractions,</text>
-  <text x="616" y="92" text-anchor="middle" font-family="var(--font-sans)" font-size="10" fill="var(--d-text)">not concretes</text>
+<svg viewBox="0 0 340 300" xmlns="http://www.w3.org/2000/svg" font-family="var(--font-sans)" font-size="12">
+  <g stroke-width="1.5">
+    <rect x="6" y="6" width="328" height="52" rx="8" fill="var(--d-info-soft)" stroke="var(--d-info)"/>
+    <rect x="6" y="64" width="328" height="52" rx="8" fill="var(--d-ok-soft)" stroke="var(--d-ok)"/>
+    <rect x="6" y="122" width="328" height="52" rx="8" fill="var(--d-plum-soft)" stroke="var(--d-plum)"/>
+    <rect x="6" y="180" width="328" height="52" rx="8" fill="var(--d-warn-soft)" stroke="var(--d-warn)"/>
+    <rect x="6" y="238" width="328" height="56" rx="8" fill="var(--d-accent-soft)" stroke="var(--d-accent)"/>
+  </g>
+  <g font-family="var(--font-serif)" font-size="26" font-weight="600">
+    <text x="20" y="42" fill="var(--d-info)">S</text>
+    <text x="20" y="100" fill="var(--d-ok)">O</text>
+    <text x="20" y="158" fill="var(--d-plum)">L</text>
+    <text x="20" y="216" fill="var(--d-warn)">I</text>
+    <text x="20" y="276" fill="var(--d-accent)">D</text>
+  </g>
+  <g fill="var(--d-text)" font-weight="600">
+    <text x="54" y="27">Single responsibility</text>
+    <text x="54" y="85">Open/closed</text>
+    <text x="54" y="143">Liskov substitution</text>
+    <text x="54" y="201">Interface segregation</text>
+    <text x="54" y="259">Dependency inversion</text>
+  </g>
+  <g fill="var(--d-muted)" font-size="11.5">
+    <text x="54" y="45">one class, one reason to change</text>
+    <text x="54" y="103">extend with new code, don't edit working code</text>
+    <text x="54" y="161">a subtype keeps every promise of its parent</text>
+    <text x="54" y="219">small, focused interfaces for each client</text>
+    <text x="54" y="278">depend on abstractions, not concrete classes</text>
+  </g>
 </svg>
