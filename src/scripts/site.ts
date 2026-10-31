@@ -216,7 +216,10 @@ document.addEventListener('keydown', (e) => {
 /* Label every cell with its column header so prose.css can show wide tables as cards on phones. */
 document.querySelectorAll<HTMLTableElement>('.prose table').forEach((t) => {
   const heads = [...t.querySelectorAll('thead th')].map((th) => th.textContent?.trim() ?? '');
-  const wide = heads.length >= 3 || t.scrollWidth > t.clientWidth + 1;
+  // Cards suit tables of prose; short cells (traces, numbers, complexities) stay a grid.
+  const cells = [...t.querySelectorAll('tbody td')];
+  const avg = cells.reduce((n, td) => n + (td.textContent?.trim().length ?? 0), 0) / (cells.length || 1);
+  const wide = heads.length >= 3 && avg > 14;
   if (!wide || !heads.some(Boolean)) return;
   t.classList.add('stackable');
   t.querySelectorAll('tbody tr').forEach((tr) =>

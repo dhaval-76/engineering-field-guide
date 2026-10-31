@@ -122,7 +122,7 @@
   opacity: 1;
 }
 
-/* Phones: tables with 3+ columns (or that would scroll) become one card per row.
+/* Phones: tables of prose with 3+ columns become one card per row; short-cell grids stay tables.
    site.ts adds .stackable and copies each column header into data-label. */
 @media (max-width: 600px) {
   .prose table.stackable {
@@ -172,5 +172,13 @@
     letter-spacing: 0.04em;
     text-transform: uppercase;
     color: var(--ink-3);
+  }
+}
+
+@media (max-width: 600px) {
+  .prose th,
+  .prose td {
+    min-width: 0;
+    padding: 6px 8px;
   }
 }

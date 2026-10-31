@@ -1,33 +1,68 @@
 ---
 title: Sliding Window
-summary: Solving "best contiguous subarray or substring" problems in one pass — fixed-size windows, variable windows that grow and shrink while keeping an invariant, frequency maps inside the window, and monotonic deques for window maxima.
+summary: Solving "best contiguous subarray or substring" problems in one pass — fixed windows, variable windows that keep an invariant, counters inside the window, the at-most-k trick, and monotonic deques for window maxima.
 track: dsa
 order: 30
 tags: [dsa, sliding-window, strings, arrays, patterns]
-aliases: [sliding window, variable window, fixed window, longest substring without repeating characters, minimum window substring, longest repeating character replacement, permutation in string, max sum subarray of size k, sliding window maximum, monotonic deque, at most k distinct]
+aliases: [sliding window, variable window, fixed window, longest substring without repeating characters, minimum window substring, longest repeating character replacement, permutation in string, find all anagrams, max sum subarray of size k, sliding window maximum, monotonic deque, at most k distinct, subarrays with k different integers, exactly k distinct]
 prerequisites: [dsa/two-pointers, dsa/arrays-and-hashing]
-related: [dsa/stacks-and-monotonic-stacks]
+related: [dsa/stacks-and-monotonic-stacks, dsa/heaps-and-top-k]
 quickRef:
   points:
     - 'Contiguous subarray/substring + "longest / shortest / count / max sum" → **sliding window**.'
     - '**Fixed size k**: add the entering element, remove the leaving one — O(1) per step.'
     - '**Variable**: expand `right` every step; **shrink `left` while the window is invalid**; record the answer when valid.'
     - 'Keep window state in counters (a map or `int[26]`) so validity checks are O(1).'
-    - 'Requires a **monotone** condition (adding elements only makes it "more invalid"); with negative numbers in sum problems, use prefix sums instead.'
+    - 'Needs a **monotone** condition; for "exactly k" use `atMost(k) − atMost(k−1)`; for sums with negatives use prefix sums.'
+    - '**Monotonic deque** → max/min of every window in O(n).'
   complexity: 'O(n): each element enters and leaves the window at most once.'
-  useWhen: 'Contiguous ranges with a constraint that grows monotonically as the window grows.'
-lastReviewed: 2026-10-30
+  useWhen: 'Contiguous ranges with a constraint that gets harder to satisfy as the window grows.'
+lastReviewed: 2026-10-31
 ---
+
+## Why it matters
+
+Many problems ask for the best **contiguous** piece of an array or string: the longest substring without repeats, the shortest subarray whose sum reaches a target, the maximum of every block of k readings. The direct approach checks every start and every end — O(n²) windows, and often O(n) work to check each one, so O(n³). For a string of 100,000 characters that is hopeless.
+
+A sliding window gets the same answer in **one pass, O(n)**, by reusing work: when the window moves one step, only one element enters and (at most) a few leave, so you update the window's state instead of recomputing it. It is one of the most common patterns in coding interviews, and the same idea runs in production as rolling averages, rate limiters and stream aggregations.
+
+<Callout type="analogy">
+A train window passing a landscape: as the train moves, one tree enters on the right and one leaves on the left. You don't re-look at the whole view; you only update for what changed. A variable window is a train that can also stretch or shrink its window — it widens while the view is acceptable and narrows when something unwanted is in it.
+</Callout>
 
 ## Recognise it
 
-- The answer is a **contiguous** subarray or substring.
-- You want the longest/shortest window satisfying a condition, or the best value over all windows of size k.
-- The condition is **monotone**: if a window is invalid, every larger window containing it is also invalid (e.g. "has a repeated character", "sum > k" with positive numbers).
+- The answer is a **contiguous** subarray or substring (not a subsequence — elements must be adjacent).
+- You want the **longest / shortest** window satisfying a condition, the **number** of such windows, or the **best value over all windows of size k**.
+- The condition is **monotone**: if a window is invalid, every larger window containing it is invalid too (e.g. "has a repeated character", "sum > limit" with non-negative numbers, "more than k distinct values").
 
-<Callout type="analogy">
-A train window passing a landscape: as the train moves, one tree enters on the right and one leaves on the left. You don't re-look at the whole view; you only update for what changed.
-</Callout>
+<DecisionGuide
+  title="Which kind of window?"
+  steps={[
+    ['Can the answer skip elements (a subsequence, a subset, an ordering)?', 'Not a window problem: dynamic programming, sorting, two pointers or a heap.'],
+    ['Is the window size k given?', 'Fixed window: add the entering element, remove the leaving one. Max/min of each window → monotonic deque.'],
+    ['Does a bigger window never become "more valid"? (monotone)', 'Variable window: expand right, shrink left while invalid.'],
+    ['Is the condition "exactly k"?', 'Count `atMost(k) − atMost(k − 1)` with two variable windows.'],
+    ['Is it a sum over numbers that can be negative?', 'Not a window: prefix sums + a hash map (or + a monotonic deque for "shortest ≥ k").'],
+  ]}
+  caption="The monotone question decides whether a plain variable window is enough."
+/>
+
+## How it works
+
+Two indices mark the window `[left, right]`. The loop always moves `right` forward by one; `left` only ever moves forward too.
+
+<Steps>
+
+1. **Expand**: include `nums[right]` and update the window's state (a running sum, a count per character, a set).
+2. **Shrink while invalid**: while the state breaks the condition, remove `nums[left]` from the state and move `left` forward.
+3. **Record**: the window is now valid; update the answer (for "longest", its length `right − left + 1`).
+
+</Steps>
+
+**Why it's O(n) even with a nested `while`:** `left` only moves forward and never passes `right`, so across the whole run it moves at most n times. The inner loop's total work is bounded by n, not by n per step. This is an **amortised** argument — some steps do a lot of shrinking, but the total is linear.
+
+**Why it's correct:** for every `right`, the loop finds the *smallest* `left` that makes the window valid. Because the condition is monotone, any window ending at `right` that starts earlier than that `left` is invalid, and any that starts later is shorter. So the longest valid window ending at each `right` is seen exactly once — and the overall longest is among them.
 
 <Walkthrough id="variable-window" />
 
@@ -35,45 +70,134 @@ A train window passing a landscape: as the train moves, one tree enters on the r
 
 <CodeTabs id="dsa-window-template" title="Fixed and variable window templates" />
 
+**Fixed window** (size k given): add `nums[right]`, and once `right ≥ k` remove `nums[right − k]`. Every window of size k is visited in O(1) each.
+
+**Variable window**: the expand / shrink-while-invalid / record loop above. The only parts that change between problems are *what state you keep* and *what "invalid" means*.
+
 ## Worked problems
 
 ### Longest substring without repeating characters
 
-Expand right; when the new character is already in the window, move left past its previous occurrence (or shrink until it's unique).
+**Problem.** The length of the longest substring with all distinct characters. `"abcabcbb"` → 3 (`"abc"`); `"pwwkew"` → 3 (`"wke"`).
+
+**Insight.** "Has a repeated character" is monotone: a window containing a duplicate stays invalid as it grows. Instead of shrinking one step at a time, remember each character's **last index**: when the incoming character was last seen inside the window, jump `left` to just past that index.
+
+| right | char | last seen | left | window | best |
+|---|---|---|---|---|---|
+| 0–2 | a b c | — | 0 | abc | 3 |
+| 3 | a | 0 | 1 | bca | 3 |
+| 4 | b | 1 | 2 | cab | 3 |
+| 5 | c | 2 | 3 | abc | 3 |
+| 6 | b | 4 | 5 | cb | 3 |
+| 7 | b | 6 | 7 | b | 3 |
 
 <CodeTabs id="dsa-longest-unique-substring" title="Longest substring without repeats — last-seen index" />
 
+**Complexity.** O(n) time; O(min(n, alphabet)) space. **Edge cases:** empty string → 0; the check `prev ≥ left` matters — a character last seen *before* the window must not move `left` backwards (try `"abba"`).
+
 ### Minimum window substring
 
-The smallest window of `s` containing all characters of `t` (with multiplicity). Expand until valid (all required counts met), then shrink from the left while it stays valid, recording the minimum.
+**Problem.** The smallest substring of `s` that contains every character of `t`, with multiplicity. `s = "ADOBECODEBANC"`, `t = "ABC"` → `"BANC"`.
+
+**Insight.** Here we want the **shortest** valid window, so the roles flip: expand until the window is valid, then shrink **while it stays valid**, recording the answer at each valid step. Track `need[c]` (how many more of `c` the window needs; negative means surplus) and `missing` (how many required characters are still uncovered), so validity is the O(1) check `missing == 0`.
+
+1. Expand to `"ADOBEC"` (right = 5): A, B, C covered → valid. Record length 6.
+2. Shrink: dropping `A` makes it invalid. Expand until another `A` arrives (right = 10): `"DOBECODEBA"` is valid again.
+3. Shrink while valid: drop D, O, the first B (a surplus — another B is inside) and E, reaching `"CODEBA"`. Dropping C breaks validity.
+4. Expand to the last C (right = 12): `"ODEBANC"` is valid. Shrink past O, D and E, recording `"BANC"` (length 4) — the minimum.
 
 <CodeTabs id="dsa-min-window" title="Minimum window substring — expand to valid, shrink to minimal" />
 
+**Complexity.** O(|s| + |t|): each index of `s` enters and leaves once. **Edge cases:** `t` longer than `s`; characters of `t` repeated (`"AA"` needs two A's — the counts handle it); no valid window → empty string.
+
+### Permutation in string (fixed window)
+
+**Problem.** Does `s2` contain any permutation of `s1` as a substring? `("ab", "eidbaooo")` → true (`"ba"`).
+
+**Insight.** A permutation has exactly the length of `s1` — a **fixed** window. Keep `diff[letter] = count in window − count in s1` and the number of letters whose `diff` is non-zero; the window is an anagram exactly when that number is 0. Each slide changes two counts, so each step is O(1) instead of comparing 26 counts.
+
+<CodeTabs id="dsa-permutation-in-string" title="Permutation in string — fixed window with a mismatch counter" />
+
+The same code, collecting every `right − |s1| + 1` where the mismatch count is 0, answers **"find all anagrams of p in s"**.
+
 ### Longest repeating character replacement
 
-The longest substring you can make all one letter with at most k replacements. A window is valid when `length − (count of its most frequent letter) ≤ k`.
+**Problem.** The longest substring you can turn into a single repeated letter with at most `k` replacements. `"AABABBA"`, k = 1 → 4 (`"AABA"` → `"AAAA"`).
+
+**Insight.** In a window, the cheapest plan keeps its most frequent letter and replaces the rest: it needs `length − maxFreq` replacements. The window is valid while that is ≤ k.
+
+A subtle detail: after shrinking, `maxFreq` isn't decreased, so it may be stale (too high). That is safe — a stale `maxFreq` can only stop the window from *growing*; the answer only improves when a genuinely higher frequency appears, and then `maxFreq` is correct again.
 
 <CodeTabs id="dsa-char-replacement" title="Character replacement — window validity from the max frequency" />
 
+### Counting subarrays with exactly k distinct values
+
+**Problem.** How many subarrays have exactly k distinct values? `[1,2,1,2,3]`, k = 2 → 7.
+
+**Insight.** "Exactly k" is **not** monotone — a window with too few distinct values becomes valid by growing, one with too many by shrinking — so a single window can't track it. "At most k" *is* monotone. And every subarray with exactly k distinct values is one with at most k that isn't one with at most k − 1:
+
+`exactly(k) = atMost(k) − atMost(k − 1)`
+
+To **count** windows instead of measuring them, note that once `[left, right]` is valid, every subarray ending at `right` and starting anywhere in `[left, right]` is valid too: that's `right − left + 1` subarrays, added each step.
+
+<CodeTabs id="dsa-exactly-k-distinct" title="Exactly k distinct — the at-most trick" />
+
 ### Sliding window maximum
 
-The maximum of every window of size k in O(n): a **monotonic deque** of indices whose values decrease; the front is the window's maximum; drop indices that leave the window or are dominated by a newer, larger value.
+**Problem.** The maximum of every window of size k. `[1,3,-1,-3,5,3,6,7]`, k = 3 → `[3,3,5,5,6,7]`.
+
+**Insight.** A heap gives O(n log k). A **monotonic deque** gives O(n): keep indices whose values *decrease* from front to back. When a new value arrives, every smaller value at the back can never be a maximum again (the new one is larger and leaves the window later), so pop them. The front is always the current window's maximum; drop it when it falls out of the window.
 
 <CodeTabs id="dsa-window-max" title="Sliding window maximum — monotonic deque" />
 
+**Complexity.** O(n) time — each index is pushed and popped once; O(k) space. For the **minimum**, keep values increasing instead.
+
+## Complexity at a glance
+
+| Problem | Window | Time | Extra space |
+|---|---|---|---|
+| Max sum of size k | fixed | O(n) | O(1) |
+| Longest without repeats | variable | O(n) | O(alphabet) |
+| Minimum window substring | variable | O(\|s\| + \|t\|) | O(alphabet) |
+| Permutation in string | fixed | O(\|s2\|) | O(alphabet) |
+| Character replacement | variable | O(n) | O(26) |
+| Exactly k distinct | variable × 2 | O(n) | O(k) |
+| Window maximum | fixed + deque | O(n) | O(k) |
+
+## Variations worth knowing
+
+- **Longest substring with at most k distinct characters** — the `atMost` window, measuring length instead of counting.
+- **Shortest subarray with sum ≥ target** (positive numbers) — shrink while valid, like minimum window.
+- **Max consecutive ones with k flips** — window valid while it contains ≤ k zeros.
+- **Fruit into baskets** — at most 2 distinct values.
+- **Subarray sum equals k with negative numbers** — *not* a window: use prefix sums and a hash map ([Arrays, hashing and prefix sums](../arrays-and-hashing/)).
+- **Shortest subarray with sum ≥ k with negatives** — prefix sums plus a monotonic deque.
+
+## Talking through it in an interview
+
+- Say why a window applies: "contiguous, and the condition is monotone — adding elements never fixes a duplicate".
+- State the invariant out loud: "after the shrink loop, the window `[left, right]` has no duplicates".
+- Justify O(n) with the amortised argument: each index enters once and leaves once.
+- Mention edge cases before coding: empty input, k larger than n, all identical elements, no valid window.
+- If they change the condition to "exactly k" or add negative numbers, explain why the plain window breaks and what replaces it.
+
 <Pitfalls>
 
-- **Shrinking with `if` instead of `while`** — the window may need several steps to become valid.
-- **Recording the answer at the wrong moment** — for "longest", after shrinking to valid; for "shortest", while valid during shrinking.
-- **Non-monotone conditions** (sums with negatives, "exactly k") — use prefix sums, or count "at most k" minus "at most k−1".
-- **Recomputing window state from scratch** each step — O(n·k).
+- **Shrinking with `if` instead of `while`** — the window may need several steps to become valid again.
+- **Recording the answer at the wrong moment** — for "longest", after shrinking back to valid; for "shortest", inside the shrink loop while still valid.
+- **Moving `left` backwards** — with a last-seen map, ignore positions before the window (`prev ≥ left`).
+- **Non-monotone conditions** (sums with negatives, "exactly k") forced into one window — wrong answers on some inputs.
+- **Recomputing the window's state from scratch** each step — O(n·k) instead of O(n).
+- **Off-by-one on fixed windows** — the first full window ends at index `k − 1`.
 
 </Pitfalls>
 
 <KeyTakeaways>
 
-- Expand right, shrink left while invalid, update the answer — O(n).
-- Maintain counts so validity checks are O(1).
-- Monotonic deques give window maxima/minima in O(n).
+- Expand right, shrink left while invalid, record — O(n) because each index enters and leaves once.
+- Keep the window's state in counters so the validity check is O(1).
+- Fixed windows update by one element in and one out.
+- "Exactly k" = at most k − at most k − 1; negatives in sums → prefix sums.
+- A monotonic deque gives every window's max or min in O(n).
 
 </KeyTakeaways>

@@ -26,8 +26,13 @@ const { prev, next } = await getNeighbours(topic.id);
 const prerequisites = await resolveTopics(data.prerequisites);
 const related = await resolveTopics(data.related);
 
-const words = (topic.body ?? '').split(/\s+/).length;
-const minutes = Math.max(2, Math.round(words / 220));
+// Reading time: prose and interview Q&A at ~220 words/min, plus about a minute for each
+// code sample and each step-by-step walkthrough.
+const body = topic.body ?? '';
+const countWords = (text: string) => text.split(/\s+/).filter(Boolean).length;
+const words = countWords(body.replace(/<[^>]+>/g, ' ')) + countWords(JSON.stringify(qa?.data ?? {}));
+const exhibits = (body.match(/<(CodeTabs|Walkthrough)\b/g) ?? []).length;
+const minutes = Math.max(2, Math.round(words / 220 + exhibits));
 const toc = [
   { depth: 2, slug: 'quick-reference', text: 'Quick reference' },
   ...headings,

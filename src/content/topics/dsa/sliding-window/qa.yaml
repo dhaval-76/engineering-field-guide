@@ -22,6 +22,16 @@ practice:
     solution: |
       For each index i: drop the front if it's outside the window (`≤ i − k`); pop from the back while the back's value ≤ `nums[i]` (they can never be a maximum again); push i; once `i ≥ k − 1`, the front's value is the window maximum. Each index is pushed and popped at most once, so O(n) time and O(k) space.
     solutionCode: dsa-window-max
+  - task: Return every start index in s where an anagram of p begins.
+    hint: A fixed window of length |p| with per-letter differences and a count of letters that don't match.
+    solution: |
+      Keep `diff[letter] = count in window − count in p` and `mismatched` = how many letters have a non-zero diff. Slide a window of length |p|: the entering letter does +1, the leaving letter −1, each updating `mismatched` in O(1). Whenever `mismatched == 0`, record `right − |p| + 1`. O(|s|) time, O(26) space.
+    solutionCode: dsa-permutation-in-string
+  - task: Count the subarrays that contain exactly k distinct values.
+    hint: Exact conditions aren't monotone, "at most" conditions are.
+    solution: |
+      `exactly(k) = atMost(k) − atMost(k − 1)`. In `atMost(k)`, run a variable window with a count map: expand, shrink while the map has more than k keys, and add `right − left + 1` each step (every subarray ending at `right` that starts inside the window). Two O(n) passes.
+    solutionCode: dsa-exactly-k-distinct
 quiz:
   - q: In a variable sliding window, when should the left pointer move?
     options: [Every step, While the window is invalid, Only at the end, When right reaches the end]
@@ -31,3 +41,7 @@ quiz:
     options: [Sorted windows, Window maximum or minimum in O(1) per step, Prefix sums, Random access]
     correct: 1
     why: Its front always holds the best candidate for the current window.
+  - q: Why does "exactly k distinct" need two windows?
+    options: [It is faster, '"Exactly k" is not monotone, but "at most k" is', To handle negative numbers, To find the maximum]
+    correct: 1
+    why: 'A window with too few values grows to become valid and one with too many shrinks, so one window can''t track it; atMost(k) − atMost(k − 1) can.'

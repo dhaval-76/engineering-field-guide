@@ -1,0 +1,153 @@
+---
+/**
+ * A vertical decision ladder: each question has a "yes" answer beside it; "no" leads down to the
+ * next question, and `otherwise` is the answer when every question is "no". Plain HTML, so it
+ * stays readable on a phone where branching diagrams don't.
+ *
+ * <DecisionGuide title="Which window?" steps={[['Window size k given?', 'Fixed window']]} otherwise="…" />
+ */
+interface Props {
+  title: string;
+  /** [question, answer when yes] */
+  steps: [string, string][];
+  otherwise?: string;
+  caption?: string;
+}
+const { title, steps, otherwise, caption } = Astro.props;
+
+// `code` spans only; everything else is escaped text.
+const inline = (s: string) =>
+  s
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/`([^`]+)`/g, '<code>$1</code>');
+---
+
+<figure class="decide">
+  <p class="title">{title}</p>
+  <ol class:list={{ 'has-otherwise': !!otherwise }}>
+    {
+      steps.map(([q, yes]) => (
+        <li>
+          <p class="q" set:html={inline(q)} />
+          <p class="yes">
+            <span class="tag">yes</span>
+            <span set:html={inline(yes)} />
+          </p>
+        </li>
+      ))
+    }
+  </ol>
+  {
+    otherwise && (
+      <p class="otherwise">
+        <span class="tag">otherwise</span>
+        <span set:html={inline(otherwise)} />
+      </p>
+    )
+  }
+  {caption && <figcaption>{caption}</figcaption>}
+</figure>
+
+<style>
+  .decide {
+    margin: 1.8em 0;
+    padding: 16px;
+    border: 1px solid var(--rule);
+    border-radius: var(--radius-lg);
+    background: var(--d-bg);
+  }
+  .title {
+    margin: 0 0 12px;
+    font-weight: 600;
+    font-size: 0.9375rem;
+  }
+  ol {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  li {
+    position: relative;
+    display: grid;
+    gap: 6px;
+    padding: 0 0 22px 18px;
+    border-left: 2px solid var(--d-line);
+    margin-left: 6px;
+  }
+  /* the "no" path continues down the spine */
+  li::after {
+    content: 'no ↓';
+    position: absolute;
+    left: 10px;
+    bottom: 3px;
+    font-size: 0.75rem;
+    color: var(--ink-3);
+  }
+  ol:not(.has-otherwise) li:last-child::after {
+    content: none;
+  }
+  ol:not(.has-otherwise) li:last-child {
+    border-left-color: transparent;
+  }
+  li::before {
+    content: '';
+    position: absolute;
+    left: -7px;
+    top: 9px;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: var(--d-bg);
+    border: 2px solid var(--d-line);
+  }
+  .q {
+    margin: 0;
+    font-weight: 600;
+    color: var(--ink);
+    line-height: 1.4;
+    padding-top: 4px;
+  }
+  .yes,
+  .otherwise {
+    margin: 0;
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    padding: 8px 12px;
+    border: 1.5px solid var(--d-accent);
+    border-radius: var(--radius);
+    background: var(--d-accent-soft);
+    color: var(--d-text);
+    line-height: 1.45;
+  }
+  .otherwise {
+    margin-left: 6px;
+    border-color: var(--d-line);
+    background: var(--d-fill);
+  }
+  .tag {
+    flex: none;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--accent-ink);
+  }
+  .otherwise .tag {
+    color: var(--ink-3);
+  }
+  @media (min-width: 640px) {
+    li {
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
+      align-items: start;
+      gap: 14px;
+    }
+  }
+  figcaption {
+    margin-top: 10px;
+    font-size: 0.875rem;
+    color: var(--ink-3);
+  }
+</style>

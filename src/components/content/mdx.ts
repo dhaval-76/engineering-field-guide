@@ -2,6 +2,7 @@
 import Callout from './Callout.astro';
 import Chart from './Chart.astro';
 import CodeTabs from './CodeTabs.astro';
+import DecisionGuide from './DecisionGuide.astro';
 import Diagram from './Diagram.astro';
 import KeyTakeaways from './KeyTakeaways.astro';
 import Pitfalls from './Pitfalls.astro';
@@ -13,6 +14,7 @@ export const mdxComponents = {
   Callout,
   Chart,
   CodeTabs,
+  DecisionGuide,
   Diagram,
   KeyTakeaways,
   Pitfalls,
