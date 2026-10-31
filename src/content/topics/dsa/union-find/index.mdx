@@ -4,7 +4,7 @@ summary: Tracking which items belong together as connections are added — path 
 track: dsa
 order: 120
 tags: [dsa, union-find, disjoint-set, graphs, patterns]
-aliases: [union find, disjoint set union, dsu, path compression, union by rank, union by size, connected components, number of provinces, redundant connection, graph valid tree, accounts merge, kruskal, minimum spanning tree, mst, inverse ackermann, dynamic connectivity]
+aliases: [union find, disjoint set union, dsu, path compression, union by rank, union by size, connected components, number of provinces, redundant connection, graph valid tree, accounts merge, kruskal, minimum spanning tree, mst, inverse ackermann, dynamic connectivity, number of islands ii, online connectivity]
 prerequisites: [dsa/graphs-bfs-dfs]
 related: [dsa/topological-sort, dsa/shortest-paths]
 quickRef:
@@ -16,56 +16,127 @@ quickRef:
     - 'Kruskal''s MST: sort edges by weight, add each edge that joins two different sets.'
   complexity: 'O(α(n)) amortised per operation — effectively constant; O(n) space.'
   useWhen: 'Grouping/merging items, counting components as edges are added, detecting cycles in undirected graphs, MSTs.'
-lastReviewed: 2026-10-30
+lastReviewed: 2026-10-31
 ---
+
+## Why it matters
+
+Some problems only ever **merge** groups and ask **"are these two in the same group?"**: friend circles, accounts that share an email, pixels in the same region, network nodes in the same partition, edges in a spanning tree. You could run a BFS each time the question is asked, but when connections arrive one by one and questions are interleaved with them, that re-traverses the whole graph again and again.
+
+**Union-find** (disjoint set union) answers both operations in effectively **constant time**, using nothing but an integer array. It's the engine of Kruskal's minimum spanning tree, image segmentation, percolation simulations, type unification in compilers, and "is this cluster still connected?" checks.
+
+<Callout type="analogy">
+Clubs merging. Every member knows who their club's president is — directly, or through someone who does. To check if two people are in the same club, compare their presidents. To merge two clubs, one president agrees to report to the other (the smaller club joins the bigger one). And after you've asked "who's my president?" once, you remember the answer directly next time — path compression.
+</Callout>
 
 ## Recognise it
 
 - "Are x and y connected?" asked many times while connections keep being **added**.
-- Count **groups/components** after a list of merges (friends circles, accounts with shared emails, islands added over time).
-- Find the edge that creates a **cycle** in an undirected graph.
-- Build a **minimum spanning tree**.
-
-<Callout type="analogy">
-Clubs merging. Every member knows who their club's president is (directly or via someone who does). To check if two people are in the same club, ask for their presidents. To merge two clubs, one president agrees to report to the other. After you ask "who's my president?" once, you remember the answer directly next time — path compression.
-</Callout>
-
-<Walkthrough id="union-find" />
+- Count **groups/components** after a list of merges (provinces, accounts with shared emails, islands added over time).
+- Find the edge that creates a **cycle** in an undirected graph ("redundant connection", "is this a valid tree?").
+- Build a **minimum spanning tree** (Kruskal).
+- Things that are "equal" by transitivity (`a == b`, `b == c` ⇒ `a == c`) — equations, synonyms.
 
 ## The structure
 
+Each group is stored as a tree of parent pointers; the root is the group's representative.
+
+- `find(x)`: follow parents until reaching a node that is its own parent — the root.
+- `union(a, b)`: find both roots; if they differ, make one root the parent of the other.
+
+<Walkthrough id="union-find" />
+
 <CodeTabs id="dsa-union-find" title="Union-find with path compression and union by size" />
+
+Two small optimisations turn this from O(n) per operation into practically O(1):
+
+- **Union by size (or rank)**: hang the **smaller** tree under the larger one. A node's depth increases only when its tree at least doubles in size, so depth stays ≤ log₂ n.
+- **Path compression**: after finding the root, point every node on the path **directly at the root**. Future finds from those nodes take one step.
+
+With both, the amortised cost is O(α(n)), where α is the inverse Ackermann function — at most 4 for any input that fits in the universe.
+
+Measured on one million elements, linking them into a single group in the worst possible order for naive linking (each union hangs the growing tree under a new single node, creating a chain), then calling `find` on random elements:
+
+<Chart
+  type="bar"
+  title="Average steps per find after 999,999 unions (measured)"
+  bars={[
+    ['No optimisation', 501551, 'bad'],
+    ['Path compression only', 2, 'ok'],
+    ['Union by size only', 1, 'ok'],
+    ['Both', 1, 'ok'],
+  ]}
+  log
+  caption="Log scale. Without optimisations the tree is a chain and a find walks half a million pointers. Either optimisation alone fixes this sequence; together they guarantee near-constant cost for every sequence."
+/>
 
 ## Worked problems
 
+### Redundant connection
+
+**Problem.** A tree on n nodes had one extra edge added. Return that edge.
+
+**Insight.** Add edges one at a time with `union`. The first edge whose endpoints are **already connected** (`union` returns false) closes a cycle — it's the extra one.
+
 <CodeTabs id="dsa-redundant-connection" title="Redundant connection — the first edge that closes a cycle" />
+
+### Accounts merge
+
+**Problem.** Each account is a name with emails; accounts sharing any email belong to the same person. Merge them.
+
+**Insight.** Treat each email as an element. Within an account, union every email with the account's first email. Then group emails by their root and attach the owner's name. Using union-find avoids building an explicit graph and is near-linear in the total number of emails (plus sorting each group's output).
 
 <CodeTabs id="dsa-accounts-merge" title="Accounts merge — union emails that appear in the same account" />
 
+### Number of islands II (online)
+
+**Problem.** Cells of a water grid turn into land one at a time; after each addition, report the number of islands.
+
+**Insight.** Re-running a flood fill after every addition costs O(rows × cols) each time. With union-find, a new land cell is a new island (+1); then union it with each land neighbour, and every **successful** union merges two islands (−1). Each addition is near O(1). This is the problem where union-find clearly beats BFS: connectivity that grows **online**.
+
+<CodeTabs id="dsa-islands-online" title="Islands added over time — union with land neighbours" />
+
+### Minimum spanning tree (Kruskal)
+
+**Problem.** Connect all points with the minimum total edge cost.
+
+**Insight.** Sort all edges by weight and take each one that joins two **different** sets (a cheaper edge that would create a cycle is never needed). Stop after n − 1 edges. Union-find makes the "different sets?" check near O(1), so sorting dominates: O(E log E). (Prim's algorithm, a heap-based alternative, is better for dense graphs.)
+
 <CodeTabs id="dsa-kruskal" title="Kruskal's minimum spanning tree — connect all points at minimum cost" />
+
+## Union-find or graph traversal?
 
 | Question | Union-find | BFS/DFS |
 |---|---|---|
 | Components of a fixed graph | O(E α(V)) | O(V + E) — just as good |
 | Connectivity while edges are added online | near O(1) per edge | re-traverse each time |
 | Edges removed over time | not supported (process offline in reverse) | works |
-| Cycle in undirected graph | union returns false | DFS with parent tracking |
-| Directed graphs / cycles | not suitable | DFS (three colours) |
+| Cycle in undirected graph | `union` returns false | DFS with parent tracking |
+| Directed graphs / directed cycles | not suitable | DFS (three colours) |
+| Actual paths between nodes | not available | BFS/DFS with parents |
+
+## Talking through it in an interview
+
+- Say what the elements are (nodes, cells as `r * cols + c`, emails mapped to ids).
+- Mention both optimisations and the resulting near-constant cost — and which one you implemented.
+- Count components down on each successful union rather than recounting roots.
+- Point out the limits: no deletions, no directions, no paths.
 
 <Pitfalls>
 
 - **Comparing `parent[a] == parent[b]`** instead of `find(a) == find(b)`.
-- **Skipping union by rank/size and path compression** — degenerates to O(n) per find.
+- **Skipping union by size and path compression** — a find can walk the whole set.
 - **Recursive find on long chains** before compression — use the iterative two-pass version for huge inputs.
 - **Using union-find for directed cycles** — it ignores direction.
-- **Forgetting to count components** down on each successful union.
+- **Forgetting that a repeated addition** (the same land cell twice) must not count a new component.
+- **Forgetting to count components down** on each successful union.
 
 </Pitfalls>
 
 <KeyTakeaways>
 
-- `find` with path compression, `union` by size/rank: effectively O(1) per operation.
+- `find` with path compression and `union` by size: effectively O(1) per operation.
 - A failed union reveals a cycle; successful unions reduce the component count.
-- Best for incremental connectivity and Kruskal's MST; use DFS for directed graphs.
+- Best for online, add-only connectivity and Kruskal's MST; use BFS/DFS for paths, deletions and directed graphs.
 
 </KeyTakeaways>

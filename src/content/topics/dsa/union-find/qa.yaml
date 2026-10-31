@@ -22,6 +22,11 @@ practice:
     solution: |
       Generate all n(n−1)/2 edges with their Manhattan distances, sort them ascending, and scan: whenever an edge connects two different union-find sets, add its cost and union them; stop after n − 1 edges. The result is a minimum spanning tree. O(n² log n) time, O(n²) space for the edge list; Prim's algorithm with a simple array is O(n²) and avoids storing all edges.
     solutionCode: dsa-kruskal
+  - task: Cells of an m × n water grid become land one by one. After each addition, return the number of islands.
+    hint: What happens to the island count when a new cell joins one, two or three existing islands?
+    solution: |
+      Map cell (r, c) to `r * n + c` in a union-find. For each new land cell (skip repeats), add one island, then union it with each land neighbour; every union that returns true merged two islands, so subtract one. Append the count. O(k · α(mn)) for k additions instead of a flood fill per addition.
+    solutionCode: dsa-islands-online
 quiz:
   - q: '`union(a, b)` returns false. What does that mean in an undirected graph?'
     options: [a or b doesn't exist, The edge would create a cycle, The graph is directed, The sets were merged]

@@ -10,7 +10,8 @@ List<List<String>> accountsMerge(List<List<String>> accounts) {
         }
 
     Map<Integer, TreeSet<String>> emailsByRoot = new HashMap<>();
-    ownerOf.forEach((email, i) -> emailsByRoot.computeIfAbsent(uf.find(i), k -> new TreeSet<>()).add(email));
+    ownerOf.forEach((email, i) ->
+            emailsByRoot.computeIfAbsent(uf.find(i), k -> new TreeSet<>()).add(email));
 
     List<List<String>> out = new ArrayList<>();
     emailsByRoot.forEach((root, emails) -> {

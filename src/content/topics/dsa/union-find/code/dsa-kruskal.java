@@ -2,9 +2,13 @@
 int minCostConnectPoints(int[][] points) {
     int n = points.length;
     List<int[]> edges = new ArrayList<>();                      // {cost, i, j}
-    for (int i = 0; i < n; i++)
-        for (int j = i + 1; j < n; j++)
-            edges.add(new int[]{Math.abs(points[i][0] - points[j][0]) + Math.abs(points[i][1] - points[j][1]), i, j});
+    for (int i = 0; i < n; i++) {
+        for (int j = i + 1; j < n; j++) {
+            int dx = Math.abs(points[i][0] - points[j][0]);
+            int dy = Math.abs(points[i][1] - points[j][1]);
+            edges.add(new int[]{dx + dy, i, j});
+        }
+    }
     edges.sort(Comparator.comparingInt(e -> e[0]));              // cheapest first
 
     UnionFind uf = new UnionFind(n);
