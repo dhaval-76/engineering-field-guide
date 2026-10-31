@@ -1,4 +1,11 @@
 title: Two users pick overlapping seats in row F
+legend:
+  info: 'selected'
+  warn: 'wanted by both'
+  accent: 'held by Asha'
+  plum: 'held by Ravi'
+  muted: 'released'
+  ok: 'booked'
 frames:
   - caption: Asha selects **F5, F6, F7**. Ravi selects **F7, F8** at the same moment. Both press "Proceed to pay".
     panels:

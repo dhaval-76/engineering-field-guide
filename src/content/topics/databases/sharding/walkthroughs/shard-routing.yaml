@@ -1,4 +1,6 @@
 title: Where does a key live?
+legend:
+  plum: 'dedicated shard'
 frames:
   - caption: '**Range sharding** by customer id. Range scans stay on one shard — but ids are increasing, so every new customer lands on the last shard.'
     panels:

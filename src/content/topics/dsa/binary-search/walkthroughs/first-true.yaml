@@ -1,4 +1,9 @@
 title: First index with value ≥ 7
+legend:
+  accent: 'probed (mid)'
+  info: 'bound just moved'
+  muted: 'ruled out'
+  ok: 'answer'
 frames:
   - caption: 'Predicate: `nums[i] >= 7`. It is false, false, …, then true — a single flip. The answer lies in [lo, hi] = [0, 8] (8 = "not found").'
     panels:

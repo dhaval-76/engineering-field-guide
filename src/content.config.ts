@@ -139,6 +139,10 @@ const walkthroughs = defineCollection({
   }),
   schema: z.object({
     title: z.string(),
+    /** colour key wording for this walkthrough, where the player's default meaning doesn't fit */
+    legend: z
+      .partialRecord(z.enum(['accent', 'info', 'ok', 'warn', 'bad', 'plum', 'muted']), z.string())
+      .optional(),
     frames: z
       .array(
         z.object({
@@ -175,7 +179,9 @@ const reports = defineCollection({
         company: z.string(),
         reports: z.number().int().positive(),
         latestYear: z.number().int(),
-        sources: z.array(z.object({ url: z.url(), title: z.string(), year: z.number().int() })).min(1),
+        sources: z
+          .array(z.object({ url: z.url(), title: z.string(), year: z.number().int() }))
+          .min(1),
       }),
     ),
   }),

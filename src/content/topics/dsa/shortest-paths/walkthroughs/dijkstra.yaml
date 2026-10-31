@@ -1,4 +1,8 @@
 title: Dijkstra from A
+legend:
+  accent: 'source'
+  info: 'distance just improved'
+  ok: 'settled (final)'
 frames:
   - caption: 'Edges: A→B 4, A→C 1, C→B 2, B→D 1, C→D 5. Start with dist[A] = 0, everything else ∞. The heap holds (0, A).'
     panels:

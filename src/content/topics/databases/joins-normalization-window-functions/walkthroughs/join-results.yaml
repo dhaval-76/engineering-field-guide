@@ -1,4 +1,6 @@
 title: What each join keeps
+legend:
+  plum: 'customer with no orders'
 frames:
   - caption: 'Two small tables. Asha has two orders, Ben has one, Chen has none — and order #9 points at customer 4, who doesn''t exist (say, data imported without a foreign key).'
     panels:

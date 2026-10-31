@@ -1,4 +1,8 @@
 title: Unions, finds and path compression
+legend:
+  accent: 'parent just changed'
+  ok: 'path compressed'
+  warn: 'cycle found'
 frames:
   - caption: 'Six items, each its own set: parent[i] = i. Components: 6.'
     panels:

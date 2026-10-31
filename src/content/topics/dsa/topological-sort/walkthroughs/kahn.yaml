@@ -1,4 +1,7 @@
 title: Kahn's algorithm on course prerequisites
+legend:
+  ok: 'ready (in-degree 0) / done'
+  accent: 'taken from the queue'
 frames:
   - caption: 'Courses 0–4. Edges point from prerequisite to course: 0→1, 0→2, 1→3, 2→3, 3→4. In-degree = number of unmet prerequisites.'
     panels:

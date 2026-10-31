@@ -1,4 +1,8 @@
 title: XOR finds the number without a pair in [4, 1, 2, 1, 2]
+legend:
+  accent: 'being XORed'
+  muted: 'already XORed'
+  ok: 'cancels its partner'
 frames:
   - caption: 'Start with `acc = 0`. XOR flips the bits of `acc` wherever the incoming number has a 1. Read **4** (`100`): `acc` becomes `100`.'
     panels:

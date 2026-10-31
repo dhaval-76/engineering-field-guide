@@ -1,4 +1,9 @@
 title: Longest substring without repeats in "abcabcbb"
+legend:
+  info: 'in the window'
+  accent: 'entering the window'
+  muted: 'left the window'
+  ok: 'answer'
 frames:
   - caption: 'Expand right over "a", "b", "c": all unique. Window "abc", length **3** — best so far.'
     panels:

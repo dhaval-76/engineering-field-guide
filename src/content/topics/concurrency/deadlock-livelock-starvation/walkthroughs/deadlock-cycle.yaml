@@ -1,4 +1,7 @@
 title: How two transfers deadlock — and how lock ordering prevents it
+legend:
+  info: 'held by T1'
+  plum: 'held by T2'
 frames:
   - caption: 'T1 runs `transfer(A → B)` and locks **A**. At the same moment T2 runs `transfer(B → A)` and locks **B**.'
     panels:

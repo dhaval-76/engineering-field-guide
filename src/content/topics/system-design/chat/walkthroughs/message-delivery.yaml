@@ -1,4 +1,6 @@
 title: Alice sends Bob a message
+legend:
+  plum: 'read receipt'
 frames:
   - caption: 'Alice''s app sends `{conversation: c9, clientMsgId: m-77, text}` over her WebSocket to gateway 1. The client id lets the server ignore a retry of the same message.'
     panels:

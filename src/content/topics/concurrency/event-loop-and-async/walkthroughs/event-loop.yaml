@@ -1,4 +1,6 @@
 title: One turn of the JavaScript event loop
+legend:
+  plum: 'timer task'
 frames:
   - caption: 'The script runs top to bottom on the **call stack**. `setTimeout` hands its callback to the timer system; `.then` schedules a **microtask**.'
     panels:

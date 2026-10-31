@@ -1,4 +1,7 @@
 title: Generating subsets of [1, 2, 3]
+legend:
+  accent: 'just chosen'
+  ok: 'recorded subset'
 frames:
   - caption: 'Each level decides one element: take it or skip it. Start with an empty path at depth 0.'
     panels:

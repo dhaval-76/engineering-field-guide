@@ -1,4 +1,9 @@
 title: Pair with target sum 10 in a sorted array
+legend:
+  accent: 'l and r'
+  warn: 'which pointer moves'
+  muted: 'discarded'
+  ok: 'pair found'
 frames:
   - caption: 'Sorted array, target **10**. Start with l at the smallest and r at the largest.'
     panels:

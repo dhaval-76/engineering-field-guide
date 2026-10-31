@@ -27,34 +27,37 @@ const uid = `code-${id}`;
 >
   <div class="bar">
     {title && <figcaption class="title">{title}</figcaption>}
-    <div class="tabs" role="tablist" aria-label={title ? `${title} — language` : 'Language'}>
-      {variants.map((v, i) => (
-        <button
-          type="button"
-          role="tab"
-          id={`${uid}-tab-${v.tab}`}
-          aria-controls={`${uid}-${v.tab}`}
-          aria-selected={i === 0 ? 'true' : 'false'}
-          tabindex={i === 0 ? 0 : -1}
-          data-lang={v.tab}
-        >
-          {v.label}
-        </button>
-      ))}
+    {/* tabs, wrap and copy wrap onto a new line together, so the tabs stay attached to the code */}
+    <div class="controls">
+      <div class="tabs" role="tablist" aria-label={title ? `${title} — language` : 'Language'}>
+        {variants.map((v, i) => (
+          <button
+            type="button"
+            role="tab"
+            id={`${uid}-tab-${v.tab}`}
+            aria-controls={`${uid}-${v.tab}`}
+            aria-selected={i === 0 ? 'true' : 'false'}
+            tabindex={i === 0 ? 0 : -1}
+            data-lang={v.tab}
+          >
+            {v.label}
+          </button>
+        ))}
+      </div>
+      <button
+        class="wrap"
+        type="button"
+        data-wrap-toggle
+        aria-pressed="false"
+        title="Wrap long lines"
+      >
+        Wrap
+      </button>
+      <button class="copy" type="button" data-copy aria-label="Copy code">
+        <Icon name="copy" />
+        <Icon name="check" class="done" />
+      </button>
     </div>
-    <button
-      class="wrap"
-      type="button"
-      data-wrap-toggle
-      aria-pressed="false"
-      title="Wrap long lines"
-    >
-      Wrap
-    </button>
-    <button class="copy" type="button" data-copy aria-label="Copy code">
-      <Icon name="copy" />
-      <Icon name="check" class="done" />
-    </button>
   </div>
   <p class="fallback" data-fallback-note hidden></p>
   {variants.map((v, i) => (
@@ -93,10 +96,16 @@ const uid = `code-${id}`;
     gap: 2px;
     overflow-x: auto;
   }
-  .title + .tabs {
-    margin-left: 0;
+  .controls {
+    flex: 1 0 auto;
+    min-width: 0;
+    max-width: 100%;
+    display: flex;
+    align-items: flex-end;
+    gap: 12px;
   }
-  .tabs:first-child {
+  .tabs {
+    min-width: 0;
     margin-right: auto;
   }
   [role='tab'] {

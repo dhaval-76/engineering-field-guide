@@ -1,4 +1,8 @@
 title: Two sum with a map of seen values
+legend:
+  accent: 'current number'
+  info: 'stored in the map'
+  ok: 'pair found'
 frames:
   - caption: 'Find two numbers that add to **9**. Walk left to right; for each x, the partner we need is 9 − x. The map remembers values already seen → their index.'
     panels:

@@ -1,4 +1,6 @@
 title: A status change reaches the customer's screen
+legend:
+  plum: 'push notification'
 frames:
   - caption: 'The customer opens the tracking page. Their browser opens an **SSE** stream to connection server 3, which subscribes to channel `order:881` and immediately sends the current status: **Preparing**.'
     panels:

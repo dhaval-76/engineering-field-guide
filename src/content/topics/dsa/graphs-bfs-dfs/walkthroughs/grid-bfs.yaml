@@ -1,4 +1,6 @@
 title: BFS spreads outward one step at a time
+legend:
+  accent: 'front of the BFS wave'
 frames:
   - caption: 'Find the fewest steps from S (top-left) to T (bottom-right); # is a wall. Start: the queue holds S at distance 0.'
     panels:

@@ -1,4 +1,9 @@
 title: Next warmer day with a decreasing stack
+legend:
+  accent: 'current day'
+  info: 'waiting on the stack'
+  ok: 'answered'
+  muted: 'no warmer day'
 frames:
   - caption: 'Temperatures `[73, 74, 75, 71, 69, 72, 76]`. The stack holds indices of days still waiting for a warmer day; their temperatures decrease from bottom to top.'
     panels:

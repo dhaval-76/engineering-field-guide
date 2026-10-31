@@ -1,4 +1,8 @@
 title: Push and pop in a min-heap
+legend:
+  ok: 'root (minimum)'
+  accent: 'element being sifted'
+  warn: 'parent it swaps with'
 frames:
   - caption: 'A min-heap stored as an array. Index i''s children are 2i+1 and 2i+2. Every parent ≤ its children, so the minimum (1) is at index 0.'
     panels:

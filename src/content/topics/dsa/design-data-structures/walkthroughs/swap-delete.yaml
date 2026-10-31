@@ -1,4 +1,8 @@
 title: Removing from a randomized set in O(1)
+legend:
+  bad: 'being removed'
+  accent: 'last element, moved into the hole'
+  muted: 'old slot'
 frames:
   - caption: 'The set holds 10, 20, 30, 40. The **array** keeps them packed so `getRandom` can pick `values[random(size)]`; the **map** says where each value sits.'
     panels:

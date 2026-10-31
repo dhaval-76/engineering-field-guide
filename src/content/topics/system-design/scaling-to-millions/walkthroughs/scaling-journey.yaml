@@ -1,17 +1,19 @@
 title: Growing from one server to millions of users
+legend:
+  accent: 'new in this step'
 frames:
   - caption: '**Day one**: app and database on one server. Fine for thousands of users; any failure or deploy takes everything down.'
     panels:
       - kind: flow
         label: Request path
-        items: [users, { v: 'server: app + database', tone: info }]
+        items: [users, { v: 'server: app + database', tone: accent }]
       - kind: note
         text: 'Next limit: CPU and memory shared by app and DB.'
   - caption: '**Separate the database** onto its own (bigger) machine. Each can be sized and tuned independently.'
     panels:
       - kind: flow
         label: Request path
-        items: [users, app server, { v: database server, tone: info }]
+        items: [users, app server, { v: database server, tone: accent }]
       - kind: note
         text: 'Next limit: one app server. A crash or a deploy is still an outage.'
   - caption: '**Stateless app servers behind a load balancer**: move sessions to Redis or tokens, run several instances across zones, autoscale. App failures no longer cause outages.'
@@ -25,23 +27,23 @@ frames:
     panels:
       - kind: flow
         label: Request path
-        items: [users, load balancer, app × N, { v: 'Redis cache', tone: ok }, 'primary DB', { v: 'read replicas × 2', tone: ok }]
+        items: [users, load balancer, app × N, { v: 'Redis cache', tone: accent }, 'primary DB', { v: 'read replicas × 2', tone: accent }]
       - kind: note
         text: 'Next limit: static files and slow work done inside requests.'
   - caption: '**CDN and async work**: static assets and images served from the edge; emails, thumbnails and reports processed by workers from a queue. Request latency drops; bursts are absorbed.'
     panels:
       - kind: flow
         label: Request path
-        items: [users, { v: CDN, tone: plum }, load balancer, app × N, cache, primary + replicas]
+        items: [users, { v: CDN, tone: accent }, load balancer, app × N, cache, primary + replicas]
       - kind: flow
         label: Background work
-        items: [app × N, { v: queue, tone: plum }, { v: workers, tone: plum }]
+        items: [app × N, { v: queue, tone: accent }, { v: workers, tone: accent }]
       - kind: note
         text: 'Next limit: writes and data size on one primary database.'
   - caption: '**Partition the data** when writes or size outgrow one primary: by tenant or user, via virtual shards. Add **rate limits** at the edge and **regions** when users are global.'
     panels:
       - kind: flow
         label: Request path
-        items: [users, CDN + edge rate limits, 'regional load balancers', 'app × N per region', cache per region, { v: 'DB shards (by user id)', tone: warn }]
+        items: [users, CDN + edge rate limits, 'regional load balancers', 'app × N per region', cache per region, { v: 'DB shards (by user id)', tone: accent }]
       - kind: note
         text: 'Each step adds cost and moving parts: take it only when a measured limit forces it.'

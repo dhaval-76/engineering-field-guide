@@ -1,4 +1,6 @@
 title: Why OFFSET pages skip or repeat rows when data changes
+legend:
+  plum: 'newly inserted row'
 frames:
   - caption: 'Page 1 (`LIMIT 3 OFFSET 0`, newest first) shows **F, E, D**.'
     panels:

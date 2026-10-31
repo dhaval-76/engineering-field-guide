@@ -15,4 +15,9 @@ const frames = await Promise.all(
 );
 ---
 
-<WalkthroughPlayer client:visible title={entry.data.title} frames={frames} />
+<WalkthroughPlayer
+  client:visible
+  title={entry.data.title}
+  frames={frames}
+  legend={entry.data.legend}
+/>

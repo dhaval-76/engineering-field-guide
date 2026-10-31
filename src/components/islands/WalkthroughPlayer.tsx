@@ -21,6 +21,32 @@ interface Frame {
 interface Props {
   title: string;
   frames: Frame[];
+  /** per-walkthrough wording for a colour, where the default meaning doesn't fit */
+  legend?: Partial<Record<Tone, string>> | undefined;
+}
+
+const TONES: Tone[] = ['accent', 'info', 'ok', 'warn', 'bad', 'plum', 'muted'];
+const DEFAULT_LEGEND: Record<Tone, string> = {
+  accent: 'acted on in this step',
+  info: 'active / in progress',
+  ok: 'done / succeeded',
+  warn: 'changed / at risk',
+  bad: 'failed / removed',
+  plum: 'another actor',
+  muted: 'gone / ruled out',
+};
+
+function tonesUsed(frames: Frame[]): Set<Tone> {
+  const used = new Set<Tone>();
+  const add = (c: Cell) => {
+    if (typeof c === 'object' && c.tone) used.add(c.tone);
+  };
+  for (const f of frames)
+    for (const p of f.panels) {
+      p.items.forEach(add);
+      p.pairs.forEach(([k, v]) => (add(k), add(v)));
+    }
+  return used;
 }
 
 const norm = (c: Cell) => (typeof c === 'object' ? c : { v: c, tone: undefined, tag: undefined });
@@ -94,12 +120,12 @@ function PanelView({ panel }: { panel: Panel }) {
   );
 }
 
-export default function WalkthroughPlayer({ title, frames }: Props) {
+export default function WalkthroughPlayer({ title, frames, legend }: Props) {
   const [i, setI] = useState(0);
   const [playing, setPlaying] = useState(false);
   const touchX = useRef<number | null>(null);
   const last = frames.length - 1;
-  const frame = frames[i]!;
+  const used = tonesUsed(frames);
 
   useEffect(() => {
     if (!playing) return;
@@ -146,11 +172,36 @@ export default function WalkthroughPlayer({ title, frames }: Props) {
         onTouchStart={onTouchStart}
         onTouchEnd={onTouchEnd}
       >
-        {frame.panels.map((p, k) => (
-          <PanelView panel={p} key={k} />
+        {/* Every step is rendered in the same grid cell and only the current one is visible,
+            so the box is as tall as the tallest step and the buttons never move. */}
+        {frames.map((f, n) => (
+          <div className={`wt-frame${n === i ? ' on' : ''}`} key={n} aria-hidden={n !== i}>
+            {f.panels.map((p, k) => (
+              <PanelView panel={p} key={k} />
+            ))}
+          </div>
         ))}
       </div>
-      <figcaption className="wt-caption" dangerouslySetInnerHTML={{ __html: frame.captionHtml }} />
+      {used.size > 0 && (
+        <ul className="wt-legend" aria-label="Colour key">
+          {TONES.filter((t) => used.has(t)).map((t) => (
+            <li key={t}>
+              <span className={`wt-swatch tone-${t}`} aria-hidden="true" />
+              {legend?.[t] ?? DEFAULT_LEGEND[t]}
+            </li>
+          ))}
+        </ul>
+      )}
+      <figcaption className="wt-caption">
+        {frames.map((f, n) => (
+          <div
+            className={`wt-frame-caption${n === i ? ' on' : ''}`}
+            key={n}
+            aria-hidden={n !== i}
+            dangerouslySetInnerHTML={{ __html: f.captionHtml }}
+          />
+        ))}
+      </figcaption>
       <div className="wt-dots" role="group" aria-label="Jump to step">
         {frames.map((_, n) => (
           <button

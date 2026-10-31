@@ -1,4 +1,7 @@
 title: Fewest coins for amount 6 with coins {1, 3, 4}
+legend:
+  ok: 'base case / answer'
+  info: 'just computed'
 frames:
   - caption: '`dp[a]` = fewest coins that make amount a. Base: dp[0] = 0; everything else starts at ∞.'
     panels:

@@ -1,4 +1,9 @@
 title: 'Analysing "count subarrays that sum to k", step by step'
+legend:
+  accent: 'key fact'
+  warn: 'complication'
+  ok: 'checks out'
+  bad: 'ruled out'
 frames:
   - caption: '**Restate.** Given an integer array and k, count the contiguous subarrays whose sum is exactly k. Ask: can numbers be negative? (Yes.) Count, not list them.'
     panels:

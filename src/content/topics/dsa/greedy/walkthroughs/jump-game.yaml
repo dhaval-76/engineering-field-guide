@@ -1,4 +1,9 @@
 title: Can we reach the end? Track the farthest reach
+legend:
+  accent: 'current index'
+  ok: 'end reachable'
+  bad: 'stuck'
+  muted: 'unreachable'
 frames:
   - caption: '`nums[i]` is the maximum jump from i. Instead of exploring every jump, keep one number: the **farthest index reachable** so far.'
     panels:

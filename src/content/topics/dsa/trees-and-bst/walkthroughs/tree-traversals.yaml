@@ -1,4 +1,6 @@
 title: Four ways to visit the same tree
+legend:
+  accent: 'where the root falls in this order'
 frames:
   - caption: 'The tree: 4 at the root, 2 (with children 1 and 3) on the left, 6 (with 5 and 7) on the right. It is a BST.'
     panels:
