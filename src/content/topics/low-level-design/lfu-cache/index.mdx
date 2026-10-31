@@ -1,0 +1,87 @@
+---
+title: LFU Cache
+summary: A least-frequently-used cache with O(1) get and put — frequency buckets of insertion-ordered sets, a tracked minimum frequency, LRU tie-breaking, and when LFU beats LRU (and when frequency aging is needed).
+track: low-level-design
+order: 36
+tags: [lld, cache, hashmap, linked-list, design-data-structures]
+aliases: [least frequently used, lfu, lfu cache o(1), frequency buckets, min frequency, cache eviction policy, lfu vs lru, tinylfu, w-tinylfu, frequency aging]
+prerequisites: [low-level-design/lru-cache]
+related: [databases/caching-strategies, dsa/design-data-structures, low-level-design/lru-cache]
+quickRef:
+  points:
+    - 'Evict the key with the **lowest access count**; break ties by **least recently used**.'
+    - '`key → (value, freq)` map + `freq → ordered set of keys` + `minFreq` — every operation is **O(1)**.'
+    - 'On access, move the key from bucket f to f+1; if bucket f empties and f was `minFreq`, increment `minFreq`.'
+    - 'On insert, evict the oldest key in bucket `minFreq`, then insert at freq 1 and set `minFreq = 1`.'
+    - 'Pure LFU keeps once-popular keys forever — production caches add **aging** or use W-TinyLFU (Caffeine).'
+  complexity: 'get and put O(1); space O(capacity).'
+  useWhen: '"Design an LFU cache", caches where popularity is stable (CDN assets, reference data), or comparing eviction policies.'
+lastReviewed: 2026-10-30
+---
+
+## Why it matters
+
+LFU is the natural follow-up to [LRU](../lru-cache/): same interface, harder bookkeeping. Doing it in O(1) requires combining hash maps and ordered sets precisely, and the `minFreq` update is a classic place for bugs. It also opens a good discussion about which eviction policy fits which workload.
+
+<Callout type="analogy">
+A library with limited shelf space that removes the book borrowed the fewest times. If two books are tied, it removes the one that has sat untouched the longest. To do that instantly, the librarian keeps one shelf per borrow count, books on each shelf in the order they arrived.
+</Callout>
+
+## Clarify
+
+- Capacity in entries (not bytes)? (Entries.)
+- Does `put` on an existing key count as a use? (Yes — the common convention, e.g. LeetCode 460.)
+- Tie-break? (Least recently used among the least frequent.)
+- Thread safety? (Single-threaded first; discuss later.)
+
+## Data structures
+
+| Structure | Holds | Why |
+|---|---|---|
+| `entries: key → (value, freq)` | Every cached key | O(1) lookup |
+| `buckets: freq → ordered set of keys` | Keys grouped by count, oldest first | O(1) move between counts; LRU order within a count |
+| `minFreq` | Lowest non-empty count | O(1) to find the eviction bucket |
+
+`LinkedHashSet` (Java), `Set` (JavaScript, insertion-ordered) and `OrderedDict` (Python) all give O(1) add, remove and "oldest element".
+
+<Walkthrough id="lfu-buckets" />
+
+<CodeTabs id="lfu-cache" title="O(1) LFU cache with frequency buckets and LRU tie-breaking" />
+
+Why `minFreq` is easy to maintain: it only changes in two places. When a key leaves bucket `minFreq` and the bucket empties, the key is now in `minFreq + 1`, so that's the new minimum. When a new key is inserted, its count is 1, the lowest possible.
+
+## LFU vs LRU in practice
+
+| | LRU | LFU |
+|---|---|---|
+| Keeps | recently used keys | frequently used keys |
+| Good for | recency-driven access (sessions, feeds) | stable popularity (assets, reference data) |
+| Weakness | one big scan flushes the cache | **old popularity never fades**; new keys get evicted before they can build counts |
+| Overhead | one list | buckets + counts |
+
+Production caches combine the two: **W-TinyLFU** (Caffeine, Java's default high-performance cache) keeps approximate frequencies in a compact sketch that periodically halves (aging), and admits a new key only if it's more popular than the eviction candidate ([Caching strategies](../../databases/caching-strategies/)). Redis offers `allkeys-lfu` with a logarithmic counter that decays over time.
+
+## Concurrency and extensions
+
+- **Thread safety**: one lock around get/put is simplest and correct (every get mutates structure). For high throughput, shard by key hash into N independent caches, or buffer accesses and apply them in batches as Caffeine does.
+- **Aging**: periodically halve all counts, or decay counts by time since last access.
+- **TTL**: store an expiry per entry; check on get and evict expired entries lazily.
+- **Size-based capacity**: track total weight; evict until under the limit.
+
+<Pitfalls>
+
+- **Forgetting that `put` to an existing key is an access** — counts drift from the spec.
+- **Not resetting `minFreq = 1`** after inserting a new key.
+- **Scanning all keys to find the minimum** — O(n) eviction.
+- **Ignoring ties** — the spec needs LRU among equal counts.
+- **Capacity 0** — guard it explicitly.
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- Map of entries + map of frequency buckets (insertion-ordered) + `minFreq` gives O(1) LFU.
+- `minFreq` changes only when its bucket empties on access (→ +1) or on insert (→ 1).
+- Pure LFU needs aging; real caches use approximate frequencies (W-TinyLFU, Redis LFU).
+
+</KeyTakeaways>

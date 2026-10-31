@@ -1,0 +1,30 @@
+title: LFU with frequency buckets (capacity 3)
+frames:
+  - caption: 'put A, B, C. Every new key starts at frequency 1 and joins the end of bucket 1, so the bucket is ordered oldest → newest. `minFreq` = 1.'
+    panels:
+      - kind: kv
+        label: buckets
+        pairs: [['freq 1', 'A, B, C']]
+      - kind: kv
+        label: state
+        pairs: [[minFreq, '1']]
+  - caption: 'get A twice: A moves from bucket 1 to 2, then to 3. Each move is O(1): remove from one linked set, append to the next.'
+    panels:
+      - kind: kv
+        label: buckets
+        pairs: [['freq 1', 'B, C'], ['freq 3', { v: A, tone: accent }]]
+  - caption: 'get B: B moves to bucket 2. Bucket 1 still has C, so `minFreq` stays 1.'
+    panels:
+      - kind: kv
+        label: buckets
+        pairs: [['freq 1', C], ['freq 2', { v: B, tone: accent }], ['freq 3', A]]
+  - caption: 'put D at capacity: evict from the `minFreq` bucket — C, used once. D enters bucket 1 and `minFreq` resets to 1 (a new key always has the lowest count).'
+    panels:
+      - kind: kv
+        label: buckets
+        pairs: [['freq 1', { v: 'D (C evicted)', tone: warn }], ['freq 2', B], ['freq 3', A]]
+  - caption: 'get D: bucket 1 empties, so `minFreq` becomes 2. put E: bucket 2 holds B then D; the tie on frequency is broken by recency, so **B** (older) is evicted.'
+    panels:
+      - kind: kv
+        label: buckets
+        pairs: [['freq 1', E], ['freq 2', { v: 'D (B evicted)', tone: warn }], ['freq 3', A]]

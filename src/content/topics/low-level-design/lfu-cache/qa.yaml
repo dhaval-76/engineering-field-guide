@@ -1,0 +1,37 @@
+questions:
+  - q: Design a cache with O(1) get and put that evicts the least frequently used key, breaking ties by least recently used.
+    think: You need O(1) lookup, O(1) count increments, and O(1) "find the minimum".
+    answer: |
+      Keep three things: a map `key → (value, freq)`; a map `freq → insertion-ordered set of keys` (LinkedHashSet / Set / OrderedDict), so each bucket is in recency order; and `minFreq`. **get**: if present, move the key from bucket f to f+1 (append = most recent); if bucket f becomes empty, remove it and, if f was `minFreq`, set `minFreq = f+1`; return the value. **put** existing: update value and do the same move. **put** new: if full, remove the first (oldest) key from bucket `minFreq` and from the entry map; insert with freq 1 at the end of bucket 1; set `minFreq = 1`. All operations are O(1).
+  - q: 'Your product catalogue cache uses LFU. After a seasonal sale ends, sale items stay cached and new popular items keep getting evicted. Why, and what do you change?'
+    think: Counts only ever grow.
+    answer: |
+      Pure LFU never forgets: sale items accumulated huge counts and still outrank new items that are popular now, and each new item is evicted at count 1–2 before it can catch up (cache pollution). Fix with **aging** — periodically halve all counts or decay by time — or switch to a policy that balances recency and frequency: W-TinyLFU (Caffeine) with a small LRU admission window and a decaying frequency sketch, or Redis `allkeys-lfu` with an appropriate `lfu-decay-time`. Measure hit rate before and after.
+followUps:
+  - q: Why does minFreq only need to be incremented by one?
+    intuition: Where can the moved key go?
+    approach: |
+      `minFreq` changes on access only when the key accessed was the last one in bucket `minFreq`. That key moves to `minFreq + 1`, which is therefore non-empty and is now the minimum. On insertion a new key has frequency 1, which is the smallest possible, so `minFreq = 1`. No other operation can change the minimum, so no scan is ever needed.
+  - q: How would you make the LFU cache thread-safe?
+    intuition: Every read mutates.
+    approach: |
+      Because `get` changes counts and bucket membership, a read-write lock doesn't help — wrap get/put in one lock for correctness. For throughput, shard into N caches by key hash, each with its own lock, accepting per-shard rather than global LFU. High-performance libraries record accesses into lock-free buffers and apply them to the policy in batches, so reads rarely contend.
+  - q: When would you choose LFU over LRU?
+    intuition: Stable vs shifting popularity.
+    approach: |
+      When popularity is fairly stable and one-off scans or bursts would otherwise flush valuable entries — static assets, reference data, hot product pages. Choose LRU when access is driven by recency (user sessions, timelines). Most real systems choose an adaptive policy (W-TinyLFU, ARC) that handles both.
+practice:
+  - task: Implement an LFU cache with O(1) get and put and LRU tie-breaking, then verify it against a brute-force model on random operations.
+    hint: Entries map, frequency buckets of ordered sets, minFreq; the model scans for (min freq, oldest access).
+    solution: |
+      Implement as above. For verification, generate thousands of random get/put operations on a small key space with capacity 4; the brute-force model stores value, count and last-access time per key and on eviction removes the key with the smallest (count, lastAccess). Compare every get result between the two.
+    solutionCode: lfu-cache
+quiz:
+  - q: 'Capacity 2: put(1), put(2), get(1), put(3). Which key is evicted?'
+    options: ['1', '2', '3', 'none']
+    correct: 1
+    why: Key 1 has count 2, key 2 has count 1 — the least frequently used is 2.
+  - q: What is pure LFU's main weakness?
+    options: [O(n) gets, Old popular keys never age out, It can't break ties, It needs more memory than a database]
+    correct: 1
+    why: Counts only increase, so formerly hot keys can occupy the cache indefinitely.
