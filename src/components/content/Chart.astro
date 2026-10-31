@@ -59,7 +59,16 @@ const W = 440,
   H = 280,
   pad = { l: 50, r: 34, t: 24, b: 34 };
 const all = series.flatMap((s) => s.values);
-const yMaxRaw = Math.max(1, ...all);
+// Round the axis up to a "nice" step (1, 2 or 5 × 10^k) so ticks read 0, 250, 500…
+const niceStep = (range: number, count: number) => {
+  const raw = range / count;
+  const mag = 10 ** Math.floor(Math.log10(raw));
+  const f = raw / mag;
+  return (f <= 1 ? 1 : f <= 2 ? 2 : f <= 2.5 ? 2.5 : f <= 5 ? 5 : 10) * mag;
+};
+const dataMax = Math.max(1, ...all);
+const step = niceStep(dataMax, 4);
+const yMaxRaw = log ? dataMax : Math.ceil(dataMax / step) * step;
 const scaleY = (v: number) => {
   const iw = H - pad.t - pad.b;
   if (log) {
@@ -71,7 +80,7 @@ const scaleY = (v: number) => {
 const scaleX = (i: number) => pad.l + (i / Math.max(1, x.length - 1)) * (W - pad.l - pad.r);
 const ticks = log
   ? Array.from({ length: Math.floor(Math.log10(yMaxRaw)) + 1 }, (_, i) => 10 ** i)
-  : [0, 0.25, 0.5, 0.75, 1].map((f) => f * yMaxRaw);
+  : Array.from({ length: Math.round(yMaxRaw / step) + 1 }, (_, i) => i * step);
 
 // Bar chart geometry: width as a percentage of the track
 const barMax = Math.max(1, ...bars.map((b) => b[1]));
