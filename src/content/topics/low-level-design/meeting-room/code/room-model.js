@@ -1,6 +1,13 @@
 // Half-open intervals [start, end) in epoch ms.
 export const overlaps = (a, b) => a.start < b.end && b.start < a.end;
 
+export class SlotTakenError extends Error {
+  constructor(roomId, slot) {
+    super(`room ${roomId} is taken for that slot`);
+    this.slot = slot;
+  }
+}
+
 export class Room {
   #bookings = []; // kept sorted by start
 
@@ -19,9 +26,9 @@ export class Room {
     return !(before && overlaps(before.slot, slot)) && !(after && overlaps(after.slot, slot));
   }
 
-  book(slot, organizer) {
-    if (!this.isFree(slot)) throw new Error(`room ${this.id} is taken for that slot`);
-    const booking = { id: crypto.randomUUID(), roomId: this.id, slot, organizer };
+  book(slot, organizer, attendees = [], seriesId = null) {
+    if (!this.isFree(slot)) throw new SlotTakenError(this.id, slot);
+    const booking = { id: crypto.randomUUID(), roomId: this.id, slot, organizer, attendees, seriesId };
     this.#bookings.push(booking);
     this.#bookings.sort((a, b) => a.slot.start - b.slot.start);
     return booking;
