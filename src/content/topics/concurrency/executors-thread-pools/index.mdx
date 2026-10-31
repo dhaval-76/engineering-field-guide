@@ -15,7 +15,7 @@ quickRef:
     - '`submit` + `Future.get(timeout)` to see failures and bound waits; `execute` swallows exceptions into the uncaught handler.'
     - Shut down with `shutdown` → `awaitTermination` → `shutdownNow`; name your threads.
   useWhen: Running background work, parallel calls, or any time you're tempted to write `new Thread(...)`.
-lastReviewed: 2026-10-30
+lastReviewed: 2026-10-31
 ---
 
 ## Why it matters
@@ -59,6 +59,22 @@ The counter-intuitive part: extra threads above core are created **only when the
 - **CPU-bound** work: about one thread per core; more just adds context switching.
 - **I/O-bound** work: threads mostly wait, so more threads keep the CPU busy — the formula above, or **Little's law** (`concurrency = throughput × latency`).
 - **Downstream limits** usually matter more: a pool of 200 threads hitting a database pool of 20 connections just queues 180 threads inside the connection pool.
+- **Waiting work needs either many threads or cheap ones.** Measured: 10,000 tasks that each block for 100 ms (a stand-in for a database or HTTP call), JDK 22 on 8 cores:
+
+<Chart
+  type="bar"
+  title="10,000 tasks that each wait 100 ms — time to finish all (measured)"
+  bars={[
+    ['Fixed pool of 8 threads', 131.56, 'bad'],
+    ['Fixed pool of 200', 5.2, 'warn'],
+    ['Fixed pool of 1,000', 1.08, 'warn'],
+    ['Virtual thread per task', 0.15, 'ok'],
+  ]}
+  log
+  unit=" s"
+  caption="Log scale. The work is all waiting, so time ≈ tasks × 100 ms ÷ threads. A pool sized for CPU work (8) is useless here; virtual threads make one thread per task affordable."
+/>
+
 - Use **separate pools** (bulkheads) for different kinds of work, so slow reports can't starve checkout.
 - Then **measure**: queue depth, active threads, rejections and latency under load.
 
