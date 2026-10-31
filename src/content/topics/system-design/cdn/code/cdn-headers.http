@@ -1,0 +1,30 @@
+### Fingerprinted static asset: cache "forever" — a new build produces a new file name
+GET /assets/app.3f9c2b1e.js HTTP/2
+Host: shop.example.com
+
+HTTP/2 200
+Cache-Control: public, max-age=31536000, immutable
+Content-Type: text/javascript
+ETag: "3f9c2b1e"
+
+### HTML page: browsers revalidate every time, the CDN may keep it 60 s and serve stale while refreshing
+GET /products/42 HTTP/2
+
+HTTP/2 200
+Cache-Control: public, max-age=0, s-maxage=60, stale-while-revalidate=300, stale-if-error=86400
+Vary: Accept-Encoding
+Surrogate-Key: product-42 category-7
+
+### Personalised API response: never stored in a shared cache
+GET /api/cart HTTP/2
+Cookie: session=…
+
+HTTP/2 200
+Cache-Control: private, no-store
+
+### Revalidation: unchanged content costs a 304 with no body
+GET /products/42 HTTP/2
+If-None-Match: "v17"
+
+HTTP/2 304
+ETag: "v17"

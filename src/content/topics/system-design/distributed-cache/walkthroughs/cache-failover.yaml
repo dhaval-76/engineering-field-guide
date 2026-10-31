@@ -1,0 +1,22 @@
+title: A cache primary fails
+frames:
+  - caption: 'Three primaries own slot ranges; each has an asynchronously replicated replica in another zone. Clients cache the slot map and send each key straight to its owner.'
+    panels:
+      - kind: kv
+        label: slot map
+        pairs: [['0–5460', A], ['5461–10922', B], ['10923–16383', { v: C, tone: accent }]]
+  - caption: 'Primary C stops answering. The other primaries notice missed heartbeats and, once a majority agree it''s down, mark it failed (no single node can decide that alone).'
+    panels:
+      - kind: rows
+        label: cluster
+        items: ['A ok', 'B ok', { v: 'C ✕ — marked failed by majority', tone: bad }]
+  - caption: 'Replica C'' is promoted and takes over slots 10923–16383. Writes acknowledged by C but not yet replicated are **lost** — acceptable for a cache, which is why caches favour availability over durability.'
+    panels:
+      - kind: kv
+        label: slot map
+        pairs: [['0–5460', A], ['5461–10922', B], ['10923–16383', { v: "C' (promoted)", tone: ok }]]
+  - caption: 'Clients get `MOVED` (or refresh the map) and retry against C''. For a few seconds keys in that range miss or error; the application falls back to the database with **timeouts and a circuit breaker** so a cache outage doesn''t become a database outage.'
+    panels:
+      - kind: rows
+        label: client
+        items: ['GET user:42 → C ✕', { v: "refresh slot map → C'", tone: ok }, 'miss → load from DB (rate-limited)']

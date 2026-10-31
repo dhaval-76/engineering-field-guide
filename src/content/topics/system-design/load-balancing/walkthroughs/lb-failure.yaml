@@ -1,0 +1,27 @@
+title: A backend dies — and a deploy drains one
+frames:
+  - caption: 'Three healthy backends behind an L7 balancer using least-connections. Active health checks probe `/health/ready` every 2 s.'
+    panels:
+      - kind: kv
+        label: backends (in flight)
+        pairs: [[app-1, '12'], [app-2, '11'], [app-3, '12']]
+  - caption: 'app-2 crashes. Requests already sent to it fail; the balancer **retries** idempotent ones (GET, or requests with idempotency keys) once on another backend. **Passive** checks notice the errors immediately.'
+    panels:
+      - kind: kv
+        label: backends
+        pairs: [[app-1, '12'], [app-2, { v: 'connection refused', tone: bad }], [app-3, '12']]
+  - caption: 'After 3 failed probes (or 3 passive failures) app-2 is **ejected**. New traffic goes only to app-1 and app-3; it''s readmitted after consecutive successful probes, not the first one.'
+    panels:
+      - kind: kv
+        label: backends
+        pairs: [[app-1, '18'], [app-2, { v: ejected, tone: muted }], [app-3, '17']]
+  - caption: 'A deploy replaces app-3. It''s marked **draining**: no new requests, but in-flight requests (and long-lived connections, within a timeout) finish. The process gets SIGTERM only after draining.'
+    panels:
+      - kind: kv
+        label: backends
+        pairs: [[app-1, '24'], [app-3, { v: 'draining — 4 left', tone: warn }], [app-3 v2, { v: 'warming up (slow start)', tone: info }]]
+  - caption: 'The new instance gets a **slow start** — a gradually increasing share — so cold caches and JIT don''t turn its first seconds into a latency spike.'
+    panels:
+      - kind: kv
+        label: backends
+        pairs: [[app-1, '18'], [app-2 v2, '16'], [app-3 v2, '17']]

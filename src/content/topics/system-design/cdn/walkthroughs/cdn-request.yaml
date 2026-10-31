@@ -1,0 +1,27 @@
+title: One product page through a CDN
+frames:
+  - caption: 'First request for `/products/42` at the Mumbai edge: **miss**. The edge asks the regional **shield**, which also misses and fetches once from the origin. Both cache the response for `s-maxage=60`.'
+    panels:
+      - kind: rows
+        label: request path
+        items: ['user → Mumbai edge (miss)', 'edge → shield (miss)', { v: 'shield → origin (1 request)', tone: warn }]
+  - caption: 'The next 10,000 requests within a minute are **hits** at the edge — a few milliseconds away from users, and zero load on the origin.'
+    panels:
+      - kind: kv
+        label: Mumbai edge
+        pairs: [[hits, { v: '10,000', tone: ok }], [origin requests, '0']]
+  - caption: 'At 61 s the object is stale. With `stale-while-revalidate`, the edge serves the stale copy instantly and refreshes it in the background — users never wait for the origin.'
+    panels:
+      - kind: rows
+        label: at t = 61 s
+        items: [{ v: 'serve stale copy (fast)', tone: ok }, 'background revalidate → 304 Not Modified']
+  - caption: 'The price changes. The app **purges by tag** (`product-42`) through the CDN API; every PoP drops matching objects within seconds. Static assets never need purging — their file names change with each build.'
+    panels:
+      - kind: rows
+        label: invalidation
+        items: [{ v: 'purge surrogate key product-42', tone: accent }, 'assets: app.3f9c2b1e.js → app.a71d09c4.js']
+  - caption: 'If the origin goes down, `stale-if-error` lets edges keep serving the last good copy — the CDN doubles as a shield for outages and traffic spikes.'
+    panels:
+      - kind: rows
+        label: origin outage
+        items: [{ v: 'origin 503', tone: bad }, { v: 'edge serves cached page (stale-if-error)', tone: ok }]

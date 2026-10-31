@@ -1,0 +1,37 @@
+questions:
+  - q: Design a distributed cache that serves 1 million operations per second for a 200 GB working set.
+    think: Partition, replicate, route, evict — and what happens on failure.
+    answer: |
+      **Sizing**: ~280 GB with overhead ⇒ ~10 primaries at ~32 GB each (+ replicas); 1 M ops/s ⇒ ~100k per primary, within one node's capacity. **Partitioning**: 16,384 hash slots assigned to primaries; smart clients cache the slot map and follow `MOVED`; hash tags co-locate related keys. **Replication**: one async replica per primary in another zone; reads that tolerate staleness can go to replicas. **Failover**: gossip heartbeats; a majority of primaries confirms failure and promotes the replica. **Node internals**: TTLs with lazy + sampled active expiry; `allkeys-lru` (sampled) at the memory limit. **Protection**: client timeouts of a few ms, circuit breaker to a database fallback with coalesced loads; local L1 caches for hot keys. **Scaling**: add a primary and migrate slots online.
+  - q: 'A popular key makes one cache node hit 100% CPU during a sale. What do you do now and next time?'
+    think: Spread one key's traffic.
+    answer: |
+      Now: enable a short-TTL in-process cache for that key in the application (even 1 second removes almost all traffic to the node), or temporarily route its reads to replicas. Next time: detect hot keys automatically (per-key request sampling, `--hotkeys` with LFU), replicate known-hot keys under several names (`product:9#0..7`) and pick one at random on read (writes update all), keep big values out of hot keys, and pre-warm caches before planned events.
+followUps:
+  - q: Why does Redis use approximate LRU?
+    intuition: Memory per key.
+    approach: |
+      Exact LRU needs a doubly linked list through all keys — two pointers per key plus maintenance on every access. Redis stores a small last-access clock per key and, when evicting, samples a few keys (configurable) and removes the oldest of the sample. With 5–10 samples the hit rate is close to true LRU while saving memory and CPU.
+  - q: How do expired keys get removed if nobody reads them?
+    intuition: Lazy alone leaks memory.
+    approach: |
+      Lazy expiry only deletes on access. Redis also runs an active cycle many times per second: sample keys with TTLs, delete expired ones, and repeat immediately if a large share of the sample was expired, within a time budget. Memory used by expired keys is thus reclaimed proportionally to how many there are.
+  - q: Smart client or proxy?
+    intuition: Hops vs simplicity.
+    approach: |
+      Smart clients route directly to the owning node (one hop, lowest latency) but every language's client must implement slot maps, redirects and failover. A proxy layer centralises routing, connection pooling and topology changes and lets simple clients work, at the cost of an extra network hop and another tier to scale and operate.
+practice:
+  - task: Implement a cache node with TTLs, lazy and active expiry, and approximate LRU eviction by sampling.
+    hint: Keep keys in an array as well as a map so random sampling is O(1); swap-remove on delete.
+    solution: |
+      Store items with value, expiry and last access, plus their index in a dense key array. get: delete if expired, else update last access. set: if full, sample k random keys and evict an expired one or the least recently accessed; insert. activeExpireCycle: sample keys, delete expired ones, repeat while more than a quarter of the sample was expired. Removal swaps the last key into the freed array slot.
+    solutionCode: cache-node
+quiz:
+  - q: In Redis Cluster, which keys can be used together in one MGET?
+    options: [Any keys, 'Keys in the same hash slot (e.g. sharing a {hash tag})', Keys with the same TTL, Keys on replicas]
+    correct: 1
+    why: Multi-key operations must stay within one slot; hash tags force related keys into one slot.
+  - q: Why might acknowledged writes be lost when a cache primary fails?
+    options: [Eviction, Asynchronous replication to the replica, Lazy expiry, Hash tags]
+    correct: 1
+    why: The primary acknowledges before the replica has the write; promotion loses the gap.

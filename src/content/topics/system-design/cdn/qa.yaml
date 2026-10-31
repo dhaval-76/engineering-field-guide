@@ -1,0 +1,37 @@
+questions:
+  - q: 'Design how an e-commerce site uses a CDN for assets, product pages and APIs.'
+    think: Classify content by how often it changes and who it's for.
+    answer: |
+      **Static assets**: build with fingerprinted names, upload to object storage, serve via CDN with `max-age=31536000, immutable`; deploys need no purge. **Images**: CDN with on-the-fly resizing and modern formats, long TTLs keyed by version. **Product/category pages**: cache at the edge with `s-maxage=60, stale-while-revalidate=300, stale-if-error=1d`, tag responses with surrogate keys (product id, category) and purge tags when prices or stock change; personalise via small client-side API calls or edge includes. **APIs**: catalogue/search responses with short s-maxage and normalised cache keys; cart, checkout and account `private, no-store`. Add an origin shield, request coalescing, TLS 1.3/HTTP/3 at the edge, WAF and bot protection. Monitor hit ratio, origin offload and edge latency per region.
+  - q: 'After a deploy, some users get a blank page: the new HTML references app.v2.js but they receive the old JavaScript. What went wrong?'
+    think: Unversioned file names with long TTLs.
+    answer: |
+      The JS file name didn't change between versions (`app.js`) but was cached with a long TTL at the CDN and in browsers, while the HTML (short TTL) updated — new HTML plus old JS breaks. Fix: fingerprint asset names by content hash (`app.3f9c2b1e.js`) so each build produces new URLs that can be cached forever; keep HTML on short TTLs or revalidation; deploy assets before HTML; keep old assets available for a while so cached HTML still works.
+followUps:
+  - q: What's the difference between max-age and s-maxage?
+    intuition: Browser vs shared cache.
+    approach: |
+      `max-age` applies to every cache, including browsers; `s-maxage` overrides it for shared caches like CDNs and proxies. A common pattern is `max-age=0, s-maxage=60`: browsers always revalidate (cheap with ETags), while the CDN serves from cache for a minute and can be purged centrally.
+  - q: What is an origin shield?
+    intuition: A cache in front of the origin for the caches.
+    approach: |
+      A designated mid-tier PoP that all edge PoPs consult on a miss. Without it, a popular object expiring triggers a miss at each of hundreds of PoPs, each hitting the origin. With a shield, those misses collapse into one origin request, raising the effective hit ratio and protecting the origin during purges and spikes.
+  - q: How do signed URLs work?
+    intuition: A permission slip the edge can check alone.
+    approach: |
+      The application computes an HMAC over the path (and an expiry, sometimes the client IP) with a secret shared with the CDN, and appends the expiry and signature to the URL. The edge recomputes the HMAC and compares in constant time, rejecting tampered or expired links — no origin call is needed, so private content is still served from cache.
+practice:
+  - task: Implement signed URLs with expiry and an edge-side verifier, and check that tampering or expiry is rejected.
+    hint: HMAC-SHA256 over "path?expires=…", base64url without padding, constant-time comparison.
+    solution: |
+      `sign(path, expires, secret)` computes HMAC-SHA256 of `path?expires=<ts>`, encodes it base64url without padding, and returns `path?expires=<ts>&sig=<sig>`. `verify` rejects if now > expires, recomputes the expected URL and compares with the given one in constant time. Test a valid link, an expired one and one with a changed path.
+    solutionCode: signed-url
+quiz:
+  - q: Which header lets a CDN serve a stale copy instantly while refreshing it in the background?
+    options: [no-cache, stale-while-revalidate, immutable, Vary]
+    correct: 1
+    why: stale-while-revalidate allows serving stale content during an asynchronous refresh.
+  - q: How should a build's JS bundle be cached?
+    options: [No caching, Short TTL and purge on deploy, Fingerprinted file name with a one-year immutable TTL, Cache only in browsers]
+    correct: 2
+    why: New content gets a new URL, so old URLs can be cached forever safely.

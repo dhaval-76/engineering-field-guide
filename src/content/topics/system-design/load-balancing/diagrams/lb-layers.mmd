@@ -1,0 +1,10 @@
+flowchart TD
+  U[Users] --> DNS[GeoDNS / anycast<br/>pick a region]
+  DNS --> L4[L4 load balancer<br/>TCP/UDP · millions of conns · no TLS]
+  L4 --> L7a[L7 proxy<br/>TLS · routing · retries]
+  L4 --> L7b[L7 proxy]
+  L7a --> S1[orders pods]
+  L7a --> S2[search pods]
+  L7b --> S1
+  L7b --> S2
+  S1 -- gRPC, client-side balancing --> S3[pricing pods]

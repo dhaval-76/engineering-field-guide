@@ -1,0 +1,95 @@
+---
+title: 'Design: Distributed Cache'
+summary: A Redis- or Memcached-style cache cluster — partitioning with hash slots, replication and failover, expiry and approximate-LRU eviction, client routing, hot keys, sizing, and keeping the database safe when the cache fails.
+track: system-design
+order: 28
+tags: [system-design, building-block, caching, redis, memcached]
+aliases: [design a distributed cache, design redis, design memcached, cache cluster, redis cluster, hash slots, hash tags, moved redirect, cache replication, cache failover, approximate lru, maxmemory policy, active expiry, lazy expiry, hot key, big key, local cache, near cache, l1 l2 cache, cache sizing]
+prerequisites: [databases/caching-strategies, system-design/consistent-hashing]
+related: [low-level-design/lru-cache, low-level-design/lfu-cache, system-design/kv-store, databases/replication]
+quickRef:
+  points:
+    - '**Partition** keys over nodes with fixed **hash slots** (Redis: 16,384) or consistent hashing; clients cache the slot map.'
+    - '**Replicate** each primary asynchronously; on failure a majority promotes a replica — recent writes may be lost, which a cache tolerates.'
+    - '**Expire** lazily on access plus sampled active sweeps; **evict** with approximate LRU/LFU by sampling — exact LRU costs memory.'
+    - '**Hot keys**: local L1 cache, read replicas, or key splitting. **Big keys**: break up.'
+    - 'The cache is an optimisation: on failure, fall back to the database **with timeouts, rate limits and circuit breakers**.'
+  useWhen: '"Design a distributed cache / Redis / Memcached", or sizing and operating the cache tier of any system.'
+lastReviewed: 2026-10-30
+---
+
+## Requirements
+
+**Functional**: `get`, `set` with TTL, `delete`; values up to ~1 MB; optional data structures (counters, hashes, sorted sets).
+**Non-functional**: sub-millisecond latency inside a region; millions of operations per second; scale out by adding nodes; survive a node failure without a full cache flush; bounded memory with eviction.
+
+[Caching strategies](../../databases/caching-strategies/) covers *how applications use* a cache (cache-aside, invalidation, stampedes). This page designs *the cache cluster itself*.
+
+## Estimates
+
+| | |
+|---|---|
+| Working set | 200 M keys × ~1 KB ≈ 200 GB of values, plus ~30–50% overhead for keys, pointers and fragmentation ≈ 280 GB |
+| Nodes | ~32 GB usable per node ⇒ ~10 primaries, + 10 replicas |
+| Throughput | 1 M ops/s at peak; one Redis node handles ~100k+ simple ops/s ⇒ 10 primaries gives headroom, replicas can serve reads |
+| Network | 1 M × 1 KB ≈ 1 GB/s across the cluster — check per-node NIC limits for big values |
+
+## High-level design
+
+<Diagram id="cache-cluster" caption="Smart clients route each key to the primary that owns its slot; each primary replicates asynchronously to a replica in another zone. A miss goes to the database." />
+
+<Steps>
+
+1. **Partitioning** — `slot = CRC16(key) % 16384`; slots are assigned to primaries; moving a slot migrates its keys while both nodes answer (with `ASK` redirects). Consistent hashing in clients (Memcached style) works too ([Consistent hashing](../consistent-hashing/)).
+2. **Routing** — smart clients cache the slot map and refresh it on `MOVED`; alternatively a proxy layer (Envoy, Twemproxy) hides topology from simple clients at the cost of an extra hop.
+3. **Replication** — asynchronous, so writes are fast; replicas can serve reads that tolerate slight staleness.
+4. **Failure detection** — nodes gossip heartbeats; a failure is confirmed by a majority of primaries before a replica is promoted, avoiding split brain from one node's view.
+
+</Steps>
+
+<CodeTabs id="redis-cluster" title="Redis Cluster: key slots, hash tags, redirects, memory policy and diagnostics" />
+
+## Inside a node: expiry and eviction
+
+<CodeTabs id="cache-node" title="A cache node with lazy and sampled active expiry, and approximate LRU eviction by sampling" />
+
+- **Lazy expiry** checks TTL on access; **active expiry** samples keys with TTLs several times a second and repeats while a large fraction of the sample was expired — so memory is reclaimed even for keys nobody reads.
+- **Exact LRU** needs a linked list through every key (two pointers each). Redis instead **samples** a few keys and evicts the oldest of the sample; with 5–10 samples it behaves very close to true LRU at a fraction of the memory ([LRU](../../low-level-design/lru-cache/), [LFU](../../low-level-design/lfu-cache/)).
+- **Persistence** is optional for a pure cache; enabling snapshots shortens warm-up after restarts.
+
+## Failure handling
+
+<Walkthrough id="cache-failover" />
+
+The real danger isn't losing cached data — it's the database being hit by everything the cache used to absorb. Protect it with request coalescing and stale-while-revalidate (see caching strategies), client timeouts of a few milliseconds, circuit breakers ([Resilience patterns](../../architecture/resilience-patterns/)), and a gradual warm-up rather than a cold flush.
+
+## Hot keys and big keys
+
+- **Hot key** (a celebrity profile, a flash-sale product): one node melts while others idle. Use a short-TTL **local L1 cache** in each app instance, replicate the key to several nodes (`key#0..7`, read one at random), or serve from read replicas.
+- **Big key** (a 50 MB list): slow to read, replicate and migrate, and blocks a single-threaded node. Split into chunks or redesign.
+- Detect both continuously (`--hotkeys`, `--bigkeys`, per-key metrics).
+
+## Deep dives interviewers like
+
+- **Consistency with the database**: delete-on-write plus TTL; change-data-capture driven invalidation for many writers.
+- **Multi-region**: one cache cluster per region, invalidated by events — never cross-region reads on the hot path.
+- **Memcached vs Redis**: Memcached is a simple multithreaded LRU store with client-side sharding; Redis adds data structures, replication, clustering and persistence on a (mostly) single-threaded core.
+
+<Pitfalls>
+
+- **`hash % N` client sharding** — every scale-out empties most of the cache.
+- **No timeouts on cache calls** — a slow cache node stalls request threads.
+- **Treating the cache as durable storage** — async replication loses writes on failover.
+- **`KEYS *` or huge `SMEMBERS` in production** — blocks the node.
+- **Unbounded memory** without an eviction policy — writes start failing.
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- Hash slots + smart clients route keys; async replicas with majority-confirmed failover keep it available.
+- Lazy plus sampled expiry, and sampled approximate LRU/LFU eviction, keep memory bounded cheaply.
+- Hot and big keys need explicit handling.
+- Design the fallback path: the database must survive the cache failing.
+
+</KeyTakeaways>

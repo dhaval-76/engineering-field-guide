@@ -1,0 +1,106 @@
+---
+title: Load Balancing
+summary: Spreading requests across servers — L4 vs L7 balancers, round robin, weighted, least-connections and power-of-two-choices (with measured tail latency), health checks, draining, sticky sessions, global balancing, and client-side balancing.
+track: system-design
+order: 22
+tags: [system-design, building-block, load-balancing, networking, reliability]
+aliases: [load balancer, lb, l4 load balancer, l7 load balancer, reverse proxy, nginx, haproxy, envoy, aws alb, aws nlb, round robin, weighted round robin, least connections, power of two choices, p2c, ip hash, health check, readiness probe, connection draining, slow start, sticky sessions, session affinity, gslb, geodns, anycast, client side load balancing]
+prerequisites: [cs-foundations/networking]
+related: [system-design/consistent-hashing, system-design/api-gateway, system-design/scaling-to-millions, architecture/resilience-patterns]
+quickRef:
+  points:
+    - '**L4** balances TCP/UDP connections (fast, protocol-blind); **L7** understands HTTP/gRPC (routing by path/header, TLS, retries, per-request balancing).'
+    - '**Round robin** is fine for identical servers and requests; **least connections** or **power of two choices** adapt to slow servers.'
+    - '**Health checks** (active probes + passive error counting) eject bad backends; **draining** and **slow start** make deploys invisible.'
+    - 'Avoid **sticky sessions** — keep servers stateless and put sessions in a shared store.'
+    - 'Layers: GeoDNS/anycast → L4 → L7 → services; inside the mesh, **client-side** balancing (gRPC) per request.'
+  useWhen: Every system design with more than one server; debugging uneven load, tail latency or deploy errors.
+lastReviewed: 2026-10-30
+---
+
+## Why it matters
+
+A load balancer turns many servers into one service: it spreads load, hides failures and enables zero-downtime deploys. Its algorithm decides whether one slow server stays a small problem or becomes everyone's tail latency. "Add a load balancer" is the first step in [scaling](../scaling-to-millions/) — knowing which kind, which algorithm and how it detects failures is what interviewers probe next.
+
+<Callout type="analogy">
+A host at a busy restaurant seating guests. A naive host seats tables strictly in turn; a good host glances at which waiters are swamped and seats new guests with the one who has the fewest tables — and stops seating anyone in the section where a waiter has gone home sick.
+</Callout>
+
+## Where balancers sit
+
+<Diagram id="lb-layers" caption="Global DNS or anycast picks a region; an L4 balancer spreads connections across L7 proxies; L7 proxies route requests to services; services call each other with client-side balancing." />
+
+| | L4 (transport) | L7 (application) |
+|---|---|---|
+| Sees | IPs, ports, TCP/UDP | HTTP method, path, headers, cookies, gRPC methods |
+| Balances | connections | requests (important for HTTP/2 and gRPC, which multiplex many requests per connection) |
+| Features | very high throughput, preserves client IP, any protocol | TLS termination, path routing, retries, rate limits, header rewriting, auth |
+| Examples | AWS NLB, Maglev, IPVS, HAProxy TCP mode | AWS ALB, nginx, Envoy, HAProxy HTTP mode |
+
+## Algorithms
+
+<CodeTabs id="lb-algorithms" title="Round robin, smooth weighted round robin, least connections and power of two choices" />
+
+| Algorithm | Picks | Good for | Weakness |
+|---|---|---|---|
+| Round robin | next in turn | identical servers, similar requests | blind to load |
+| Weighted (smooth) RR | by capacity weights, evenly interleaved | mixed machine sizes | static weights |
+| Least connections | fewest in-flight | varying request cost, slow servers | needs global view; herding when counts are stale |
+| Power of two choices | less loaded of 2 random | large fleets, many balancers | slightly worse than perfect least-conn |
+| Hash (IP, header, consistent) | same backend for a key | cache affinity, sessions | uneven load, hot keys ([Consistent hashing](../consistent-hashing/)) |
+
+<Chart
+  type="bar"
+  title="p99 latency with one of 10 servers 2.5× slower, at 85% load (measured, simulation)"
+  log
+  bars={[
+    ['Round robin', 22519, 'bad'],
+    ['Random', 21768, 'bad'],
+    ['Power of two choices', 14.1, 'ok'],
+    ['Least connections', 8.0, 'ok'],
+  ]}
+  caption="Units are the mean request time on a healthy server; 200,000 requests with exponential arrivals and service times. Load-blind algorithms keep sending the slow server 10% of traffic — more than it can handle — so its queue grows without bound. Load-aware algorithms route around it."
+/>
+
+## Health, draining and deploys
+
+<Walkthrough id="lb-failure" />
+
+- **Active checks** probe an endpoint; use **readiness** (can serve traffic: dependencies reachable, warmed up), not just liveness.
+- **Passive checks** (outlier detection) eject a backend after consecutive errors or high latency observed on real traffic.
+- **Retries** only for idempotent requests, with a retry budget, so a failing backend doesn't double the load on the rest.
+- **Draining** before shutdown and **slow start** after startup make rolling deploys error-free ([Docker and Kubernetes](../../devops/docker-kubernetes/)).
+
+<CodeTabs id="lb-nginx" title="nginx upstream: least connections, weights, passive health checks, keep-alive, bounded retries" />
+
+## Sticky sessions
+
+Pinning a user to one server (cookie or IP hash) breaks even balancing, loses sessions when that server dies, and complicates scaling in. Prefer stateless servers with sessions in Redis or signed tokens ([Auth at scale](../auth-at-scale/)). Affinity is still useful as an optimisation — e.g. routing a user to the server holding their warm cache — as long as correctness doesn't depend on it.
+
+## High availability of the balancer itself
+
+Run balancers in pairs or fleets: cloud balancers are managed and multi-zone; self-managed ones use a floating virtual IP (VRRP/keepalived), anycast with ECMP routing, or DNS with several addresses. Global balancing (GeoDNS, anycast, health-checked DNS failover) routes users to the nearest healthy region.
+
+## Client-side balancing
+
+Inside a service mesh, callers often balance themselves: the client resolves all backend addresses (DNS, service registry) and picks per request with round robin or P2C. This avoids a proxy hop and is essential for gRPC, whose long-lived HTTP/2 connections defeat L4 balancers ([API styles](../../backend/api-styles/)). Sidecar proxies (Envoy in Istio) do the same transparently.
+
+<Pitfalls>
+
+- **Round robin with heterogeneous servers or requests** — slow servers accumulate queues.
+- **L4 balancing for gRPC/HTTP2** — all requests on one connection go to one backend.
+- **Health checks that only test "process is up"** — traffic to instances whose database is unreachable.
+- **Unbounded retries** — retry storms amplify outages.
+- **Sticky sessions holding state** — users logged out when a server dies.
+- **Killing instances without draining.**
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- L4 for raw connection throughput, L7 for request-aware routing and TLS.
+- Load-aware algorithms (least connections, power of two choices) protect tail latency.
+- Readiness checks, outlier ejection, bounded retries, draining and slow start keep failures and deploys invisible.
+- Stateless servers make balancing simple; use client-side balancing for gRPC.
+
+</KeyTakeaways>

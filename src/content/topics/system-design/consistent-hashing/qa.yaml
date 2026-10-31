@@ -1,0 +1,37 @@
+questions:
+  - q: Explain consistent hashing and why a distributed cache needs it.
+    think: What happens to cached keys when you add a server?
+    answer: |
+      With `server = hash(key) % N`, changing N changes the result for almost every key (≈ 91% when going from 10 to 11 servers), so nearly the whole cache misses at once and the database takes the full load. Consistent hashing places servers and keys on a hash ring; each key belongs to the first server clockwise. Adding a server only takes over the keys on the arc before it — about 1/N of them — and removing one only moves its own keys to its neighbour. Each server is placed at many points (virtual nodes) so arcs are small and load is even, and heterogeneous servers can take proportionally more points. Replicas go to the next distinct servers clockwise.
+  - q: 'Your sharded cache uses consistent hashing, but one node is at 90% CPU while others are at 20%. What could be wrong?'
+    think: Key balance vs traffic balance.
+    answer: |
+      Either keys are unevenly spread — too few virtual nodes, a bad hash, or a misconfigured weight — or traffic is skewed by **hot keys** that all live on one node. Check per-node key counts and per-key request rates. Fixes: increase virtual nodes or rebalance slots; for hot keys, replicate them across several nodes and read from a random replica, add a short-lived local cache in the application, split the key into sub-keys, or use consistent hashing with bounded loads so overloaded nodes overflow to their neighbours.
+followUps:
+  - q: Why are virtual nodes needed?
+    intuition: Few random points make uneven arcs.
+    approach: |
+      With one point per server, arc lengths vary hugely — in a measured 10-server example the busiest server held 2.8× the average load. Placing each server at 100–200 points makes each server's total arc close to 1/N (1.10× at 100 vnodes), spreads a departing server's load across many others instead of one neighbour, and allows weighting by capacity.
+  - q: Ring or fixed hash slots?
+    intuition: Who decides placement?
+    approach: |
+      A ring places data implicitly by hashing server ids — no central table, but rebalancing granularity depends on tokens. Fixed slots (`hash % 16384`) plus an explicit slot → node map make placement a deliberate decision: an operator or controller moves specific slots, can balance by measured load, and clients cache the small map. Redis Cluster and Kafka-style partitioning use this; Dynamo-style stores use rings.
+  - q: When would you use rendezvous hashing?
+    intuition: Small N, simplicity.
+    approach: |
+      When the number of servers is modest (tens) and you want even distribution with no ring structure: compute `hash(server, key)` for each server and pick the highest. Removing a server only moves its keys; adding one only steals keys where it now scores highest. Cost is O(N) per lookup, fine for small N; it also extends naturally to picking the top-k servers for replicas.
+practice:
+  - task: Implement rendezvous hashing and jump consistent hash, and measure how many keys move when a node is added.
+    hint: Count keys whose owner changes between N and N+1 servers; compare with 1/(N+1).
+    solution: |
+      Rendezvous: for each node compute a 64-bit hash of node + key and return the node with the maximum. Jump hash: the Lamping–Veach loop with the 64-bit LCG constant. Hash 100,000 keys for N and N+1 nodes and count changed owners: both move ≈ 1/(N+1) of keys, while `% N` moves ≈ N/(N+1).
+    solutionCode: hrw-jump
+quiz:
+  - q: 'With modulo hashing, roughly what fraction of keys move when 10 servers become 11?'
+    options: ['9%', '50%', '91%', '0%']
+    correct: 2
+    why: Only keys where hash % 10 equals hash % 11 stay — about 1 in 11.
+  - q: What do virtual nodes improve?
+    options: [Lookup speed, Evenness of load across servers, Encryption, Replication consistency]
+    correct: 1
+    why: Many small arcs per server average out the randomness of hash positions.

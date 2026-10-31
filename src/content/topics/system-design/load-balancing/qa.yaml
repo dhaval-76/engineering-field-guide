@@ -1,0 +1,37 @@
+questions:
+  - q: 'One of 20 app servers is degraded and responds 3× slower. Users see p99 latency spike even though average CPU is fine. How does the load balancer contribute, and what do you change?'
+    think: Does the algorithm notice the slow server?
+    answer: |
+      With round robin or random, the slow server still gets 1/20 of requests regardless of how backed up it is, so its queue grows and every request routed there waits — that's the p99. Switch to a load-aware algorithm: least connections (or least outstanding requests) or power of two choices, which naturally send fewer requests to a server with a long queue. Add passive outlier detection that ejects a backend whose latency or error rate is far above its peers, active readiness checks, retries with budgets for idempotent requests, and alerts on per-backend latency so the degraded host is investigated.
+  - q: Design the load balancing for a global web application.
+    think: Layers from DNS to service calls.
+    answer: |
+      **Global**: GeoDNS or anycast routes users to the nearest healthy region, with health-checked failover between regions. **Edge**: CDN for static content. **Regional entry**: an L4 balancer (or cloud NLB) for connection-level scale and DDoS absorption in front of a fleet of L7 proxies (ALB/Envoy/nginx) that terminate TLS, route by host/path, enforce timeouts, retries and rate limits, and balance per request with least-requests. **Health**: readiness probes and outlier ejection; draining and slow start on deploys. **Service-to-service**: client-side or sidecar balancing for gRPC. **State**: stateless services, sessions in a shared store, so no stickiness is required.
+followUps:
+  - q: L4 or L7?
+    intuition: Connections vs requests.
+    approach: |
+      L4 forwards TCP/UDP connections without parsing them — extremely fast, works for any protocol, preserves client IPs, but balances only per connection. L7 parses HTTP/gRPC, so it can terminate TLS, route by path or header, retry, rewrite and balance each request — at higher cost per request. Typical stacks use L4 in front of L7.
+  - q: Why does power of two choices work so well?
+    intuition: Avoid the worst, cheaply.
+    approach: |
+      Picking the less loaded of two random servers almost never picks a heavily loaded one, and needs no global scan or shared state. In the classic balls-into-bins result, the maximum load drops from about log n / log log n (random) to log log n — measured here, with 10,000 servers the busiest got 6.7 requests with random choice and 3.0 with two choices. It's ideal when many balancers have slightly stale views, where pure least-connections can herd onto the same "least loaded" server.
+  - q: How do you deploy without dropping requests?
+    intuition: Stop sending, finish, then stop.
+    approach: |
+      Mark the instance as draining (fail readiness or deregister) so the balancer stops sending new requests; wait for in-flight requests and connections to finish within a timeout; then send SIGTERM and let the app shut down gracefully. Start new instances, wait for readiness, and ramp their traffic with slow start. Retries on idempotent requests cover the rare race.
+practice:
+  - task: Implement round robin, smooth weighted round robin, least connections and power of two choices behind one interface.
+    hint: Weighted RR — add each weight to a running score, pick the max, subtract the total from the winner.
+    solution: |
+      Round robin cycles an index. Smooth weighted RR keeps a current score per server; each pick adds every server's weight to its score, picks the highest, and subtracts the total weight from the winner — weights 5,1,1 produce a a b a c a a. Least connections tracks in-flight counts and picks the minimum, decrementing on completion. Power of two choices samples two servers and picks the one with fewer in-flight requests.
+    solutionCode: lb-algorithms
+quiz:
+  - q: Why is an L4 balancer a poor fit for gRPC traffic?
+    options: [It can't handle TLS, It balances connections, and gRPC multiplexes many requests on one long-lived connection, It doesn't support HTTP/2 framing at all, It's too slow]
+    correct: 1
+    why: All requests on a connection go to the backend chosen when it opened.
+  - q: What does connection draining do during a deploy?
+    options: [Kills all connections immediately, Stops new requests to an instance while letting in-flight ones finish, Restarts the balancer, Clears caches]
+    correct: 1
+    why: Draining removes the instance from rotation gracefully before shutdown.

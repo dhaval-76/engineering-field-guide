@@ -1,0 +1,6 @@
+flowchart TD
+  U1[User in Mumbai] -->|anycast / DNS: nearest PoP| E1[Edge PoP Mumbai<br/>cache · TLS · WAF]
+  U2[User in Chennai] --> E2[Edge PoP Chennai]
+  E1 -->|miss| SH[Origin shield<br/>regional mid-tier cache]
+  E2 -->|miss| SH
+  SH -->|miss, one request per object| O[Origin<br/>object storage + app servers]

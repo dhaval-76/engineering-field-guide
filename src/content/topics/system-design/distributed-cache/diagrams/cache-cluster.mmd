@@ -1,0 +1,8 @@
+flowchart TD
+  APP[App instances<br/>smart client + slot map<br/>+ small local L1 cache] -->|slot 0–5460| P1[(Primary A)]
+  APP -->|slot 5461–10922| P2[(Primary B)]
+  APP -->|slot 10923–16383| P3[(Primary C)]
+  P1 -. async replication .-> R1[(Replica A')]
+  P2 -. async .-> R2[(Replica B')]
+  P3 -. async .-> R3[(Replica C')]
+  APP -. miss → load .-> DB[(Database)]
