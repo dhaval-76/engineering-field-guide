@@ -19,7 +19,6 @@
     "report:migration": "tsx scripts/migration-report.ts",
     "research:fetch": "tsx scripts/research/leetcode-discuss.ts",
     "research:analyze": "tsx scripts/research/analyze.ts",
-    "migrate:extract": "tsx scripts/migrate/extract.ts",
     "research:apply": "tsx scripts/research/apply-reports.ts"
   },
   "dependencies": {
@@ -40,8 +39,6 @@
     "@types/node": "^26.6.6",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
-    "@types/turndown": "^5.0.6",
-    "cheerio": "^1.2.0",
     "eslint": "^10.13.0",
     "eslint-plugin-astro": "^1.7.0",
     "marked": "^18.1.2",
@@ -51,8 +48,6 @@
     "prettier": "^3.9.10",
     "prettier-plugin-astro": "^1.1.2",
     "tsx": "^4.23.15",
-    "turndown": "^7.2.4",
-    "turndown-plugin-gfm": "^1.0.2",
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.72.1",
     "yaml": "^2.9.1"
