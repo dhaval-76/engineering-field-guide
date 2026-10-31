@@ -1,33 +1,28 @@
-<svg viewBox="0 0 660 200" xmlns="http://www.w3.org/2000/svg">
-  <rect x="8" y="8" width="640" height="184" rx="8" fill="none" stroke="var(--d-text)" stroke-width="1.5" stroke-dasharray="4"></rect>
-  <text x="320" y="24" text-anchor="middle" font-family="var(--font-mono)" font-size="9" fill="var(--d-text)" font-weight="600">JVM Runtime Data Areas</text>
-  <rect x="20" y="32" width="190" height="152" rx="6" fill="var(--d-info-soft)" stroke="var(--d-info)" stroke-width="1.5"></rect>
-  <text x="115" y="50" text-anchor="middle" font-family="var(--font-mono)" font-size="9" fill="var(--d-info)" font-weight="600">Heap (shared)</text>
-  <rect x="28" y="56" width="174" height="50" rx="4" fill="var(--d-info-soft)"></rect>
-  <text x="115" y="72" text-anchor="middle" font-family="var(--font-mono)" font-size="8" fill="var(--d-info)">Young Gen</text>
-  <text x="115" y="86" text-anchor="middle" font-family="var(--font-sans)" font-size="7" fill="var(--d-text)">Eden + S0 + S1</text>
-  <text x="115" y="99" text-anchor="middle" font-family="var(--font-sans)" font-size="7" fill="var(--d-text)">Minor GC runs here</text>
-  <rect x="28" y="112" width="174" height="36" rx="4" fill="var(--d-info-soft)"></rect>
-  <text x="115" y="130" text-anchor="middle" font-family="var(--font-mono)" font-size="8" fill="var(--d-info)">Old Gen (Tenured)</text>
-  <text x="115" y="144" text-anchor="middle" font-family="var(--font-sans)" font-size="7" fill="var(--d-text)">Long-lived objects, Major GC</text>
-  <rect x="28" y="154" width="174" height="24" rx="4" fill="var(--d-info)"></rect>
-  <text x="115" y="169" text-anchor="middle" font-family="var(--font-mono)" font-size="7" fill="var(--d-bg)">Metaspace (class metadata)</text>
-  <rect x="220" y="32" width="160" height="152" rx="6" fill="var(--d-ok-soft)" stroke="var(--d-ok)" stroke-width="1.5"></rect>
-  <text x="300" y="50" text-anchor="middle" font-family="var(--font-mono)" font-size="9" fill="var(--d-ok)" font-weight="600">Thread-Local</text>
-  <rect x="228" y="56" width="144" height="36" rx="4" fill="var(--d-ok-soft)"></rect>
-  <text x="300" y="74" text-anchor="middle" font-family="var(--font-mono)" font-size="8" fill="var(--d-ok)">Stack (per thread)</text>
-  <text x="300" y="87" text-anchor="middle" font-family="var(--font-sans)" font-size="7" fill="var(--d-text)">frames, locals, refs</text>
-  <rect x="228" y="100" width="144" height="30" rx="4" fill="var(--d-ok-soft)"></rect>
-  <text x="300" y="117" text-anchor="middle" font-family="var(--font-mono)" font-size="8" fill="var(--d-ok)">PC Register</text>
-  <rect x="228" y="138" width="144" height="30" rx="4" fill="var(--d-ok-soft)"></rect>
-  <text x="300" y="155" text-anchor="middle" font-family="var(--font-mono)" font-size="8" fill="var(--d-ok)">Native Method Stack</text>
-  <rect x="390" y="32" width="252" height="152" rx="6" fill="var(--d-warn-soft)" stroke="var(--d-warn)" stroke-width="1.5"></rect>
-  <text x="516" y="50" text-anchor="middle" font-family="var(--font-mono)" font-size="9" fill="var(--d-warn)" font-weight="600">Shared (all threads)</text>
-  <rect x="398" y="56" width="236" height="36" rx="4" fill="var(--d-warn-soft)"></rect>
-  <text x="516" y="74" text-anchor="middle" font-family="var(--font-mono)" font-size="8" fill="var(--d-warn)">Method Area</text>
-  <text x="516" y="87" text-anchor="middle" font-family="var(--font-sans)" font-size="7" fill="var(--d-text)">class structure, static fields, bytecode</text>
-  <rect x="398" y="100" width="236" height="30" rx="4" fill="var(--d-warn-soft)"></rect>
-  <text x="516" y="117" text-anchor="middle" font-family="var(--font-mono)" font-size="8" fill="var(--d-warn)">Runtime Constant Pool</text>
-  <rect x="398" y="138" width="236" height="30" rx="4" fill="var(--d-warn-soft)"></rect>
-  <text x="516" y="155" text-anchor="middle" font-family="var(--font-mono)" font-size="8" fill="var(--d-warn)">String Pool (interned strings)</text>
+<svg viewBox="0 0 340 430" xmlns="http://www.w3.org/2000/svg" font-family="var(--font-sans)" font-size="12">
+  <text x="10" y="16" fill="var(--d-muted)" font-weight="600" letter-spacing=".05em">SHARED BY ALL THREADS</text>
+  <rect x="10" y="24" width="320" height="178" rx="8" fill="var(--d-info-soft)" stroke="var(--d-info)"/>
+  <text x="22" y="44" fill="var(--d-text)" font-weight="600">Heap — garbage-collected (-Xmx)</text>
+  <rect x="22" y="54" width="296" height="54" rx="6" fill="var(--d-bg)" stroke="var(--d-stroke)"/>
+  <text x="34" y="72" fill="var(--d-text)" font-weight="600">Young generation</text>
+  <text x="34" y="92" fill="var(--d-muted)" font-size="11">Eden + two survivor spaces · minor GCs</text>
+  <rect x="22" y="116" width="296" height="40" rx="6" fill="var(--d-bg)" stroke="var(--d-stroke)"/>
+  <text x="34" y="134" fill="var(--d-text)" font-weight="600">Old generation</text>
+  <text x="34" y="149" fill="var(--d-muted)" font-size="11">long-lived objects · major / mixed GCs</text>
+  <text x="22" y="176" fill="var(--d-muted)" font-size="11">also on the heap: the string pool and static fields</text>
+  <text x="22" y="192" fill="var(--d-muted)" font-size="11">(held by each class's Class object)</text>
+  <rect x="10" y="210" width="320" height="70" rx="8" fill="var(--d-fill)" stroke="var(--d-stroke)" stroke-dasharray="4 3"/>
+  <text x="22" y="230" fill="var(--d-text)" font-weight="600">Metaspace — native memory, not heap</text>
+  <text x="22" y="249" fill="var(--d-muted)" font-size="11">class metadata, method bytecode, runtime constant pools</text>
+  <text x="22" y="266" fill="var(--d-muted)" font-size="11">the "method area" · next to it: the JIT code cache</text>
+  <text x="10" y="306" fill="var(--d-muted)" font-weight="600" letter-spacing=".05em">ONE PER THREAD</text>
+  <rect x="10" y="314" width="320" height="106" rx="8" fill="var(--d-fill)" stroke="var(--d-stroke)"/>
+  <rect x="22" y="326" width="140" height="82" rx="6" fill="var(--d-bg)" stroke="var(--d-line)"/>
+  <text x="32" y="344" fill="var(--d-text)" font-weight="600">JVM stack</text>
+  <text x="32" y="362" fill="var(--d-muted)" font-size="11">one frame per call:</text>
+  <text x="32" y="378" fill="var(--d-muted)" font-size="11">locals, operands,</text>
+  <text x="32" y="394" fill="var(--d-muted)" font-size="11">return address (-Xss)</text>
+  <rect x="172" y="326" width="146" height="36" rx="6" fill="var(--d-bg)" stroke="var(--d-line)"/>
+  <text x="182" y="348" fill="var(--d-text)" font-weight="600">PC register</text>
+  <rect x="172" y="372" width="146" height="36" rx="6" fill="var(--d-bg)" stroke="var(--d-line)"/>
+  <text x="182" y="394" fill="var(--d-text)" font-weight="600">Native method stack</text>
 </svg>

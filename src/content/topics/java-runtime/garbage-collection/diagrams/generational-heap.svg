@@ -1,22 +1,23 @@
-<svg viewBox="0 0 640 190" xmlns="http://www.w3.org/2000/svg">
-  <defs><marker id="garbage-collection-in-java-d1-gc-a" markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto"><path d="M0,0 L0,6 L7,3 z" fill="var(--d-text)"></path></marker></defs>
-  <rect x="8" y="8" width="620" height="100" rx="10" fill="var(--d-fill)" stroke="var(--border)" stroke-width="1.5"></rect>
-  <text x="318" y="26" text-anchor="middle" font-family="var(--font-mono)" font-size="10" fill="var(--d-text)" font-weight="600">JVM HEAP</text>
-  <rect x="20" y="34" width="320" height="64" rx="8" fill="var(--d-info-soft)" stroke="var(--d-info)" stroke-width="2"></rect>
-  <text x="180" y="52" text-anchor="middle" font-family="var(--font-mono)" font-size="10" fill="var(--d-info)" font-weight="600">YOUNG GENERATION (Minor GC)</text>
-  <rect x="30" y="60" width="140" height="30" rx="4" fill="var(--d-bg)" stroke="var(--d-info)" stroke-width="1"></rect>
-  <text x="100" y="79" text-anchor="middle" font-family="var(--font-mono)" font-size="9" fill="var(--d-info)">Eden (new objects)</text>
-  <rect x="178" y="60" width="72" height="30" rx="4" fill="var(--d-bg)" stroke="var(--d-info)" stroke-width="1"></rect>
-  <text x="214" y="79" text-anchor="middle" font-family="var(--font-mono)" font-size="9" fill="var(--d-info)">S0</text>
-  <rect x="256" y="60" width="72" height="30" rx="4" fill="var(--d-bg)" stroke="var(--d-info)" stroke-width="1"></rect>
-  <text x="292" y="79" text-anchor="middle" font-family="var(--font-mono)" font-size="9" fill="var(--d-info)">S1</text>
-  <path d="M340,66 L370,66" stroke="var(--d-text)" stroke-width="1.5" marker-end="url(#garbage-collection-in-java-d1-gc-a)"></path>
-  <text x="355" y="58" text-anchor="middle" font-family="var(--font-mono)" font-size="8" fill="var(--d-muted)">survive N GCs</text>
-  <rect x="372" y="34" width="240" height="64" rx="8" fill="var(--d-warn-soft)" stroke="var(--d-warn)" stroke-width="2"></rect>
-  <text x="492" y="52" text-anchor="middle" font-family="var(--font-mono)" font-size="10" fill="var(--d-warn)" font-weight="600">OLD GENERATION (Major GC)</text>
-  <text x="492" y="74" text-anchor="middle" font-family="var(--font-sans)" font-size="10" fill="var(--d-text)">Long-lived objects</text>
-  <text x="492" y="90" text-anchor="middle" font-family="var(--font-sans)" font-size="10" fill="var(--d-text)">caches · singletons · static data</text>
-  <text x="8" y="128" font-family="var(--font-sans)" font-size="10" fill="var(--d-muted)">Minor GC: pauses &lt; 10ms typically · only Young Gen scanned · frequent</text>
-  <text x="8" y="148" font-family="var(--font-sans)" font-size="10" fill="var(--d-bad)">Major/Full GC: pauses 100ms–seconds · scans entire heap · rare but impactful</text>
-  <text x="8" y="168" font-family="var(--font-sans)" font-size="10" fill="var(--d-text)">G1 (default since Java 9) uses the same idea, but over many equal-sized regions with a pause-time target</text>
+<svg viewBox="0 0 340 330" xmlns="http://www.w3.org/2000/svg" font-family="var(--font-sans)" font-size="12">
+  <defs><marker id="gh-a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="var(--d-info)"/></marker></defs>
+  <text x="10" y="16" fill="var(--d-muted)" font-weight="600" letter-spacing=".05em">YOUNG GENERATION — COLLECTED OFTEN</text>
+  <rect x="10" y="24" width="320" height="104" rx="8" fill="var(--d-info-soft)" stroke="var(--d-info)"/>
+  <rect x="22" y="36" width="160" height="80" rx="6" fill="var(--d-bg)" stroke="var(--d-stroke)"/>
+  <text x="34" y="58" fill="var(--d-text)" font-weight="600">Eden</text>
+  <text x="34" y="76" fill="var(--d-muted)" font-size="11">every new object</text>
+  <text x="34" y="92" fill="var(--d-muted)" font-size="11">starts here; most die</text>
+  <text x="34" y="108" fill="var(--d-muted)" font-size="11">here, young</text>
+  <rect x="192" y="36" width="60" height="80" rx="6" fill="var(--d-bg)" stroke="var(--d-stroke)"/>
+  <text x="222" y="80" text-anchor="middle" fill="var(--d-text)" font-weight="600">S0</text>
+  <rect x="260" y="36" width="60" height="80" rx="6" fill="var(--d-bg)" stroke="var(--d-stroke)"/>
+  <text x="290" y="80" text-anchor="middle" fill="var(--d-text)" font-weight="600">S1</text>
+  <path d="M170 128 C 170 150, 170 156, 170 172" fill="none" stroke="var(--d-info)" stroke-width="1.4" marker-end="url(#gh-a)"/>
+  <text x="180" y="150" fill="var(--d-muted)" font-size="11">survived several</text><text x="180" y="164" fill="var(--d-muted)" font-size="11">minor GCs → promoted</text>
+  <text x="10" y="192" fill="var(--d-muted)" font-weight="600" letter-spacing=".05em">OLD GENERATION — COLLECTED RARELY</text>
+  <rect x="10" y="200" width="320" height="56" rx="8" fill="var(--d-warn-soft)" stroke="var(--d-warn)"/>
+  <text x="22" y="222" fill="var(--d-text)" font-weight="600">Long-lived objects</text>
+  <text x="22" y="242" fill="var(--d-muted)" font-size="11">caches · pools · singletons · large session data</text>
+  <text x="10" y="282" fill="var(--d-text)" font-size="11.5">Minor GC: young only — short, frequent pauses.</text>
+  <text x="10" y="300" fill="var(--d-text)" font-size="11.5">Old-generation work: rarer, larger (or concurrent).</text>
+  <text x="10" y="320" fill="var(--d-muted)" font-size="11">G1 applies the same idea to many equal-sized regions.</text>
 </svg>

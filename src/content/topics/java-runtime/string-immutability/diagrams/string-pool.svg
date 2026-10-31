@@ -1,16 +1,24 @@
-<svg viewBox="0 0 600 180" xmlns="http://www.w3.org/2000/svg">
-  <defs><marker id="string-immutability-in-java-d1-sp-a" markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto"><path d="M0,0 L0,6 L7,3 z" fill="var(--d-info)"></path></marker></defs>
-  <rect x="8" y="8" width="580" height="80" rx="10" fill="var(--d-info-soft)" stroke="var(--d-info)" stroke-width="1.5"></rect>
-  <text x="298" y="28" text-anchor="middle" font-family="var(--font-mono)" font-size="10" fill="var(--d-info)" font-weight="600">String pool (in the heap since Java 7)</text>
-  <rect x="220" y="38" width="160" height="34" rx="6" fill="var(--d-bg)" stroke="var(--d-info)" stroke-width="1.5"></rect>
-  <text x="300" y="60" text-anchor="middle" font-family="var(--font-mono)" font-size="11" fill="var(--d-info)">"hello"</text>
-  <text x="20" y="110" font-family="var(--font-mono)" font-size="10" fill="var(--d-text)">String a = "hello";</text>
-  <path d="M120,115 L265,70" stroke="var(--d-ok)" stroke-width="1.5" marker-end="url(#string-immutability-in-java-d1-sp-a)"></path>
-  <text x="20" y="135" font-family="var(--font-mono)" font-size="10" fill="var(--d-text)">String b = "hello";</text>
-  <path d="M120,138 L278,72" stroke="var(--d-ok)" stroke-width="1.5" marker-end="url(#string-immutability-in-java-d1-sp-a)"></path>
-  <text x="20" y="170" font-family="var(--font-sans)" font-size="10" fill="var(--d-ok)">a == b is TRUE — same pool object. Safe because String is immutable — no mutation risk from sharing.</text>
-  <rect x="400" y="102" width="180" height="34" rx="6" fill="var(--d-warn-soft)" stroke="var(--d-warn)" stroke-width="1.5"></rect>
-  <text x="490" y="123" text-anchor="middle" font-family="var(--font-mono)" font-size="10" fill="var(--d-warn)">new heap obj "hello"</text>
-  <text x="400" y="155" font-family="var(--font-mono)" font-size="10" fill="var(--d-text)">String c = new String("hello");</text>
-  <text x="400" y="172" font-family="var(--font-sans)" font-size="9" fill="var(--d-bad)">c == a is FALSE (diff object) · c.equals(a) is TRUE (same content)</text>
+<svg viewBox="0 0 340 300" xmlns="http://www.w3.org/2000/svg" font-family="var(--font-sans)" font-size="12">
+  <defs><marker id="sp-a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="var(--d-info)"/></marker></defs>
+  <g font-family="var(--font-mono)" fill="var(--d-text)">
+    <text x="10" y="20">String a = "hello";</text>
+    <text x="10" y="40">String b = "hello";</text>
+    <text x="10" y="60">String c = new String("hello");</text>
+  </g>
+  <text x="10" y="94" fill="var(--d-muted)" font-weight="600" letter-spacing=".05em">HEAP</text>
+  <rect x="10" y="102" width="320" height="150" rx="8" fill="var(--d-fill)" stroke="var(--d-stroke)"/>
+  <rect x="22" y="114" width="180" height="70" rx="6" fill="var(--d-info-soft)" stroke="var(--d-info)" stroke-dasharray="4 3"/>
+  <text x="32" y="132" fill="var(--d-info)" font-size="11" font-weight="600">string pool (interned)</text>
+  <rect x="42" y="142" width="110" height="30" rx="5" fill="var(--d-bg)" stroke="var(--d-stroke)"/>
+  <text x="97" y="162" text-anchor="middle" fill="var(--d-text)" font-family="var(--font-mono)">"hello"</text>
+  <rect x="216" y="196" width="104" height="44" rx="5" fill="var(--d-bg)" stroke="var(--d-stroke)"/>
+  <text x="268" y="215" text-anchor="middle" fill="var(--d-text)" font-family="var(--font-mono)">"hello"</text>
+  <text x="268" y="231" text-anchor="middle" fill="var(--d-muted)" font-size="10.5">separate object</text>
+  <g fill="none" stroke="var(--d-info)" stroke-width="1.4" marker-end="url(#sp-a)">
+    <path d="M150 15 C 210 40, 140 110, 110 140"/>
+    <path d="M150 36 C 190 60, 120 110, 92 140"/>
+    <path d="M250 56 C 300 100, 290 160, 276 194"/>
+  </g>
+  <text x="10" y="272" fill="var(--d-ok)">a == b → true (same pooled object)</text>
+  <text x="10" y="290" fill="var(--d-bad)">c == a → false · c.equals(a) → true</text>
 </svg>
