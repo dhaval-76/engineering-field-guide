@@ -12,6 +12,9 @@ def min_distance(a, b):
     for i, ca in enumerate(a, 1):
         cur = [i]
         for j, cb in enumerate(b, 1):
-            cur.append(prev[j - 1] if ca == cb else 1 + min(prev[j - 1], prev[j], cur[j - 1]))
+            if ca == cb:
+                cur.append(prev[j - 1])
+            else:
+                cur.append(1 + min(prev[j - 1], prev[j], cur[j - 1]))
         prev = cur
     return prev[-1]

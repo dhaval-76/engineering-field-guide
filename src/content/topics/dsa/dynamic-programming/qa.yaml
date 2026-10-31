@@ -22,6 +22,21 @@ practice:
     solution: |
       State: best money from houses 0..i. Transition: skip house i (`best(i−1)`) or rob it (`nums[i] + best(i−2)`). Base: best of an empty prefix is 0. Top-down memoises best(i); bottom-up fills `dp[i + 1]`; since each step reads only the previous two values, keep two variables for O(1) space. O(n) time in all versions.
     solutionCode: dsa-dp-top-down-bottom-up
+  - task: Decide whether an array of positive integers can be split into two subsets with equal sums.
+    hint: Which target sum, and which knapsack variant?
+    solution: |
+      If the total is odd, no. Otherwise ask whether some subset sums to `total / 2`: a boolean 0/1 knapsack. `reachable[0] = true`; for each number x, for s from the target down to x: `reachable[s] |= reachable[s − x]`. Downward iteration uses each number at most once. O(n · total) time, O(total) space.
+    solutionCode: dsa-knapsack
+  - task: Decide whether a string can be segmented into dictionary words.
+    hint: Define a state over prefixes.
+    solution: |
+      `ok[i]` = the first i characters can be segmented; `ok[0] = true`. For each i, `ok[i]` is true if some j < i has `ok[j]` and `s[j..i)` in the dictionary (only j within the longest word length matters). Answer `ok[n]`. O(n · L) substring checks.
+    solutionCode: dsa-word-break
+  - task: Find the minimum path sum from the top-left to the bottom-right of a grid, moving only right or down.
+    hint: Where can a cell be entered from?
+    solution: |
+      `dp[r][c] = grid[r][c] + min(dp[r−1][c], dp[r][c−1])`, with the first row and column only having one predecessor. Each row only reads the previous one, so keep a single array updated left to right. O(rows · cols) time, O(cols) space.
+    solutionCode: dsa-min-path-sum
 quiz:
   - q: Which two properties make a problem suitable for DP?
     options: [Sorted input and small values, Optimal substructure and overlapping subproblems, Greedy choice and monotonicity, Recursion and randomness]
