@@ -9,6 +9,8 @@ export default defineConfig({
   site: site.origin,
   base: site.base,
   trailingSlash: 'ignore',
+  // ~13 KB of CSS in total: inlining it removes two render-blocking requests on every page.
+  build: { inlineStylesheets: 'always' },
   integrations: [mdx(), react(), sitemap()],
   markdown: {
     shikiConfig: {

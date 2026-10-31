@@ -6,6 +6,9 @@ import Footer from '~/components/layout/Footer.astro';
 import CommandPalette from '~/components/islands/CommandPalette';
 import { site } from '~/site.config';
 import { url } from '~/lib/url';
+// The two faces used above the fold; preloading them avoids a re-layout when they swap in.
+import serifFont from '@fontsource-variable/newsreader/files/newsreader-latin-wght-normal.woff2?url';
+import sansFont from '@fontsource-variable/inter-tight/files/inter-tight-latin-wght-normal.woff2?url';
 
 interface Props {
   title: string;
@@ -28,6 +31,8 @@ const ogImage = new URL(url(`og/${current?.track ?? 'default'}.png`), Astro.site
 <html lang="en">
   <head>
     <meta charset="utf-8" />
+    <link rel="preload" href={serifFont} as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href={sansFont} as="font" type="font/woff2" crossorigin />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{pageTitle}</title>
     <meta name="description" content={description} />
