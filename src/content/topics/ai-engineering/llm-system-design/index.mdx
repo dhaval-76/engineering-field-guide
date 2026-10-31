@@ -18,6 +18,20 @@ quickRef:
 lastReviewed: 2026-10-30
 ---
 
+## Why it matters
+
+Calling a model API from one script is easy. Running LLM features for millions of users is a different problem:
+- **Every request costs money in proportion to its tokens.** A careless prompt that drags in the whole chat history can cost ten times more than a trimmed one.
+- **Latency is seconds, not milliseconds**, so streaming and asynchronous work become part of the design.
+- **Providers have outages and rate limits** that you don't control.
+- **Quality can silently get worse** when a prompt, a model version or the retrieved data changes.
+
+Most of the design is the ordinary system-design toolkit applied to these four facts: a gateway, budgets, queues, caching, fallbacks and monitoring. That is why interviewers increasingly ask it as a standard design question.
+
+<Callout type="analogy">
+A busy restaurant kitchen with expensive chefs. The front desk (the gateway) takes every order, checks the table's budget and sends simple orders to a junior cook (a small model) and hard ones to the head chef (a large model). If the head chef is off sick, a stand-in from another kitchen takes over (fallback). Dishes go out course by course instead of all at the end (streaming). A taster checks plates before they leave (guardrails), and someone writes down what every dish cost (usage logging).
+</Callout>
+
 ## Requirements
 
 Example: an AI assistant inside a SaaS product (answers questions over the customer's data, drafts replies, takes simple actions).

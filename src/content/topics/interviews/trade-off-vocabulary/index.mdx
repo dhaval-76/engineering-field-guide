@@ -69,6 +69,17 @@ These aren't magic words — they work because each one states a reason or a lim
 
 ## When the interviewer pushes back
 
+<DecisionGuide
+  title="How to answer a pushback"
+  steps={[
+    ['Did they add a constraint ("100× traffic", "must work offline")?', 'Adapt the design to it and say what changes and why.'],
+    ['Did they question a choice without new facts ("why not X?")?', 'Restate the requirement your choice serves and what X would cost here.'],
+    ['Is their argument better than yours?', 'Change your mind out loud: "With that, B is better because…".'],
+    ["Did they say it's over-engineered?", 'Split essential parts from anticipated ones and drop the latter.'],
+  ]}
+  otherwise="Ask what they are worried about; the pushback usually hides a requirement."
+/>
+
 - **Listen for the new constraint.** "What if traffic is 100× higher?" or "Isn't that over-engineered?" usually signals a requirement you should adapt to, not a trap to resist.
 - **Defend with reasons, not repetition**: restate the requirement the choice serves and the alternative's cost.
 - **Change your mind visibly** when the argument is good: "You're right — with that constraint, B is better because…". Interviewers value updating on evidence.
