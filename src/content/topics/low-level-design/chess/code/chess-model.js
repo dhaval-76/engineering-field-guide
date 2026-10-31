@@ -27,5 +27,16 @@ export const moveGenerators = {
   queen: (b, sq, c) => slide(b, sq, c, [...ORTHO, ...DIAG]),
   knight: (b, sq, c) => steps(b, sq, c, [[1, 2], [2, 1], [-1, 2], [-2, 1], [1, -2], [2, -1], [-1, -2], [-2, -1]]),
   king: (b, sq, c) => steps(b, sq, c, [...ORTHO, ...DIAG]),
-  // pawn omitted for brevity: forward if empty, two from start rank, diagonal only to capture
+  pawn: (b, [f, r], c) => {
+    const dir = c === 'WHITE' ? 1 : -1, start = c === 'WHITE' ? 1 : 6, out = [];
+    if (onBoard([f, r + dir]) && !b.at([f, r + dir])) {
+      out.push([f, r + dir]);
+      if (r === start && !b.at([f, r + 2 * dir])) out.push([f, r + 2 * dir]);
+    }
+    for (const df of [-1, 1]) {                                   // diagonal captures only
+      const s = [f + df, r + dir];
+      if (onBoard(s) && b.at(s) && b.at(s).color !== c) out.push(s);
+    }
+    return out;                                                   // en passant & promotion handled by Game
+  },
 };
