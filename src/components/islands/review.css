@@ -1,0 +1,136 @@
+.rv-filter {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.9375rem;
+  color: var(--ink-2);
+}
+.rv-filter select {
+  min-height: 36px;
+  max-width: 100%;
+  padding: 0 8px;
+  border: 1px solid var(--rule-strong);
+  border-radius: var(--radius);
+  background: var(--bg-raised);
+  color: var(--ink);
+  font: inherit;
+}
+.rv-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 8px;
+  margin: 16px 0;
+}
+.rv-stat {
+  padding: 10px 12px;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  background: var(--bg-raised);
+}
+.rv-stat dt {
+  font-size: 0.8125rem;
+  color: var(--ink-3);
+}
+.rv-stat dd {
+  margin: 0;
+  font-size: var(--step-2);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+}
+.rv-stat dd.rv-hint {
+  margin-top: 2px;
+  font-size: 0.8125rem;
+  line-height: 1.35;
+  color: var(--ink-3);
+}
+.rv-due dd:not(.rv-hint) {
+  color: var(--bad);
+}
+.rv-mastered dd:not(.rv-hint) {
+  color: var(--ok);
+}
+.rv-card {
+  margin: 16px 0;
+  padding: 16px 20px;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  background: var(--bg-raised);
+}
+.rv-card h2 {
+  margin-top: 0 !important;
+}
+.rv-card p {
+  margin: 0 0 8px;
+}
+.rv-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+.rv-actions .btn {
+  min-height: 36px;
+}
+.rv .btn.primary,
+.rv-card .btn.primary {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--bg);
+}
+.rv-card .btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.rv-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  font-size: 0.9375rem;
+}
+.rv-check input {
+  width: 18px;
+  height: 18px;
+}
+.rv-meta {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 4px 16px;
+  font-size: 0.875rem;
+  color: var(--ink-3);
+}
+.rv-bar {
+  height: 4px;
+  margin-bottom: 16px;
+  border-radius: 2px;
+  background: var(--rule);
+  overflow: hidden;
+}
+.rv-bar span {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+}
+.rv-card .quiz-opt kbd {
+  margin-right: 6px;
+}
+.rv-topics {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.rv-topics li {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--rule);
+}
+.rv-num {
+  color: var(--bad);
+  font-variant-numeric: tabular-nums;
+}
+.rv-muted {
+  color: var(--ink-3);
+}

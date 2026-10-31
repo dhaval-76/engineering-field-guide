@@ -97,7 +97,14 @@ All personal data stays in the browser (localStorage keys prefixed `efg:`; see `
 Every read and write must stay wrapped in try/catch. Every new page must work offline: the service
 worker caches every built file automatically, but check it with the offline crawl.
 
-### 6. Review page (spaced repetition)
+### 6. Review page (spaced repetition) (done 2026-11-01)
+
+Done: `/review/` with due, learning, remembered and not-tried counts, a track filter, rounds of
+10 (missed first), new questions optionally only from completed topics, and due counts by topic.
+The topic self-check records every answer and marks questions missed last time. Storage: `efg:quiz`
+(see `AGENTS.md`). Quiz history in the data page (9d) can read the same key.
+
+Original scope:
 
 A page that asks quiz questions you got wrong or haven't seen in a while. This means storing quiz
 answers per question (see also 9d).

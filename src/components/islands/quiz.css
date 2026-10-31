@@ -51,8 +51,30 @@
 .quiz-why p {
   display: inline;
 }
+.quiz-seen {
+  margin-left: 8px;
+  padding: 0 6px;
+  border: 1px solid var(--rule-strong);
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--ink-3);
+  white-space: nowrap;
+}
+.quiz-seen.missed {
+  border-color: var(--bad);
+  color: var(--bad);
+}
+.quiz-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 0.9375rem;
+}
 .quiz-foot {
   display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
   justify-content: space-between;
   align-items: center;
   padding-top: 12px;

@@ -43,12 +43,12 @@ src/
 │     └─ walkthroughs/<id>.yaml
 ├─ components/
 │  ├─ content/   MDX components (registered in mdx.ts, no imports needed in MDX)
-│  ├─ islands/   React: CommandPalette, WalkthroughPlayer, Quiz, PersonalPanel
+│  ├─ islands/   React: CommandPalette, WalkthroughPlayer, Quiz, Review, PersonalPanel
 │  ├─ layout/    Header, Sidebar, Toc, PrevNext, Footer
 │  └─ qa/        interview section, company tags
 ├─ layouts/      BaseLayout (head, theme script, manifest), TopicLayout
 ├─ lib/          nav, snippets, highlight, storage (localStorage), url, companies, …
-├─ pages/        home, [track], [...topic], cheatsheets, companies, glossary, progress, offline, 404
+├─ pages/        home, [track], [...topic], cheatsheets, companies, glossary, progress, review, offline, 404
 ├─ scripts/      site.ts (keyboard, code tabs, diagram viewer, …), offline.ts (service worker client)
 └─ styles/       tokens.css (light + dark), base.css, prose.css, code.css
 scripts/
@@ -202,8 +202,15 @@ reported as small; that is expected.
 ## Personal data in the browser
 
 All keys live under the `efg:` prefix via `src/lib/storage.ts`: `progress`, `bookmarks`, `recent`,
-`lang`, `theme`, `focus`, `wrap`, `offline-optin`, `offline-checked` (and any added by later
-features; list them here when you add one).
+`lang`, `theme`, `focus`, `wrap`, `quiz`, `offline-optin`, `offline-checked` (and any added by
+later features; list them here when you add one).
+
+- `quiz`: `{ [questionId]: { box, due, last, right, wrong } }`, written by the topic self-check and
+  `/review/` through `src/lib/review.ts`. A question id is `<topicId>#<hash of the question text>`,
+  so reordering questions keeps history, but rewording a question starts it fresh. Boxes wait
+  0, 1, 3, 7, 16 and 35 days; a wrong answer goes back to box 0.
+- `/review/questions.json` is a static endpoint (`src/pages/review/questions.json.ts`) listing every
+  quiz question; the review island fetches it, and the offline copy saves it like any file.
 
 ## Picking the next piece of work
 

@@ -4,11 +4,14 @@ import CodeTabs from '~/components/content/CodeTabs.astro';
 import AskedAt from '~/components/qa/AskedAt.astro';
 import Quiz from '~/components/islands/Quiz';
 import { md } from '~/lib/markdown';
+import { quizItems } from '~/lib/quiz';
+import { url } from '~/lib/url';
 
 interface Props {
   qa: CollectionEntry<'qa'>['data'];
+  topicId: string;
 }
-const { qa } = Astro.props;
+const { qa, topicId } = Astro.props;
 
 const questions = await Promise.all(
   qa.questions.map(async (x) => ({
@@ -32,14 +35,7 @@ const practice = await Promise.all(
     solutionHtml: await md(x.solution),
   })),
 );
-const quiz = await Promise.all(
-  qa.quiz.map(async (x) => ({
-    q: x.q,
-    options: x.options,
-    correct: x.correct,
-    whyHtml: await md(x.why),
-  })),
-);
+const quiz = await quizItems(topicId, qa);
 ---
 
 <div class="interview prose">
@@ -114,7 +110,7 @@ const quiz = await Promise.all(
   {quiz.length > 0 && (
     <section aria-labelledby="self-check">
       <h2 id="self-check">Self-check</h2>
-      <Quiz client:visible items={quiz} />
+      <Quiz client:visible items={quiz} reviewUrl={url('review/')} />
     </section>
   )}
 </div>

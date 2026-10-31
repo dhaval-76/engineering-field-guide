@@ -2,6 +2,7 @@
 import BaseLayout from '~/layouts/BaseLayout.astro';
 import PersonalPanel from '~/components/islands/PersonalPanel';
 import { getTopicIndex } from '~/lib/topic-index';
+import { url } from '~/lib/url';
 
 const index = await getTopicIndex();
 ---
@@ -11,6 +12,7 @@ const index = await getTopicIndex();
     <h1>Your progress</h1>
     <p class="lede">
       Self-paced: there are no deadlines. Mark topics complete as you go and come back any time.
+      To keep what you've read fresh, <a href={url('review/')}>review quiz questions</a>.
     </p>
     <PersonalPanel
       client:only="react"

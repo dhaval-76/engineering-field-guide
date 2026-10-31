@@ -29,6 +29,8 @@ export const keys = {
   theme: 'theme',
   focus: 'focus',
   wrap: 'wrap',
+  /** quiz answers per question, for /review/ (see lib/review.ts) */
+  quiz: 'quiz',
 } as const;
 
 /** Notify other islands on the same page that some stored state changed. */

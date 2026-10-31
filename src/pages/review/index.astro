@@ -1,0 +1,56 @@
+---
+import BaseLayout from '~/layouts/BaseLayout.astro';
+import Review from '~/components/islands/Review';
+import { getNav } from '~/lib/nav';
+import { url } from '~/lib/url';
+
+const tracks = (await getNav()).map((n) => ({ id: n.track.id, title: n.track.data.title }));
+---
+
+<BaseLayout title="Review" noindex>
+  <div class="wrap">
+    <h1>Review</h1>
+    <p class="lede">
+      Quiz questions you missed, or answered a while ago, come back here so they stick. Answers from
+      the self-check at the end of every topic count too.
+    </p>
+    <Review client:only="react" dataUrl={url('review/questions.json')} tracks={tracks} />
+
+    <h2>How it works</h2>
+    <ul>
+      <li>
+        A question you get <strong>wrong</strong> is due again straight away.
+      </li>
+      <li>
+        Each time you get it <strong>right</strong>, it waits longer before coming back: 1 day, then
+        3, 7, 16 and 35 days. A miss starts it over.
+      </li>
+      <li>
+        Rounds are 10 questions; stop whenever you like. Number keys pick an answer, and
+        <kbd>Enter</kbd> moves on.
+      </li>
+      <li>Your answers are stored only in this browser, like your progress.</li>
+    </ul>
+  </div>
+</BaseLayout>
+
+<style>
+  .wrap {
+    max-width: 760px;
+  }
+  h1 {
+    font-family: var(--font-serif);
+    font-weight: 560;
+    font-size: var(--step-4);
+    margin: 0;
+  }
+  .wrap :global(h2) {
+    font-family: var(--font-serif);
+    font-weight: 560;
+    font-size: var(--step-2);
+    margin: 32px 0 8px;
+  }
+  .lede {
+    color: var(--ink-2);
+  }
+</style>

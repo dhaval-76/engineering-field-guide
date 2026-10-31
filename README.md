@@ -23,6 +23,9 @@ and its order are in [`BACKLOG.md`](BACKLOG.md).
 - **Search** (`/` or `Ctrl/⌘ K`), light and dark themes, reading mode (hides both side panels),
   code wrap, a remembered code language.
 - **Progress and bookmarks** saved in the browser, with a `/progress/` page.
+- **Review** (`/review/`): quiz answers are remembered per question. Missed questions come back
+  straight away; right ones come back after 1, 3, 7, 16 and 35 days (spaced repetition). Rounds
+  of 10, filterable by track, with new questions optionally limited to topics you've completed.
 - **Offline app:** the first visit saves the whole site (about 68 MB). Updates download only changed
   files and ask before switching. The `/offline/` page checks for updates, repairs missing files,
   re-downloads everything, removes the copy, and explains how to install the app.
