@@ -1,46 +1,30 @@
 classDiagram
-  direction LR
+  direction TB
   class ParkingLot {
-    +park(Vehicle) Optional~Ticket~
-    +pay(ticketId, Money)
+    +park(vehicle) Ticket
+    +pay(ticketId, money)
     +exit(ticketId)
   }
   class ParkingSpot {
-    -id
-    -floor
-    -size SpotSize
-    +tryOccupy(Vehicle) bool
+    floor, size
+    +tryOccupy(vehicle) bool
     +release()
   }
   class Ticket {
-    -entry Instant
-    -status TicketStatus
-    +markPaid(Money)
-    +close()
+    entry, status
+    +markPaid(money)
   }
   class Vehicle {
-    plate
-    type VehicleType
+    plate, type
   }
-  class SpotSelector {
-    <<interface>>
-    +candidates(Vehicle, spots)
+  class Policies {
+    <<interfaces>>
+    SpotSelector → NearestSmallestFit
+    PricingPolicy → HourlyWithDailyCap
+    SpotListener → DisplayBoard
   }
-  class PricingPolicy {
-    <<interface>>
-    +feeFor(Ticket, exit) Money
-  }
-  class SpotListener {
-    <<interface>>
-    +spotChanged(spot, nowFree)
-  }
-  ParkingLot "1" *-- "*" ParkingSpot
-  ParkingLot "1" o-- "*" Ticket : active
+  ParkingLot *-- ParkingSpot
+  ParkingLot o-- Ticket : active
   Ticket --> ParkingSpot
   Ticket --> Vehicle
-  ParkingLot --> SpotSelector
-  ParkingLot --> PricingPolicy
-  ParkingLot --> SpotListener
-  SpotSelector <|.. NearestSmallestFit
-  PricingPolicy <|.. HourlyWithDailyCap
-  SpotListener <|.. DisplayBoard
+  Policies <-- ParkingLot : uses

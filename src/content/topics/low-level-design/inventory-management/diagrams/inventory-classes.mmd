@@ -1,34 +1,30 @@
 classDiagram
+  direction TB
   class InventoryService {
-    +receive(warehouse, sku, qty)
-    +reserve(orderId, sku, qty, now, ttl) Reservation
-    +confirm(reservationId, now) boolean
+    +reserve(order, sku, qty)
+    +confirm(reservationId)
     +cancel(reservationId)
     +available(sku) int
   }
   class StockLevel {
-    int onHand
-    int reserved
+    onHand
+    reserved
     +available() int
   }
   class Reservation {
-    String id
-    String orderId
-    StockKey key
-    int qty
-    long expiresAt
+    orderId
+    warehouse, sku, qty
+    expiresAt
   }
   class AllocationStrategy {
     <<interface>>
-    +choose(sku, qty, availableByWarehouse) warehouse
+    +choose(sku, qty)
   }
   class LowStockListener {
     <<interface>>
-    +onLowStock(sku, available)
+    +onLowStock(sku)
   }
-  InventoryService "1" *-- "many" StockLevel : per warehouse and SKU
-  InventoryService "1" *-- "many" Reservation
-  InventoryService --> AllocationStrategy
-  InventoryService --> LowStockListener : notifies
-  AllocationStrategy <|.. MostStockFirst
-  AllocationStrategy <|.. NearestWarehouse
+  InventoryService *-- StockLevel : per site × SKU
+  InventoryService *-- Reservation
+  AllocationStrategy <-- InventoryService
+  LowStockListener <-- InventoryService

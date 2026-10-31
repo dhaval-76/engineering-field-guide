@@ -16,7 +16,7 @@ import { createRequire } from 'node:module';
 import { basename, dirname, join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
-const RENDERER_VERSION = '7-compact';
+const RENDERER_VERSION = '7-compact2';
 const root = new URL('../', import.meta.url).pathname;
 const args = new Set(process.argv.slice(2));
 
@@ -109,7 +109,7 @@ async function main() {
         // is the difference between fitting and scrolling.
         flowchart: { curve: 'basis', padding: 8, nodeSpacing: 22, rankSpacing: 34, wrappingWidth: 150 },
         state: { nodeSpacing: 22, rankSpacing: 30 },
-        class: { nodeSpacing: 22, rankSpacing: 34 },
+        class: { nodeSpacing: 28, rankSpacing: 40 },
         sequence: {
           mirrorActors: false,
           actorMargin: 18,

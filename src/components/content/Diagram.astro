@@ -9,10 +9,10 @@ interface Props {
 }
 const { id, caption, wide = false } = Astro.props;
 const svg = getDiagram(id);
-// Diagrams up to ~560px wide shrink to fit a phone with text still legible;
+// Diagrams up to ~590px wide shrink to fit a phone with text still legible;
 // wider ones keep their natural size and scroll (or open full screen with Expand).
 const natural = Number(/--w:(\d+)px/.exec(svg)?.[1] ?? 0);
-const fits = natural > 0 && natural <= 560;
+const fits = natural > 0 && natural <= 590;
 ---
 
 <figure class:list={['diagram', { wide }]} data-diagram>

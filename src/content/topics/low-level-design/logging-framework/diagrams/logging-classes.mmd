@@ -1,41 +1,30 @@
 classDiagram
+  direction TB
   class LoggerFactory {
     +getLogger(name)$ Logger
-    +root()$ Logger
   }
   class Logger {
-    -String name
-    -Logger parent
-    -Level level
-    -boolean additive
-    +effectiveLevel() Level
+    -name, level, parent
+    +effectiveLevel()
     +log(level, message)
   }
   class Appender {
     <<interface>>
-    +append(LogEvent)
-    +close()
+    +append(event)
+    Console · RollingFile
+  }
+  class AsyncAppender {
+    -queue
+    -target Appender
   }
   class Formatter {
     <<interface>>
-    +format(LogEvent) String
+    +format(event) String
+    Pattern · Json
   }
-  class ConsoleAppender
-  class RollingFileAppender
-  class AsyncAppender {
-    -BlockingQueue queue
-    -Appender target
-  }
-  class PatternFormatter
-  class JsonFormatter
-  LoggerFactory --> Logger : creates and caches
+  LoggerFactory --> Logger : creates, caches
   Logger --> Logger : parent
-  Logger "1" o-- "many" Appender
-  Appender <|.. ConsoleAppender
-  Appender <|.. RollingFileAppender
+  Logger o-- Appender : many
   Appender <|.. AsyncAppender
   AsyncAppender --> Appender : wraps
-  ConsoleAppender --> Formatter
-  RollingFileAppender --> Formatter
-  Formatter <|.. PatternFormatter
-  Formatter <|.. JsonFormatter
+  Appender --> Formatter

@@ -1,4 +1,5 @@
 classDiagram
+  direction TB
   class Broker {
     +publish(topic, key, payload) long
     +subscribe(topic, group, fromBeginning)
@@ -22,6 +23,6 @@ classDiagram
     +run()
     +stop()
   }
-  Broker "1" *-- "many" Topic
-  Topic "1" *-- "many" Message
+  Broker *-- Topic : many topics
+  Topic *-- Message : append-only log
   Dispatcher --> Broker : polls and commits

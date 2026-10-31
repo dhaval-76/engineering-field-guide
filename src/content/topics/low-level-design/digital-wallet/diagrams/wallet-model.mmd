@@ -1,26 +1,26 @@
 erDiagram
-  ACCOUNT ||--o{ LEDGER_ENTRY : "has"
-  TXN ||--|{ LEDGER_ENTRY : "balanced by"
-  ACCOUNT ||--o{ HOLD : "reserves"
+  ACCOUNT ||--o{ LEDGER_ENTRY : has
+  TXN ||--|{ LEDGER_ENTRY : lines
+  ACCOUNT ||--o{ HOLD : reserves
   ACCOUNT {
     text id PK
-    bigint balance "cached sum of entries"
-    bigint held "reserved by holds"
-    text kind "user or system"
+    bigint balance
+    bigint held
+    text kind
   }
   TXN {
     uuid id PK
-    text idempotency_key UK
-    text kind "deposit, transfer, capture, refund"
+    text idem_key UK
+    text kind
   }
   LEDGER_ENTRY {
     uuid txn_id FK
     text account FK
-    bigint amount "plus credit, minus debit"
+    bigint amount
   }
   HOLD {
     uuid id PK
     text account FK
     bigint amount
-    text status "held, captured, released"
+    text status
   }
