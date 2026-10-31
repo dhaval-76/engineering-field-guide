@@ -8,4 +8,5 @@ function buildGraph(n, edges) {
 }
 
 const DIRS = [[1, 0], [-1, 0], [0, 1], [0, -1]];
-const inBounds = (grid, r, c) => r >= 0 && r < grid.length && c >= 0 && c < grid[0].length;
+const inBounds = (grid, r, c) =>
+  r >= 0 && r < grid.length && c >= 0 && c < grid[0].length;

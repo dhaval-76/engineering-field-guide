@@ -13,7 +13,8 @@ int shortestPath(char[][] grid) {
         if (cur[0] == rows - 1 && cur[1] == cols - 1) return cur[2];
         for (int[] d : dirs) {
             int r = cur[0] + d[0], c = cur[1] + d[1];
-            if (r < 0 || r >= rows || c < 0 || c >= cols || seen[r][c] || grid[r][c] == '#') continue;
+            if (r < 0 || r >= rows || c < 0 || c >= cols) continue;
+            if (seen[r][c] || grid[r][c] == '#') continue;
             seen[r][c] = true;
             queue.offer(new int[]{r, c, cur[2] + 1});
         }

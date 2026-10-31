@@ -20,7 +20,8 @@ private void sink(char[][] grid, int r0, int c0) {
         int[] cur = stack.pop();
         for (int[] d : dirs) {
             int r = cur[0] + d[0], c = cur[1] + d[1];
-            if (r >= 0 && r < grid.length && c >= 0 && c < grid[0].length && grid[r][c] == '1') {
+            boolean inside = r >= 0 && r < grid.length && c >= 0 && c < grid[0].length;
+            if (inside && grid[r][c] == '1') {
                 grid[r][c] = '0';
                 stack.push(new int[]{r, c});
             }

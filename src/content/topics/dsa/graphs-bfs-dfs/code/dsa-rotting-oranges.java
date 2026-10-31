@@ -19,7 +19,8 @@ int orangesRotting(int[][] grid) {
             int[] cur = queue.poll();
             for (int[] d : dirs) {
                 int r = cur[0] + d[0], c = cur[1] + d[1];
-                if (r < 0 || r >= grid.length || c < 0 || c >= grid[0].length || grid[r][c] != 1) continue;
+                if (r < 0 || r >= grid.length || c < 0 || c >= grid[0].length) continue;
+                if (grid[r][c] != 1) continue;
                 grid[r][c] = 2;
                 fresh--;
                 queue.offer(new int[]{r, c});

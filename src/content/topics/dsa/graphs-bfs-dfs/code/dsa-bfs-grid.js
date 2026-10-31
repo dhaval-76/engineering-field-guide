@@ -10,7 +10,8 @@ function shortestPath(grid) {
     if (r === rows - 1 && c === cols - 1) return d;
     for (const [dr, dc] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
       const nr = r + dr, nc = c + dc;
-      if (nr < 0 || nr >= rows || nc < 0 || nc >= cols || seen[nr][nc] || grid[nr][nc] === '#') continue;
+      if (nr < 0 || nr >= rows || nc < 0 || nc >= cols) continue;
+      if (seen[nr][nc] || grid[nr][nc] === '#') continue;
       seen[nr][nc] = true;
       queue.push([nr, nc, d + 1]);
     }

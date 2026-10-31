@@ -4,9 +4,9 @@ summary: Modelling problems as graphs and exploring them — adjacency lists, gr
 track: dsa
 order: 90
 tags: [dsa, graphs, bfs, dfs, grids, patterns]
-aliases: [graph, adjacency list, adjacency matrix, breadth first search, bfs, depth first search, dfs, connected components, number of islands, flood fill, rotting oranges, multi source bfs, shortest path unweighted, word ladder, clone graph, visited set, grid traversal, matrix bfs, cycle detection undirected, bipartite]
+aliases: [graph, adjacency list, adjacency matrix, breadth first search, bfs, depth first search, dfs, connected components, number of islands, flood fill, rotting oranges, multi source bfs, shortest path unweighted, word ladder, clone graph, visited set, grid traversal, matrix bfs, cycle detection undirected, bipartite, two colouring, implicit graph, state space search]
 prerequisites: [dsa/trees-and-bst]
-related: [dsa/stacks-and-monotonic-stacks, dsa/heaps-and-top-k]
+related: [dsa/stacks-and-monotonic-stacks, dsa/heaps-and-top-k, dsa/topological-sort, dsa/shortest-paths, dsa/union-find]
 quickRef:
   points:
     - 'Represent graphs as **adjacency lists** (`Map<node, List<node>>`); a grid is an implicit graph with up to 4 neighbours per cell.'
@@ -16,19 +16,37 @@ quickRef:
     - 'Every vertex and edge processed once: **O(V + E)**; grids O(rows × cols).'
   complexity: 'O(V + E) time, O(V) space for visited + queue/stack.'
   useWhen: 'Relationships between items, grids/mazes, reachability, connectivity, or fewest-steps questions.'
-lastReviewed: 2026-10-30
+lastReviewed: 2026-10-31
 ---
+
+## Why it matters
+
+A graph is the most general way to describe **things and the connections between them**: users and follows, services and calls, cities and roads, packages and dependencies, web pages and links, states of a puzzle and the moves between them. Once a problem is drawn as a graph, a small toolbox answers a huge range of questions — *is B reachable from A? what is the fewest number of steps? how many separate groups are there? is there a cycle?*
+
+**Breadth-first search** and **depth-first search** are that toolbox's foundation. Both visit every vertex and edge once — O(V + E) — and differ only in order: BFS fans out by distance (a queue), DFS dives as deep as possible first (a stack or recursion). Dijkstra, topological sort, cycle detection, flood fill and web crawlers are all built on them.
+
+<Callout type="analogy">
+BFS is a stone dropped in a pond: ripples reach everything at distance 1, then 2, then 3 — so the first time a ripple touches the shore is the shortest distance. DFS is a maze explorer who follows one corridor to its end before backtracking to try the next turning.
+</Callout>
 
 ## Recognise it
 
-- Things connected to other things: friends, cities, courses with prerequisites, words differing by one letter.
-- A **grid** where you can move up/down/left/right: islands, mazes, flood fill.
-- "**Minimum number of steps/moves**" with equal-cost moves → BFS.
-- "Count groups", "is X reachable", "does a cycle exist" → DFS (or BFS, or union-find).
+- Things connected to other things: friends, cities, courses with prerequisites, words that differ by one letter.
+- A **grid** where you can move up/down/left/right: islands, mazes, flood fill, spreading processes.
+- "**Minimum number of steps/moves**" where every move costs the same → BFS.
+- "Count groups", "is X reachable", "does a cycle exist", "list all paths" → DFS (or BFS; for groups, also union-find).
+- A puzzle with **states and moves** (word ladder, open the lock, sliding puzzle) → BFS over an implicit graph.
 
-<Callout type="analogy">
-BFS is a stone dropped in a pond: ripples reach everything at distance 1, then 2, then 3 — so the first time a ripple touches the shore is the shortest distance. DFS is a maze explorer who follows one corridor to its end before backtracking to try the next.
-</Callout>
+<DecisionGuide
+  title="Which traversal?"
+  steps={[
+    ['Do you need the fewest steps, and every step costs the same?', 'BFS from the start (multi-source BFS if there are many starts).'],
+    ['Do steps have different costs?', 'Not plain BFS: Dijkstra (non-negative) or Bellman-Ford — see Shortest paths.'],
+    ['Do you need an order that respects dependencies?', 'Topological sort (Kahn\'s BFS or DFS post-order).'],
+    ['Are you only merging groups and asking "same group?"', 'Union-find is simpler and nearly O(1) per operation.'],
+  ]}
+  otherwise="DFS (or BFS) with a visited set: reachability, components, cycles, flood fill, path enumeration."
+/>
 
 ## Representing a graph
 
@@ -37,44 +55,99 @@ BFS is a stone dropped in a pond: ripples reach everything at distance 1, then 2
 | Representation | Space | Edge check | Iterate neighbours | Use when |
 |---|---|---|---|---|
 | Adjacency list | O(V + E) | O(degree) | O(degree) | sparse graphs — almost always |
-| Adjacency matrix | O(V²) | O(1) | O(V) | dense, small V |
+| Adjacency matrix | O(V²) | O(1) | O(V) | dense graphs, small V |
 | Implicit (grid, rule) | none | compute | compute | grids, word ladders, state spaces |
 
+Real-world graphs are almost always sparse (a user follows hundreds of accounts, not millions), which is why adjacency lists are the default.
+
 ## BFS: shortest paths by number of steps
+
+BFS keeps a queue and processes it in order. Everything at distance 1 is dequeued before anything at distance 2, so the **first time** a node is reached is along a shortest path. Mark a node visited **when you enqueue it**, not when you dequeue it — otherwise the same node can be enqueued by several neighbours and the queue grows far beyond V.
 
 <Walkthrough id="grid-bfs" />
 
 <CodeTabs id="dsa-bfs-grid" title="Shortest path in a grid with BFS" />
 
+To get the path itself, not just its length, store each node's **parent** when you enqueue it and walk back from the target.
+
 ## DFS: components and reachability
+
+DFS follows one neighbour as deep as possible, then backtracks. To count connected components (islands), start a DFS from every unvisited cell; each start discovers one whole component.
 
 <CodeTabs id="dsa-number-of-islands" title="Number of islands — DFS flood fill (recursive and iterative)" />
 
+Recursive DFS on a 1000 × 1000 grid can recurse a million levels deep and overflow the stack; the iterative version with an explicit stack (or BFS) avoids that.
+
 ## Multi-source BFS
 
-All sources start in the queue together, so each cell's distance is to its **nearest** source — one pass instead of one BFS per source.
+**Insight.** When there are many starting points (all rotten oranges, all exits, all servers), put **all of them** in the queue at distance 0. The BFS then computes, for every node, the distance to its **nearest** source in a single O(V + E) pass — instead of one BFS per source.
 
 <CodeTabs id="dsa-rotting-oranges" title="Rotting oranges — minutes until all rot, multi-source BFS" />
 
+## Two-colouring: is the graph bipartite?
+
+**Problem.** Can the nodes be split into two groups so that every edge goes between groups? (Teams with no rivals in the same team; scheduling exams so no student has two at once in a two-slot day.)
+
+**Insight.** Colour the start node, give each neighbour the opposite colour, and continue by BFS. If an edge ever connects two nodes of the **same** colour, the graph contains an odd cycle and can't be split. Restart from every uncoloured node, because the graph may be disconnected.
+
+<CodeTabs id="dsa-bipartite" title="Is the graph bipartite? — BFS two-colouring" />
+
+## Implicit graphs: word ladder
+
+**Problem.** The fewest words in a chain from `hit` to `cog`, changing one letter at a time, using only words from a list. `[hot,dot,dog,lot,log,cog]` → 5 (`hit → hot → dot → dog → cog`).
+
+**Insight.** The graph isn't given — nodes are words and edges join words one letter apart. Building all edges up front compares every pair (O(N² · L)). Instead, **generate neighbours on the fly**: for each position, try all 26 letters and keep the results that are in the word set. BFS level by level gives the fewest steps. Removing a word from the set when it's enqueued doubles as the visited marker.
+
+<CodeTabs id="dsa-word-ladder" title="Word ladder — BFS over generated neighbours" />
+
+**Optimisation:** bidirectional BFS — search from both ends and stop when the frontiers meet — explores roughly 2·b^(d/2) nodes instead of b^d.
+
 ## Copying a graph
+
+**Insight.** Traverse the original graph (BFS or DFS) while keeping a map from each original node to its copy. The map does double duty: it's the visited set, and it lets cycles in the original connect to copies that already exist.
 
 <CodeTabs id="dsa-clone-graph" title="Clone graph — map original → copy while traversing" />
 
+## Cycles
+
+- **Undirected graph:** during DFS, reaching an already-visited node that isn't the node you came from means a cycle (or use union-find: an edge whose ends are already in the same set closes a cycle — [Union-find](../union-find/)).
+- **Directed graph:** a cycle exists when DFS reaches a node that is still **on the current path** (colour it "in progress" until its DFS finishes) — the basis of [topological sort](../topological-sort/).
+
+## Complexity at a glance
+
+| Problem | Algorithm | Time | Space |
+|---|---|---|---|
+| Fewest steps (unweighted) | BFS | O(V + E) | O(V) |
+| Connected components / islands | DFS or BFS | O(V + E), grid O(R·C) | O(V) |
+| Nearest of many sources | multi-source BFS | O(V + E) | O(V) |
+| Bipartite check | BFS two-colouring | O(V + E) | O(V) |
+| Word ladder | BFS, generated neighbours | O(N · L · 26) | O(N · L) |
+| Clone graph | DFS/BFS + map | O(V + E) | O(V) |
+
+## Talking through it in an interview
+
+- Say what the nodes and edges are ("each cell is a node; edges to its four neighbours").
+- Choose BFS or DFS out loud and say why ("fewest moves, equal costs → BFS").
+- Mention the visited set and when you mark it.
+- Give O(V + E) — and translate it for grids (rows × cols) or implicit graphs (states × moves per state).
+- For large grids, mention recursion depth and offer the iterative version.
+
 <Pitfalls>
 
-- **Marking visited when dequeuing** in BFS — the same node is enqueued many times.
+- **Marking visited when dequeuing** in BFS — nodes are enqueued many times.
 - **No visited set** on graphs with cycles — infinite loops.
 - **Recursive DFS on large grids** (10⁶ cells) — stack overflow; use an explicit stack or BFS.
 - **Mutating the input grid** to mark visited when the caller needs it intact.
-- **BFS on weighted graphs** — it only finds fewest edges; use Dijkstra for weights ([Shortest paths](../shortest-paths/)).
+- **Forgetting disconnected parts** — start a traversal from every unvisited node.
+- **BFS on weighted graphs** — it finds the fewest edges, not the cheapest path; use Dijkstra ([Shortest paths](../shortest-paths/)).
 
 </Pitfalls>
 
 <KeyTakeaways>
 
-- Adjacency lists for real graphs; neighbours computed on the fly for grids.
-- BFS = shortest path in steps; DFS = exploration, components, cycles.
-- Visited sets prevent repeats; multi-source BFS handles "nearest of many".
-- O(V + E) for both.
+- Adjacency lists for real graphs; neighbours computed on the fly for grids and state spaces.
+- BFS = fewest steps with equal costs; DFS = exploration, components, cycles.
+- Mark visited when enqueuing; start from every unvisited node; multi-source BFS for "nearest of many".
+- Two-colouring tests bipartiteness; both traversals are O(V + E).
 
 </KeyTakeaways>

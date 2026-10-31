@@ -22,6 +22,16 @@ practice:
     solution: |
       Return −1 if start or target is a wall. Enqueue the start with distance 0 and mark it. Pop cells in FIFO order; if it's the target, return its distance; otherwise enqueue each in-bounds, non-wall, unvisited neighbour with distance + 1, marking it immediately. If the queue empties, the target is unreachable. O(rows × cols) time and space.
     solutionCode: dsa-bfs-grid
+  - task: Decide whether an undirected graph (possibly disconnected) is bipartite.
+    hint: Try to colour it with two colours so no edge joins equal colours.
+    solution: |
+      For every uncoloured node, colour it 1 and BFS: give each uncoloured neighbour the opposite colour; if a neighbour already has the same colour as the current node, return false (odd cycle). If all components colour cleanly, return true. O(V + E).
+    solutionCode: dsa-bipartite
+  - task: Find the length of the shortest transformation sequence between two words, changing one letter at a time through a dictionary.
+    hint: Words are nodes; which algorithm gives the fewest steps, and how do you find neighbours without comparing all pairs?
+    solution: |
+      BFS from the start word. Generate neighbours by replacing each position with each of 26 letters and keeping candidates present in the word set; remove a word from the set when it's enqueued (visited). Return the level at which the end word appears, or 0. O(N · L · 26) with hashing; bidirectional BFS cuts the explored states sharply.
+    solutionCode: dsa-word-ladder
 quiz:
   - q: Which algorithm finds the shortest path in an unweighted graph?
     options: [DFS, BFS, Binary search, Sorting]
