@@ -1,0 +1,6 @@
+flowchart TD
+  A[Primary: Kafka cluster] -->|unavailable| B
+  B[Client buffer · buffer.memory<br/>seconds · lost if the process dies] -->|full or timed out| C
+  C[Local durable spool<br/>minutes to hours · survives restarts,<br/>not the loss of the volume] -->|disk budget reached| D
+  D[Shared store · DB outbox table<br/>hours · survives node loss,<br/>adds load to the database] -->|also unavailable| E
+  E[Shed by priority<br/>drop telemetry · reject writes<br/>that must not be lost with 503]

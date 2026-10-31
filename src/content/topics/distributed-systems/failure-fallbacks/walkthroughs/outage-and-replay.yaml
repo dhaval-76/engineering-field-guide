@@ -1,0 +1,53 @@
+title: A Kafka outage, from first failure to full replay
+frames:
+  - caption: 'Healthy. The order service publishes `OrderPlaced` events straight to Kafka; each send is acknowledged in a few milliseconds. The spool is empty.'
+    panels:
+      - kind: kv
+        label: Publisher
+        pairs: [[breaker, { v: CLOSED, tone: ok }], [spool, '0 events'], [publish latency, '~5 ms']]
+      - kind: array
+        label: Kafka orders topic (by offset)
+        items: ['A1', 'B1']
+  - caption: 'The brokers stop answering. The first sends wait for their timeout and fail; each failure is recorded and the event goes to the **durable spool** instead. The HTTP request still succeeds.'
+    panels:
+      - kind: kv
+        label: Publisher
+        pairs: [[breaker, { v: 'CLOSED · 3 failures', tone: warn }], [publish latency, { v: '0.5–1.5 s', tone: warn }]]
+      - kind: queue
+        label: Spool (oldest first)
+        items: [{ v: A2, tone: warn }, { v: B2, tone: warn }, { v: C1, tone: warn }]
+  - caption: 'Three failures in a row **open the breaker**. Now publishing doesn''t touch Kafka at all: events are appended to the spool in under a millisecond. No request thread waits on the broken broker.'
+    panels:
+      - kind: kv
+        label: Publisher
+        pairs: [[breaker, { v: OPEN, tone: bad }], [publish latency, { v: '< 1 ms', tone: ok }]]
+      - kind: queue
+        label: Spool (oldest first)
+        items: [A2, B2, C1, A3, B3, C2, A4]
+  - caption: 'Kafka is back and the cool-down has passed: the breaker lets a call through (**half-open**). A new event for key **Z** has nothing spooled, so it goes straight to Kafka and its success **closes** the breaker. A new event for **A** joins the back of the spool, because A2–A4 must be delivered first.'
+    panels:
+      - kind: kv
+        label: Publisher
+        pairs: [[breaker, { v: CLOSED, tone: ok }], [keys with a backlog, 'A, B, C']]
+      - kind: queue
+        label: Spool (oldest first)
+        items: [A2, B2, C1, A3, B3, C2, A4, { v: A5, tone: accent }]
+      - kind: array
+        label: Kafka orders topic (by offset)
+        items: ['A1', 'B1', { v: Z1, tone: ok }]
+  - caption: 'The drainer replays the spool **oldest first at a fixed rate** (a token bucket, e.g. 200/s), so the recovering brokers and the consumers — who are catching up too — are not hit by the whole backlog at once. Each event is removed from the spool only after Kafka acknowledges it.'
+    panels:
+      - kind: queue
+        label: Spool (oldest first)
+        items: [{ v: C2, tone: muted }, A4, A5]
+      - kind: array
+        label: Kafka orders topic (by offset)
+        items: ['A1', 'B1', 'Z1', { v: A2, tone: accent }, { v: B2, tone: accent }, { v: C1, tone: accent }, { v: A3, tone: accent }, { v: B3, tone: accent }]
+  - caption: 'Replay finished: every event arrived, and **per key** the order is the original one (A1…A5). Events for other keys kept flowing live the whole time. Some events may arrive twice — a send that timed out can still be delivered later — so consumers skip ids they have already processed.'
+    panels:
+      - kind: kv
+        label: Publisher
+        pairs: [[breaker, { v: CLOSED, tone: ok }], [spool, { v: '0 events', tone: ok }]]
+      - kind: array
+        label: Kafka orders topic (by offset)
+        items: ['A1', 'B1', 'Z1', 'A2', 'B2', 'C1', 'A3', 'B3', 'C2', 'A4', 'A5']

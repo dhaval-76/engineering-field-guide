@@ -46,9 +46,11 @@ const fmt = (n: number) =>
     ? `${+(n / 1e9).toFixed(1)}B`
     : n >= 1e6
       ? `${+(n / 1e6).toFixed(1)}M`
-      : n >= 1e3
+      : n >= 1e4
         ? `${+(n / 1e3).toFixed(1)}k`
-        : `${+n.toFixed(2)}`;
+        : n >= 1e3
+          ? Math.round(n).toLocaleString('en-US')
+          : `${+n.toFixed(2)}`;
 
 // Line chart geometry
 // A narrow viewBox keeps tick text readable when the chart is shrunk to a phone screen;

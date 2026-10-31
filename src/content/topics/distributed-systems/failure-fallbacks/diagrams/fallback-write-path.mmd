@@ -1,0 +1,13 @@
+flowchart TD
+  REQ[Request handler<br/>creates event · id + key] --> K{Key already<br/>has spooled events?}
+  K -- yes --> SP
+  K -- no --> CB{Circuit breaker<br/>allows a call?}
+  CB -- "no (OPEN)" --> SP[(Durable spool<br/>append-only log on a<br/>persistent volume)]
+  CB -- yes --> SEND[Send to Kafka<br/>short max.block.ms,<br/>delivery timeout]
+  SEND -- ack --> OK([Done: SENT])
+  SEND -- error / timeout --> FAIL[Record failure<br/>in breaker] --> SP
+  SP --> OK2([Done: SPOOLED<br/>request still succeeds])
+  SP -.-> DR[Drainer · one thread<br/>token bucket, e.g. 200/s]
+  DR -- "oldest first, when breaker allows" --> SEND2[Send to Kafka]
+  SEND2 -- ack --> RM[Advance spool offset]
+  SEND2 -- error --> STOP[Stop; breaker re-opens]

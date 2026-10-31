@@ -1,0 +1,26 @@
+# Spring Boot application.yml — the settings that decide what a broker outage does to request threads.
+spring:
+  kafka:
+    producer:
+      acks: all                       # default since Kafka 3.0; wait for all in-sync replicas
+      buffer-memory: 33554432         # 32 MiB of records may wait in the client while brokers are away
+      properties:
+        enable.idempotence: true      # default since 3.0: retries don't duplicate within a producer session
+        max.block.ms: 500             # send() may block for metadata/buffer space — keep it short on request paths (default 60 s)
+        request.timeout.ms: 3000
+        delivery.timeout.ms: 10000    # give up on a record after 10 s (default 2 min) so the app can spool it
+        linger.ms: 5
+
+resilience4j:
+  circuitbreaker:
+    instances:
+      kafkaPublish:
+        slidingWindowType: COUNT_BASED
+        slidingWindowSize: 20
+        minimumNumberOfCalls: 10
+        failureRateThreshold: 50      # open when half of the last 20 sends failed...
+        slowCallDurationThreshold: 1s
+        slowCallRateThreshold: 50     # ...or were slower than 1 s
+        waitDurationInOpenState: 10s
+        permittedNumberOfCallsInHalfOpenState: 3
+        automaticTransitionFromOpenToHalfOpenEnabled: true

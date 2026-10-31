@@ -6,7 +6,7 @@ order: 100
 tags: [distributed-systems, consistency, messaging, microservices]
 aliases: [saga, saga pattern, orchestration, choreography, compensating transaction, compensation, semantic lock, transactional outbox, outbox pattern, outbox relay, polling publisher, cdc, change data capture, debezium, inbox pattern, idempotent consumer, dual write problem, two phase commit, 2pc, xa transactions, distributed transaction, exactly once, at least once, temporal, camunda]
 prerequisites: [distributed-systems/microservices, databases/transactions-isolation]
-related: [backend/idempotency, system-design/workflow-engine, distributed-systems/kafka-deep-dive, distributed-systems/event-driven-cqrs]
+related: [distributed-systems/failure-fallbacks, backend/idempotency, system-design/workflow-engine, distributed-systems/kafka-deep-dive, distributed-systems/event-driven-cqrs]
 quickRef:
   points:
     - '**Dual write problem**: updating your DB and publishing a message can''t be atomic — one can succeed while the other fails.'

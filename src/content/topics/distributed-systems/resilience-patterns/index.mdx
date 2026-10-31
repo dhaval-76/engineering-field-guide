@@ -6,7 +6,7 @@ order: 90
 tags: [distributed-systems, resilience, reliability, circuit-breaker, resilience4j]
 aliases: [resilience, fault tolerance, cascading failure, timeout, deadline propagation, retry, exponential backoff, jitter, retry storm, retry budget, circuit breaker, closed open half-open, bulkhead, rate limiter, load shedding, backpressure, fallback, graceful degradation, hedged requests, health check, liveness, readiness, resilience4j, opossum, tenacity]
 prerequisites: [distributed-systems/microservices]
-related: [backend/connection-pooling, concurrency/executors-thread-pools, backend/idempotency]
+related: [distributed-systems/failure-fallbacks, backend/connection-pooling, concurrency/executors-thread-pools, backend/idempotency]
 quickRef:
   points:
     - '**Slow is worse than down**: a hanging dependency holds your threads and connections until you fall over too.'
@@ -85,6 +85,8 @@ Resilience4j applies its decorators in a fixed order — `Retry(CircuitBreaker(R
 | Fail clearly | "payments are temporarily unavailable" | better than a hang |
 
 A fallback must be simpler and more reliable than the call it replaces — a fallback that calls another remote service just moves the problem.
+
+For writes that must not be lost — events to a broker that is down, calls to a partner API — the fallback is to keep the work durably and replay it later, in order and at a controlled rate: see [Surviving dependency outages](../failure-fallbacks/).
 
 ## Health checks
 

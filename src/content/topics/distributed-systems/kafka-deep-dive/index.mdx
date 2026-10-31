@@ -6,7 +6,7 @@ order: 70
 tags: [distributed-systems, kafka, messaging, event-driven, streaming]
 aliases: [kafka, apache kafka, topic, partition, offset, broker, replica, isr, in sync replicas, acks, min.insync.replicas, idempotent producer, kafka transactions, exactly once, consumer group, rebalance, cooperative rebalancing, kip-848, kraft, consumer lag, max.poll.interval.ms, auto commit, dead letter topic, retry topic, log compaction, retention, linger.ms, batch.size, spring kafka]
 prerequisites: [distributed-systems/kafka-vs-rabbitmq]
-related: [system-design/messaging-system, distributed-systems/microservices, backend/idempotency]
+related: [distributed-systems/failure-fallbacks, system-design/messaging-system, distributed-systems/microservices, backend/idempotency]
 quickRef:
   points:
     - 'A **topic** is split into **partitions**: ordered, append-only logs. A message''s **key** picks its partition, so per-key order is preserved.'
@@ -64,6 +64,7 @@ Kafka is the default backbone for events between services, change data capture, 
 - Ordering holds per partition **only if** you process records of a partition sequentially. Parallel processing within a partition (thread pools) breaks it unless you partition work by key.
 - A message that always fails ("poison pill") blocks its partition if retried forever. Retry a few times with backoff, then publish it to a **dead-letter topic** with the error, and move on; alert and reprocess later.
 - **Non-blocking retries** (retry topics with delays) keep the partition moving but give up strict ordering for the retried records.
+- When the **brokers** are the thing that's down, producers need a plan too — short `max.block.ms`, a circuit breaker and a durable spool with ordered replay: see [Surviving dependency outages](../failure-fallbacks/).
 
 ## Delivery semantics end to end
 

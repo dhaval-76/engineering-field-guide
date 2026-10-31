@@ -1,0 +1,241 @@
+---
+title: Surviving Dependency Outages (Kafka Down, Now What?)
+summary: What a service does when Kafka, a database or a partner API is unavailable — circuit breakers, durable spools and outboxes, ordered rate-limited replay, duplicates, retry topics and dead letters, measured against a real Kafka.
+track: distributed-systems
+order: 95
+tags: [distributed-systems, resilience, kafka, messaging, reliability]
+aliases: [kafka down, kafka outage, broker unavailable, broker outage, fallback, store and forward, spool, local buffer, disk buffer, write ahead buffer, replay, backlog drain, republish, catch up, graceful degradation, dead letter queue, dlq, dead letter topic, dlt, retry topic, non blocking retry, retryable topic, max.block.ms, delivery.timeout.ms, buffer.memory, circuit breaker fallback, outage recovery, backfill]
+prerequisites: [distributed-systems/resilience-patterns, distributed-systems/kafka-deep-dive]
+related: [distributed-systems/saga-and-outbox, backend/idempotency, distributed-systems/observability, system-design/webhook-delivery, system-design/notification-system]
+quickRef:
+  points:
+    - 'First ask what the event is worth: **must not lose** (orders, payments) · **can be late** (emails, search indexing) · **can drop** (metrics, click logs).'
+    - 'Best answer for must-not-lose events: the **transactional outbox** — the database commit is the source of truth and a Kafka outage only delays the relay.'
+    - 'Publishing from the request path? Put a **circuit breaker** around the send and keep `max.block.ms` short, so a dead broker never holds request threads.'
+    - 'When the breaker is open, **spool** events durably (local disk on a persistent volume, or a database table) instead of failing the request.'
+    - 'Replay **oldest first, rate-limited**, and keep **per-key order**: while a key has spooled events, new events for that key queue behind them.'
+    - 'Replays and timeouts **create duplicates** — every event needs an id and every consumer must ignore ids it has seen.'
+    - 'Bound everything: when the spool is full, drop low-value events and **reject** must-not-lose writes loudly (503) rather than lose them silently.'
+  useWhen: Designing any service that publishes events or calls a dependency that can be down, and the classic follow-up "what if Kafka is unavailable?".
+lastReviewed: 2026-10-31
+---
+
+## Why it matters
+
+Your order service saves an order and publishes `OrderPlaced` to Kafka so that shipping, email and analytics can react. One afternoon the Kafka cluster becomes unreachable for ten minutes — a bad deploy, a network partition, a full disk. What should happen to the orders placed during those ten minutes?
+
+Without a plan, you get one of three bad outcomes:
+
+- **Requests hang.** The Kafka client waits for metadata or buffer space, every request thread ends up waiting, and the order service goes down *with* Kafka — a [cascading failure](../resilience-patterns/).
+- **Requests fail.** Customers can't place orders because an internal notification system is down.
+- **Events are lost.** The order is saved but nobody ships it, and nobody notices until a customer complains.
+
+The goal is a fourth outcome: **the request succeeds quickly, the event is kept safely, and once Kafka is back the backlog is delivered — in order, exactly where it matters, and without swamping the system that just recovered.** The same reasoning applies to any dependency: a cache, a search cluster, a payment provider, an email API.
+
+<Callout type="analogy">
+The post office is closed for the afternoon. You don't stand at the door until it opens (hanging), and you don't throw the letters away (losing). You drop them in a numbered tray at home. When the post office reopens you take them in order, a bundle at a time — not all two thousand at once, because everyone else in town is queueing too. And if you're not sure whether a letter went out before the closure, you send it again: the recipient will recognise the duplicate by its reference number.
+</Callout>
+
+## First decide what each event is worth
+
+Not every event deserves the same machinery. Classify before you design:
+
+| Class | Examples | During an outage | Mechanism |
+|---|---|---|---|
+| **Must not lose** | order placed, payment captured, account closed | keep durably, deliver later, alert if it can't be kept | outbox table, or durable spool + reject when full |
+| **Can be late** | confirmation emails, search indexing, recommendations | keep while there is room, deliver later | durable spool with a size limit |
+| **Can drop** | metrics, click streams, debug logs | keep a little in memory, then drop and count what was dropped | client buffer only; sample or drop |
+
+The class also decides the **degraded behaviour users see**: an order confirmation that says "you'll get an email shortly" is fine; a payment that "might have gone through" is not.
+
+## The strongest answer: keep Kafka out of the request
+
+For must-not-lose events, the best design doesn't need a fallback at all. With the [transactional outbox](../saga-and-outbox/), the request writes the order **and** an outbox row in one database transaction. A separate relay process reads the outbox and publishes to Kafka.
+
+- If Kafka is down, the relay can't publish — rows simply pile up in the outbox table. **Requests are unaffected**, nothing is lost, and when Kafka returns the relay catches up.
+- There is one code path, used all the time. Nothing about the outage is special, so nothing special can break.
+- The cost: every event is a database write (extra load and storage), and the relay adds latency (typically milliseconds with change data capture, up to the polling interval otherwise).
+
+This is why "use the outbox" is usually the first thing to say in an interview. The rest of this page is for the cases where the outbox doesn't fit: high-volume events you don't want in the database, services without a database, or dependencies other than a message broker.
+
+## When you publish from the request path: layers of fallback
+
+<Diagram id="fallback-tiers" caption="Each layer holds events for longer and survives more kinds of failure — and costs more. When the last layer is full, shed by priority." />
+
+### Layer 1: the client's own buffer — and how it can hang your threads
+
+The Kafka producer already buffers. `send()` puts the record in an in-memory buffer (`buffer.memory`, 32 MiB by default) and returns; a background thread sends batches and retries. That rides out short blips (a leader election, a broker restart) with no code at all. But during a longer outage two settings decide what happens to *your* threads:
+
+- **`max.block.ms`** (default **60 s**): how long `send()` may *block* the caller — waiting for topic metadata, or for buffer space once the buffer is full. On a request path that's a minute per request: a hung service. Set it to something like 0.5–1 s.
+- **`delivery.timeout.ms`** (default **2 min**): how long a record may sit in the buffer and be retried before the producer gives up and fails it. Lower it (say 10 s) so your code learns about the failure while it can still do something useful with the event.
+
+Anything only in this buffer is **lost if the process dies** — a deploy, an OOM kill, a crash. So it is enough for "can drop" events and not for the others.
+
+<CodeTabs id="publisher-config" title="Producer settings and a circuit breaker for the publish path (Spring Boot)" />
+
+### Layer 2: a circuit breaker around the send
+
+Even with short timeouts, every request during an outage would pay the timeout before falling back. A [circuit breaker](../resilience-patterns/) fixes that: after a few failures (or slow calls) it **opens**, and publishing goes straight to the fallback without touching Kafka. After a cool-down it lets trial calls through (**half-open**); success closes it.
+
+We measured this with the code below against a real Kafka 4.1 broker that was frozen mid-run (`docker pause`, which makes the broker hang rather than refuse connections — the harder case):
+
+<Chart
+  type="bar"
+  title="Publish latency while Kafka is frozen (measured)"
+  bars={[
+    ['1st publish (waits for the 1.5 s send timeout)', 1510, 'bad'],
+    ['2nd publish (max.block.ms = 500)', 512, 'warn'],
+    ['3rd publish — breaker opens', 504, 'warn'],
+    ['Publishes 4–60 (breaker open → spool), under', 0.5, 'ok'],
+  ]}
+  unit=" ms"
+  caption="Three slow failures, then every publish took under a millisecond: the breaker sends events straight to the spool. All 92 events were delivered after the broker came back."
+/>
+
+### Layer 3: a durable spool
+
+When the breaker is open, events go to a **spool**: ordered, durable storage owned by the service. Where it lives decides what it survives:
+
+| Spool | Survives | Watch out for |
+|---|---|---|
+| In-memory queue | nothing — a restart loses it | fine for "can drop"; bound its size |
+| Local file (append-only log) | process restarts, deploys | containers: the disk must be a **persistent volume**, or a rescheduled pod loses it; disk space limits |
+| Database table (outbox) | node loss | adds write load to a database that may be under stress too; the DB must be up |
+| Second Kafka cluster (other region) | a whole-cluster outage | consumers must read both; ordering across clusters is lost; costly |
+| Redis / another queue | depends | it is *another* dependency that can fail at the same time — usually a poor fallback |
+
+A fallback must be **simpler and more reliable** than the thing it replaces and must not fail for the same reason. A local append-only file is the classic choice — log shippers like Fluent Bit use exactly this ([filesystem buffering](https://docs.fluentbit.io/manual/administration/buffering-and-storage)) so logs survive an outage of the log backend.
+
+<Diagram id="fallback-write-path" caption="The write path. The request completes either way; only the drainer ever replays spooled events." />
+
+## Step by step
+
+<Walkthrough id="outage-and-replay" />
+
+## The code
+
+The publisher below combines the pieces: a breaker, a durable file spool (an append-only log plus a committed offset), per-key ordering and a rate-limited drainer. It was tested with a simulated flapping broker (8 threads, 3,200 events, no loss, per-key order intact) and against a real Kafka that was frozen and resumed.
+
+<CodeTabs id="resilient-publisher" title="Circuit breaker + durable spool + ordered, rate-limited replay" />
+
+A few details that matter:
+
+- **Append before you acknowledge.** The request only returns success after the event is either acknowledged by Kafka or written to the spool.
+- **Remove after the ack.** The drainer advances the spool's offset only after Kafka acknowledges the send. A crash in between re-sends the event on restart — at-least-once, never at-most-once.
+- **Order of the bookkeeping writes.** When the spool empties, the offset is reset *before* the log file is deleted. The opposite order has a crash window where the old offset would skip new events — a loss. (This was a real bug in the first draft of the code above.)
+- **One drainer.** A single thread replays, so the spool's order is the replay order.
+- **Rebuild state on start.** After a restart the publisher re-reads the spool to learn which keys still have a backlog.
+
+## Ordering during replay
+
+Kafka guarantees order **per partition**, and a partition is chosen by the event's **key** (say, the order id). Consumers rely on that: `OrderPlaced` must come before `OrderCancelled` for the same order.
+
+A naive fallback breaks it. Suppose `A2` and `A3` are spooled during the outage; Kafka comes back; a new event `A4` is published directly — and arrives **before** `A2` and `A3`, which are still waiting in the spool. Shipping now sees a cancellation for an order it has never heard of.
+
+The fix in the code: **while a key has spooled events, new events for that key are spooled too**, behind the backlog. Keys without a backlog go straight to Kafka, so most live traffic is unaffected. Two more rules complete it:
+
+- Same-key events must be published one after another by the caller — the same rule Kafka's own ordering needs.
+- Consumers should still be defensive: carry a **version or sequence number** per entity and ignore an event older than the state they have. That protects against causes you didn't anticipate (a replay from another process, a manual re-drive of a dead-letter topic).
+
+In our real-Kafka test the producer still held the timed-out record in its buffer and delivered it as soon as the broker came back — through the same producer instance, ahead of the replay — so order held and the stale copy arrived as a duplicate. If replay runs in a *different* process (a relay reading a database table), that protection is gone, which is one more reason for the version check.
+
+## Replaying without hurting live traffic
+
+When Kafka recovers you may have minutes or hours of backlog. Pushing it all at once hurts the system twice: the brokers that just recovered get a spike, and every **consumer** — already behind — receives the backlog on top of live traffic. AWS describes this as the core risk of queue-based systems: an outage turns into a backlog, and a backlog can take far longer to clear than the outage lasted ([Avoiding insurmountable queue backlogs](https://aws.amazon.com/builders-library/avoiding-insurmountable-queue-backlogs/)).
+
+<Steps>
+
+1. **Rate-limit the drain** with a token bucket — a fixed share of the headroom you measured, for example 200 events/s when brokers comfortably take 2,000/s.
+2. **Live first.** Live events for keys without a backlog bypass the spool entirely, so the replay only competes for the spare capacity.
+3. **Back off on trouble.** The drainer stops at the first failure and the breaker decides when to try again; a smarter drainer also slows down when send latency or consumer lag rises (additive increase, multiplicative decrease).
+4. **Watch consumer lag**, not just the spool. The spool can be empty while consumers are still digesting the replay.
+5. **Consider a separate replay topic** when live freshness matters more than order: consumers handle `orders` with priority and `orders-replay` with spare capacity. This trades away cross-topic ordering, so it suits events where order doesn't matter (analytics, notifications).
+
+</Steps>
+
+## Duplicates are guaranteed — design for them
+
+Every recovery path produces duplicates:
+
+- A send times out from your point of view but actually succeeded (the ack was lost) — you spool and replay it.
+- The producer keeps retrying a record in its own buffer after you gave up on it — in our real-Kafka test, **exactly this delivered one event twice** in every run: 93 records consumed, 92 unique.
+- The drainer crashes after Kafka acknowledged but before the offset advanced.
+
+Kafka's idempotent producer (on by default since 3.0) only removes duplicates caused by its *own* internal retries within one producer session; it can't know that your application sent the same event again. So:
+
+- Give every event a **unique id** at creation time (not at send time).
+- Make every consumer **idempotent**: record processed ids in the same transaction as the side effect ([inbox pattern](../saga-and-outbox/), [idempotency](../../backend/idempotency/)), or make the operation naturally idempotent (an upsert keyed by order id).
+
+## When the spool fills up
+
+A spool is a buffer, and buffers end. Decide in advance — not during the incident:
+
+- **Size it in time, not bytes:** events per second × the longest outage you want to survive. 2,000 events/s × 1 KB × 1 hour ≈ 7 GB.
+- **Alert early** on spool depth and on the **age of the oldest event**; a growing spool is an incident even if nothing has failed yet.
+- **When it is full, shed by class:** drop "can drop" events first (and count them), then "can be late" ones; for "must not lose", **fail the request** with a clear 503 so the client can retry. Failing visibly is better than accepting work you will silently lose.
+- **Make it observable on every instance:** a spool on one pod's disk is invisible unless you export its depth as a metric.
+
+## The other direction: when *your* dependency is down
+
+Consumers face the mirror problem. Kafka is fine, but the consumer's database or a partner API is down, and every record fails. The options:
+
+- **Block and retry** in place (pause the partition, retry with backoff). Keeps order, but the whole partition stops — fine for short blips, bad for one poison message.
+- **Retry topics:** on failure, publish the record to `orders-retry-0` (delayed 2 s), then `-retry-1` (6 s), and so on, commit the original offset, and keep consuming. After the last attempt it goes to a **dead-letter topic** (DLT). Uber described this design ([reliable reprocessing](https://www.uber.com/blog/reliable-reprocessing/)); Spring for Apache Kafka builds it in with `@RetryableTopic` ([non-blocking retries](https://docs.spring.io/spring-kafka/reference/retrytopic.html)). The trade-off: a retried record can be processed **after** later records for the same key, so use it when per-key order doesn't matter or the consumer checks versions.
+- **Classify errors:** a timeout or a 503 is worth retrying; a validation error or a bug will fail every time — send it straight to the DLT.
+- **Treat the DLT as a work queue:** alert on it, show it in a dashboard, and have a tool to **re-drive** records once the cause is fixed — through the same idempotent consumer.
+
+<CodeTabs id="retry-topics" title="Retry topics and a dead-letter topic on the consumer side (Spring for Apache Kafka)" />
+
+## Same playbook, other dependencies
+
+| Dependency down | Degraded behaviour | What you give up |
+|---|---|---|
+| Cache (Redis) | read from the database, with load shedding and request coalescing so the database survives the miss storm ([Caching](../caching-strategies/)) | latency; risk of overloading the database |
+| Database primary | serve reads from replicas; reject or queue writes | freshness; write availability |
+| Search cluster | fall back to a simple database query or hide search | relevance, features |
+| Payment provider | queue the payment and confirm later, or fail clearly | instant confirmation |
+| Email / SMS provider | queue and send later, or switch to a second provider | timeliness |
+| Recommendations | show popular items or yesterday's results | personalisation |
+
+## Fallbacks are code that rarely runs — test them
+
+A fallback path only executes during an incident, which is exactly when you can least afford a bug in it. AWS's Builders' Library goes further and argues for **avoiding** fallbacks where possible: they are hard to test, can add unexpected load during the incident, and hide latent bugs for years ([Avoiding fallback in distributed systems](https://aws.amazon.com/builders-library/avoiding-fallback-in-distributed-systems/)). Their preferred alternatives are making the primary path more reliable and turning fallbacks into paths that run **all the time**. The outbox is that idea: there is only one path.
+
+If you do keep a fallback:
+
+- **Exercise it continuously** — route a small share of real traffic through the spool, or run regular game days that block the broker (a firewall rule, Toxiproxy, `docker pause` in staging).
+- **Test the recovery**, not just the failure: drain a large spool and watch consumer lag.
+- **Make it visible**: breaker state, spool depth, oldest spooled event age, drain rate, duplicates detected by consumers, DLT size — each with an alert ([Observability](../observability/)).
+
+<Pitfalls>
+
+- **Default `max.block.ms` (60 s) on a request path** — a broker outage becomes a service outage.
+- **Treating `send()` returning as "delivered".** It only means "buffered"; check the future or callback.
+- **A fallback that depends on the same failure** — spooling to Redis in the same network partition, or to a pod's ephemeral disk that disappears on reschedule.
+- **Replaying everything at full speed** — the recovered brokers and lagging consumers get flattened.
+- **Live events for a key overtaking its spooled events** — consumers see a cancellation before the order.
+- **No event ids** — replays and timeouts create duplicates that consumers can't detect.
+- **Unbounded spools** — the disk fills up, and the service fails in a new, worse way.
+- **Retrying non-retryable errors** — a validation error retried forever blocks a partition or floods retry topics.
+- **A fallback nobody has run since it was written.**
+
+</Pitfalls>
+
+## In production
+
+- **Log and metrics pipelines** (Fluent Bit, Vector, OpenTelemetry Collector) buffer to disk when their backend is unreachable and replay later, with limits on total buffer size.
+- **Payment and order systems** usually rely on the transactional outbox, so a broker outage only delays downstream processing.
+- **Retry topics and dead-letter topics** are standard on the consumer side; Spring Kafka, Kafka Connect and most managed queues (SQS, Pub/Sub) offer dead-letter handling out of the box.
+- Large companies run **game days and chaos experiments** that take dependencies away on purpose, because untested fallbacks fail when needed.
+
+<KeyTakeaways>
+
+- Classify events: must not lose, can be late, can drop. The class decides the mechanism and the user-visible behaviour.
+- For must-not-lose events, prefer the outbox: one code path, nothing special during an outage.
+- On the request path: short `max.block.ms`, a circuit breaker, and a durable spool — the request stays fast and the event stays safe.
+- Replay oldest first, rate-limited, live traffic first, with per-key order preserved.
+- Expect duplicates; give events ids and make consumers idempotent.
+- Bound and monitor the spool; shed by priority when it is full.
+- Test fallbacks continuously — or design them away.
+
+</KeyTakeaways>
