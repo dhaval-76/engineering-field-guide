@@ -22,6 +22,16 @@ practice:
     solution: |
       Sort; for each i with `nums[i] != nums[i−1]`, set `l = i+1, r = n−1` and move them according to the sum; on a match, add the triplet, then advance `l` past equal values and `r` past equal values before moving both. Stop when `nums[i] > 0`. Duplicates never appear because each distinct value is used once at each position.
     solutionCode: dsa-three-sum
+  - task: Compute how much rain water is trapped between bars, in O(1) extra space.
+    hint: Water on a bar depends on the lower of the two side maxima. Which side's maximum is already known to be the lower one?
+    solution: |
+      Keep `l`, `r`, `leftMax`, `rightMax`. If `height[l] < height[r]`, some bar on the right is at least `height[l]`, so the water on bar `l` is `leftMax − height[l]` (after updating `leftMax`); settle it and move `l`. Otherwise settle bar `r` with `rightMax`. Each bar is settled once: O(n) time, O(1) space.
+    solutionCode: dsa-trapping-rain-water
+  - task: Sort an array of 0s, 1s and 2s in one pass without counting.
+    hint: Three regions plus an unknown middle; be careful which pointer advances after each swap.
+    solution: |
+      Keep `low`, `mid`, `high`. While `mid <= high`: a 0 swaps with `low` and both advance; a 1 just advances `mid`; a 2 swaps with `high`, which moves down — but `mid` stays, because the swapped-in value hasn't been examined. O(n), one pass, O(1) space.
+    solutionCode: dsa-sort-colors
 quiz:
   - q: In converging two-sum on a sorted array, the sum is too small. What do you do?
     options: [Move right left, Move left right, Move both, Restart]
@@ -31,3 +41,11 @@ quiz:
     options: ['O(n)', 'O(n log n)', 'O(n²)', 'O(n³)']
     correct: 2
     why: n iterations of an O(n) two-pointer scan dominate the O(n log n) sort.
+  - q: In container with most water, which pointer moves?
+    options: [The taller line, The shorter line, Both, Whichever is further from the centre]
+    correct: 1
+    why: The shorter line limits the area; moving the taller one only reduces the width without raising the limit.
+  - q: In the Dutch national flag partition, after swapping nums[mid] with nums[high], why doesn't mid advance?
+    options: [It would overflow, The value swapped in from the end has not been examined yet, mid must always trail low, To keep the sort stable]
+    correct: 1
+    why: The element that came from high is unknown; it must be classified on the next iteration.
