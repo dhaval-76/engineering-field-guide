@@ -9,9 +9,15 @@ double price(Order o, String type) {
 // ✓ Closed for modification, open for extension: new behaviour = new class.
 interface Discount { double apply(Order o); }
 
-record FlatDiscount(double off) implements Discount     { public double apply(Order o) { return o.total() - off; } }
-record PercentDiscount(double pct) implements Discount  { public double apply(Order o) { return o.total() * (1 - pct); } }
-record LoyaltyDiscount(int tier) implements Discount    { public double apply(Order o) { return o.total() * (1 - 0.02 * tier); } }
+record FlatDiscount(double off) implements Discount {
+    public double apply(Order o) { return o.total() - off; }
+}
+record PercentDiscount(double pct) implements Discount {
+    public double apply(Order o) { return o.total() * (1 - pct); }
+}
+record LoyaltyDiscount(int tier) implements Discount {
+    public double apply(Order o) { return o.total() * (1 - 0.02 * tier); }
+}
 
 class Checkout {
     double price(Order o, Discount d) { return d.apply(o); }   // never changes

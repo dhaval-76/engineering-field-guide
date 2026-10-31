@@ -19,6 +19,11 @@ export class RequestBuilder {
     if (this.#body !== undefined && ['GET', 'HEAD'].includes(this.#method)) {
       throw new Error(`${this.#method} requests cannot have a body`);
     }
-    return Object.freeze({ url: this.url, method: this.#method, headers: { ...this.#headers }, body: this.#body });
+    return Object.freeze({
+      url: this.url,
+      method: this.#method,
+      headers: { ...this.#headers },
+      body: this.#body,
+    });
   }
 }

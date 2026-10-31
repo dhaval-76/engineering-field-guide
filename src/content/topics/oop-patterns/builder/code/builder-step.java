@@ -4,7 +4,11 @@ public final class HttpRequest {
     public interface UrlStep    { MethodStep url(String url); }
     public interface MethodStep { BuildStep get(); BodyStep post(); BodyStep put(); }
     public interface BodyStep   { BuildStep body(String json); }
-    public interface BuildStep  { BuildStep header(String k, String v); BuildStep timeout(Duration d); HttpRequest build(); }
+    public interface BuildStep {
+        BuildStep header(String k, String v);
+        BuildStep timeout(Duration d);
+        HttpRequest build();
+    }
 
     public static UrlStep newRequest() { return new Steps(); }
 
@@ -19,9 +23,12 @@ public final class HttpRequest {
         public BuildStep body(String json)       { body = json; return this; }
         public BuildStep header(String k, String v) { headers.put(k, v); return this; }
         public BuildStep timeout(Duration d)     { timeout = d; return this; }
-        public HttpRequest build()               { return new HttpRequest(url, method, body, headers, timeout); }
+        public HttpRequest build() {
+            return new HttpRequest(url, method, body, headers, timeout);
+        }
     }
-    private HttpRequest(String url, String method, String body, Map<String, String> h, Duration t) { /* assign, copy map */ }
+    private HttpRequest(String url, String method, String body,
+                        Map<String, String> h, Duration t) { /* assign, copy map */ }
 }
 
 HttpRequest r = HttpRequest.newRequest().url("https://api.example.com/orders").post().body("{}").build();

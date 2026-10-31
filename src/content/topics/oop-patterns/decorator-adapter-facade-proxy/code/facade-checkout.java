@@ -6,7 +6,8 @@ final class CheckoutFacade {
     private final PaymentProcessor payments;
     private final OrderRepository orders;
 
-    CheckoutFacade(CartService c, PricingService pr, InventoryService i, PaymentProcessor pa, OrderRepository o) {
+    CheckoutFacade(CartService c, PricingService pr, InventoryService i,
+                   PaymentProcessor pa, OrderRepository o) {
         carts = c; pricing = pr; inventory = i; payments = pa; orders = o;
     }
 

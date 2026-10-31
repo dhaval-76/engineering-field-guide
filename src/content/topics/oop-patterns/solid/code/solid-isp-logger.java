@@ -1,5 +1,10 @@
 // ✗ One interface for every destination.
-interface Logger { void log(String m); void logToFile(String m); void logToDb(String m); void logToSplunk(String m); }
+interface Logger {
+    void log(String m);
+    void logToFile(String m);
+    void logToDb(String m);
+    void logToSplunk(String m);
+}
 
 // ✓ One small contract; destinations are separate implementations (or composed sinks).
 interface LogSink { void write(LogEvent e); }

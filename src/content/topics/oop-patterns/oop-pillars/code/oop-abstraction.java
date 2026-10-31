@@ -6,12 +6,16 @@ public interface PaymentProcessor {
 
 // One HOW. Retries, HTTP calls and API keys stay hidden in here.
 class CardProcessor implements PaymentProcessor {
-    public PaymentResult charge(Money amount, String customerId) { /* call card gateway */ return PaymentResult.ok(); }
+    public PaymentResult charge(Money amount, String customerId) {
+        return PaymentResult.ok();   // call the card gateway
+    }
     public PaymentResult refund(String txnId, Money amount)      { /* ... */ return PaymentResult.ok(); }
 }
 
 class UpiProcessor implements PaymentProcessor {
-    public PaymentResult charge(Money amount, String customerId) { /* call UPI switch */ return PaymentResult.ok(); }
+    public PaymentResult charge(Money amount, String customerId) {
+        return PaymentResult.ok();   // call the UPI switch
+    }
     public PaymentResult refund(String txnId, Money amount)      { /* ... */ return PaymentResult.ok(); }
 }
 

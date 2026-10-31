@@ -1,6 +1,8 @@
 // A legacy-friendly singleton that tests can still replace.
 public final class FeatureFlags {
-    private static final class Holder { static final FeatureFlags INSTANCE = new FeatureFlags(loadFromFile()); }
+    private static final class Holder {
+        static final FeatureFlags INSTANCE = new FeatureFlags(loadFromFile());
+    }
     private static volatile FeatureFlags override;          // test seam
 
     private final Map<String, Boolean> flags;

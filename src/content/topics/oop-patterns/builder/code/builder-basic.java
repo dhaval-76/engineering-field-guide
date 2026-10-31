@@ -28,7 +28,9 @@ public final class User {
 
         public User build() {
             if (name == null || name.isBlank()) throw new IllegalStateException("name is required");
-            if (email == null || !email.contains("@")) throw new IllegalStateException("valid email is required");
+            if (email == null || !email.contains("@")) {
+                throw new IllegalStateException("valid email is required");
+            }
             if (age < 0 || age > 150) throw new IllegalStateException("age out of range: " + age);
             // validated, immutable, safe to share between threads
             return new User(this);
