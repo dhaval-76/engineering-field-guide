@@ -1,0 +1,34 @@
+title: XOR finds the number without a pair in [4, 1, 2, 1, 2]
+frames:
+  - caption: 'Start with `acc = 0`. XOR flips the bits of `acc` wherever the incoming number has a 1. Read **4** (`100`): `acc` becomes `100`.'
+    panels:
+      - kind: array
+        label: nums
+        items: [{ v: '4', tone: accent }, '1', '2', '1', '2']
+      - kind: kv
+        label: Running XOR
+        pairs: [[acc, '100₂ (4)']]
+  - caption: 'Read **1** (`001`) and **2** (`010`): their bits are switched on too. `acc` is now `111` — a mix of everything seen so far.'
+    panels:
+      - kind: array
+        label: nums
+        items: [{ v: '4', tone: muted }, { v: '1', tone: accent }, { v: '2', tone: accent }, '1', '2']
+      - kind: kv
+        label: Running XOR
+        pairs: [[acc, '111₂ (7)']]
+  - caption: 'The second **1** flips the same bit **back off**: `111 ^ 001 = 110`. Anything XORed twice disappears (`x ^ x = 0`).'
+    panels:
+      - kind: array
+        label: nums
+        items: [{ v: '4', tone: muted }, { v: '1', tone: muted }, { v: '2', tone: muted }, { v: '1', tone: ok }, '2']
+      - kind: kv
+        label: Running XOR
+        pairs: [[acc, '110₂ (6)']]
+  - caption: 'The second **2** cancels too: `110 ^ 010 = 100`. Only the number without a partner is left — **4** — in one pass and O(1) memory, regardless of order (XOR is commutative and associative).'
+    panels:
+      - kind: array
+        label: nums
+        items: [{ v: '4', tone: accent }, { v: '1', tone: muted }, { v: '2', tone: muted }, { v: '1', tone: muted }, { v: '2', tone: ok }]
+      - kind: kv
+        label: Running XOR
+        pairs: [[acc, { v: '100₂ (4)', tone: ok }]]

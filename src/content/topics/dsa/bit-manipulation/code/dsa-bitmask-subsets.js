@@ -1,6 +1,8 @@
 function subsetsByMask(nums) {
   const n = nums.length, out = [];
-  for (let mask = 0; mask < 1 << n; mask++) out.push(nums.filter((_, i) => (mask >> i) & 1));
+  for (let mask = 0; mask < 1 << n; mask++) {
+    out.push(nums.filter((_, i) => (mask >> i) & 1));
+  }
   return out;
 }
 

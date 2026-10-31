@@ -4,7 +4,7 @@ summary: Working with the binary representation directly — the core operators,
 track: dsa
 order: 170
 tags: [dsa, bits, bitmask, xor, patterns]
-aliases: [bit manipulation, bitwise, xor, and, or, not, shift, single number, missing number, counting bits, number of 1 bits, popcount, hamming weight, power of two, bitmask, subset enumeration, gray code, sign bit, unsigned shift, two's complement]
+aliases: [bit manipulation, bitwise, xor, and, or, not, shift, single number, missing number, counting bits, number of 1 bits, popcount, hamming weight, power of two, bitmask, subset enumeration, gray code, sign bit, unsigned shift, two's complement, bitmask dp, travelling salesman, tsp, redis bitmap, bitset]
 prerequisites: [cs-foundations/complexity]
 related: [dsa/backtracking, dsa/dynamic-programming]
 quickRef:
@@ -16,19 +16,28 @@ quickRef:
     - 'Java/JS: `>>` keeps the sign, `>>>` shifts in zeros; JS bitwise ops work on 32-bit integers.'
   complexity: 'O(1) per operation on machine words; O(2ⁿ) to enumerate masks.'
   useWhen: '"Every element appears twice except…", flags and permissions, subsets of ≤ 20 items, or low-level performance.'
-lastReviewed: 2026-10-30
+lastReviewed: 2026-10-31
 ---
 
-## Recognise it
+## Why it matters
 
-- Pairs that cancel, missing/duplicate numbers in a range → XOR.
-- Small sets (n ≤ 20) of chosen items → bitmask state (subset enumeration, bitmask DP).
-- Flags packed into one integer (permissions, feature sets).
-- Powers of two, counting set bits, reversing bits.
+Every value in memory is a row of bits, and operating on them directly is the cheapest thing a CPU can do — one instruction for 64 flags at once. That makes bit tricks useful in two very different settings:
+
+- **Compact sets and flags.** Unix file permissions (`rwx` = 3 bits), feature flags, Java's `EnumSet` and `BitSet`, Redis bitmaps (`SETBIT user:active:2026-10-31 <userId> 1`, then `BITCOUNT` for daily active users — one bit per user, 12.5 MB for 100 million users), Bloom filters, database bitmap indexes, and the "which items are used" state of a search.
+- **Clever identities.** XOR cancels pairs; `x & (x − 1)` removes the lowest set bit; a mask enumerates every subset. These turn some O(n) memory or O(n log n) problems into O(1) memory, O(n) time.
+
+Interviewers use bit problems to check that you're comfortable below the abstraction — and bitmask DP to see if you can handle exponential state spaces cleverly.
 
 <Callout type="analogy">
 A row of light switches: each switch is one bit. AND with a mask reads the switches you care about, OR turns some on, AND-NOT turns them off, and XOR flips them — flipping twice returns to where you started, which is why XOR cancels pairs.
 </Callout>
+
+## Recognise it
+
+- Pairs that cancel, a missing or duplicated number in a range → **XOR**.
+- Small sets (n ≤ ~20) of chosen items → a **bitmask**: subset enumeration, bitmask DP.
+- Flags or permissions packed into one integer.
+- Powers of two, counting set bits, reversing bits, Gray codes.
 
 ## Operators and tricks
 
@@ -42,30 +51,58 @@ A row of light switches: each switch is one bit. AND with a mask reads the switc
 | isolate lowest set bit | `x & −x` | 0100₂ = 4 |
 | power of two? | `x > 0 && (x & (x − 1)) == 0` | 12 → no |
 
-Negative numbers use **two's complement**: `−x = ~x + 1`, so the sign bit is the highest bit.
+Negative numbers use **two's complement**: `−x = ~x + 1`, so the highest bit is the sign. That's why `x & −x` isolates the lowest set bit: `~x` flips every bit, the `+ 1` carries up to exactly the lowest 1 of `x`, and everything above stays inverted, so only that bit survives the AND.
+
+**Why `x & (x − 1)` clears the lowest set bit:** subtracting 1 turns the lowest 1 into 0 and every 0 below it into 1; bits above are unchanged. AND-ing with the original keeps the bits above and zeroes the rest. Counting how many times you can do this before reaching 0 counts the set bits (Kernighan's method) — one step per set bit.
+
+## XOR: pairs cancel
+
+<Walkthrough id="xor-cancel" />
+
+XOR has three properties that make it magical: `x ^ x = 0`, `x ^ 0 = x`, and order doesn't matter. So XOR-ing a whole array leaves only the values that appear an odd number of times. The same idea finds a **missing number** in `0..n` (XOR all indices and all values: everything present cancels) and swaps two variables without a temporary.
 
 <CodeTabs id="dsa-bit-basics" title="Single number, missing number, counting bits, power of two" />
 
+**Counting bits for 0..n in O(n):** `bits[i] = bits[i >> 1] + (i & 1)` — `i` has the bits of `i / 2` shifted left, plus its last bit. A one-line DP.
+
 ## Bitmasks as sets
+
+A mask of n bits is a subset of n items: bit i set means item i is in. Looping `mask` from 0 to 2ⁿ − 1 visits every subset; `sub = (sub − 1) & mask` walks every **submask** of a mask, which totals 3ⁿ across all masks.
 
 <CodeTabs id="dsa-bitmask-subsets" title="Enumerate all subsets with masks, and iterate submasks" />
 
-With n ≤ ~20, a mask can represent "which items are used so far" in DP — for example the travelling-salesman DP `dp[mask][last]` in O(2ⁿ · n²).
+## Bitmask DP: the travelling salesman
+
+**Problem.** The shortest round trip that visits every city exactly once (n ≤ ~16).
+
+**Insight.** Trying every order is n! — 15! ≈ 1.3 trillion tours for 16 cities. But the future of a partial tour depends only on **which cities are visited** and **where you are now**, not the order you visited them in. That's the state: `dp[mask][last]`. Extend it to any unvisited `next`; at the end, return to the start. 2ⁿ · n states with n transitions each: O(2ⁿ · n²) ≈ 17 million steps for 16 cities.
+
+<CodeTabs id="dsa-tsp-bitmask" title="Travelling salesman — DP over (visited set, current city)" />
+
+The same state shape solves "shortest path visiting all nodes", assigning n tasks to n workers (`dp[mask]` = cost of assigning the first popcount(mask) workers to the tasks in mask), and many "n ≤ 20" puzzle problems. When n reaches 30+, 2ⁿ is too big and the problem needs heuristics.
+
+## Talking through it in an interview
+
+- For XOR tricks, say the three properties out loud before using them.
+- Parenthesise every bitwise expression — precedence differs from intuition.
+- For bitmask DP, explain why the order of past choices doesn't matter, then give 2ⁿ · n states.
+- Mention the integer width: Java `int` is 32 bits (`1L << i` for 64), JavaScript converts to 32-bit for bitwise ops (`BigInt` beyond that), Python integers are unbounded.
 
 <Pitfalls>
 
 - **Operator precedence**: `x & 1 == 0` parses as `x & (1 == 0)` in Java/JS — parenthesise.
-- **Signed right shift** on negative numbers fills with ones; use `>>>` for logical shifts.
-- **Overflow**: `1 << 31` is negative in 32-bit ints; use `1L << i` for 64 bits.
-- **JavaScript numbers** are converted to 32-bit for bitwise ops; use `BigInt` beyond that.
+- **Signed right shift** on negative numbers fills with ones; use `>>>` for a logical shift.
+- **Overflow**: `1 << 31` is negative in a 32-bit int; use `1L << i` for 64 bits.
+- **JavaScript numbers** are converted to 32-bit integers for bitwise operations.
+- **Python's unbounded ints**: `~x` is `−x − 1`, and there is no fixed width — mask with `& 0xFFFFFFFF` when emulating 32-bit behaviour.
 - **Over-cleverness** — prefer readable code unless the bit trick is the point.
 
 </Pitfalls>
 
 <KeyTakeaways>
 
-- Test/set/clear/toggle with shifted masks; `x & (x − 1)` drops the lowest set bit.
-- XOR cancels pairs — finds unique or missing values in O(n), O(1) space.
-- Bitmasks represent small sets and enumerate subsets in 2ⁿ.
+- Test/set/clear/toggle with shifted masks; `x & (x − 1)` drops the lowest set bit; `x & −x` isolates it.
+- XOR cancels pairs — unique or missing values in O(n) time and O(1) space.
+- Bitmasks represent small sets: 2ⁿ subsets, and DP states like `dp[mask][last]` that replace n! orderings.
 
 </KeyTakeaways>

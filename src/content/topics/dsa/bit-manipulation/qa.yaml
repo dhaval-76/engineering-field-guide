@@ -22,6 +22,11 @@ practice:
     solution: |
       Start with `x = n`, then for each index i XOR in both i and nums[i]. Every present number appears once as an index and once as a value and cancels; the missing number appears only as an index (or as n). O(n) time, O(1) space. The sum formula `n(n+1)/2 − sum` also works but can overflow.
     solutionCode: dsa-bit-basics
+  - task: Find the length of the shortest round trip visiting every city exactly once (n ≤ 16).
+    hint: What does the rest of the tour depend on — the order you visited cities in, or just which ones?
+    solution: |
+      `dp[mask][last]` = cheapest path from city 0 that has visited exactly the cities in `mask` and stands at `last`. Start with `dp[1][0] = 0`; for each state, extend to every unvisited `next`: `dp[mask | 1<<next][next] = min(…, dp[mask][last] + dist[last][next])`. Answer: min over last of `dp[full][last] + dist[last][0]`. O(2ⁿ · n²) time, O(2ⁿ · n) space.
+    solutionCode: dsa-tsp-bitmask
 quiz:
   - q: 'What is 13 & (13 − 1)? (13 = 1101₂)'
     options: ['12', '13', '8', '1']
