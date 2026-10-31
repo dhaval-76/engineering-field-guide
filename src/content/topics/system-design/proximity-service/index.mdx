@@ -16,8 +16,16 @@ quickRef:
     - 'Cache results by (cell, filters); separate the location search service from the business CRUD service.'
   complexity: 'Lookup ≈ 9 cell reads + O(candidates) distance checks.'
   useWhen: '"Design Yelp / nearby restaurants / find stores near me", or the static-places half of maps and ride-hailing.'
-lastReviewed: 2026-10-30
+lastReviewed: 2026-10-31
 ---
+
+## Why it matters
+
+"Restaurants near me" sounds like a simple query, but a database can't efficiently answer "within 2 km of this point" with ordinary indexes on latitude and longitude. Proximity services divide the map into cells (geohash, quadtrees, S2 or H3) so nearby places share cell ids and can be found with fast lookups — with care at cell boundaries. Because places change rarely and searches are constant, the design is read-optimised and cache-heavy.
+
+<Callout type="analogy">
+Finding a pharmacy using a city map divided into numbered squares. Rather than measuring the distance to every pharmacy in the city, you look in your square and the eight squares around it, then measure only those — and the squares are smaller downtown, where shops are dense.
+</Callout>
 
 ## Requirements
 

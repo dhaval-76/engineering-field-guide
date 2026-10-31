@@ -16,8 +16,16 @@ quickRef:
     - 'Merging uses a **three-way merge** against the common ancestor; overlapping changes are conflicts.'
     - 'Collaborative editors produce thousands of tiny ops — **group them into versions** (by time or session).'
   useWhen: '"Design version history / Git for documents / page history in a wiki."'
-lastReviewed: 2026-10-30
+lastReviewed: 2026-10-31
 ---
+
+## Why it matters
+
+Wikis, document editors and code hosts all promise that you can see every past version, compare any two, and restore one. Storing full copies of large documents on every save wastes storage; storing only deltas makes old versions slow to rebuild. The design balances storage, read speed for old versions and features like drafts and merges — and it's a good interview test of content-addressed storage, deduplication and diffing.
+
+<Callout type="analogy">
+A legal contract with a change log. Instead of photocopying the whole contract on every edit, the clerk records "page 3, clause 2 changed", and every tenth revision keeps a full clean copy, so reconstructing any version needs at most a few pages of changes applied to the nearest clean copy.
+</Callout>
 
 ## Requirements
 

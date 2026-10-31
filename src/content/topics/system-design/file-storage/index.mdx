@@ -15,8 +15,16 @@ quickRef:
     - 'Clients upload **directly to object storage** via presigned URLs, then **commit** a version conditioned on their base version.'
     - 'Sync = **change journal + cursor**, woken by long-poll/WebSocket; concurrent edits become **conflicted copies**.'
   useWhen: '"Design Dropbox / Google Drive / OneDrive", file upload services, backup systems.'
-lastReviewed: 2026-10-30
+lastReviewed: 2026-10-31
 ---
+
+## Why it matters
+
+A Dropbox-style service keeps files identical across laptops, phones and the web while people edit offline and share folders. The challenges hide in the details: uploading huge files over flaky connections, not re-uploading data that hasn't changed, telling each device exactly what changed since it last synced, and resolving two offline edits of the same file without losing either. It tests storage design, change feeds and conflict handling.
+
+<Callout type="analogy">
+A shared photo album kept in several homes. Rather than mailing the whole album every time, each household keeps a numbered list of changes ("added page 12, replaced photo 3") and asks the others "what changed since change 418?". When two homes edit the same page while apart, both versions are kept and someone decides later.
+</Callout>
 
 ## Requirements
 

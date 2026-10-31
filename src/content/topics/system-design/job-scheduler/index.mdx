@@ -16,8 +16,16 @@ quickRef:
     - 'Recurring jobs: store the cron rule; compute and insert the **next run** when one is claimed or finishes.'
     - 'Scale out by **partitioning** jobs (by id hash or time bucket) instead of a single leader polling everything.'
   useWhen: '"Design a distributed cron / job scheduler / delayed-task system."'
-lastReviewed: 2026-10-30
+lastReviewed: 2026-10-31
 ---
+
+## Why it matters
+
+Sending tomorrow's reminder emails, retrying failed payouts, running nightly reports: products are full of work that must happen at a certain time, exactly once in effect, even when machines crash mid-job. A distributed scheduler stores millions of due jobs durably, hands each one to exactly one worker at a time, recovers jobs from workers that died, retries with backoff, and never runs a job twice in a way that matters. It tests leases, idempotency and time-ordered storage.
+
+<Callout type="analogy">
+A hotel's wake-up call system. Requests are written in a book ordered by time; at each minute, staff take the due cards, mark them "in progress, back by 7:05" and make the calls. If a staff member disappears, the card's time runs out and someone else picks it up — so guests may occasionally get two calls, but never none.
+</Callout>
 
 ## Requirements
 

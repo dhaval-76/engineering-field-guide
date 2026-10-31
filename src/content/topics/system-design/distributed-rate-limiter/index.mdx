@@ -16,8 +16,16 @@ quickRef:
     - 'Hot keys and latency: **local token batches** or approximate local limits synchronised periodically.'
     - 'Return **429** with `Retry-After` and remaining-quota headers.'
   useWhen: Designing API protection, quotas per plan, or "design a rate limiter" at scale.
-lastReviewed: 2026-10-30
+lastReviewed: 2026-10-31
 ---
+
+## Why it matters
+
+Rate limits protect services from overload and abuse and enforce what each customer pays for. On one server a counter in memory is enough; with dozens of instances behind a load balancer, each instance only sees a slice of the traffic, so the limit has to be shared — usually through a fast central store — without making every request wait on it. The design questions are where to enforce, how to count accurately (fixed windows allow bursts at the boundary), how to stay fast for hot keys, and what to do when the shared store itself is down.
+
+<Callout type="analogy">
+A nightclub with several entrances and one occupancy limit. Each door has a bouncer; if they only count their own door, the club overfills. They need a shared clicker — and a plan for what to do if the clicker breaks: keep letting people in (fail open) or stop at the doors (fail closed).
+</Callout>
 
 ## Requirements
 

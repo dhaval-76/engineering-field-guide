@@ -16,8 +16,16 @@ quickRef:
     - 'Groups: fan out to online members'' gateways; very large channels switch to pull.'
     - 'Presence is ephemeral (heartbeats + TTL), kept apart from durable messages.'
   useWhen: '"Design WhatsApp / Slack / Messenger" or any real-time delivery system.'
-lastReviewed: 2026-10-30
+lastReviewed: 2026-10-31
 ---
+
+## Why it matters
+
+Chat looks simple — send a message, show it — but at hundreds of millions of users it combines the hardest pieces of real-time systems: millions of long-lived connections, delivering each message to the right server holding the recipient's connection, keeping messages **in order** per conversation, never losing one, syncing devices that were offline, and showing receipts and presence without flooding the network. Interviewers use it to test connection management, fan-out and ordering together.
+
+<Callout type="analogy">
+A postal service where every resident has a personal courier waiting at their door. A sorting office (the router) must know which courier serves which door, number every letter in a conversation so it's read in order, keep a copy until it's delivered, and hold mail for people who are away until they come back.
+</Callout>
 
 ## Requirements
 

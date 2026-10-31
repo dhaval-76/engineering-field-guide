@@ -16,8 +16,16 @@ quickRef:
     - 'Scale with **shards** (split documents) and **replicas** (more query throughput, availability).'
     - 'Enforce **permissions** inside the query (filters), not by hiding results afterwards.'
   useWhen: '"Design search for Confluence / an e-commerce catalogue / a help centre."'
-lastReviewed: 2026-10-30
+lastReviewed: 2026-10-31
 ---
+
+## Why it matters
+
+Search boxes promise relevant results across millions of documents in tens of milliseconds, tolerating typos and partial words. A database `LIKE '%word%'` scans everything; search engines instead build an inverted index from words to documents, rank results with scoring like BM25, and keep the index in sync with the source data. The design covers indexing pipelines, sharding, relevance, autocomplete and permissions.
+
+<Callout type="analogy">
+The index at the back of a textbook. To find every page mentioning "photosynthesis" you don't read the whole book; you look up the word and get a list of page numbers. A search engine is that index for millions of documents, updated as they change and sorted by how relevant each page is.
+</Callout>
 
 ## Requirements
 

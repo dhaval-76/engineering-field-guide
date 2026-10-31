@@ -16,8 +16,16 @@ quickRef:
     - 'Private pastes: `Cache-Control: private, no-store` or short-lived **signed URLs**.'
     - 'Limit size and rate; scan content for secrets and malware.'
   useWhen: The Pastebin/Gist interview question, or any "store blobs, share links, expire them" feature.
-lastReviewed: 2026-10-30
+lastReviewed: 2026-10-31
 ---
+
+## Why it matters
+
+A paste or snippet-sharing service is mostly reads: content is written once and then viewed many times, sometimes by millions of people when a link goes viral. That makes it a clean design exercise in separating metadata from content, generating short unique ids, serving reads from a CDN and object storage rather than a database, and expiring data on schedule — the same shape as image hosting, file sharing links and many internal artifact stores.
+
+<Callout type="analogy">
+A public notice board with a numbered key for each notice. Posting a notice takes a minute; reading it takes seconds, and popular notices get photocopied to boards all over town (the CDN). Notices with an expiry date are taken down by a nightly sweep.
+</Callout>
 
 ## Requirements
 

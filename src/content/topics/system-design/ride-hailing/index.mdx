@@ -15,8 +15,16 @@ quickRef:
     - '**Live tracking** pushes driver positions to the rider over WebSocket; history goes to a stream for analytics.'
     - '**Surge** = demand vs supply per cell over the last minutes; fares authorised at request, captured at completion.'
   useWhen: '"Design Uber / Ola / a food or courier dispatch system" — any real-time matching of moving supply to demand.'
-lastReviewed: 2026-10-30
+lastReviewed: 2026-10-31
 ---
+
+## Why it matters
+
+Matching riders with drivers needs fresh locations for millions of moving drivers, updated every few seconds, and a match within seconds of a request — without offering one driver to two riders. The interesting parts are the write-heavy location pipeline kept in memory, a geo-index sharded by city, dispatch that picks a driver atomically, and a trip state machine that survives disconnects and payments.
+
+<Callout type="analogy">
+A taxi dispatch office with a big wall map. Drivers radio in their positions every few seconds and the dispatcher moves their pins; a customer calls, the dispatcher looks at the nearby pins, offers the job to the best driver, and takes that pin off the board until the trip ends.
+</Callout>
 
 ## Requirements
 

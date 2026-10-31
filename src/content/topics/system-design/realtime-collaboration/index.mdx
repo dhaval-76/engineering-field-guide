@@ -15,8 +15,16 @@ quickRef:
     - 'One **session owner per document** (routed by document id) sequences ops; ops are appended to a log, with periodic **snapshots**.'
     - 'Cursors and presence are ephemeral, throttled, never stored.'
   useWhen: '"Design Google Docs / Notion / a whiteboard with multiplayer editing."'
-lastReviewed: 2026-10-30
+lastReviewed: 2026-10-31
 ---
+
+## Why it matters
+
+In Google Docs-style editors several people type into the same document at once, each seeing their own edits instantly, and everyone must end up with exactly the same text even though their edits crossed on the network. Sending whole documents back and forth can't work; the design sends small operations and needs a way — Operational Transformation or CRDTs — to merge concurrent edits deterministically, plus cursors, presence and offline editing.
+
+<Callout type="analogy">
+Several editors marking up copies of the same manuscript by phone. Each says "insert 'quickly' after word 12"; if one of them just deleted word 5, everyone else must shift that instruction to word 11 before applying it — then all the copies stay identical.
+</Callout>
 
 ## Requirements
 

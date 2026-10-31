@@ -15,8 +15,16 @@ quickRef:
     - '**Shard inventory by event** — contention is per event, and events are independent.'
     - '**Cache seat maps** with short TTLs; the hold is the source of truth, not the map.'
   useWhen: '"Design BookMyShow / Ticketmaster / flight or hotel booking", and any flash sale of limited inventory.'
-lastReviewed: 2026-10-30
+lastReviewed: 2026-10-31
 ---
+
+## Why it matters
+
+When tickets for a big concert or match go on sale, demand can be thousands of times the supply, all within minutes. The system must never sell a seat twice, must hold seats while people pay without letting abandoned carts lock them forever, and must survive a traffic spike that would crush a normal site. The design covers atomic seat holds, a virtual waiting room, sharding inventory by event and payment with expiring holds.
+
+<Callout type="analogy">
+A theatre box office on opening day. A queue outside lets a few people in at a time; each customer's chosen seats get a "reserved" ticket clipped to the seating chart while they pay, and if they wander off, the clip is removed after ten minutes so someone else can buy those seats.
+</Callout>
 
 ## Requirements
 

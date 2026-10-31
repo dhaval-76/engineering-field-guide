@@ -15,8 +15,16 @@ quickRef:
     - 'Live updates: **SSE or WebSocket** to clients watching an order; route events to the server holding that connection.'
     - 'Courier location is a separate, high-frequency, lossy stream — sample and throttle it, don''t store every point forever.'
   useWhen: '"Design order tracking for an e-commerce or food-delivery app."'
-lastReviewed: 2026-10-30
+lastReviewed: 2026-10-31
 ---
+
+## Why it matters
+
+After paying, customers want to know where their order is — and they refresh constantly. Order tracking turns events from many sources (warehouse, courier partners, payment) into one consistent timeline, pushes changes to the customer's screen live, shows the courier on a map, and sends notifications at the right moments. The core challenges are a correct state machine fed by unreliable, out-of-order partner events, and pushing updates to millions of open screens cheaply.
+
+<Callout type="analogy">
+A parcel's travel stamp card. Each handler stamps it with time and place as it passes through; some stamps arrive late or twice, so the card is ordered by when things happened, not when the stamp arrived, and a stamp that would move the parcel backwards ("out for delivery" after "delivered") is ignored.
+</Callout>
 
 ## Requirements
 

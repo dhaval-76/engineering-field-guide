@@ -15,8 +15,16 @@ quickRef:
     - 'Log **impressions** (shown and not clicked) for training; handle **cold start** with content features and exploration.'
     - 'Measure offline (recall@k, NDCG) but decide with **online A/B tests** on business metrics.'
   useWhen: '"Design a recommendation system / home feed / related products / Netflix rows", and AI features built on embeddings.'
-lastReviewed: 2026-10-30
+lastReviewed: 2026-10-31
 ---
+
+## Why it matters
+
+Recommendations decide much of what people see in feeds, shops and streaming services. From millions of items, the system must pick a few dozen relevant ones per user in tens of milliseconds. It works as a funnel: cheap candidate generation narrows millions to hundreds, a heavier model ranks them, and business rules re-rank for diversity and freshness. The system-design side is about serving that funnel fast and keeping features and models fresh.
+
+<Callout type="analogy">
+A bookshop assistant with a good memory. When you walk in, they quickly think of a few dozen books people like you enjoyed (candidates), weigh which you'd most likely buy today (ranking), and make sure the shortlist isn't five books from the same series (re-ranking).
+</Callout>
 
 ## Requirements
 

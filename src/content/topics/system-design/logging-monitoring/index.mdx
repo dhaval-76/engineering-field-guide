@@ -18,6 +18,14 @@ quickRef:
 lastReviewed: 2026-10-31
 ---
 
+## Why it matters
+
+With hundreds of services, "is it working, and if not, where?" can't be answered by reading log files on servers. An observability platform collects logs, metrics and traces from everything, keeps them affordably for the right amount of time, makes them searchable in seconds, and alerts people on what users actually experience. The difficulty is volume and cost — telemetry can rival production traffic — so the design is mostly about buffering, sampling, storage tiers and keeping label cardinality in check.
+
+<Callout type="analogy">
+A city's emergency monitoring centre. Sensors everywhere (metrics) show dials and trends; a dispatcher can follow one ambulance's route across districts (traces); incident reports (logs) give the details. The centre can't keep every second of every camera forever, so it keeps recent footage in full and summaries of the past.
+</Callout>
+
 ## Requirements
 
 **Functional**: collect logs, metrics and traces from ~500 services; search logs by time, service, level, trace id and text; dashboards for traffic, errors, latency and saturation; find which service made a request slow; alert the right team.

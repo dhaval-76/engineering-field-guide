@@ -15,8 +15,16 @@ quickRef:
     - 'Traffic: anonymised **GPS probes** are map-matched to road segments to estimate live speeds; ETA blends live, historical and predicted speeds.'
     - 'Nearby search: **geohash / S2 / H3 cells**, quadtrees or R-trees — never two independent lat/lon range scans.'
   useWhen: '"Design Google Maps / navigation / ride-hailing ETA / nearby places."'
-lastReviewed: 2026-10-30
+lastReviewed: 2026-10-31
 ---
+
+## Why it matters
+
+Navigation combines several different systems behind one screen: map tiles served to billions of devices, a road network of hundreds of millions of segments, shortest-path search fast enough to answer in milliseconds, live traffic derived from GPS pings, and arrival-time predictions. A plain Dijkstra over a continent is far too slow, so the interesting part is the precomputation and partitioning that make routing fast — and keeping it fresh as traffic changes.
+
+<Callout type="analogy">
+Planning a cross-country drive with a stack of maps. You don't study every village lane: you find the motorway near home, follow motorways between regions, and only look at local streets at the destination — and you listen to the radio for traffic jams on the way.
+</Callout>
 
 ## Requirements
 

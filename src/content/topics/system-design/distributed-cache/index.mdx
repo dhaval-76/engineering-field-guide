@@ -15,8 +15,16 @@ quickRef:
     - '**Hot keys**: local L1 cache, read replicas, or key splitting. **Big keys**: break up.'
     - 'The cache is an optimisation: on failure, fall back to the database **with timeouts, rate limits and circuit breakers**.'
   useWhen: '"Design a distributed cache / Redis / Memcached", or sizing and operating the cache tier of any system.'
-lastReviewed: 2026-10-30
+lastReviewed: 2026-10-31
 ---
+
+## Why it matters
+
+Databases are durable but comparatively slow and expensive per read; a cache in memory serves the hot fraction of data in well under a millisecond. Once a single cache server isn't enough — too much data, too many requests, or no tolerance for losing it — the cache becomes a distributed system of its own: data partitioned across nodes, replicas for failover, eviction under memory pressure, and clients that know which node holds which key. Designing one well means understanding exactly what happens when a node dies, a key gets hot, or the cache and database disagree.
+
+<Callout type="analogy">
+A chain of corner shops stocking the most popular items from a central warehouse. Each shop carries a fixed set of products (partitioning), a sister shop keeps the same stock in case one closes (replication), slow sellers are cleared from shelves to make room (eviction), and a sign at the street corner tells customers which shop carries what (client routing).
+</Callout>
 
 ## Requirements
 

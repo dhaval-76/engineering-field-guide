@@ -16,8 +16,16 @@ quickRef:
     - 'Avoid a single point of failure: many instances behind an L4 load balancer, across zones.'
     - '**BFFs** aggregate calls per client type; don''t turn the gateway into a monolith of composition logic.'
   useWhen: Designing the edge of a microservice platform, or the "design an API gateway" question.
-lastReviewed: 2026-10-30
+lastReviewed: 2026-10-31
 ---
+
+## Why it matters
+
+Once a product has more than a handful of services, every client would otherwise need to know where each one lives, how to authenticate to it and how to cope when it's slow. An API gateway is the single front door that handles those cross-cutting jobs once — TLS, authentication, routing, rate limits, retries — so services can focus on business logic. Because **every** request passes through it, it has to add almost no latency, stay stateless so it can scale out, and never become the single point that takes the whole product down.
+
+<Callout type="analogy">
+A hotel reception desk. Guests don't wander the corridors looking for housekeeping, the restaurant or the spa — they ask at one desk, which checks their room key, knows where every service is, calls ahead, and turns people away politely when a venue is full. The desk must be quick, or the whole lobby queues.
+</Callout>
 
 ## Requirements
 

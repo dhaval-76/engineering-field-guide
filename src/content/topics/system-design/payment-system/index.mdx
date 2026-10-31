@@ -16,8 +16,16 @@ quickRef:
     - 'Atomic local transactions + **outbox** for events; **sagas** with compensations across services; never 2PC with an external provider.'
     - '**Reconcile** daily against provider settlement files; PCI scope minimised by tokenisation.'
   useWhen: '"Design a payment system / wallet / Stripe-like gateway" — and any feature that touches money.'
-lastReviewed: 2026-10-30
+lastReviewed: 2026-10-31
 ---
+
+## Why it matters
+
+Payments are where "mostly correct" is not acceptable: a request retried after a timeout must not charge twice, money must never appear or vanish between accounts, and every rupee must be explainable months later in an audit. A payment system wraps unreliable external providers (card networks, UPI, banks) with idempotent APIs, a double-entry ledger, explicit state machines and daily reconciliation. Interviewers use it to test correctness under retries and failures more than raw scale.
+
+<Callout type="analogy">
+A bank branch's double-entry ledger. Every movement is written twice — out of one account, into another — so the books always balance, mistakes are fixed by new entries rather than erasing old ones, and at the end of the day the branch reconciles its ledger against the central bank's statement line by line.
+</Callout>
 
 ## Requirements
 

@@ -15,8 +15,16 @@ quickRef:
     - 'Detect duplicate **content** with hashes and near-duplicates with **SimHash**; avoid **traps** with depth, length and per-site budgets.'
     - '**Partition by host** so each worker owns a host''s politeness; recrawl by estimated change rate.'
   useWhen: '"Design a web crawler", search engine ingestion, price/monitoring scrapers, link checkers.'
-lastReviewed: 2026-10-30
+lastReviewed: 2026-10-31
 ---
+
+## Why it matters
+
+Search engines, price trackers and archives start with a crawler that fetches billions of pages. The hard parts aren't fetching a page; they're choosing what to fetch next, never hammering one website, avoiding duplicates and infinite URL traps, and revisiting pages at the right rate as they change. The design covers the URL frontier, politeness, deduplication with Bloom filters and content hashes, and distributing the work.
+
+<Callout type="analogy">
+A team of librarians cataloguing every public library in a country. They keep a list of addresses still to visit, ordered by importance; they don't send ten people to the same small library on one day; they note which books they've already catalogued; and they revisit busy libraries more often than quiet ones.
+</Callout>
 
 ## Requirements
 

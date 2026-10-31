@@ -16,8 +16,16 @@ quickRef:
     - 'Paginate with a **cursor** (score + id), never offsets; rank candidates after retrieval.'
     - 'Counts (likes, views) are eventually consistent, sharded counters.'
   useWhen: '"Design Twitter / Instagram / a timeline" — or any follow-graph fan-out problem.'
-lastReviewed: 2026-10-30
+lastReviewed: 2026-10-31
 ---
+
+## Why it matters
+
+A feed shows each user the recent, relevant posts of the people they follow, in milliseconds, at the scale of hundreds of millions of users. Building it at read time means gathering posts from hundreds of accounts per request; building it at write time means copying each post into millions of follower feeds when a celebrity posts. The classic answer is a hybrid, and the interesting part of the interview is the trade-off between write amplification, read latency and freshness.
+
+<Callout type="analogy">
+A newspaper with personalised editions. Writers' stories can be slipped into each subscriber's copy as they're filed (fan-out on write), or each subscriber's copy can be assembled when they pick it up (fan-out on read). For a writer with ten million subscribers, slipping a copy into every paper is impossible, so those stories are added at pickup.
+</Callout>
 
 ## Requirements
 

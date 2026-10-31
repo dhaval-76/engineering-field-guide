@@ -15,8 +15,16 @@ quickRef:
     - 'The **player** chooses a rendition per segment from measured throughput and buffer (**adaptive bitrate**).'
     - 'Cost is dominated by **CDN egress and storage** — popular videos at the edge, long tail in cheaper storage.'
   useWhen: '"Design YouTube / Netflix / a video platform" and any media upload-and-playback feature.'
-lastReviewed: 2026-10-30
+lastReviewed: 2026-10-31
 ---
+
+## Why it matters
+
+Video is most of the internet's traffic. A streaming platform must accept large uploads, transcode each video into many resolutions and bitrates, cut them into small segments, and deliver them from CDNs so playback starts fast and adapts to the viewer's connection without buffering. The design is dominated by processing pipelines, storage and CDN delivery, with adaptive bitrate streaming (HLS/DASH) at its core.
+
+<Callout type="analogy">
+A film released as a set of pamphlets in several sizes. Each scene is printed in small, medium and large print, and the cinema hands you scenes in whichever size your eyesight — your bandwidth — can manage at that moment, switching between sizes scene by scene.
+</Callout>
 
 ## Requirements
 

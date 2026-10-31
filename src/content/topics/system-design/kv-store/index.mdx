@@ -16,8 +16,16 @@ quickRef:
     - 'Self-healing: gossip failure detection, **hinted handoff**, **read repair**, **Merkle-tree anti-entropy**.'
     - 'Per node: write-ahead log + memtable + SSTables (LSM) for writes, Bloom filters for reads.'
   useWhen: '"Design a key-value store / Dynamo / a distributed cache" — or to understand how Cassandra and DynamoDB behave.'
-lastReviewed: 2026-10-30
+lastReviewed: 2026-10-31
 ---
+
+## Why it matters
+
+Amazon's Dynamo paper and the databases it inspired (Cassandra, Riak, DynamoDB) showed how to build a store that stays available through machine and network failures by giving up some consistency. Designing one covers the core vocabulary of distributed data: partitioning with consistent hashing, replication, quorum reads and writes, conflict resolution, failure detection and repair. It's a favourite deep-dive question because each choice has a clear trade-off.
+
+<Callout type="analogy">
+A library that keeps three copies of every book in different branches. To borrow, you check enough branches to be confident you have the latest edition; when a branch was closed during an update, the others leave a note to bring it up to date when it reopens, and a periodic audit compares catalogues to catch anything missed.
+</Callout>
 
 ## Requirements
 

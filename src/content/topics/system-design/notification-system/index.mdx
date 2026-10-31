@@ -15,8 +15,16 @@ quickRef:
     - 'Idempotency keys stop duplicates; **security** messages bypass mutes and quiet hours.'
     - 'Track sent → delivered → opened; clean up invalid device tokens and bounced emails.'
   useWhen: '"Design a notification service" — or any product feature that messages users across channels.'
-lastReviewed: 2026-10-30
+lastReviewed: 2026-10-31
 ---
+
+## Why it matters
+
+Order updates, OTPs, reminders and marketing all end up as push notifications, SMS, emails or in-app messages. A central notification service decides **whether** to send (preferences, quiet hours, frequency caps, duplicates), **how** (channel and template), and makes sure it **arrives** despite third-party providers that rate-limit, fail or go down — without delaying the urgent messages (an OTP) behind a marketing blast.
+
+<Callout type="analogy">
+A company mailroom. Every department drops off letters; the mailroom checks each recipient's preferences ("email, not post"), never sends the same letter twice, keeps urgent courier envelopes ahead of bulk flyers, and switches to another courier company when the usual one doesn't turn up.
+</Callout>
 
 ## Requirements
 

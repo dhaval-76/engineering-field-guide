@@ -16,8 +16,16 @@ quickRef:
     - '**302** if you need click analytics on every visit; **301** lets browsers cache (fewer requests, less data).'
     - 'Analytics are **asynchronous** — publish a click event; never slow the redirect.'
   useWhen: The URL shortener interview question, or any "map a short key to a value, read it constantly" system.
-lastReviewed: 2026-10-30
+lastReviewed: 2026-10-31
 ---
+
+## Why it matters
+
+A URL shortener turns long links into short codes and redirects billions of clicks. It's a classic first system-design question because it's small enough to finish yet touches the essentials: generating unique ids without collisions, storing billions of small records, serving a read-heavy workload from caches and CDNs, and handling expiry, custom aliases and abuse.
+
+<Callout type="analogy">
+A cloakroom ticket for web addresses. You hand over a long address and get a short numbered ticket; anyone who presents the ticket is directed to the right place instantly. The cloakroom must never issue the same number twice, and the most popular tickets are kept right at the front desk.
+</Callout>
 
 ## Requirements
 

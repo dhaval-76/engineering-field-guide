@@ -15,8 +15,16 @@ quickRef:
     - 'Store pre-aggregated rollups in an **OLAP** store (ClickHouse, Druid, Pinot, BigQuery) for fast slice-and-dice; keep raw events in cheap object storage.'
     - '**Kappa**: one streaming path, reprocess by replaying the log; **Lambda**: separate batch and speed layers.'
   useWhen: '"Design a real-time dashboard / trending topics / ad-click aggregation / top-K songs."'
-lastReviewed: 2026-10-30
+lastReviewed: 2026-10-31
 ---
+
+## Why it matters
+
+Live dashboards — active users now, sales per minute, the top trending items — must turn millions of events per second into numbers with seconds of delay. Events arrive late and out of order, exact counts over huge cardinalities are expensive, and the numbers must be correct after a crash or a replay. The design covers stream processing with windows and watermarks, approximate algorithms (HyperLogLog, Count-Min sketch) and OLAP stores built for fast aggregation.
+
+<Callout type="analogy">
+Counting votes at a large election in real time. Tally clerks count ballots by district every few minutes and post running totals, late ballots from remote areas are added to the right period when they arrive, and the final official count is reconciled from the stored ballots later.
+</Callout>
 
 ## Requirements
 

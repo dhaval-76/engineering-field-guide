@@ -15,8 +15,16 @@ quickRef:
     - 'Authorization: coarse roles in tokens; fine-grained, relationship-based checks in a **policy/permission service** (Zanzibar-style) with caching.'
     - 'Service-to-service: **mTLS/workload identity** or client-credentials tokens — never shared static secrets.'
   useWhen: Designing login/SSO for a product family, or answering "how do 500 services authenticate requests?".
-lastReviewed: 2026-10-30
+lastReviewed: 2026-10-31
 ---
+
+## Why it matters
+
+Every request in every service needs to answer two questions: **who is this?** and **may they do this?** At the scale of millions of users and hundreds of services, those answers can't require a call to one central database each time — that would be the slowest and most fragile dependency in the company. An identity platform centralises the hard parts (passwords, MFA, single sign-on, token issuance, revocation) and hands every service a cheaply verifiable token, while keeping security tight: stolen tokens, credential stuffing and leaked keys are daily realities.
+
+<Callout type="analogy">
+A conference badge desk. You prove who you are once, at registration, and get a badge with your name and access levels printed on it. Every session door checks the badge — not the registration database. The badge expires at the end of the day, and if one is reported stolen, the doors get a list of revoked numbers.
+</Callout>
 
 ## Requirements
 

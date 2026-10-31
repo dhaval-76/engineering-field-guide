@@ -16,8 +16,16 @@ quickRef:
     - 'Search and filters go to a **search index**; permissions are filters in every query.'
     - 'Tenancy: `tenant_id` in every key; shard by tenant as it grows.'
   useWhen: '"Design Jira / an issue tracker / a Trello-like board."'
-lastReviewed: 2026-10-30
+lastReviewed: 2026-10-31
 ---
+
+## Why it matters
+
+Issue trackers like Jira or Linear look like simple CRUD, but each team wants its own workflow, fields and permissions, boards must update live when a colleague moves a card, and queries like "my open bugs in this sprint, ordered by priority" must be fast across millions of issues. The design is a good test of flexible schemas, permission checks on every read, search indexing and real-time updates in a multi-tenant product.
+
+<Callout type="analogy">
+A shared whiteboard of sticky notes in an open office. Each team draws its own columns, some notes are visible only to certain people, a note moved by one person moves for everyone watching, and a filing clerk keeps an index so anyone can ask "show me all notes about invoicing" without walking the whole office.
+</Callout>
 
 ## Requirements
 

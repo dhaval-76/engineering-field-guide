@@ -15,8 +15,16 @@ quickRef:
     - 'Triggers: **webhooks** when available, **polling** with cursors otherwise; de-duplicate trigger events.'
     - 'Isolate tenants: per-tenant quotas and queues, sandboxed code steps, encrypted credentials.'
   useWhen: '"Design Zapier / a workflow automation platform / an orchestration engine."'
-lastReviewed: 2026-10-30
+lastReviewed: 2026-10-31
 ---
+
+## Why it matters
+
+Automation platforms like Zapier or n8n let users chain steps — "when a form is submitted, create a CRM contact, then send a Slack message". The engine must run millions of user-defined workflows reliably: resume exactly where it stopped after a crash, retry failed steps without repeating finished ones, respect each third-party API's rate limits, and keep users' credentials safe. It's a good test of durable execution and idempotency.
+
+<Callout type="analogy">
+A recipe card that a relay of cooks follows. Each finished step is ticked on the card, so if a cook goes home mid-recipe, the next cook continues from the last tick instead of starting over — and never adds the salt twice.
+</Callout>
 
 ## Requirements
 

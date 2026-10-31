@@ -15,8 +15,16 @@ quickRef:
     - '**Isolate** endpoints: per-endpoint queues/concurrency, timeouts, circuit breakers, auto-disable after sustained failure.'
     - '**SSRF-safe** egress (block private IPs, resolve-then-connect), delivery logs, and **replay** from a dashboard.'
   useWhen: '"Design webhooks for a payments/SaaS platform", or any system that notifies external systems over HTTP.'
-lastReviewed: 2026-10-30
+lastReviewed: 2026-10-31
 ---
+
+## Why it matters
+
+Platforms like Stripe and GitHub notify customers' servers about events through webhooks. The receiving endpoints are outside your control: they're slow, down, misconfigured or malicious. Reliable delivery means at-least-once sending with retries and backoff, signatures so customers can trust the payload, isolation so one broken endpoint can't delay everyone else, and protection against the platform being tricked into calling internal addresses.
+
+<Callout type="analogy">
+A courier delivering letters to thousands of businesses. Some offices are closed, some have moved; the courier retries later rather than giving up, never lets one closed office hold up the whole van, stamps each letter with a seal the recipient can verify, and refuses to deliver to addresses inside the courier company's own building.
+</Callout>
 
 ## Requirements
 
