@@ -67,6 +67,18 @@ It costs more code, so save it for public APIs where misuse is likely and expens
 
 ## Builder vs the alternatives
 
+<DecisionGuide
+  title="How should callers create this object?"
+  steps={[
+    ['Two or three parameters, all required?', 'A plain constructor (or a record) — a builder is overkill.'],
+    ['Several parameters of the same type that are easy to swap (two Strings, two ints)?', 'A builder or named static factories, so each value is labelled at the call site.'],
+    ['Many optional parts, defaults and cross-field rules?', 'A builder with required fields in its constructor and validation in build().'],
+    ['A fixed order of required steps you want the compiler to enforce?', 'A step builder: each step returns an interface exposing only the next step.'],
+    ['A plain data carrier (DTO) with no invariants?', 'A record — or Lombok @Builder if many fields are optional.'],
+  ]}
+/>
+
+
 | Approach | Readable call site | Immutable | Validates once | Enforces required fields |
 |---|---|---|---|---|
 | Positional constructor | No | Yes | Yes | Yes |
