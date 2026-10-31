@@ -1,9 +1,7 @@
 flowchart TD
-  API[Job API<br/>create · cancel · status] --> DB[(Jobs store<br/>partitioned by job id hash)]
-  S1[Scheduler A<br/>owns partitions 0–7] -- "claim due jobs<br/>SKIP LOCKED + lease" --> DB
-  S2[Scheduler B<br/>owns partitions 8–15] -- claim --> DB
-  S1 --> Q{{Execution queue}}
-  S2 --> Q
+  API[Job API<br/>create · cancel · status] --> DB[(Jobs store<br/>partitioned by job id)]
+  DB -- "due jobs, claimed<br/>with a lease" --> S[Schedulers<br/>each owns partitions]
+  S --> Q{{Execution queue}}
   Q --> W[Workers<br/>heartbeat · idempotent handlers]
-  W -- "result · retry · dead" --> DB
-  R[Reaper<br/>expired leases → retry] --> DB
+  W -. "done · retry · dead" .-> DB
+  DB -. "expired leases" .-> R[Reaper → due again]

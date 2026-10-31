@@ -1,9 +1,7 @@
 flowchart TD
-  C[Desktop / mobile client<br/>watcher · chunker · local DB] -- 1. which chunks are new? --> API[Metadata API]
-  API --> MDB[(Metadata DB<br/>files · versions · journal)]
-  C -- 2. upload missing chunks<br/>presigned URLs --> OBJ[(Object storage<br/>chunks by SHA-256)]
-  C -- 3. commit version<br/>base version check --> API
-  API -- 4. change event --> NS[Notification service<br/>long-poll / WebSocket]
-  NS -- 5. something changed --> C2[Other devices]
-  C2 -- 6. changes after cursor --> API
-  C2 -- 7. download missing chunks --> OBJ
+  C[Device A<br/>chunker · local DB] -- "1 · new chunks?<br/>3 · commit" --> API[Metadata API<br/>files · versions · journal]
+  C -- "2 · upload<br/>missing chunks" --> OBJ[(Object storage<br/>chunks by SHA-256)]
+  API -- "4 · change event" --> NS[Notification service<br/>long-poll / WebSocket]
+  NS -- "5 · something changed" --> C2[Device B]
+  C2 -- "6 · changes<br/>since cursor" --> API
+  C2 -- "7 · download" --> OBJ

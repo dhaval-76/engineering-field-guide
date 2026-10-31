@@ -1,13 +1,6 @@
 flowchart TD
-  PR[Producers] -- "produce(key) → partition leader" --> L0
-  subgraph Brokers
-    L0[Broker A<br/>orders-0 leader]
-    F0[Broker B<br/>orders-0 follower]
-    F1[Broker C<br/>orders-0 follower]
-  end
-  F0 -- fetch --> L0
-  F1 -- fetch --> L0
-  CQ[(Controller quorum · Raft<br/>topics · leaders · ISR)] -. metadata .-> Brokers
-  L0 -- "fetch(offset) ≤ high watermark" --> CG1[Consumer group: billing]
-  L0 --> CG2[Consumer group: search-indexer]
-  CG1 -. commit offset .-> OT[(__consumer_offsets<br/>compacted topic)]
+  PR[Producers] -- "produce(key) → leader" --> L0[Broker A · leader<br/>orders-0]
+  L0 -- "followers fetch" --> F[Brokers B, C · followers<br/>orders-0 copies]
+  CQ[(Controller quorum · Raft<br/>topics · leaders · ISR)] -. metadata .-> L0
+  L0 -- "fetch(offset) up to<br/>high watermark" --> CG[Consumer groups<br/>billing · search-indexer]
+  CG -. commit offsets .-> OT[(__consumer_offsets<br/>compacted topic)]

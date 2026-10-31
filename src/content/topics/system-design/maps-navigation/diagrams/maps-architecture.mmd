@@ -1,8 +1,7 @@
 flowchart TD
-  C[Mobile / web clients] -- "tiles z/x/y" --> CDN[CDN] -. miss .-> TS[Tile service<br/>pre-rendered pyramid]
-  C -- route A→B --> RS[Routing servers<br/>road graph in memory · per region]
-  C -- search places --> PL[Places search<br/>text + geo index]
-  C -- GPS probes --> IN[Probe ingest] --> SP[Stream processing<br/>map matching · segment speeds]
+  C[Mobile / web] -- tiles --> CDN[CDN → tile service]
+  C -- "route · search · GPS" --> GW[API gateway]
+  GW --> RS[Routing<br/>road graph per region]
+  GW --> PL[Places search]
+  GW --> SP[Probe ingest →<br/>segment speeds]
   SP -- live weights --> RS
-  HIST[(Historical speeds<br/>by segment and time)] --> RS
-  ETA[ETA model] --> RS

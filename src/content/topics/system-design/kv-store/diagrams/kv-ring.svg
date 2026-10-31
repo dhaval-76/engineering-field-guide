@@ -1,23 +1,25 @@
-<svg viewBox="0 0 640 300" xmlns="http://www.w3.org/2000/svg" font-family="var(--font-sans)" font-size="12">
-  <circle cx="170" cy="150" r="110" fill="none" stroke="var(--d-line)" stroke-width="2"/>
-  <g font-size="11" text-anchor="middle" fill="var(--d-text)">
-    <circle cx="170" cy="40" r="11" fill="var(--d-info-soft)" stroke="var(--d-info)"/><text x="170" y="44">A</text>
-    <circle cx="265" cy="95" r="11" fill="var(--d-plum-soft)" stroke="var(--d-plum)"/><text x="265" y="99">B</text>
-    <circle cx="265" cy="205" r="11" fill="var(--d-ok-soft)" stroke="var(--d-ok)"/><text x="265" y="209">C</text>
-    <circle cx="170" cy="260" r="11" fill="var(--d-info-soft)" stroke="var(--d-info)"/><text x="170" y="264">A</text>
-    <circle cx="75" cy="205" r="11" fill="var(--d-plum-soft)" stroke="var(--d-plum)"/><text x="75" y="209">B</text>
-    <circle cx="75" cy="95" r="11" fill="var(--d-ok-soft)" stroke="var(--d-ok)"/><text x="75" y="99">C</text>
+<svg viewBox="0 0 340 360" xmlns="http://www.w3.org/2000/svg" font-family="var(--font-sans)" font-size="12">
+  <defs><marker id="kr-a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="var(--d-accent)"/></marker></defs>
+  <circle cx="170" cy="120" r="92" fill="none" stroke="var(--d-line)" stroke-width="2"/>
+  <!-- six tokens, clockwise from the top: A B C A B C -->
+  <g font-weight="700" text-anchor="middle">
+    <circle cx="170" cy="28" r="15" fill="var(--d-info-soft)" stroke="var(--d-info)"/><text x="170" y="32" fill="var(--d-info)">A</text>
+    <circle cx="250" cy="74" r="15" fill="var(--d-ok-soft)" stroke="var(--d-ok)"/><text x="250" y="78" fill="var(--d-ok)">B</text>
+    <circle cx="250" cy="166" r="15" fill="var(--d-plum-soft)" stroke="var(--d-plum)"/><text x="250" y="170" fill="var(--d-plum)">C</text>
+    <circle cx="170" cy="212" r="15" fill="var(--d-info-soft)" stroke="var(--d-info)"/><text x="170" y="216" fill="var(--d-info)">A</text>
+    <circle cx="90" cy="166" r="15" fill="var(--d-ok-soft)" stroke="var(--d-ok)"/><text x="90" y="170" fill="var(--d-ok)">B</text>
+    <circle cx="90" cy="74" r="15" fill="var(--d-plum-soft)" stroke="var(--d-plum)"/><text x="90" y="78" fill="var(--d-plum)">C</text>
   </g>
-  <circle cx="230" cy="60" r="6" fill="var(--d-accent)"/>
-  <text x="240" y="56" fill="var(--d-accent)" font-size="11.5">hash("cart:42")</text>
-  <path d="M236 64 Q258 74 260 84" fill="none" stroke="var(--d-accent)" stroke-width="1.6" stroke-dasharray="4 3"/>
-  <g fill="var(--d-text)" font-size="12.5">
-    <text x="320" y="70" font-weight="600">Key placement</text>
-    <text x="320" y="96">1. Hash the key onto the ring.</text>
-    <text x="320" y="118">2. Walk clockwise to the first token → node <tspan fill="var(--d-plum)" font-weight="600">B</tspan>.</text>
-    <text x="320" y="140">3. Keep walking for N = 3 <tspan font-style="italic">distinct</tspan> nodes:</text>
-    <text x="336" y="162">replicas = <tspan fill="var(--d-plum)">B</tspan>, <tspan fill="var(--d-ok)">C</tspan>, <tspan fill="var(--d-info)">A</tspan></text>
-    <text x="320" y="196" fill="var(--d-muted)" font-size="11.5">Each physical node owns several tokens (virtual nodes),</text>
-    <text x="320" y="214" fill="var(--d-muted)" font-size="11.5">so a new node takes small slices from every other node.</text>
+  <circle cx="214" cy="40" r="5" fill="var(--d-accent)"/>
+  <text x="222" y="30" fill="var(--d-accent)" font-family="var(--font-mono)" font-size="11">hash("cart:42")</text>
+  <path d="M220 44 Q 244 54 246 60" fill="none" stroke="var(--d-accent)" stroke-width="1.5" marker-end="url(#kr-a)"/>
+  <text x="170" y="124" text-anchor="middle" fill="var(--d-muted)" font-size="11">ring of hash values</text>
+  <g font-size="11.5" fill="var(--d-text)">
+    <text x="10" y="252">1. Hash the key onto the ring.</text>
+    <text x="10" y="270">2. Walk clockwise to the first token → node B.</text>
+    <text x="10" y="288">3. Keep walking for N = 3 distinct nodes:</text>
+    <text x="28" y="306" font-weight="600">replicas = B, C, A</text>
   </g>
+  <text x="10" y="332" fill="var(--d-muted)" font-size="11">Each node owns several tokens (virtual nodes), so a new</text>
+  <text x="10" y="348" fill="var(--d-muted)" font-size="11">node takes small slices from every other node.</text>
 </svg>
