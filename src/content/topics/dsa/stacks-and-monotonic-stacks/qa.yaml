@@ -22,6 +22,16 @@ practice:
     solution: |
       Push pairs `(value, min(value, current min))`. The minimum is always in the top pair, so `getMin` is O(1), and popping automatically restores the previous minimum. Alternatively keep a second stack of minimums, pushing when the new value is ≤ the current minimum and popping when the popped value equals it.
     solutionCode: dsa-min-stack
+  - task: Decode strings like "3[a2[c]]" (repeat counts can have several digits and nest).
+    hint: Each '[' starts a level that must remember the text before it and its count.
+    solution: |
+      Scan once. Digits build `k`. On `[`, push (current text, k) and start an empty text. On `]`, pop (before, count) and set current = before + current repeated count times. Letters append to current. The stack depth is the nesting depth; time is proportional to the output.
+    solutionCode: dsa-decode-string
+  - task: Evaluate an expression in reverse Polish notation.
+    hint: Every operator applies to the two most recent results.
+    solution: |
+      Push numbers. On an operator, pop `b`, then `a`, push `a op b` (order matters for − and /; integer division truncates toward zero). The final stack holds one value: the result. O(n).
+    solutionCode: dsa-eval-rpn
 quiz:
   - q: 'In a "next greater element" pass, what order does the stack keep (bottom → top)?'
     options: [Increasing, Decreasing, Random, Sorted by index only]

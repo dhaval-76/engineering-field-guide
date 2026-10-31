@@ -16,57 +16,135 @@ quickRef:
     - 'In Java use `ArrayDeque`, not the legacy synchronized `Stack` class.'
   complexity: 'O(n) time, O(n) space for monotonic-stack passes.'
   useWhen: 'Matching/nesting structures, or "for each element, find the nearest larger/smaller element on one side".'
-lastReviewed: 2026-10-30
+lastReviewed: 2026-10-31
 ---
+
+## Why it matters
+
+A stack answers one question perfectly: **"what is the most recent thing that hasn't been dealt with yet?"** That is exactly the question behind matching brackets, nested structures, undo, the call stack of every program, and depth-first search. Push when something opens, pop when it closes — O(1) each.
+
+A **monotonic stack** turns a family of O(n²) problems into O(n): "for each element, find the nearest element to its right (or left) that is larger (or smaller)". Brute force scans outward from every element. The monotonic stack instead keeps the elements that are *still waiting* for their answer, and resolves several of them the moment the answer arrives. Daily temperatures, stock spans, histogram rectangles and trapped rain water all reduce to it.
+
+<Callout type="analogy">
+A stack of plates: you only ever take the top one. A monotonic stack is a line of people at a parade, each one blocking the view of everyone shorter behind them. When a tall person arrives, everyone shorter at the back of the line finally sees "their next taller person" — and leaves the line, because nobody arriving later can matter to them.
+</Callout>
 
 ## Recognise it
 
-- **Nesting and matching**: brackets, tags, nested encodings (`3[a2[c]]`), function calls → plain stack.
-- "For each element, the **next/previous greater or smaller**" — temperatures, stock spans, histogram areas, "how far can this bar extend?" → monotonic stack.
-- Iterative DFS or undo history → stack.
-
-<Callout type="analogy">
-A stack of plates: you only ever take the top one. A monotonic stack is a queue of people at a parade, each blocking the view of everyone shorter behind them — when a tall person arrives, everyone shorter in front of them "sees" their next taller person and leaves.
-</Callout>
+- **Nesting and matching**: brackets, HTML tags, nested encodings (`3[a2[c]]`), function calls → plain stack.
+- **Expression evaluation**: postfix (RPN) directly; infix with an operator stack (shunting-yard) → stack.
+- "For each element, the **next/previous greater or smaller**" — temperatures, stock spans, "how far can this bar extend?" → monotonic stack.
+- **Iterative DFS** or undo/redo history → stack.
 
 ## Plain stack problems
 
+### Valid parentheses
+
+**Insight.** Every closer must match the **most recent unmatched** opener — precisely the top of the stack. Push openers; on a closer, pop and compare. At the end the stack must be empty (no unclosed openers).
+
 <CodeTabs id="dsa-valid-parentheses" title="Valid parentheses — push openers, match closers" />
 
+### Min stack
+
+**Problem.** A stack with `push`, `pop`, `top` and `getMin`, all O(1).
+
+**Insight.** Store with each entry the minimum of that entry and everything below it. Popping removes the entry and its minimum together, so the minimum of what remains is still right there — no need to search.
+
 <CodeTabs id="dsa-min-stack" title="Min stack — O(1) push, pop and getMin" />
+
+### Decode string
+
+**Problem.** `"3[a2[c]]"` → `"accaccacc"`.
+
+**Insight.** Brackets nest, so each `[` starts a new level and each `]` ends the most recent one — a stack of levels. At `[`, save the text built so far and the repeat count, then start fresh; at `]`, repeat the inner text and append it to the saved outer text.
+
+<CodeTabs id="dsa-decode-string" title="Decode string — a stack of (text before, count)" />
+
+### Evaluate reverse Polish notation
+
+**Problem.** `["2","1","+","3","*"]` → 9, i.e. `(2 + 1) × 3`.
+
+**Insight.** In postfix notation every operator applies to the two most recent results — the top two stack entries. Push numbers; on an operator pop `b` then `a`, push `a op b`. No parentheses or precedence rules are needed, which is why compilers and virtual machines (the JVM's bytecode is stack-based) evaluate expressions this way. To evaluate ordinary infix input, convert it to postfix first with Dijkstra's shunting-yard algorithm — itself a stack of operators.
+
+<CodeTabs id="dsa-eval-rpn" title="Evaluate RPN — a stack machine" />
 
 ## Monotonic stacks
 
 <Walkthrough id="next-greater" />
 
+### Daily temperatures
+
+**Problem.** For each day, how many days until a warmer one? `[73,74,75,71,69,72,76,73]` → `[1,1,4,2,1,1,0,0]`.
+
+**Insight.** Keep the indices of days still waiting for a warmer day. Their temperatures are **decreasing** from bottom to top (a warmer day would already have resolved a colder one below it). When today is warmer than the top, the top's wait is over: answer `today − top`, pop, and repeat. Then push today.
+
 <CodeTabs id="dsa-daily-temperatures" title="Daily temperatures — next warmer day with a decreasing stack" />
+
+**Why O(n):** each index is pushed once and popped at most once, so the inner `while` runs at most n times in total.
 
 ### Largest rectangle in a histogram
 
-For each bar, the widest rectangle using its height extends until the nearest shorter bar on each side. An increasing stack finds both boundaries: when a shorter bar arrives, the popped bar's right boundary is the current index and its left boundary is the new stack top.
+**Problem.** The largest rectangle under a histogram. `[2,1,5,6,2,3]` → 10.
+
+**Insight.** The best rectangle that uses bar `i` at full height extends left and right until the nearest **shorter** bar on each side. An **increasing** stack finds both: when a shorter bar arrives at index `i`, the popped bar's right boundary is `i`, and its left boundary is whatever is now on top of the stack. A sentinel height 0 at the end flushes every remaining bar.
+
+| i (h) | pops (height × width) | stack after |
+|---|---|---|
+| 0 (2) | — | 0 |
+| 1 (1) | bar 0: 2 × 1 = 2 | 1 |
+| 2 (5), 3 (6) | — | 1 2 3 |
+| 4 (2) | bar 3: 6 × 1 = 6; bar 2: 5 × 2 = **10** | 1 4 |
+| 5 (3) | — | 1 4 5 |
+| 6 (0, sentinel) | 3 × 1 = 3; 2 × 4 = 8; 1 × 6 = 6 | — |
 
 <CodeTabs id="dsa-largest-rectangle" title="Largest rectangle in histogram — increasing stack, O(n)" />
+
+The same idea finds the **maximal rectangle of 1s in a binary matrix**: treat each row as the base of a histogram of column heights and run this algorithm per row — O(rows × cols).
+
+## Which order to keep
 
 | Want | Stack order (bottom → top) | Pop when |
 |---|---|---|
 | next greater element | decreasing | new value > top |
 | next smaller element | increasing | new value < top |
-| previous greater | decreasing | read the top after popping smaller-or-equal |
+| previous greater element | decreasing | pop values ≤ new; the top left is the answer |
+| previous smaller element | increasing | pop values ≥ new; the top left is the answer |
+
+Rule of thumb: the stack holds elements that are still **waiting** for something; it's ordered so that the thing they wait for breaks the order.
+
+## Complexity at a glance
+
+| Problem | Time | Space |
+|---|---|---|
+| Valid parentheses | O(n) | O(n) |
+| Min stack | O(1) per operation | O(n) |
+| Decode string | O(output length) | O(nesting + output) |
+| Evaluate RPN | O(n) | O(n) |
+| Daily temperatures | O(n) | O(n) |
+| Largest rectangle | O(n) | O(n) |
+
+## Talking through it in an interview
+
+- For nesting problems, say what one stack entry represents ("the text and count before this bracket").
+- For monotonic stacks, say what the stack holds ("days still waiting for a warmer day") and why it stays sorted.
+- Justify O(n) with "each index is pushed and popped once".
+- Mention ties: does an equal value resolve the waiting element or not? It changes `<` vs `<=`.
 
 <Pitfalls>
 
-- **Popping an empty stack** — check before popping (unbalanced closers).
-- **Leftover items** at the end — they have no next greater element (or, for histograms, extend to the end; use a sentinel height 0).
+- **Popping an empty stack** — check first (an unbalanced closer).
+- **Leftover items at the end** — they have no next greater element; for histograms, a sentinel 0 flushes them.
 - **Strict vs non-strict comparisons** with equal values — decide which side "owns" ties.
 - **Storing values when widths need indices.**
-- **`java.util.Stack`** — synchronized and extends Vector; prefer `ArrayDeque`.
+- **Operand order in RPN** — pop `b` first, then `a`, and compute `a − b`, `a / b`.
+- **`java.util.Stack`** — synchronized and extends `Vector`; prefer `ArrayDeque`.
 
 </Pitfalls>
 
 <KeyTakeaways>
 
-- Stacks resolve "most recent unmatched" structures.
-- Monotonic stacks answer nearest-greater/smaller questions in O(n).
-- Keep indices; use sentinels to flush the stack at the end.
+- A stack answers "what is the most recent unfinished thing?" — nesting, matching, evaluation, DFS.
+- Monotonic stacks answer nearest-greater/smaller questions in O(n): each index is pushed and popped once.
+- Keep indices, not values, when you need distances or widths; use a sentinel to flush the stack.
 
 </KeyTakeaways>
