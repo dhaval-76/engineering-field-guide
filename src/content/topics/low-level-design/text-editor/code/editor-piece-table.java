@@ -35,7 +35,25 @@ final class PieceTable implements Buffer {
         }
     }
 
-    public String delete(int pos, int len) { /* split pieces at pos and pos+len, drop the middle ones */ return ""; }
+    /** Keep the parts of each piece outside [pos, pos + len); return the removed text (for undo). */
+    public String delete(int pos, int len) {
+        StringBuilder removed = new StringBuilder();
+        List<Piece> kept = new ArrayList<>();
+        int offset = 0, end = pos + len;
+        for (Piece p : pieces) {
+            int pStart = offset, pEnd = offset + p.length();
+            offset = pEnd;
+            int cutFrom = Math.max(pos, pStart), cutTo = Math.min(end, pEnd);
+            if (cutFrom >= cutTo) { kept.add(p); continue; }                  // untouched
+            CharSequence buf = p.fromAdd() ? add : original;
+            removed.append(buf, p.start() + cutFrom - pStart, p.start() + cutTo - pStart);
+            if (cutFrom > pStart) kept.add(new Piece(p.fromAdd(), p.start(), cutFrom - pStart));            // left part
+            if (cutTo < pEnd) kept.add(new Piece(p.fromAdd(), p.start() + cutTo - pStart, pEnd - cutTo));   // right part
+        }
+        pieces.clear();
+        pieces.addAll(kept);
+        return removed.toString();
+    }
 
     public String text() {
         StringBuilder sb = new StringBuilder();
