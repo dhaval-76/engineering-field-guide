@@ -1,0 +1,37 @@
+questions:
+  - q: Design a logging framework that supports levels, multiple destinations and formats, and per-package configuration.
+    think: What decides whether a line is logged, where it goes, and how it looks?
+    answer: |
+      A `LoggerFactory` registry hands out `Logger`s by dotted name, linking each to its parent (`com.shop.db` → `com.shop` → `com` → root). Each logger may set a level; the effective level is the nearest ancestor's. `log(level, message)` first checks the level (messages built lazily), then creates an immutable `LogEvent` (time, level, logger, thread, message, context map) and passes it to the logger's appenders and, if additive, each ancestor's. `Appender` (console, rolling file, network) and `Formatter` (pattern, JSON) are interfaces combined by configuration. An `AsyncAppender` decorates any appender with a bounded queue and a writer thread. Thread safety: appenders serialise writes per destination; configuration uses volatile fields or copy-on-write lists.
+  - q: 'After adding a file appender to com.shop, every log line from com.shop.db appears twice in the console. Why?'
+    think: Where is the console appender attached?
+    answer: |
+      Additivity: events are sent to the logger's own appenders and then to every ancestor's. If a console appender is attached both to `com.shop` (or `com.shop.db`) and to root, each event reaches it twice. Fix by attaching each appender once (usually at root) or setting `additive = false` on the logger whose appenders should be the end of the line.
+followUps:
+  - q: Why use an async appender, and what can go wrong?
+    intuition: Moving I/O off the request thread.
+    approach: |
+      Writing to disk or the network can block for milliseconds; an async appender lets request threads enqueue and continue while a background thread writes. Risks: unbounded queues cause out-of-memory during sink outages; bounded queues need a policy when full (block, drop low-level events, or drop and count); events are lost on crash unless flushed; ordering is preserved only with a single writer.
+  - q: How do you get the request id onto every log line?
+    intuition: Context that follows the request.
+    approach: |
+      Store it in a mapped diagnostic context — a thread-local map in Java (`MDC.put`), `AsyncLocalStorage` in Node, `contextvars` in Python — set by a filter at the start of each request and cleared at the end. The logger copies the context into each event. When work hops to another thread or task, propagate the context explicitly (task decorators, OpenTelemetry context).
+  - q: How do you avoid the cost of disabled debug logs?
+    intuition: Do nothing before the level check.
+    approach: |
+      Check the effective level before doing any work, and build messages lazily — suppliers/lambdas, or parameterised messages (`log.debug("user {} cart {}", id, cart)`) that only format when enabled. Cache effective levels per logger (invalidated when configuration changes) so the check is one comparison.
+practice:
+  - task: Implement a logger hierarchy with inherited levels, additivity, lazy messages and per-request context.
+    hint: Parent links by dotted name; walk up for the level and for appenders.
+    solution: |
+      `getLogger(name)` creates loggers on demand, recursively creating parents by trimming the last dotted segment, with root at the top. `effectiveLevel()` walks up to the first explicit level (default INFO). `log()` returns early when disabled, evaluates the message supplier, captures the context map, and calls appenders from the logger upward, stopping after a logger with additivity off.
+    solutionCode: logging-core
+quiz:
+  - q: '`com.shop` is set to DEBUG; `com.shop.db` has no level; root is INFO. Is a DEBUG call on com.shop.db logged?'
+    options: [Yes, No, Only to root's appenders, It throws]
+    correct: 0
+    why: The effective level comes from the nearest ancestor with a level — com.shop's DEBUG.
+  - q: What should an async appender do when its bounded queue is full and an ERROR arrives?
+    options: [Drop it, Block until there is room (or fall back to a synchronous write), Crash the application, Grow the queue without limit]
+    correct: 1
+    why: Errors are the events you can least afford to lose; low-level events may be dropped by policy.

@@ -1,0 +1,27 @@
+title: What happens on log.debug("…") in com.shop.db
+frames:
+  - caption: 'Loggers form a tree by dotted name. Only `com.shop` and `root` have explicit levels; `com.shop.db` has none.'
+    panels:
+      - kind: rows
+        label: logger tree
+        items: ['root — INFO — console appender', 'com — (inherit)', 'com.shop — DEBUG — file appender', { v: 'com.shop.db — (inherit)', tone: accent }]
+  - caption: '**Effective level**: walk up to the nearest explicit level — `com.shop` says DEBUG — so the DEBUG call is enabled. Had it been disabled, the call returns immediately and a lazy message is never even built.'
+    panels:
+      - kind: kv
+        label: check
+        pairs: [['effective level', 'DEBUG (from com.shop)'], ['enabled?', { v: 'yes', tone: ok }]]
+  - caption: 'Build one immutable **LogEvent**: time, level, logger name, thread, message, and the current request context (MDC) such as the request id and trace id.'
+    panels:
+      - kind: kv
+        label: LogEvent
+        pairs: [[level, DEBUG], [logger, com.shop.db], [message, 'query took 41 ms'], [context, '{req=r-77, trace=7f3a}']]
+  - caption: 'Send it to this logger''s appenders, then each ancestor''s (**additivity**): `com.shop`''s file appender, then root''s console appender. Setting `additive=false` on `com.shop` would stop it there.'
+    panels:
+      - kind: rows
+        label: appenders called
+        items: [{ v: 'com.shop → file', tone: ok }, { v: 'root → console', tone: ok }]
+  - caption: 'Each appender formats (pattern or JSON) and writes. Wrapped in an **async appender**, the request thread only enqueues; a background thread does the I/O, dropping low-level events if the queue is full rather than slowing requests.'
+    panels:
+      - kind: rows
+        label: output
+        items: ['2026-10-31T09:15:02Z DEBUG [http-7] com.shop.db - query took 41 ms {req=r-77, trace=7f3a}']

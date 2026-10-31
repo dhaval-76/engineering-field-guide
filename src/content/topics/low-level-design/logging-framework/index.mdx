@@ -1,0 +1,86 @@
+---
+title: Design a Logging Framework
+summary: A logging library like Log4j or Logback — levels, a hierarchy of named loggers with inherited levels and additivity, pluggable appenders and formatters, request context (MDC), lazy messages, and an async appender with a bounded queue.
+track: low-level-design
+order: 40
+tags: [lld, logging, design-patterns, concurrency]
+aliases: [logger design, logging library lld, log4j design, logback design, slf4j, log levels, appender, formatter, layout, logger hierarchy, additivity, mdc, mapped diagnostic context, async appender, rolling file appender, structured logging, json logs]
+prerequisites: [low-level-design/lld-method, oop-patterns/strategy-and-state]
+related: [architecture/observability, oop-patterns/singleton, concurrency/producer-consumer, system-design/logging-monitoring]
+quickRef:
+  points:
+    - '**Levels** (DEBUG < INFO < WARN < ERROR) filter cheaply before any work is done.'
+    - '**Named loggers** form a tree (`com.shop.db` → `com.shop` → `root`); unset levels are **inherited**.'
+    - '**Appenders** (console, file, network) decide where; **formatters** decide how — Strategy pattern, freely combined.'
+    - 'Events go to the logger''s appenders and its ancestors'' (**additivity**) unless turned off.'
+    - '**Async appender**: bounded queue + background writer; never drop errors, drop or block for the rest by policy.'
+  useWhen: '"Design a logger / logging framework" (LLD), or understanding how SLF4J, Logback, Log4j 2 and Python logging are built.'
+lastReviewed: 2026-10-30
+---
+
+## Why it matters
+
+Every service depends on its logging library, and "design a logger" is a popular machine-coding question because it exercises several patterns at once — Strategy, Singleton/registry, Composite-like hierarchy, Decorator — plus real concurrency concerns. Knowing how it's built also explains everyday behaviour: why a log line appears twice, why DEBUG doesn't show, why logging slows a hot path.
+
+<Callout type="analogy">
+A company's mail room. Every department (logger) has a filing rule (level); if a department hasn't set one, it follows its parent division's rule. Letters that pass the rule are copied to the department's own trays (appenders) and, unless told otherwise, to every parent division's trays too. A clerk (async appender) can take the letters and file them later so staff don't wait at the cabinet.
+</Callout>
+
+## Clarify
+
+- Levels and per-logger configuration? (Yes, by package name.)
+- Destinations: console, file with rotation, remote collector? (Pluggable; console and async in code.)
+- Formats: human-readable pattern and JSON? (Both.)
+- Thread safety and performance? (Must not corrupt lines or block requests.)
+- Request context (request id, user id) on every line? (Yes — MDC.)
+
+## Design
+
+<Diagram id="logging-classes" caption="Loggers are created and cached by a factory and linked to parents by name. Appenders and formatters are interfaces with interchangeable implementations; the async appender wraps another appender." />
+
+| Pattern | Where |
+|---|---|
+| Singleton / registry | `LoggerFactory` returns the same logger for a name |
+| Strategy | `Formatter` and `Appender` implementations |
+| Chain up a hierarchy | Level inheritance and additivity walk parent links |
+| Decorator | `AsyncAppender` wraps any appender, adding buffering |
+| Producer–consumer | Request threads enqueue; one writer thread drains ([Producer–consumer](../../concurrency/producer-consumer/)) |
+
+<Walkthrough id="log-call" />
+
+<CodeTabs id="logging-core" title="Levels, logger hierarchy with inheritance and additivity, formatters, appenders and request context" />
+
+## Performance
+
+- **Check the level first** and build messages lazily (suppliers, or `{}` placeholders as in SLF4J) — disabled DEBUG calls in hot loops should cost almost nothing.
+- **Async appender**: request threads only enqueue. The queue must be **bounded**; when full, choose a policy — block (safe, can slow requests), drop low levels (keeps latency), or drop and count. Never drop errors silently. Flush on shutdown.
+- **Batch writes** and buffered I/O in the file appender; rotate by size or time, compress and delete old files.
+
+<CodeTabs id="logging-async" title="Async appender: bounded queue, drop policy for low levels, flush on close" />
+
+## Production concerns
+
+- **Structured (JSON) logs** with stable field names for log pipelines ([Observability](../../architecture/observability/)).
+- **Context propagation**: MDC values live in thread-locals (Java), `AsyncLocalStorage` (Node) or `contextvars` (Python); copy them when work moves to another thread or task.
+- **Configuration reload** at runtime: change a logger's level without restarting to debug production.
+- **Security**: never log secrets or full personal data; mask by field name in the formatter.
+- **Failure isolation**: an appender failing (disk full, collector down) must never crash the application — catch, count, and fall back.
+
+<Pitfalls>
+
+- **String concatenation before the level check** — wasted CPU on disabled logs.
+- **Unbounded async queues** — an outage in the log sink becomes an out-of-memory crash.
+- **Duplicate lines** from additivity when the same appender is attached at two levels.
+- **Synchronous network appenders** on request threads.
+- **Losing MDC context** across thread pools and async callbacks.
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- Levels, a named logger hierarchy with inheritance, and additivity are the core model.
+- Appenders and formatters are strategies combined freely; async appenders decorate them.
+- Check levels first and build messages lazily; bound async queues with a clear drop policy.
+- Structured logs with request context are what make logs useful in production.
+
+</KeyTakeaways>
