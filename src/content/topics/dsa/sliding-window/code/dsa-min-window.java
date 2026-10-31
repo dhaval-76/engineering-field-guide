@@ -7,11 +7,15 @@ String minWindow(String s, String t) {
     for (int right = 0; right < s.length(); right++) {
         if (need[s.charAt(right)]-- > 0) missing--;     // this char was still needed
         while (missing == 0) {                         // valid: try to shrink
-            if (right - left + 1 < bestLen) { bestLen = right - left + 1; bestStart = left; }
+            if (right - left + 1 < bestLen) {
+                bestLen = right - left + 1;
+                bestStart = left;
+            }
             // removed a needed char → invalid
             if (++need[s.charAt(left++)] > 0) missing++;
         }
     }
-    return bestLen == Integer.MAX_VALUE ? "" : s.substring(bestStart, bestStart + bestLen);
+    if (bestLen == Integer.MAX_VALUE) return "";
+    return s.substring(bestStart, bestStart + bestLen);
 }
 // minWindow("ADOBECODEBANC", "ABC") → "BANC". O(|s| + |t|).

@@ -17,7 +17,9 @@ Map<Character, Integer> counts(String s) {
 // 3. Grouping by a canonical key
 Map<String, List<String>> groupBy(List<String> items, Function<String, String> key) {
     Map<String, List<String>> groups = new HashMap<>();
-    for (String it : items) groups.computeIfAbsent(key.apply(it), k -> new ArrayList<>()).add(it);
+    for (String it : items) {
+        groups.computeIfAbsent(key.apply(it), k -> new ArrayList<>()).add(it);
+    }
     return groups;
 }
 

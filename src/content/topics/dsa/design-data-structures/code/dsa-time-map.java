@@ -4,7 +4,8 @@ class TimeMap {
     private final Map<String, List<Version>> history = new HashMap<>();
 
     void set(String key, String value, int timestamp) {
-        history.computeIfAbsent(key, k -> new ArrayList<>()).add(new Version(timestamp, value));
+        history.computeIfAbsent(key, k -> new ArrayList<>())
+               .add(new Version(timestamp, value));
     }
 
     /** Value with the largest timestamp ≤ t, or "". O(log n) per get. */

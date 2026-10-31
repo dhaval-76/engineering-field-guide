@@ -8,7 +8,9 @@ class Trie {
 
     void insert(String word) {
         Node n = root;
-        for (char c : word.toCharArray()) n = n.children.computeIfAbsent(c, k -> new Node());
+        for (char c : word.toCharArray()) {
+            n = n.children.computeIfAbsent(c, k -> new Node());
+        }
         n.isWord = true;
     }
 

@@ -10,6 +10,8 @@ function pairWithSum(sorted, target) {
 
 function keepIf(nums, keep) {
   let write = 0;
-  for (let read = 0; read < nums.length; read++) if (keep(nums[read])) nums[write++] = nums[read];
+  for (let read = 0; read < nums.length; read++) {
+    if (keep(nums[read])) nums[write++] = nums[read];
+  }
   return write;
 }

@@ -1,7 +1,8 @@
 from collections import deque
 
 class HitCounter:
-    """Queue of (second, count): O(1) amortised, memory proportional to distinct seconds in the window."""
+    """Queue of (second, count): O(1) amortised; memory grows with the distinct seconds
+    in the window."""
     WINDOW = 300
 
     def __init__(self):

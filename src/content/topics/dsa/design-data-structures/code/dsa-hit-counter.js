@@ -7,7 +7,8 @@ class HitCounter {
   #total = 0;
 
   #evict(now) {
-    while (this.#head < this.#buckets.length && now - this.#buckets[this.#head][0] >= HitCounter.WINDOW) {
+    const expired = (i) => now - this.#buckets[i][0] >= HitCounter.WINDOW;
+    while (this.#head < this.#buckets.length && expired(this.#head)) {
       this.#total -= this.#buckets[this.#head++][1];
     }
     if (this.#head > 1024 && this.#head * 2 > this.#buckets.length) {
