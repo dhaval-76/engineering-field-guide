@@ -5,8 +5,10 @@ FROM (
            ROW_NUMBER() OVER (PARTITION BY customer_id ORDER BY created_at DESC, id DESC) AS rn
     FROM orders o
 ) t
-WHERE rn = 1;                 -- window results can't be filtered in WHERE of the same query
--- PostgreSQL shortcut: SELECT DISTINCT ON (customer_id) * FROM orders ORDER BY customer_id, created_at DESC;
+-- window results can't be filtered in WHERE of the same query
+WHERE rn = 1;
+-- PostgreSQL shortcut: SELECT DISTINCT ON (customer_id) * FROM orders ORDER BY
+-- customer_id, created_at DESC;
 
 -- Every order next to its customer's totals — no GROUP BY, rows are kept.
 SELECT id, customer_id, total,

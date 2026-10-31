@@ -1,23 +1,28 @@
 CREATE TABLE accounts (
     id        bigint PRIMARY KEY,
-    owner     text NOT NULL,               -- 'wallet:u42', 'merchant:42', 'psp_clearing', 'fees_revenue'
+    -- 'wallet:u42', 'merchant:42', 'psp_clearing', 'fees_revenue'
+    owner     text NOT NULL,
     currency  char(3) NOT NULL,
-    balance   bigint NOT NULL DEFAULT 0,   -- minor units; kept in step with entries in the same transaction
+    -- minor units; kept in step with entries in the same transaction
+    balance   bigint NOT NULL DEFAULT 0,
     allow_negative boolean NOT NULL DEFAULT false,
     CHECK (allow_negative OR balance >= 0)
 );
 
 CREATE TABLE journal (                     -- one row per business transaction
     id              uuid PRIMARY KEY,
-    idempotency_key text NOT NULL UNIQUE,  -- a retried request can't create a second journal
-    kind            text NOT NULL,         -- 'transfer', 'capture', 'refund', 'payout', 'reversal'
+    -- a retried request can't create a second journal
+    idempotency_key text NOT NULL UNIQUE,
+    -- 'transfer', 'capture', 'refund', 'payout', 'reversal'
+    kind            text NOT NULL,
     created_at      timestamptz NOT NULL DEFAULT now()
 );
 
 CREATE TABLE entries (                     -- append-only: never UPDATE or DELETE
     journal_id  uuid NOT NULL REFERENCES journal(id),
     account_id  bigint NOT NULL REFERENCES accounts(id),
-    amount      bigint NOT NULL CHECK (amount <> 0),   -- positive = credit, negative = debit
+    -- positive = credit, negative = debit
+    amount      bigint NOT NULL CHECK (amount <> 0),
     PRIMARY KEY (journal_id, account_id)
 );
 

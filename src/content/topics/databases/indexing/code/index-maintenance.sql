@@ -1,14 +1,17 @@
 -- Build without blocking writes (PostgreSQL). Can't run inside a transaction block;
 -- if it fails it leaves an INVALID index behind — drop it and retry.
 CREATE INDEX CONCURRENTLY orders_customer_created_idx ON orders (customer_id, created_at DESC);
-DROP INDEX CONCURRENTLY IF EXISTS orders_customer_idx;         -- now redundant: a prefix of the new one
+-- now redundant: a prefix of the new one
+DROP INDEX CONCURRENTLY IF EXISTS orders_customer_idx;
 
--- Indexes never used since statistics were last reset (check every replica before dropping!)
+-- Indexes never used since statistics were last reset (check every replica before
+-- dropping!)
 SELECT s.relname AS table, s.indexrelname AS index, s.idx_scan,
        pg_size_pretty(pg_relation_size(s.indexrelid)) AS size
 FROM pg_stat_user_indexes s
 JOIN pg_index i ON i.indexrelid = s.indexrelid
-WHERE s.idx_scan = 0 AND NOT i.indisunique                       -- keep unique/PK indexes: they enforce rules
+-- keep unique/PK indexes: they enforce rules
+WHERE s.idx_scan = 0 AND NOT i.indisunique
 ORDER BY pg_relation_size(s.indexrelid) DESC;
 
 -- Tables read mostly by sequential scans (candidates for a missing index)

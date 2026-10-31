@@ -13,9 +13,11 @@ SELECT id, payload FROM jobs
 WHERE status = 'READY' AND run_after <= now()
 ORDER BY run_after
 LIMIT 10
-FOR UPDATE SKIP LOCKED;          -- rows locked by other workers are skipped, not waited for
+-- rows locked by other workers are skipped, not waited for
+FOR UPDATE SKIP LOCKED;
 UPDATE jobs SET status = 'RUNNING' WHERE id = ANY($1);   -- the ids just selected
-COMMIT;                          -- then do the work outside the transaction, and mark DONE/FAILED
+-- then do the work outside the transaction, and mark DONE/FAILED
+COMMIT;
 
 -- Fail fast instead of queueing behind a long transaction:
 SELECT * FROM accounts WHERE id = 1 FOR UPDATE NOWAIT;   -- ERROR 55P03 if locked

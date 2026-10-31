@@ -11,7 +11,8 @@ MAXMEM = 64 * 1024 * 1024
 
 def hash_password(password: str) -> str:
     salt = os.urandom(16)
-    h = hashlib.scrypt(unicodedata.normalize("NFKC", password).encode(), salt=salt, n=N, r=R, p=P, maxmem=MAXMEM, dklen=32)
+    h = hashlib.scrypt(unicodedata.normalize("NFKC", password).encode(),
+                       salt=salt, n=N, r=R, p=P, maxmem=MAXMEM, dklen=32)
     b64 = lambda b: base64.b64encode(b).decode()
     # params stored → upgradable later
     return f"scrypt${N}${R}${P}${b64(salt)}${b64(h)}"

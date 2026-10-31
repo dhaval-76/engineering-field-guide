@@ -24,7 +24,8 @@ spec:
           env:
             - name: SPRING_PROFILES_ACTIVE
               value: prod
-            - name: SERVER_SHUTDOWN                      # finish in-flight requests on SIGTERM
+            # finish in-flight requests on SIGTERM
+            - name: SERVER_SHUTDOWN
               value: graceful
             - name: DB_PASSWORD
               valueFrom: { secretKeyRef: { name: orders-db, key: password } }
@@ -32,7 +33,8 @@ spec:
             - configMapRef: { name: orders-config }
           resources:
             requests: { cpu: "500m", memory: "1Gi" }
-            limits:   { memory: "1Gi" }                  # memory request = limit; no CPU limit (avoid throttling)
+            # memory request = limit; no CPU limit (avoid throttling)
+            limits:   { memory: "1Gi" }
           startupProbe:                                  # up to 30 × 5 s = 150 s to start
             httpGet: { path: /actuator/health/liveness, port: 8080 }
             periodSeconds: 5
@@ -45,12 +47,14 @@ spec:
             periodSeconds: 10
             failureThreshold: 3
           lifecycle:
-            preStop:                                     # let endpoints update before shutdown starts
+            # let endpoints update before shutdown starts
+            preStop:
               sleep: { seconds: 5 }
           securityContext:
             runAsNonRoot: true
             allowPrivilegeEscalation: false
-            readOnlyRootFilesystem: true                 # Tomcat needs a writable /tmp → mount one
+            # Tomcat needs a writable /tmp → mount one
+            readOnlyRootFilesystem: true
           volumeMounts:
             - { name: tmp, mountPath: /tmp }
       volumes:

@@ -3,7 +3,10 @@
 class UserService {
     private final UserRepository users;
     private final ApplicationEventPublisher events;
-    UserService(UserRepository users, ApplicationEventPublisher events) { this.users = users; this.events = events; }
+    UserService(UserRepository users, ApplicationEventPublisher events) {
+        this.users = users;
+        this.events = events;
+    }
 
     @Transactional
     public void deleteUser(String userId) {

@@ -16,7 +16,9 @@ class CurrencyCodeValidator implements ConstraintValidator<CurrencyCode, String>
 }
 
 // Cross-field rule on the record itself
-record BookingRequest(@NotNull LocalDate checkIn, @NotNull LocalDate checkOut, @CurrencyCode String currency) {
+record BookingRequest(@NotNull LocalDate checkIn,
+                      @NotNull LocalDate checkOut,
+                      @CurrencyCode String currency) {
     @AssertTrue(message = "checkOut must be after checkIn")
     boolean isRangeValid() { return checkIn == null || checkOut == null || checkOut.isAfter(checkIn); }
 }

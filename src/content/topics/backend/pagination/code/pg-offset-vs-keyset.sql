@@ -9,7 +9,8 @@ SELECT id, created_at, total FROM orders
 WHERE customer_id = 'c_1'
   AND (created_at, id) < ('2026-10-01 09:30:00', 'ord_8841')   -- values from the cursor
 ORDER BY created_at DESC, id DESC
-LIMIT 21;                                                       -- one extra row → is there a next page?
+-- one extra row → is there a next page?
+LIMIT 21;
 
 -- The index must match the filter + sort so the seek is a range scan:
 CREATE INDEX orders_customer_created_id ON orders (customer_id, created_at DESC, id DESC);

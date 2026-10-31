@@ -1,4 +1,5 @@
-# Redis GEO: a sorted set scored by a 52-bit geohash; radius queries scan the covering cells for you.
+# Redis GEO: a sorted set scored by a 52-bit geohash; radius queries scan the covering
+# cells for you.
 GEOADD places:blr 77.5946 12.9716 "cafe:1" 77.6101 12.9752 "cafe:2" 77.6245 12.9352 "cafe:3"
 
 # Everything within 2 km of a point, nearest first, with distances

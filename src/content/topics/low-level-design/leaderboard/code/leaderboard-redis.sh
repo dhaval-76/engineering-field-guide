@@ -8,10 +8,10 @@ ZREVRANK  lb:global carol           # 0-based rank from the top
 ZSCORE    lb:global carol
 ZREVRANGE lb:global 3 7 WITHSCORES  # "players around me": a player at index 5, ± 2 places
 
-# Ties: equal scores are ordered by member name (reversed by ZREVRANGE: carol before alice).
-# To favour whoever reached the score first,
-# encode time into the score:  score * 10^10 + (9999999999 - epochSeconds)
-# (scores are doubles: exact only while the result stays below 2^53, i.e. score < ~900,000)
+# Ties: equal scores are ordered by member name (reversed by ZREVRANGE: carol before
+# alice). To favour whoever reached the score first, encode time into the score:  score *
+# 10^10 + (9999999999 - epochSeconds) (scores are doubles: exact only while the result
+# stays below 2^53, i.e. score < ~900,000)
 
 # Time-windowed boards: one key per period, expire old ones
 ZINCRBY lb:daily:2026-10-31 50 alice

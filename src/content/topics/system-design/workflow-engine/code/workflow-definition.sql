@@ -11,8 +11,10 @@ CREATE TABLE runs (
     tenant_id    bigint NOT NULL,
     workflow_id  text NOT NULL,
     version      int NOT NULL,              -- a run keeps the version it started with
-    trigger_key  text NOT NULL,             -- source event id: the same email can't start two runs
-    status       text NOT NULL,             -- RUNNING, WAITING, SUCCEEDED, FAILED, CANCELLED
+    -- source event id: the same email can't start two runs
+    trigger_key  text NOT NULL,
+    -- RUNNING, WAITING, SUCCEEDED, FAILED, CANCELLED
+    status       text NOT NULL,
     context      jsonb NOT NULL DEFAULT '{}',
     started_at   timestamptz NOT NULL DEFAULT now(),
     UNIQUE (workflow_id, trigger_key)

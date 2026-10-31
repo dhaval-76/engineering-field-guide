@@ -3,10 +3,13 @@ management:
   endpoints.web.exposure.include: health,metrics,prometheus
   metrics.distribution:
     percentiles-histogram:
-      http.server.requests: true          # p50/p95/p99 per uri, method and status in Prometheus/Grafana
-  tracing.sampling.probability: 0.1       # Micrometer Tracing → OpenTelemetry/Zipkin: spans for HTTP, JDBC*, clients
+      # p50/p95/p99 per uri, method and status in Prometheus/Grafana
+      http.server.requests: true
+  # Micrometer Tracing → OpenTelemetry/Zipkin: spans for HTTP, JDBC*, clients
+  tracing.sampling.probability: 0.1
 
 logging.level:
   org.hibernate.SQL: DEBUG                # local only: see every statement (spot N+1)
-# * JDBC spans need datasource-micrometer / an OpenTelemetry agent; the OTel Java agent instruments
+# * JDBC spans need datasource-micrometer / an OpenTelemetry agent; the OTel Java agent
+# instruments
 #   JDBC, HTTP clients, Kafka, Redis and more without code changes.

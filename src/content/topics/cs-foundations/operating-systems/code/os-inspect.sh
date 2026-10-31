@@ -18,4 +18,5 @@ grep ctxt /proc/$PID/status
 
 # Container limits (cgroup v2), from inside the container
 cat /sys/fs/cgroup/memory.max /sys/fs/cgroup/cpu.max
-cat /sys/fs/cgroup/cpu.stat             # nr_throttled / throttled_usec: CPU-limit throttling
+# nr_throttled / throttled_usec: CPU-limit throttling
+cat /sys/fs/cgroup/cpu.stat

@@ -5,7 +5,8 @@ from concurrent.futures import ThreadPoolExecutor
 from sqlalchemy import create_engine, text
 from sqlalchemy.exc import TimeoutError as PoolTimeout
 
-engine = create_engine("postgresql+psycopg://shop@localhost/shop", pool_size=2, max_overflow=0, pool_timeout=3)
+engine = create_engine("postgresql+psycopg://shop@localhost/shop",
+                       pool_size=2, max_overflow=0, pool_timeout=3)
 
 def request(_):
     start = time.monotonic()

@@ -20,7 +20,8 @@ export async function executeOnce(pool, clientId, key, requestHash, action) {
 
   if (claim.rowCount === 0) {
     const { rows: [e] } = await pool.query(
-      'SELECT request_hash, status, response_code, response_body, locked_until > now() AS locked FROM idempotency_keys WHERE client_id = $1 AND key = $2',
+      `SELECT request_hash, status, response_code, response_body, locked_until > now() AS locked
+       FROM idempotency_keys WHERE client_id = $1 AND key = $2`,
       [clientId, key]);
     if (e.request_hash !== requestHash) throw new IdempotencyKeyReused();
     // replay
@@ -29,7 +30,9 @@ export async function executeOnce(pool, clientId, key, requestHash, action) {
     // stale: take it over
     const taken = await pool.query(
       `UPDATE idempotency_keys SET locked_until = now() + interval '30 seconds'
-       WHERE client_id = $1 AND key = $2 AND status = 'IN_PROGRESS' AND locked_until <= now()`, [clientId, key]);
+       WHERE client_id = $1 AND key = $2 AND status = 'IN_PROGRESS' AND locked_until <= now()`,
+      [clientId, key],
+    );
     if (taken.rowCount === 0) throw new RequestInProgress();
   }
 
@@ -49,9 +52,12 @@ export async function executeOnce(pool, clientId, key, requestHash, action) {
       await pool.query(SAVE, [e.code, e.body, clientId, key]);
       return { code: e.code, body: e.body };
     }
-    await pool.query(`DELETE FROM idempotency_keys WHERE client_id = $1 AND key = $2 AND status = 'IN_PROGRESS'`,
-      // unexpected failure: let a retry run again
-      [clientId, key]);
+    // unexpected failure: release the key so a retry can run again
+    await pool.query(
+      `DELETE FROM idempotency_keys
+       WHERE client_id = $1 AND key = $2 AND status = 'IN_PROGRESS'`,
+      [clientId, key],
+    );
     throw e;
   } finally {
     client.release();

@@ -3,7 +3,8 @@ CREATE TABLE tenants (
     slug       text NOT NULL UNIQUE,
     tier       text NOT NULL CHECK (tier IN ('FREE', 'TEAM', 'ENTERPRISE')),
     region     text NOT NULL,
-    database   text NOT NULL DEFAULT 'shared-1'      -- the registry: where this tenant's data lives
+    -- the registry: where this tenant's data lives
+    database   text NOT NULL DEFAULT 'shared-1'
 );
 
 CREATE TABLE users (

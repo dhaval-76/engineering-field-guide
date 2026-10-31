@@ -6,7 +6,8 @@ COMMIT;
 
 -- 2. Advisory lock: a named lock with no table, released at transaction end
 BEGIN;
-SELECT pg_try_advisory_xact_lock(hashtext('daily-report:2026-10-30'));   -- true = we hold it
+-- true = we hold it
+SELECT pg_try_advisory_xact_lock(hashtext('daily-report:2026-10-30'));
 -- … do the work …
 COMMIT;                                                       -- released automatically
 
@@ -24,7 +25,8 @@ VALUES ('billing-scheduler', $1, 1, now() + interval '15 seconds')
 ON CONFLICT (name) DO UPDATE
   SET holder = EXCLUDED.holder, token = leases.token + 1, expires_at = EXCLUDED.expires_at
   WHERE leases.expires_at < now() OR leases.holder = EXCLUDED.holder
-RETURNING token;                                               -- no row returned = someone else leads
+-- no row returned = someone else leads
+RETURNING token;
 
 -- Renew (heartbeat) every few seconds while leading
 UPDATE leases SET expires_at = now() + interval '15 seconds'

@@ -7,7 +7,8 @@ CREATE TABLE bookings (
     during     tstzrange   NOT NULL,          -- [start, end) by default
     organizer  text        NOT NULL,
     series_id  uuid,
-    EXCLUDE USING gist (room_id WITH =, during WITH &&)   -- same room AND overlapping range → rejected
+    -- same room AND overlapping range → rejected
+    EXCLUDE USING gist (room_id WITH =, during WITH &&)
 );
 
 -- Two concurrent inserts for overlapping times: one succeeds, the other fails with
@@ -15,7 +16,7 @@ CREATE TABLE bookings (
 INSERT INTO bookings (id, room_id, during, organizer)
 VALUES (gen_random_uuid(), 'R-301', tstzrange('2026-11-02 10:00+05:30', '2026-11-02 11:00+05:30'), 'asha');
 
--- Without exclusion constraints (e.g. MySQL): lock the room row, then check, then insert, in one transaction.
--- SELECT id FROM rooms WHERE id = 'R-301' FOR UPDATE;
--- SELECT 1 FROM bookings WHERE room_id = 'R-301' AND start_at < :end AND end_at > :start;
--- INSERT … ;  COMMIT;
+-- Without exclusion constraints (e.g. MySQL): lock the room row, then check, then insert,
+-- in one transaction. SELECT id FROM rooms WHERE id = 'R-301' FOR UPDATE; SELECT 1 FROM
+-- bookings WHERE room_id = 'R-301' AND start_at < :end AND end_at > :start; INSERT … ;
+-- COMMIT;

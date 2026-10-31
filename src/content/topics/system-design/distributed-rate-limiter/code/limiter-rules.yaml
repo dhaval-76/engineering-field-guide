@@ -1,4 +1,5 @@
-# Rules: the most specific match wins. Loaded from config (or a rules service) and cached in each gateway.
+# Rules: the most specific match wins. Loaded from config (or a rules service) and cached
+# in each gateway.
 rules:
   - match: { plan: free }
     limit: 60
@@ -6,7 +7,8 @@ rules:
   - match: { plan: pro }
     limit: 1000
     window: 1m
-  - match: { plan: pro, route: "POST /api/exports" }   # expensive endpoint: its own budget
+  # expensive endpoint: its own budget
+  - match: { plan: pro, route: "POST /api/exports" }
     limit: 10
     window: 1h
   - match: { anonymous: true }

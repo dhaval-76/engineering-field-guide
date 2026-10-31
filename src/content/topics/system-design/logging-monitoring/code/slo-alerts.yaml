@@ -1,5 +1,5 @@
-# SLO: 99.9% of checkout requests succeed (non-5xx) over 30 days → error budget 0.1%.
-# Burn rate 14.4 for 1h ≈ 2% of the monthly budget in an hour: page. Burn rate 6 over 6h: page.
+# SLO: 99.9% of checkout requests succeed (non-5xx) over 30 days → error budget 0.1%. Burn
+# rate 14.4 for 1h ≈ 2% of the monthly budget in an hour: page. Burn rate 6 over 6h: page.
 # Slower burns open a ticket instead.
 groups:
   - name: checkout-slo

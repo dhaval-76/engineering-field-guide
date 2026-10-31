@@ -5,7 +5,8 @@ CREATE TABLE events (
     type        text NOT NULL,
     payload     jsonb NOT NULL,
     created_at  timestamptz NOT NULL,
-    PRIMARY KEY (id, created_at)            -- unique constraints must include the partition key
+    -- unique constraints must include the partition key
+    PRIMARY KEY (id, created_at)
 ) PARTITION BY RANGE (created_at);
 
 CREATE TABLE events_2026_03 PARTITION OF events

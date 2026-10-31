@@ -4,8 +4,10 @@ CREATE TABLE on_call (doctor text, shift_id int, on_call boolean, PRIMARY KEY (d
 -- Both Alice and Bob run this at the same time, each for themselves (Repeatable Read):
 BEGIN ISOLATION LEVEL REPEATABLE READ;
 SELECT count(*) FROM on_call WHERE shift_id = 1 AND on_call;     -- both see 2
-UPDATE on_call SET on_call = false WHERE shift_id = 1 AND doctor = 'alice';   -- Bob: 'bob'
-COMMIT;                                                           -- both succeed → nobody on call
+-- Bob: 'bob'
+UPDATE on_call SET on_call = false WHERE shift_id = 1 AND doctor = 'alice';
+-- both succeed → nobody on call
+COMMIT;
 
 -- Fix 1: SERIALIZABLE. One of the two commits fails with 40001 and is retried;
 --        on retry it sees count = 1 and refuses.
@@ -27,5 +29,6 @@ CREATE EXTENSION IF NOT EXISTS btree_gist;
 CREATE TABLE room_bookings (
     room_id int NOT NULL,
     during  tstzrange NOT NULL,
-    EXCLUDE USING gist (room_id WITH =, during WITH &&)   -- no two rows: same room AND overlapping
+    -- no two rows: same room AND overlapping
+    EXCLUDE USING gist (room_id WITH =, during WITH &&)
 );

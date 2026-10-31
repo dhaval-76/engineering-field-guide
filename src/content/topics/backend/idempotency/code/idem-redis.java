@@ -12,5 +12,6 @@ if (Boolean.FALSE.equals(first)) {
     return objectMapper.readValue(stored, StoredResponse.class);         // replay
 }
 StoredResponse result = action.get();
-redis.opsForValue().set("idem:" + clientId + ":" + key, objectMapper.writeValueAsString(result), Duration.ofHours(24));
+redis.opsForValue().set("idem:" + clientId + ":" + key,
+        objectMapper.writeValueAsString(result), Duration.ofHours(24));
 return result;

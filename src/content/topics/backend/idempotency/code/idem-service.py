@@ -58,6 +58,7 @@ def execute_once(pool, client_id: str, key: str, request_hash: str, action) -> t
         # unexpected: let a retry run again
         except Exception:
             with conn.transaction():
-                conn.execute("DELETE FROM idempotency_keys WHERE client_id = %s AND key = %s AND status = 'IN_PROGRESS'",
+                conn.execute("DELETE FROM idempotency_keys "
+                             "WHERE client_id = %s AND key = %s AND status = 'IN_PROGRESS'",
                              (client_id, key))
             raise

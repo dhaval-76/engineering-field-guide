@@ -19,7 +19,10 @@ import { it, expect, vi } from 'vitest';
 
 it('deletes an existing user, then publishes the event', async () => {
   const calls = [];
-  const users = { findById: vi.fn(async () => ({ id: 'U1' })), delete: vi.fn(async () => calls.push('delete')) };
+  const users = {
+    findById: vi.fn(async () => ({ id: 'U1' })),
+    delete: vi.fn(async () => calls.push('delete')),
+  };
   const events = { publish: vi.fn(async () => calls.push('publish')) };
 
   await new UserService({ users, events }).deleteUser('U1');

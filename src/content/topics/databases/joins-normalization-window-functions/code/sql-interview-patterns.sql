@@ -37,7 +37,7 @@ FROM monthly
 ORDER BY month;
 
 -- 5. Gaps and islands: each user's streaks of consecutive login days.
---    Consecutive dates minus their row number give the same "anchor" date within a streak.
+-- Consecutive dates minus their row number give the same "anchor" date within a streak.
 WITH days AS (
     SELECT DISTINCT user_id, login_at::date AS day FROM logins
 ),

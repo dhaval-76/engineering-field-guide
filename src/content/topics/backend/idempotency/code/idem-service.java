@@ -4,7 +4,8 @@ class IdempotentExecutor {
     private final TransactionTemplate tx;
 
     /** Runs `action` at most once per (client, key); repeats get the stored response. */
-    public StoredResponse execute(String clientId, String key, String requestHash, Supplier<StoredResponse> action) {
+    public StoredResponse execute(String clientId, String key, String requestHash,
+                                  Supplier<StoredResponse> action) {
         // 1. Claim the key atomically. The primary key makes concurrent duplicates lose
         // this race.
         int claimed = jdbc.update("""
@@ -45,7 +46,9 @@ class IdempotentExecutor {
         } catch (RuntimeException e) {
             // Unexpected failure (bug, dependency down): nothing was committed, so
             // release the key and let the client's retry run the action again.
-            jdbc.update("DELETE FROM idempotency_keys WHERE client_id = ? AND key = ? AND status = 'IN_PROGRESS'",
+            jdbc.update("""
+                    DELETE FROM idempotency_keys
+                    WHERE client_id = ? AND key = ? AND status = 'IN_PROGRESS'""",
                         clientId, key);
             throw e;
         }

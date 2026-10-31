@@ -25,7 +25,8 @@ CREATE INDEX doc_chunk_tenant ON doc_chunk (tenant_id);
 -- Vector search (recall/latency dial: SET hnsw.ef_search = 100;)
 SELECT id, doc_id, content, 1 - (embedding <=> $1) AS similarity
 FROM doc_chunk
-WHERE tenant_id = $2 AND acl_groups && $3          -- user's groups overlap the chunk's ACL
+-- user's groups overlap the chunk's ACL
+WHERE tenant_id = $2 AND acl_groups && $3
 ORDER BY embedding <=> $1
 LIMIT 50;
 

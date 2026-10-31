@@ -10,7 +10,8 @@ CREATE TABLE workflow_transitions (
     from_status   text NOT NULL,
     to_status     text NOT NULL,
     required_role text,                          -- who may perform it
-    rules         jsonb NOT NULL DEFAULT '{}',   -- e.g. {"requiredFields": ["resolution"]}
+    -- e.g. {"requiredFields": ["resolution"]}
+    rules         jsonb NOT NULL DEFAULT '{}',
     PRIMARY KEY (tenant_id, workflow_id, from_status, to_status)
 );
 

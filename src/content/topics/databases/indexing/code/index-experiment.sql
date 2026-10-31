@@ -12,12 +12,14 @@ ANALYZE orders_demo;
 EXPLAIN (ANALYZE, BUFFERS)
 SELECT id, total FROM orders_demo WHERE customer_id = 4242 ORDER BY created_at DESC LIMIT 20;
 
--- 3. Index shaped for the query, then the same EXPLAIN: Index Scan, no Sort, well under 1 ms
+-- 3. Index shaped for the query, then the same EXPLAIN: Index Scan, no Sort, well under 1
+-- ms
 CREATE INDEX ON orders_demo (customer_id, created_at DESC);
 EXPLAIN (ANALYZE, BUFFERS)
 SELECT id, total FROM orders_demo WHERE customer_id = 4242 ORDER BY created_at DESC LIMIT 20;
 
--- 4. Low selectivity: ~25% of rows match, so the planner keeps a Seq Scan even with an index
+-- 4. Low selectivity: ~25% of rows match, so the planner keeps a Seq Scan even with an
+-- index
 CREATE INDEX ON orders_demo (status);
 EXPLAIN ANALYZE SELECT count(*) FROM orders_demo WHERE status = 'PAID';
 

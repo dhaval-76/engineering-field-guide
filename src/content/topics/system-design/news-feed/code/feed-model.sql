@@ -15,4 +15,5 @@ CREATE TABLE followees (user_id bigint, followee_id bigint, is_celebrity boolean
 -- Feed cache (Redis), one sorted set per active user:
 --   ZADD   feed:{userId} <timestamp-or-score> <postId>
 --   ZREMRANGEBYRANK feed:{userId} 0 -801        -- keep the newest 800
---   EXPIRE feed:{userId} 2592000                 -- 30 days idle → evicted, rebuilt on return
+-- EXPIRE feed:{userId} 2592000                 -- 30 days idle → evicted, rebuilt on
+-- return

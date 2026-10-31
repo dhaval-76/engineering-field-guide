@@ -1,20 +1,24 @@
 CREATE TABLE jobs (
     id            uuid PRIMARY KEY,
-    partition     smallint NOT NULL,                 -- hash(id) % 64: which scheduler owns it
+    -- hash(id) % 64: which scheduler owns it
+    partition     smallint NOT NULL,
     type          text NOT NULL,
     payload       jsonb NOT NULL,
     priority      smallint NOT NULL DEFAULT 5,
     run_at        timestamptz NOT NULL,
-    status        text NOT NULL DEFAULT 'PENDING',   -- PENDING, RUNNING, SUCCEEDED, FAILED, DEAD, CANCELLED
+    -- PENDING, RUNNING, SUCCEEDED, FAILED, DEAD, CANCELLED
+    status        text NOT NULL DEFAULT 'PENDING',
     attempts      int NOT NULL DEFAULT 0,
     max_attempts  int NOT NULL DEFAULT 5,
     lease_owner   text,
     lease_until   timestamptz,
     fence         bigint NOT NULL DEFAULT 0,          -- incremented on every claim
-    schedule_id   uuid,                              -- set for occurrences of a recurring schedule
+    -- set for occurrences of a recurring schedule
+    schedule_id   uuid,
     scheduled_for timestamptz,
     last_error    text,
-    UNIQUE (schedule_id, scheduled_for)              -- one occurrence per tick, even if created twice
+    -- one occurrence per tick, even if created twice
+    UNIQUE (schedule_id, scheduled_for)
 );
 -- "What's due in my partitions?" — a small partial index over runnable jobs only
 CREATE INDEX jobs_due ON jobs (partition, priority DESC, run_at)
@@ -23,10 +27,12 @@ CREATE INDEX jobs_due ON jobs (partition, priority DESC, run_at)
 CREATE TABLE schedules (
     id         uuid PRIMARY KEY,
     cron       text NOT NULL,                        -- '0 9 * * MON-FRI'
-    time_zone  text NOT NULL,                        -- 'Asia/Kolkata' — DST-aware next-run computation
+    -- 'Asia/Kolkata' — DST-aware next-run computation
+    time_zone  text NOT NULL,
     job_type   text NOT NULL,
     payload    jsonb NOT NULL,
-    overlap    text NOT NULL DEFAULT 'SKIP',          -- SKIP or QUEUE if the previous run is still active
+    -- SKIP or QUEUE if the previous run is still active
+    overlap    text NOT NULL DEFAULT 'SKIP',
     enabled    boolean NOT NULL DEFAULT true
 );
 

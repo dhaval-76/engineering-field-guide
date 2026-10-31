@@ -9,7 +9,8 @@ CREATE TABLE page_minutes (
 PARTITION BY toYYYYMM(minute)
 ORDER BY (page, country, minute);
 
--- Daily unique visitors per page for the last 90 days: merges sketches, reads rollups only
+-- Daily unique visitors per page for the last 90 days: merges sketches, reads rollups
+-- only
 SELECT toDate(minute) AS day, page, sum(views) AS views, uniqMerge(uniques) AS visitors
 FROM page_minutes
 WHERE minute >= now() - INTERVAL 90 DAY

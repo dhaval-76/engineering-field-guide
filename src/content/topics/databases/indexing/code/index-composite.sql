@@ -15,7 +15,8 @@ CREATE INDEX orders_customer_status_created_idx
     ON orders (customer_id, status, created_at DESC);
 -- Seek to (customer 42, PAID), read entries already in created_at order, stop after 20.
 
--- ✗ Range column first: entries for one customer are scattered across the whole date range.
+-- ✗ Range column first: entries for one customer are scattered across the whole date
+-- range.
 CREATE INDEX ON orders (created_at, customer_id);
 
 -- Which column first among equality columns? It matters less than people think for a

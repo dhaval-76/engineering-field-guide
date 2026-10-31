@@ -1,9 +1,11 @@
-SELECT   customer, SUM(total) AS spent           -- 5. compute output columns, define aliases
+-- 5. compute output columns, define aliases
+SELECT   customer, SUM(total) AS spent
 FROM     orders                                  -- 1. start from all rows
 WHERE    status = 'PAID'                         -- 2. keep rows
 GROUP BY customer                                -- 3. form groups
 HAVING   SUM(total) > 100                        -- 4. keep groups
-ORDER BY spent DESC, customer                    -- 6. sort (aliases allowed here) — with a tiebreaker
+-- 6. sort (aliases allowed here) — with a tiebreaker
+ORDER BY spent DESC, customer
 LIMIT    2;                                      -- 7. take the first rows
 
 -- ✗ WHERE spent > 100           → column "spent" does not exist (aliases come later)

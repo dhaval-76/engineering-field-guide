@@ -5,7 +5,8 @@ CREATE TABLE events (
   version         int         NOT NULL,          -- 1, 2, 3 … within the stream
   type            text        NOT NULL,
   data            jsonb       NOT NULL,
-  metadata        jsonb       NOT NULL DEFAULT '{}',   -- causation id, correlation id, user
+  -- causation id, correlation id, user
+  metadata        jsonb       NOT NULL DEFAULT '{}',
   recorded_at     timestamptz NOT NULL DEFAULT now(),
   UNIQUE (stream_id, version)                    -- optimistic concurrency
 );

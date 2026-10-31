@@ -28,7 +28,8 @@ def refresh(repo, tokens, presented: str, now: datetime | None = None) -> dict:
     nxt = secrets.token_urlsafe(32)
     repo.insert(dict(id=uuid.uuid4(), user_id=rt.user_id, family_id=rt.family_id, token_hash=sha256(nxt),
                      expires_at=now + timedelta(days=14), used_at=None, revoked_at=None))
-    return {"access_token": tokens.issue_access_token(rt.user_id, timedelta(minutes=10)), "refresh_token": nxt}
+    access = tokens.issue_access_token(rt.user_id, timedelta(minutes=10))
+    return {"access_token": access, "refresh_token": nxt}
 
 def logout(repo, presented: str) -> None:
     rt = repo.find_by_token_hash(sha256(presented))

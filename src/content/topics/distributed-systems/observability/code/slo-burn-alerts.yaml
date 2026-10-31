@@ -1,5 +1,6 @@
 # Prometheus rules: 99.9% availability SLO over 30 days → error budget = 0.1% of requests.
-# Multi-window burn-rate alerts (Google SRE workbook): page on 14.4x/1h and 6x/6h, ticket on 1x/3d.
+# Multi-window burn-rate alerts (Google SRE workbook): page on 14.4x/1h and 6x/6h, ticket
+# on 1x/3d.
 groups:
   - name: checkout-slo
     rules:

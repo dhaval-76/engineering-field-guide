@@ -1,8 +1,11 @@
--- Metadata lives in a relational DB (sharded by namespace/owner); bytes live in object storage.
+-- Metadata lives in a relational DB (sharded by namespace/owner); bytes live in object
+-- storage.
 CREATE TABLE chunk (
-  hash      char(64) PRIMARY KEY,              -- SHA-256 of content: stored once, shared by everyone
+  -- SHA-256 of content: stored once, shared by everyone
+  hash      char(64) PRIMARY KEY,
   size      int      NOT NULL,
-  ref_count bigint   NOT NULL DEFAULT 0       -- garbage-collect at 0 (after a grace period)
+  -- garbage-collect at 0 (after a grace period)
+  ref_count bigint   NOT NULL DEFAULT 0
 );
 
 CREATE TABLE file (
@@ -33,10 +36,12 @@ CREATE TABLE change_journal (
   PRIMARY KEY (namespace_id, seq)
 );
 
--- 1. Upload: which of these chunks does the server not have yet?  (client uploads only those)
+-- 1. Upload: which of these chunks does the server not have yet?  (client uploads only
+-- those)
 SELECT h FROM unnest($1::char(64)[]) AS h WHERE NOT EXISTS (SELECT 1 FROM chunk WHERE hash = h);
 
--- 2. Commit a new version, but only if the client edited the version the server still has.
+-- 2. Commit a new version, but only if the client edited the version the server still
+-- has.
 --    0 rows updated → someone else changed the file first → save as a "conflicted copy".
 UPDATE file SET current_version = current_version + 1
 WHERE id = $file_id AND current_version = $base_version

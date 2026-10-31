@@ -3,7 +3,8 @@ CREATE TABLE blobs (
     kind        text NOT NULL,              -- 'full' or 'delta'
     base_hash   bytea REFERENCES blobs(hash),   -- for deltas: the blob it applies to
     chain_len   int NOT NULL DEFAULT 0,     -- deltas since the last full snapshot
-    data        bytea NOT NULL              -- compressed content or delta (or an object-storage key)
+    -- compressed content or delta (or an object-storage key)
+    data        bytea NOT NULL
 );
 
 CREATE TABLE versions (
@@ -23,5 +24,6 @@ CREATE TABLE pages (
     head_id     bigint NOT NULL REFERENCES versions(id)
 );
 
--- Save = new version + move head only if nobody else moved it (compare-and-set)
--- UPDATE pages SET head_id = :new WHERE id = :page AND head_id = :expectedHead;  -- 0 rows → conflict
+-- Save = new version + move head only if nobody else moved it (compare-and-set) UPDATE
+-- pages SET head_id = :new WHERE id = :page AND head_id = :expectedHead;  -- 0 rows →
+-- conflict

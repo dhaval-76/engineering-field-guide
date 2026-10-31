@@ -15,7 +15,7 @@ quickRef:
     - 'Same key with a different body → 422. Still in progress → 409 + `Retry-After`. Keys scoped per client and expire after the retry window.'
     - 'Messages arrive **at least once**: consumers dedupe by message id in the same transaction as the effect.'
   useWhen: Payments, orders, bookings, emails, webhooks — any write that clients or brokers might repeat.
-lastReviewed: 2026-10-30
+lastReviewed: 2026-10-31
 ---
 
 ## Why it matters

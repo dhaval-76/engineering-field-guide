@@ -1,7 +1,8 @@
 -- Cassandra / ScyllaDB (CQL)
 CREATE TABLE messages (
     conversation_id uuid,
-    bucket          int,              -- e.g. month number: bounds very active conversations' partitions
+    -- e.g. month number: bounds very active conversations' partitions
+    bucket          int,
     seq             bigint,           -- per-conversation order, assigned by the server
     message_id      uuid,             -- server id
     client_msg_id   text,             -- sender's id, for de-duplication

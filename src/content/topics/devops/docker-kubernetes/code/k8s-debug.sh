@@ -4,7 +4,8 @@ kubectl rollout status deployment/orders
 
 # 2. What state are the pods in, and why?
 kubectl get pods -l app=orders -o wide
-kubectl describe pod orders-7c9d…            # Events at the bottom: probe failures, OOMKilled, image pulls, scheduling
+# Events at the bottom: probe failures, OOMKilled, image pulls, scheduling
+kubectl describe pod orders-7c9d…
 kubectl get events --sort-by=.lastTimestamp | tail -20
 
 # 3. Logs — including the previous (crashed) container
@@ -17,8 +18,10 @@ kubectl top pod -l app=orders                # live CPU/memory (metrics-server)
 
 # 5. Look inside a running pod
 kubectl exec -it orders-7c9d… -- sh
-kubectl exec orders-7c9d… -- jcmd 1 VM.native_memory summary   # needs -XX:NativeMemoryTracking=summary
-kubectl debug -it orders-7c9d… --image=busybox --target=orders  # ephemeral debug container (distroless images)
+# needs -XX:NativeMemoryTracking=summary
+kubectl exec orders-7c9d… -- jcmd 1 VM.native_memory summary
+# ephemeral debug container (distroless images)
+kubectl debug -it orders-7c9d… --image=busybox --target=orders
 
 # 6. Is the Service routing to anything?
 kubectl get endpointslices -l kubernetes.io/service-name=orders

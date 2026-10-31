@@ -5,7 +5,8 @@ CREATE KEYSPACE shop WITH replication = {'class': 'NetworkTopologyStrategy', 'eu
 CONSISTENCY QUORUM;                 -- W = 2 of 3
 INSERT INTO carts (user_id, item_id, qty) VALUES (?, ?, 2);
 
-CONSISTENCY QUORUM;                 -- R = 2 of 3 → W + R = 4 > 3: overlaps the latest write
+-- R = 2 of 3 → W + R = 4 > 3: overlaps the latest write
+CONSISTENCY QUORUM;
 SELECT * FROM carts WHERE user_id = ?;
 
 -- Options for N = 3:

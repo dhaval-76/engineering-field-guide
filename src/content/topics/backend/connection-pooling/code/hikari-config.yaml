@@ -3,15 +3,23 @@ spring:
     url: jdbc:postgresql://db.internal:5432/shop
     hikari:
       pool-name: shop-db
-      maximum-pool-size: 20          # per instance! 6 instances × 20 = 120 must fit under the DB's max_connections
-      minimum-idle: 20               # fixed-size pool: no ramp-up under sudden load (HikariCP's recommendation)
-      connection-timeout: 3000       # ms to wait for a free connection, then fail fast (default 30 s is too long)
-      max-lifetime: 1680000          # 28 min: a little shorter than any DB / proxy / firewall idle cut-off
-      keepalive-time: 300000         # ping idle connections every 5 min so middleboxes don't drop them
-      leak-detection-threshold: 20000  # log a stack trace if a connection is held longer than 20 s
+      # per instance! 6 instances × 20 = 120 must fit under the DB's max_connections
+      maximum-pool-size: 20
+      # fixed-size pool: no ramp-up under sudden load (HikariCP's recommendation)
+      minimum-idle: 20
+      # ms to wait for a free connection, then fail fast (default 30 s is too long)
+      connection-timeout: 3000
+      # 28 min: a little shorter than any DB / proxy / firewall idle cut-off
+      max-lifetime: 1680000
+      # ping idle connections every 5 min so middleboxes don't drop them
+      keepalive-time: 300000
+      # log a stack trace if a connection is held longer than 20 s
+      leak-detection-threshold: 20000
   jpa:
-    open-in-view: false              # otherwise a connection can stay checked out until the view is rendered
+    # otherwise a connection can stay checked out until the view is rendered
+    open-in-view: false
 
 management:
   endpoints.web.exposure.include: health,metrics,prometheus
-# Watch: hikaricp.connections.active, .pending, .timeout, .usage (time held), .acquire (time waited)
+# Watch: hikaricp.connections.active, .pending, .timeout, .usage (time held), .acquire
+# (time waited)

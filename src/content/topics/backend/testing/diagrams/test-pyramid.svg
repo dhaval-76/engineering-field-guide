@@ -1,27 +1,19 @@
-<svg viewBox="0 0 640 300" xmlns="http://www.w3.org/2000/svg" font-family="var(--font-sans)" font-size="13">
-  <polygon points="250,20 330,20 370,96 210,96" fill="var(--d-plum-soft)" stroke="var(--d-plum)"/>
-  <text x="290" y="54" text-anchor="middle" fill="var(--d-text)" font-weight="600">End-to-end</text>
-  <text x="290" y="74" text-anchor="middle" fill="var(--d-muted)" font-size="11">a handful</text>
-
-  <polygon points="206,104 374,104 422,184 158,184" fill="var(--d-info-soft)" stroke="var(--d-info)"/>
-  <text x="290" y="140" text-anchor="middle" fill="var(--d-text)" font-weight="600">Integration / slices</text>
-  <text x="290" y="160" text-anchor="middle" fill="var(--d-muted)" font-size="11">real DB · HTTP layer · JSON · transactions</text>
-
-  <polygon points="153,192 427,192 480,272 100,272" fill="var(--d-ok-soft)" stroke="var(--d-ok)"/>
-  <text x="290" y="228" text-anchor="middle" fill="var(--d-text)" font-weight="600">Unit</text>
-  <text x="290" y="248" text-anchor="middle" fill="var(--d-muted)" font-size="11">logic · edge cases · error paths — the most tests</text>
-
-  <g stroke="var(--d-line)" stroke-width="1.5" fill="none">
-    <line x1="520" y1="268" x2="520" y2="32"/><polyline points="514,40 520,28 526,40"/>
-    <line x1="60" y1="32" x2="60" y2="268"/><polyline points="54,260 60,272 66,260"/>
-  </g>
-  <g fill="var(--d-muted)" font-size="11">
-    <text x="532" y="40">more realistic</text>
-    <text x="532" y="56">slower, costlier</text>
-    <text x="532" y="72">harder to debug</text>
-    <text x="532" y="252">faster, precise</text>
-    <text x="532" y="268">less realistic</text>
-    <text x="16" y="24">few</text>
-    <text x="16" y="290">many</text>
+<svg viewBox="0 0 340 300" xmlns="http://www.w3.org/2000/svg" font-family="var(--font-sans)" font-size="12">
+  <!-- pyramid -->
+  <path d="M170 20 L220 92 L120 92 Z" fill="var(--d-bad-soft)" stroke="var(--d-bad)" stroke-width="1.5"/>
+  <text x="170" y="70" text-anchor="middle" fill="var(--d-text)" font-weight="600">E2E</text>
+  <text x="170" y="86" text-anchor="middle" fill="var(--d-muted)" font-size="10.5">a handful</text>
+  <path d="M116 98 L224 98 L272 168 L68 168 Z" fill="var(--d-warn-soft)" stroke="var(--d-warn)" stroke-width="1.5"/>
+  <text x="170" y="124" text-anchor="middle" fill="var(--d-text)" font-weight="600">Integration / slices</text>
+  <text x="170" y="141" text-anchor="middle" fill="var(--d-muted)" font-size="10.5">real DB · HTTP layer · JSON</text>
+  <text x="170" y="156" text-anchor="middle" fill="var(--d-muted)" font-size="10.5">transactions · some dozens</text>
+  <path d="M64 174 L276 174 L326 246 L14 246 Z" fill="var(--d-ok-soft)" stroke="var(--d-ok)" stroke-width="1.5"/>
+  <text x="170" y="204" text-anchor="middle" fill="var(--d-text)" font-weight="600">Unit</text>
+  <text x="170" y="221" text-anchor="middle" fill="var(--d-muted)" font-size="10.5">logic · edge cases · error paths</text>
+  <text x="170" y="236" text-anchor="middle" fill="var(--d-muted)" font-size="10.5">the most tests, milliseconds each</text>
+  <!-- scale -->
+  <g font-size="11">
+    <text x="14" y="270" fill="var(--d-muted)">↑ up: more realistic, slower, harder to debug</text>
+    <text x="14" y="288" fill="var(--d-muted)">↓ down: faster, precise, less realistic</text>
   </g>
 </svg>

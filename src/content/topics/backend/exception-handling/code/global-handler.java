@@ -25,7 +25,8 @@ class ApiExceptionHandler extends ResponseEntityExceptionHandler {
     @Override
     protected ResponseEntity<Object> handleMethodArgumentNotValid(MethodArgumentNotValidException ex,
             HttpHeaders headers, HttpStatusCode status, WebRequest request) {
-        ProblemDetail pd = problem(HttpStatus.BAD_REQUEST, "validation_failed", "The request has invalid fields");
+        ProblemDetail pd = problem(HttpStatus.BAD_REQUEST, "validation_failed",
+                "The request has invalid fields");
         pd.setProperty("errors", ex.getBindingResult().getFieldErrors().stream()
             .map(e -> Map.of("field", e.getField(), "message", String.valueOf(e.getDefaultMessage())))
             .toList());

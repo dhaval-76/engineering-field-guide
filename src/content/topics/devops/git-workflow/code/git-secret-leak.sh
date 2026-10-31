@@ -5,11 +5,12 @@
 pip install git-filter-repo
 git clone --mirror git@github.com:org/shop.git && cd shop.git
 printf 'sk_live_51Hxxxxxxxx==>REMOVED\n' > ../replacements.txt
-git filter-repo --replace-text ../replacements.txt     # rewrite every commit containing it
+# rewrite every commit containing it
+git filter-repo --replace-text ../replacements.txt
 git push --force --mirror
 # (Hosting providers may keep cached views and PR refs — ask support to purge them.)
 
 # 3. Prevent recurrence
 #    - secret scanning / push protection on the host; gitleaks in pre-commit and CI
-#    - secrets from a manager (Vault, AWS Secrets Manager) or CI secrets, never in the repo
+# - secrets from a manager (Vault, AWS Secrets Manager) or CI secrets, never in the repo
 #    - .env and key files in .gitignore

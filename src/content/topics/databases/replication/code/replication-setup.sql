@@ -1,10 +1,12 @@
 -- primary: postgresql.conf
 --   wal_level = replica
 --   max_wal_senders = 10
---   synchronous_standby_names = 'FIRST 1 (standby_a, standby_b)'   -- wait for one of these
---   synchronous_commit = on        -- 'remote_apply' also waits until the standby has APPLIED it
+-- synchronous_standby_names = 'FIRST 1 (standby_a, standby_b)'   -- wait for one of these
+-- synchronous_commit = on        -- 'remote_apply' also waits until the standby has
+-- APPLIED it
 --
--- A transaction can relax durability when losing it is acceptable (e.g. analytics events):
+-- A transaction can relax durability when losing it is acceptable (e.g. analytics
+-- events):
 SET LOCAL synchronous_commit = local;
 
 -- On the primary: who is connected, sync or async, and how far behind

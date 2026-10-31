@@ -2,7 +2,8 @@
 --   T1: SELECT balance FROM accounts WHERE id = 1;          → 1000
 --   T2: SELECT balance FROM accounts WHERE id = 1;          → 1000
 --   T1: UPDATE accounts SET balance = 100 WHERE id = 1;     -- 1000 - 900
---   T2: UPDATE accounts SET balance = 100 WHERE id = 1;     -- waits for T1, then overwrites
+-- T2: UPDATE accounts SET balance = 100 WHERE id = 1;     -- waits for T1, then
+-- overwrites
 --   Two debits of 900, balance 100. One debit is lost.
 
 -- ✓ 1. Atomic update: the database reads and writes under the row lock.
@@ -25,4 +26,5 @@ BEGIN ISOLATION LEVEL REPEATABLE READ;
 SELECT balance FROM accounts WHERE id = 1;      -- 1000
 UPDATE accounts SET balance = 100 WHERE id = 1;
 COMMIT;   -- the second of two such transactions gets:
-          -- ERROR: could not serialize access due to concurrent update  (SQLSTATE 40001) → retry
+          -- ERROR: could not serialize access due to concurrent update  (SQLSTATE 40001)
+          -- → retry

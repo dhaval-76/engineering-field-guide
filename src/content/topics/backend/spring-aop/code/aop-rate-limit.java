@@ -13,7 +13,8 @@ class RateLimitAspect {
     void check(JoinPoint jp, RateLimited limit) {
         String caller = SecurityContextHolder.getContext().getAuthentication().getName();
         String key = caller + ":" + jp.getSignature().toShortString();
-        TokenBucket bucket = buckets.get(key, k -> new TokenBucket(limit.perMinute(), limit.perMinute() / 60.0));
+        TokenBucket bucket = buckets.get(key,
+                k -> new TokenBucket(limit.perMinute(), limit.perMinute() / 60.0));
         // → 429 via @ControllerAdvice
         if (!bucket.tryConsume()) throw new RateLimitExceededException(limit.perMinute());
     }

@@ -4,7 +4,8 @@ receivers:
     protocols: { grpc: {}, http: {} }
 
 processors:
-  memory_limiter: { check_interval: 1s, limit_percentage: 80 }   # shed load instead of crashing
+  # shed load instead of crashing
+  memory_limiter: { check_interval: 1s, limit_percentage: 80 }
   batch: {}
   attributes/redact:
     actions:

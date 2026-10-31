@@ -8,7 +8,8 @@ on:
 permissions:
   contents: read
 
-concurrency:                         # one deploy at a time per branch; newer runs cancel older PR runs
+# one deploy at a time per branch; newer runs cancel older PR runs
+concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
@@ -16,10 +17,12 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4                       # pin to a full commit SHA in real repos
+      # pin to a full commit SHA in real repos
+      - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
         with: { distribution: temurin, java-version: '21', cache: maven }
-      - run: ./mvnw -B verify                           # unit + Testcontainers integration tests (Docker is available)
+      # unit + Testcontainers integration tests (Docker is available)
+      - run: ./mvnw -B verify
       - uses: actions/upload-artifact@v4
         if: always()
         with: { name: test-reports, path: '**/target/surefire-reports' }
@@ -37,7 +40,8 @@ jobs:
       - uses: actions/checkout@v4
       - uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: arn:aws:iam::123456789012:role/gha-push-orders   # trusts only this repo's main branch
+          # trusts only this repo's main branch
+          role-to-assume: arn:aws:iam::123456789012:role/gha-push-orders
           aws-region: eu-west-1
       - id: ecr
         uses: aws-actions/amazon-ecr-login@v2
@@ -45,7 +49,8 @@ jobs:
         run: echo "image=${{ steps.ecr.outputs.registry }}/orders:${{ github.sha }}" >> "$GITHUB_OUTPUT"
       - run: |
           docker build -t "${{ steps.meta.outputs.image }}" .
-          docker push "${{ steps.meta.outputs.image }}"        # built ONCE; promoted below
+          # built ONCE; promoted below
+          docker push "${{ steps.meta.outputs.image }}"
 
   deploy-staging:
     needs: image
@@ -65,7 +70,8 @@ jobs:
   deploy-production:
     needs: [image, deploy-staging]
     runs-on: ubuntu-latest
-    environment: production                              # required reviewers + only from main
+    # required reviewers + only from main
+    environment: production
     permissions: { id-token: write, contents: read }
     steps:
       - uses: actions/checkout@v4

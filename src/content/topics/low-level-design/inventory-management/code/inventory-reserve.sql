@@ -16,7 +16,8 @@ CREATE TABLE reservation (
   UNIQUE (order_id, sku)                       -- a retried checkout can't reserve twice
 );
 
--- Reserve atomically: the WHERE clause is the oversell check; 0 rows updated = not enough stock here
+-- Reserve atomically: the WHERE clause is the oversell check; 0 rows updated = not enough
+-- stock here
 UPDATE stock SET reserved = reserved + 2
 WHERE warehouse = 'BLR' AND sku = 'SKU-1' AND on_hand - reserved >= 2;
 

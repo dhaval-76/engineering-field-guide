@@ -14,7 +14,8 @@ java -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/dumps ...  # dump on OOM
 
 # On a running JVM
 jcmd <pid> GC.heap_info
-jcmd <pid> GC.class_histogram | head -30      # which classes use the most memory right now
+# which classes use the most memory right now
+jcmd <pid> GC.class_histogram | head -30
 jcmd <pid> GC.heap_dump /tmp/heap.hprof       # analyse with Eclipse MAT / VisualVM
 # Java Flight Recorder: allocation + GC profiling
 jcmd <pid> JFR.start duration=60s filename=rec.jfr

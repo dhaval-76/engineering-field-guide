@@ -16,6 +16,8 @@ CREATE INDEX places_location_gist ON places USING gist (location);
 SELECT id, name, ST_Distance(location, ST_MakePoint(72.8777, 19.0760)::geography) AS metres
 FROM places
 WHERE category = 'restaurant'
-  AND ST_DWithin(location, ST_MakePoint(72.8777, 19.0760)::geography, 2000)   -- index-assisted
-ORDER BY location <-> ST_MakePoint(72.8777, 19.0760)::geography                -- KNN ordering
+  -- index-assisted
+  AND ST_DWithin(location, ST_MakePoint(72.8777, 19.0760)::geography, 2000)
+-- KNN ordering
+ORDER BY location <-> ST_MakePoint(72.8777, 19.0760)::geography
 LIMIT 20;
