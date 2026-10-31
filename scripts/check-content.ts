@@ -5,6 +5,7 @@
  *  - snippet ids are globally unique per language
  *  - every askedAt entry has a source URL (also enforced by the schema)
  *  - no leftover level/schedule framing in content
+ *  - every track has an Open Graph card in public/og/
  */
 import { readFile } from 'node:fs/promises';
 import { glob } from 'node:fs/promises';
@@ -134,6 +135,12 @@ for (const id of walkIds) if (!used.walk.has(id)) warn.push(`Orphan walkthrough:
 for (const f of diagramFiles.filter((f) => f.endsWith('.mmd'))) {
   if (!diagramFiles.includes(f.replace(/\.mmd$/, '.svg')))
     errors.push(`${f}: not rendered — run npm run diagrams`);
+}
+
+// Every track needs a pre-rendered social card (npm run og), or its pages point og:image at a 404.
+for (const f of await list('src/content/tracks/*.yaml')) {
+  const id = stem(f);
+  if (!(await list(`public/og/${id}.png`)).length) errors.push(`Track "${id}" has no public/og/${id}.png — run npm run og`);
 }
 
 for (const w of warn) console.warn(`warn  ${w}`);

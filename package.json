@@ -19,7 +19,8 @@
     "report:migration": "tsx scripts/migration-report.ts",
     "research:fetch": "tsx scripts/research/leetcode-discuss.ts",
     "research:analyze": "tsx scripts/research/analyze.ts",
-    "research:apply": "tsx scripts/research/apply-reports.ts"
+    "research:apply": "tsx scripts/research/apply-reports.ts",
+    "og": "tsx scripts/og-images.ts"
   },
   "dependencies": {
     "@astrojs/mdx": "^8.0.3",
