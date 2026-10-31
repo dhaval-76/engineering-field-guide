@@ -6,3 +6,5 @@ drafts/
 *.log
 .env*
 .cache/
+__pycache__/
+*.pyc
