@@ -1,0 +1,37 @@
+questions:
+  - q: Design a leaderboard supporting score updates, top-k and a player's rank.
+    think: Which structure gives fast updates and fast rank?
+    answer: |
+      Keep a hash map `player → (score, reachedAt)` and a sorted structure ordered by score descending, then `reachedAt` ascending (earlier achiever wins ties), then player id. Update: remove the old entry, insert the new one — O(log n) in a balanced tree or skip list. Top-k: iterate the first k — O(k + log n). Rank: count entries before the player — O(log n) if the structure stores subtree sizes or span counts (Redis sorted sets, order-statistic trees), otherwise O(n). In production use Redis: `ZINCRBY`, `ZREVRANGE 0 k-1 WITHSCORES`, `ZREVRANK`. Feed it from score events applied idempotently, and keep the source of truth in a database so the board can be rebuilt.
+  - q: 'How would you support daily, weekly and all-time leaderboards for 50 million players?'
+    think: Separate keys per window; then think about size.
+    answer: |
+      Maintain a sorted set per window: `lb:daily:{date}`, `lb:weekly:{week}`, `lb:alltime`, updated from the same score events (or build weekly from dailies with `ZUNIONSTORE`), and expire old windows. 50 M members in one sorted set needs several GB of memory and a single node's write throughput — feasible but at the edge; replicas serve reads. If writes or memory outgrow one node: shard by score range with a small index of shard boundaries (rank = members in higher shards + local rank), or keep an exact sorted set only for the top N and serve everyone else an approximate percentile from a score histogram. Cache top-100 responses for a few seconds.
+followUps:
+  - q: Why not a heap?
+    intuition: What can't a heap answer?
+    approach: |
+      A min-heap of size k tracks the top k cheaply, but can't give an arbitrary player's rank, can't efficiently update a score already inside it, and loses everyone outside the top k. Leaderboards need updates and rank for any player, so a sorted set or tree is the right fit; a heap is good for one-off "top k of a stream".
+  - q: How does Redis compute ZREVRANK in O(log n)?
+    intuition: Skip list links know how far they jump.
+    approach: |
+      Sorted sets use a skip list where each forward pointer stores its span — the number of elements it skips. Walking from the top level toward a member and summing spans yields its rank in O(log n) expected time; a hash map gives O(1) score lookup by member.
+  - q: How do you make tie-breaking "first to reach the score wins" in Redis?
+    intuition: Fold time into the score.
+    approach: |
+      Redis orders equal scores by member name. Encode time into the score: `score × 10^10 + (MAX_TS − timestamp)` so that among equal points an earlier timestamp sorts higher; decode for display. Watch double precision (53 bits) — reduce the time resolution or score range if needed — or keep ties in a secondary structure.
+practice:
+  - task: Implement an in-memory leaderboard with addScore, top(k) and rank, ties broken by who reached the score first, and verify it against a brute-force model.
+    hint: Map player → entry, sorted set of entries; update = remove + insert.
+    solution: |
+      Store `(player, score, reachedAt)` entries in a sorted structure ordered by score desc, reachedAt asc, player asc, plus a map from player to its entry. addScore removes the old entry, creates one with the new score and a fresh logical timestamp, and inserts it. top(k) takes the first k; rank is the entry's position + 1. Verify against a model that sorts all players on every query.
+    solutionCode: leaderboard
+quiz:
+  - q: Which Redis command returns a member's position from the top?
+    options: [ZSCORE, ZREVRANK, ZCARD, ZINCRBY]
+    correct: 1
+    why: ZREVRANK gives the 0-based rank ordered from highest score.
+  - q: What is the cost of rank(player) using Java's TreeSet headSet(x).size()?
+    options: [O(1), O(log n), O(n), O(n log n)]
+    correct: 2
+    why: The head set is a view; size() counts its elements.

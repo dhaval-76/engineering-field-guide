@@ -1,0 +1,22 @@
+title: Score updates, ties and ranks
+frames:
+  - caption: 'Each player has one entry ordered by **score descending**, then by **when they reached that score** (earlier wins ties). A hash map points from player to their entry.'
+    panels:
+      - kind: rows
+        label: ranking
+        items: ['1. bob — 80', '2. alice — 50 (t=1)', '3. carol — 50 (t=3)']
+  - caption: 'carol scores +40. Remove her old entry (O(log n)), compute 90, insert a new entry at its sorted position (O(log n)).'
+    panels:
+      - kind: rows
+        label: ranking
+        items: [{ v: '1. carol — 90', tone: accent }, '2. bob — 80', '3. alice — 50']
+  - caption: 'alice scores +30 and reaches 80 — tied with bob. bob got there first, so he stays ahead. Deterministic tie-breaks matter: prizes and disputes depend on them.'
+    panels:
+      - kind: rows
+        label: ranking
+        items: ['1. carol — 90', '2. bob — 80 (t=2)', { v: '3. alice — 80 (t=5)', tone: accent }]
+  - caption: '**top(k)** walks the first k entries: O(k + log n). **rank(player)** counts entries ahead of the player''s entry — O(log n) in a structure that stores subtree sizes (Redis skip list spans, order-statistic trees), O(n) in a plain TreeSet.'
+    panels:
+      - kind: kv
+        label: queries
+        pairs: [['top(2)', 'carol 90, bob 80'], ['rank(alice)', '3']]

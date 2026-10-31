@@ -1,0 +1,91 @@
+---
+title: Design a Leaderboard
+summary: A ranked scoreboard with fast updates, top-k and rank queries — sorted structures and tie-breaking, Redis sorted sets, time-windowed boards, around-me queries, and scaling to millions of players with sharding or approximate ranks.
+track: low-level-design
+order: 38
+tags: [lld, leaderboard, sorted-set, redis, heap]
+aliases: [leaderboard design, gaming leaderboard, ranking system, top k players, player rank, redis sorted set, zadd, zincrby, zrevrank, zrevrange, skip list, order statistic tree, daily leaderboard, weekly leaderboard, around me ranking, tie break]
+prerequisites: [low-level-design/lld-method, dsa/heaps-and-top-k]
+related: [dsa/trees-and-bst, databases/caching-strategies, system-design/realtime-analytics]
+quickRef:
+  points:
+    - 'Operations: `addScore(player, delta)`, `top(k)`, `rank(player)`, often `around(player, n)`.'
+    - 'Keep a **map player → entry** and a **sorted structure** of entries (score desc, then tie-break).'
+    - 'Define **tie-breaks** explicitly — e.g. whoever reached the score first.'
+    - 'Production: **Redis sorted sets** — `ZINCRBY`, `ZREVRANGE`, `ZREVRANK`, all O(log n).'
+    - 'Time windows = one key per period; huge boards = shard by score range or approximate rank from a histogram.'
+  complexity: 'Update O(log n); top-k O(k + log n); rank O(log n) with subtree counts (O(n) in a plain TreeSet).'
+  useWhen: '"Design a leaderboard" (LLD), gaming or contest rankings, top sellers, streak boards.'
+lastReviewed: 2026-10-30
+---
+
+## Why it matters
+
+Leaderboards are a compact question that tests data-structure choice (heap vs sorted set vs order-statistic tree), edge cases (ties, removed players, negative scores) and the jump to production (Redis, time windows, millions of players). It appears both as an LLD question and as a building block in system design.
+
+<Callout type="analogy">
+A race results board. Every time a runner passes a checkpoint, their line moves up or down; anyone can glance at the top ten or ask "where am I?". Two runners with the same time need a rule — who crossed first — or the medals become an argument.
+</Callout>
+
+## Clarify
+
+- Scores only increase, or can they go down? (Both — penalties exist.)
+- Queries: top k, a player's rank, players around a given player? (All.)
+- Ties? (Earlier achiever ranks higher.)
+- Global only, or daily/weekly boards too? (Time windows as an extension.)
+- Scale? (In-memory for thousands; Redis for millions.)
+
+## Choosing the structure
+
+| Structure | Update | top(k) | rank(player) | Notes |
+|---|---|---|---|---|
+| Unsorted map + sort on read | O(1) | O(n log n) | O(n log n) | fine for tiny boards |
+| Min-heap of size k | O(log k) | O(k log k) | ✗ | top-k only, no rank |
+| Balanced BST / TreeSet | O(log n) | O(k + log n) | O(n) without size info | Java `TreeSet` |
+| Order-statistic tree / skip list with spans | O(log n) | O(k + log n) | **O(log n)** | Redis sorted sets |
+| Sorted array + binary search | O(n) insert | O(k) | O(log n) | simple; small boards |
+
+<Walkthrough id="leaderboard-updates" />
+
+<CodeTabs id="leaderboard" title="In-memory leaderboard with deterministic tie-breaking" />
+
+## In production: Redis sorted sets
+
+A sorted set stores members with a score in a skip list plus a hash map. Each skip-list link records how many elements it skips, so rank lookups are O(log n).
+
+<CodeTabs id="leaderboard-redis" title="Global, daily and weekly leaderboards with Redis sorted sets" />
+
+Design points:
+
+- **Writes**: the game or order service emits score events; a consumer applies `ZINCRBY` (idempotently — remember processed event ids, or the board double-counts on retries).
+- **Durability**: Redis is the serving copy; the database or event log is the source of truth, so the board can be rebuilt.
+- **Time windows**: one key per day/week/season with an expiry; weekly = `ZUNIONSTORE` of daily keys, or update both keys on each event.
+- **Around me**: `ZREVRANK` then `ZREVRANGE rank-2 rank+2`.
+- **Friends leaderboards**: fetch friends' scores (`ZMSCORE`) and sort the small list in the application.
+
+## Scaling to very large boards
+
+One sorted set handles tens of millions of members on one Redis node. Beyond that, or for global games with heavy write traffic:
+
+- **Shard by score range**: shard i holds scores in [lo_i, hi_i); rank = count in higher shards + rank within the shard. Moving players between shards on big jumps is the cost.
+- **Approximate ranks**: keep a histogram of players per score bucket; rank ≈ players in higher buckets + position estimate. Exact for the top (kept in a real sorted set), approximate for "you're in the top 12%".
+- **Precompute** expensive boards periodically if real-time isn't required.
+
+<Pitfalls>
+
+- **Unspecified tie-breaks** — non-deterministic ranks and support tickets.
+- **Assuming `TreeSet.headSet(x).size()` is O(log n)** — it's a view; counting walks it.
+- **Re-sorting the whole board on every update.**
+- **Non-idempotent score updates** from retried events.
+- **One unbounded key per user per day** without expiry.
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- Map from player to entry + a sorted structure ordered by (score desc, tie-break).
+- Rank in O(log n) needs subtree counts — skip lists with spans or order-statistic trees.
+- Redis sorted sets are the standard production answer; keep a source of truth to rebuild from.
+- Time windows via per-period keys; very large boards via score-range shards or approximate ranks.
+
+</KeyTakeaways>
