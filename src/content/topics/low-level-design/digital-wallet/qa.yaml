@@ -1,0 +1,37 @@
+questions:
+  - q: Design a digital wallet supporting top-ups, peer-to-peer transfers and merchant payments with no double spending.
+    think: Ledger, idempotency, concurrency, and how money enters and leaves.
+    answer: |
+      **Model**: accounts (user, merchant, and system accounts such as bank-in, bank-out, fees), transactions with a unique idempotency key, and an append-only ledger of signed entries per transaction that sum to zero; cache `balance` and `held` on accounts. **Top-up**: after the payment gateway confirms, a transaction moves money from `system:bank-in` to the user. **Transfer**: claim the idempotency key (UNIQUE constraint); lock both account rows in id order (`SELECT … ORDER BY id FOR UPDATE`); debit with `WHERE balance - held >= amount`; credit; insert the two entries; commit. **Merchant payments with authorisation**: create a hold (reduce available), then capture (transfer + release, atomically) or release. **Safety nets**: CHECK constraint against negative balances, integer paise, reconciliation jobs. **Scale**: partition by account id; hot merchant accounts get sub-accounts or queued credits.
+  - q: 'Two users transfer money to each other at the same moment and both requests hang. What happened?'
+    think: Lock acquisition order.
+    answer: |
+      A deadlock: request 1 locked A then waits for B; request 2 locked B then waits for A. Fix by acquiring locks in a global order — always lock the account with the smaller id first — so both requests try A first and one simply waits for the other. Databases detect deadlocks and abort one transaction, but ordering prevents them and the retries. Alternatively use single conditional `UPDATE` statements that don't hold one lock while waiting for another.
+followUps:
+  - q: Why double-entry instead of just updating balances?
+    intuition: Explainability and invariants.
+    approach: |
+      Balances alone can't explain themselves: if a balance is wrong there's no record of how it got there. With double-entry, every movement is a balanced set of immutable entries; you can rebuild any balance, audit any transaction, and check the invariant that the whole system sums to zero. Errors become detectable and correctable with reversing entries.
+  - q: How do holds work for a ride or hotel booking?
+    intuition: Reserve now, decide the amount later.
+    approach: |
+      At booking, create a hold for the estimated amount: available balance drops, balance doesn't. At the end, capture the actual amount (≤ the hold) — transferring it to the merchant — and release the remainder in the same atomic operation; if cancelled, release the whole hold. Expire stale holds automatically.
+  - q: How do idempotency keys interact with failures?
+    intuition: Record the key with the result, atomically.
+    approach: |
+      Store the key in the same transaction as the money movement (UNIQUE constraint). A retry with the same key either finds the committed transaction and returns its result, or — if the first attempt rolled back — finds nothing and proceeds. If the key is stored separately from the transfer, a crash between them causes either a lost result or a double charge.
+practice:
+  - task: Implement a wallet service with double-entry ledger, idempotent transfers, ordered locking and holds, and prove under concurrency that money is conserved.
+    hint: Stress test with random transfers on several threads, then check total balance and ledger invariants.
+    solution: |
+      Accounts hold balance and held; transfers claim the idempotency key, lock both accounts in id order, check available funds, update balances and append two entries. Holds increase `held`; capture claims the hold and transfers while releasing the held amount inside the same locked section. Test: 20,000 random transfers across threads; total of user balances unchanged, every transaction's entries sum to zero, each balance equals its summed entries, and a hold can be captured only once.
+    solutionCode: wallet
+quiz:
+  - q: How should a wallet store ₹10.50?
+    options: ['10.5 as a double', '1050 as an integer number of paise', "'10.50' as a string", 'Two integers in separate tables']
+    correct: 1
+    why: Integer minor units avoid floating-point rounding errors.
+  - q: What prevents deadlocks between opposite concurrent transfers?
+    options: [Locking the sender first, Locking accounts in a global order such as by id, Longer timeouts, Retrying immediately]
+    correct: 1
+    why: A global order means both transactions request locks in the same sequence.

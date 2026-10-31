@@ -1,0 +1,91 @@
+---
+title: Design a Digital Wallet
+summary: A wallet that never loses or invents money — double-entry ledger, integer amounts, idempotent transfers, deadlock-free locking, holds with capture and release, database constraints, and reconciliation.
+track: low-level-design
+order: 41
+tags: [lld, payments, ledger, concurrency, idempotency]
+aliases: [digital wallet lld, e-wallet, paytm wallet, wallet design, double entry bookkeeping, ledger design, money transfer, p2p transfer, balance hold, authorize capture, idempotency key, lock ordering deadlock, reconciliation, prepaid balance]
+prerequisites: [low-level-design/lld-method, backend/idempotency, concurrency/deadlock-livelock-starvation]
+related: [system-design/payment-system, databases/transactions-isolation, architecture/event-driven-cqrs, low-level-design/splitwise]
+quickRef:
+  points:
+    - '**Double-entry**: every movement is a set of entries summing to zero; balances are derived (and cached).'
+    - 'Money as **integer minor units** (paise, cents) — never floating point.'
+    - '**Idempotency key** per request, claimed atomically before moving money; retries return the first result.'
+    - 'Lock both accounts **in a global order** (or rely on conditional updates) — no deadlocks, no overdrafts.'
+    - '**Holds**: reserve now (available = balance − held), capture or release later — atomically.'
+  complexity: 'Transfer O(1) plus logging; audit O(entries).'
+  useWhen: '"Design a wallet / payment balance / P2P transfer system" (LLD), and any feature that moves money or credits.'
+lastReviewed: 2026-10-30
+---
+
+## Why it matters
+
+A wallet looks like `balance -= x; balance += x`. The interview is about everything that can go wrong around those two lines: retries that pay twice, concurrent transfers that overdraw or deadlock, crashes between the debit and the credit, rounding errors, and auditors asking why a balance is what it is. The answers — double-entry ledgers, idempotency keys, lock ordering and holds — carry straight into real payment systems ([Payment system](../../system-design/payment-system/)).
+
+<Callout type="analogy">
+An accountant's ledger with two columns. Money never appears or disappears; every line that takes ₹50 from one account has a matching line that gives ₹50 to another. If the totals don't balance at the end of the day, something is wrong — and the ledger shows exactly where.
+</Callout>
+
+## Clarify
+
+- Operations: top-up, P2P transfer, pay a merchant, refund, withdraw to bank? (All; top-up and withdrawal go through system accounts.)
+- Holds (authorise now, charge later — rides, hotels)? (Yes.)
+- Single currency? (Yes; multi-currency as an extension.)
+- Limits and KYC? (Mention; out of scope for code.)
+- Consistency? (Strong — no overdrafts, ever.)
+
+## Model
+
+<Diagram id="wallet-model" caption="Accounts, transactions, balanced ledger entries and holds. System accounts (bank-in, bank-out, fees) let deposits and withdrawals balance too." />
+
+- **Account**: cached `balance` and `held`; `available = balance − held`.
+- **Transaction**: one business operation with a unique **idempotency key**.
+- **Ledger entry**: (transaction, account, signed amount). Entries of a transaction sum to zero.
+- **Hold**: an authorisation that reduces available funds until captured or released.
+
+## Transfers
+
+<Walkthrough id="wallet-transfer" />
+
+<CodeTabs id="wallet" title="Wallet service: double-entry ledger, idempotent transfers, ordered locking, holds with atomic capture" />
+
+Concurrency rules the code follows:
+
+- **Ordered locking** — always lock the account with the smaller id first, so two opposite transfers can't wait on each other ([Deadlock](../../concurrency/deadlock-livelock-starvation/)).
+- **Check and update under the lock** — the balance can't change between the check and the debit.
+- **Claim the idempotency key atomically** and remove it if the transfer fails, so a corrected retry can proceed.
+- **Capture is atomic with the hold release** — otherwise funds freed by the release could be spent before the capture runs. A hold is claimed (removed) before capture, so two captures can't both succeed.
+
+## In the database
+
+<CodeTabs id="wallet-schema" title="PostgreSQL: CHECK constraints, a UNIQUE idempotency key, ordered row locks, conditional debit and audit queries" />
+
+- `CHECK (balance - held >= 0)` makes overdrafts impossible even if application code has a bug.
+- The debit is a conditional update (`WHERE balance - held >= amount`); 0 rows updated means insufficient funds.
+- Ledger rows are insert-only; corrections are new reversing transactions.
+- For very hot accounts (a merchant receiving thousands of payments a second), split them into several sub-accounts or apply credits asynchronously from a queue — debits must stay strictly consistent; credits can lag slightly.
+
+## Reconciliation
+
+Run audits continuously: every transaction sums to zero, cached balances equal summed entries, and system accounts match bank and payment-gateway statements. Discrepancies raise alerts, never silent fixes.
+
+<Pitfalls>
+
+- **Floating-point money.**
+- **Updating balances without a ledger** — no audit trail, no way to explain or rebuild.
+- **Check-then-act without a lock or conditional update** — concurrent overdrafts.
+- **Locking in request order** — deadlocks between opposite transfers.
+- **No idempotency key** — client retries double-pay.
+- **Releasing a hold and charging in two steps.**
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- Double-entry: balanced entries per transaction; balances derived and audited.
+- Idempotency keys, ordered locks or conditional updates, and DB constraints prevent double spends and overdrafts.
+- Holds reduce available balance; capture and release atomically.
+- Reconcile continuously against the ledger and external statements.
+
+</KeyTakeaways>
