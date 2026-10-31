@@ -15,7 +15,7 @@ quickRef:
     - 'Control cost: structured logs at sensible levels, **sampling** (tail-based keeps errors and slow traces), **retention tiers**, and bounded metric **cardinality**.'
     - 'Alert on **symptoms users feel** — SLO burn rates — not on every CPU spike.'
   useWhen: '"Design a logging/monitoring system" — or setting up observability for a fleet of services.'
-lastReviewed: 2026-10-30
+lastReviewed: 2026-10-31
 ---
 
 ## Requirements
@@ -31,15 +31,17 @@ lastReviewed: 2026-10-30
 
 <Diagram id="observability-architecture" caption="Services emit all three signals via OpenTelemetry; collectors buffer and route them to stores built for each signal." />
 
-## The three signals
+## The three signals, from the platform's side
 
-| Signal | What it is | Good for | Storage |
-|---|---|---|---|
-| Metrics | numeric time series with labels (`http_requests_total{service,route,status}`) | dashboards, alerts, trends — cheap and fast | Prometheus, Mimir/Thanos, VictoriaMetrics |
-| Traces | a tree of timed spans for one request across services | finding which hop is slow or failing | Tempo, Jaeger, vendor APMs |
-| Logs | structured events with context | the details of one failure | OpenSearch/Elasticsearch, Loki, ClickHouse |
+What metrics, traces and logs are — and how a service should emit them — is covered in [Observability for application developers](../../distributed-systems/observability/). For the platform, what matters is that the three have very different **shapes and costs**, so each gets its own store:
 
-Start dashboards from the **RED** method for services (Rate, Errors, Duration) and **USE** for resources (Utilisation, Saturation, Errors).
+| Signal | Shape of the data | Store built for it |
+|---|---|---|
+| Metrics | small numeric samples per series, queried by time range and label | Prometheus, Mimir/Thanos, VictoriaMetrics |
+| Traces | spans per request, looked up by trace id, mostly sampled | Tempo, Jaeger, vendor APMs |
+| Logs | large text events, searched by fields and text | Loki, OpenSearch/Elasticsearch, ClickHouse |
+
+What the platform asks of every service: structured logs that carry the trace id, and metrics with **bounded** label values (no user ids in labels) — otherwise storage and query cost explode.
 
 <CodeTabs id="instrumentation" title="Structured logs with trace ids, and metrics with bounded labels" />
 

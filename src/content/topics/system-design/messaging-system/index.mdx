@@ -18,6 +18,14 @@ quickRef:
 lastReviewed: 2026-10-30
 ---
 
+## Why it matters
+
+"Design Kafka" tests whether you understand **why** a log-based broker is fast and durable: sequential disk writes, batching, zero-copy reads, partitioning for parallelism and replication for failures. This page designs such a system from first principles; how to **use** Kafka well — producers, consumer groups, delivery semantics — is in [Kafka in depth](../../distributed-systems/kafka-deep-dive/).
+
+<Callout type="analogy">
+A row of numbered ledgers in a records office, one per category. Clerks only ever write on the next blank line of a ledger, which is the fastest way to write. Each department keeps its own bookmark per ledger and reads at its own pace; ledgers are copied to a second office in case of fire, and pages older than the retention period are archived.
+</Callout>
+
 ## Requirements
 
 **Functional**: producers publish messages to named topics; consumers read them in order per partition; many independent consumer groups; replay from any retained offset; configurable retention.
