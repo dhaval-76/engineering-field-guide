@@ -15,6 +15,20 @@ pre {
   overflow-wrap: anywhere;
 }
 
+/* Reader-controlled line wrapping (data-wrap is set before first paint in BaseLayout). */
+:root[data-wrap='on'] :is(pre.shiki, pre.astro-code) {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+/* Hanging indent: a wrapped continuation starts 4ch in, so it reads as part of the line above. */
+:root[data-wrap='on'] :is(pre.shiki, pre.astro-code) .line {
+  display: inline-block;
+  width: 100%;
+  /* capped so a deeply indented line (aligned chained calls) still has room to wrap */
+  padding-left: min(calc(var(--i, 0ch) + 4ch), 12ch);
+  text-indent: calc(-1 * min(calc(var(--i, 0ch) + 4ch), 12ch));
+}
+
 pre.shiki,
 pre.astro-code {
   margin: 0;

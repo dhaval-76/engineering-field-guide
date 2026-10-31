@@ -55,6 +55,10 @@ const ogImage = new URL(url(`og/${current?.track ?? 'default'}.png`), Astro.site
           document.documentElement.dataset.focus = 'on';
         const l = JSON.parse(localStorage.getItem('efg:lang') || 'null');
         if (typeof l === 'string') document.documentElement.dataset.lang = l;
+        // Code wraps by default on phones, scrolls sideways on wider screens; the reader can switch.
+        const w = JSON.parse(localStorage.getItem('efg:wrap') || 'null');
+        document.documentElement.dataset.wrap =
+          typeof w === 'boolean' ? (w ? 'on' : 'off') : matchMedia('(max-width: 600px)').matches ? 'on' : 'off';
       } catch {
         /* storage unavailable */
       }

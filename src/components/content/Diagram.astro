@@ -11,9 +11,15 @@ const { id, caption, wide = false } = Astro.props;
 const svg = getDiagram(id);
 ---
 
-<figure class:list={['diagram', { wide }]}>
+<figure class:list={['diagram', { wide }]} data-diagram>
   <div class="canvas" role="img" aria-label={caption} tabindex="0" set:html={svg} />
-  <figcaption>{caption}</figcaption>
+  <figcaption>
+    <span>{caption}</span>
+    <button type="button" class="expand" data-diagram-expand aria-label={`Open diagram full screen: ${caption}`}>
+      <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M2 6V2h4M14 6V2h-4M2 10v4h4M14 10v4h-4" fill="none" stroke="currentColor" stroke-width="1.6" /></svg>
+      Expand
+    </button>
+  </figcaption>
 </figure>
 
 <style>
@@ -42,9 +48,31 @@ const svg = getDiagram(id);
   }
   figcaption {
     margin-top: 8px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 4px 12px;
     font-size: 0.875rem;
     color: var(--ink-3);
     text-align: center;
+  }
+  .expand {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 36px;
+    padding: 0 12px;
+    border: 1px solid var(--rule-strong);
+    border-radius: var(--radius);
+    background: var(--bg-raised);
+    color: var(--ink-2);
+    font-size: 0.8125rem;
+    cursor: pointer;
+  }
+  .expand:hover {
+    color: var(--ink);
+    border-color: var(--ink-3);
   }
   @media (min-width: 1280px) {
     .wide {

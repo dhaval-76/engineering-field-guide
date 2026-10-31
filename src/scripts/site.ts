@@ -213,6 +213,17 @@ document.addEventListener('keydown', (e) => {
 
 /* ── Scrollable tables ─────────────────────────────────── */
 // Wide tables scroll inside themselves on narrow screens; keyboard users need to focus them to scroll.
+/* Label every cell with its column header so prose.css can show wide tables as cards on phones. */
+document.querySelectorAll<HTMLTableElement>('.prose table').forEach((t) => {
+  const heads = [...t.querySelectorAll('thead th')].map((th) => th.textContent?.trim() ?? '');
+  const wide = heads.length >= 3 || t.scrollWidth > t.clientWidth + 1;
+  if (!wide || !heads.some(Boolean)) return;
+  t.classList.add('stackable');
+  t.querySelectorAll('tbody tr').forEach((tr) =>
+    [...tr.children].forEach((td, i) => heads[i] && td.setAttribute('data-label', heads[i]!)),
+  );
+});
+
 function markScrollableTables() {
   document.querySelectorAll<HTMLTableElement>('.prose table').forEach((t) => {
     if (t.scrollWidth > t.clientWidth + 1) {
@@ -231,4 +242,79 @@ let resizeTimer: number | undefined;
 addEventListener('resize', () => {
   clearTimeout(resizeTimer);
   resizeTimer = window.setTimeout(markScrollableTables, 200);
+});
+
+/* ── Diagram viewer: full screen, zoomable, pannable (phones need this most) ── */
+let viewer: HTMLDialogElement | null = null;
+function openDiagram(figure: HTMLElement) {
+  const source = figure.querySelector<SVGSVGElement>('.canvas > svg');
+  if (!source) return;
+  if (!viewer) {
+    viewer = document.createElement('dialog');
+    viewer.className = 'dviewer';
+    viewer.innerHTML = `
+      <div class="dviewer-bar">
+        <p class="dviewer-title"></p>
+        <button type="button" data-zoom="-1" aria-label="Zoom out">−</button>
+        <button type="button" data-zoom="0" aria-label="Fit to screen">Fit</button>
+        <button type="button" data-zoom="1" aria-label="Zoom in">+</button>
+        <button type="button" data-close aria-label="Close diagram">Close</button>
+      </div>
+      <div class="dviewer-body" tabindex="0"></div>`;
+    document.body.append(viewer);
+    viewer.addEventListener('close', () => viewer!.querySelector('.dviewer-body')!.replaceChildren());
+    viewer.addEventListener('click', (e) => {
+      const t = e.target as HTMLElement;
+      if (t === viewer || t.closest('[data-close]')) viewer!.close();
+      const z = t.closest<HTMLElement>('[data-zoom]')?.dataset.zoom;
+      if (z !== undefined) zoom(Number(z));
+    });
+  }
+  const body = viewer.querySelector<HTMLElement>('.dviewer-body')!;
+  const svg = source.cloneNode(true) as SVGSVGElement;
+  const natural = Number(svg.getAttribute('viewBox')?.split(/\s+/)[2]) || source.getBoundingClientRect().width;
+  svg.dataset.natural = String(natural);
+  svg.removeAttribute('style');
+  body.replaceChildren(svg);
+  viewer.querySelector('.dviewer-title')!.textContent =
+    figure.querySelector('figcaption span')?.textContent ?? '';
+  viewer.showModal();
+  // Start at the diagram's natural size (readable text), or fit if it is narrower than the screen.
+  setScale(Math.max(1, fitScale()));
+  body.scrollTo(0, 0);
+}
+function fitScale() {
+  const body = viewer!.querySelector<HTMLElement>('.dviewer-body')!;
+  const svg = body.querySelector<SVGSVGElement>('svg')!;
+  return (body.clientWidth - 32) / Number(svg.dataset.natural);
+}
+function setScale(s: number) {
+  const svg = viewer!.querySelector<SVGSVGElement>('.dviewer-body svg')!;
+  const scale = Math.min(4, Math.max(0.2, s));
+  svg.dataset.scale = String(scale);
+  svg.style.width = `${Math.round(Number(svg.dataset.natural) * scale)}px`;
+}
+function zoom(dir: number) {
+  const svg = viewer!.querySelector<SVGSVGElement>('.dviewer-body svg')!;
+  const current = Number(svg.dataset.scale) || 1;
+  setScale(dir === 0 ? fitScale() : current * (dir > 0 ? 1.25 : 0.8));
+}
+document.addEventListener('click', (e) => {
+  const btn = (e.target as Element).closest('[data-diagram-expand]');
+  const fig = btn?.closest<HTMLElement>('[data-diagram]');
+  if (fig) openDiagram(fig);
+});
+
+/* ── Code line wrapping: one global preference ─────────── */
+function syncWrap() {
+  const on = root.dataset.wrap === 'on';
+  document.querySelectorAll('[data-wrap-toggle]').forEach((b) => b.setAttribute('aria-pressed', String(on)));
+}
+syncWrap();
+document.addEventListener('click', (e) => {
+  if (!(e.target as Element).closest('[data-wrap-toggle]')) return;
+  const on = root.dataset.wrap !== 'on';
+  root.dataset.wrap = on ? 'on' : 'off';
+  write(keys.wrap, on);
+  syncWrap();
 });

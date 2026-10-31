@@ -24,3 +24,19 @@ export const contrastTransformer = {
     return out;
   },
 };
+
+/**
+ * Tags each line with its leading indentation (--i, in ch) so wrapped code can use a hanging indent
+ * that sits deeper than the line's own indentation (see code.css, data-wrap='on').
+ */
+export const indentTransformer = {
+  name: 'line-indent',
+  line(node: { children: unknown[]; properties: Record<string, unknown> }) {
+    const text = (function collect(n: unknown): string {
+      const el = n as { type?: string; value?: string; children?: unknown[] };
+      return el.type === 'text' ? (el.value ?? '') : (el.children ?? []).map(collect).join('');
+    })({ children: node.children });
+    const indent = /^[ \t]*/.exec(text)![0].replace(/\t/g, '  ').length;
+    if (indent) node.properties.style = `--i:${indent}ch`;
+  },
+};

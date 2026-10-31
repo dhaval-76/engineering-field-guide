@@ -21,7 +21,7 @@ const { track, topics, nextTrack } = Astro.props;
     <h1>{track.data.title}</h1>
     <p class="blurb">{track.data.blurb}</p>
     <p class="meta">
-      {topics.length} topics · read in any order — the list is a suggested sequence ·
+      {topics.length} topics · read in any order — the list is a suggested sequence ·{' '}
       <a href={url(`cheatsheets/${track.id}/`)}>cheat sheet</a>
     </p>
   </header>

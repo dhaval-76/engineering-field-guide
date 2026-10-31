@@ -146,6 +146,18 @@ export default function WalkthroughPlayer({ title, frames }: Props) {
         ))}
       </div>
       <figcaption className="wt-caption" dangerouslySetInnerHTML={{ __html: frame.captionHtml }} />
+      <div className="wt-dots" role="group" aria-label="Jump to step">
+        {frames.map((_, n) => (
+          <button
+            key={n}
+            type="button"
+            className={n === i ? 'on' : n < i ? 'seen' : ''}
+            aria-label={`Step ${n + 1}`}
+            aria-current={n === i ? 'step' : undefined}
+            onClick={() => go(n)}
+          />
+        ))}
+      </div>
       <div className="wt-controls">
         <button
           type="button"
@@ -155,24 +167,13 @@ export default function WalkthroughPlayer({ title, frames }: Props) {
         >
           ← Prev
         </button>
-        <div className="wt-dots" role="group" aria-label="Jump to step">
-          {frames.map((_, n) => (
-            <button
-              key={n}
-              type="button"
-              className={n === i ? 'on' : n < i ? 'seen' : ''}
-              aria-label={`Step ${n + 1}`}
-              aria-current={n === i ? 'step' : undefined}
-              onClick={() => go(n)}
-            />
-          ))}
-        </div>
         <button
           type="button"
+          className="wt-play"
           onClick={() => (i >= last ? go(0) : setPlaying((p) => !p))}
           aria-label={playing ? 'Pause' : i >= last ? 'Restart' : 'Play'}
         >
-          {playing ? 'Pause' : i >= last ? 'Restart' : 'Play'}
+          {playing ? '❚❚ Pause' : i >= last ? '↺ Restart' : '▶ Play'}
         </button>
         <button
           type="button"

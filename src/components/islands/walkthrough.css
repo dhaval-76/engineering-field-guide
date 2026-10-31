@@ -38,7 +38,7 @@
   min-width: 0;
 }
 .wt-label {
-  font-size: 0.6875rem;
+  font-size: 0.75rem;
   font-weight: 650;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -127,11 +127,11 @@
 }
 .wt-index {
   font-family: var(--font-mono);
-  font-size: 0.6875rem;
+  font-size: 0.75rem;
   color: var(--ink-3);
 }
 .wt-tag {
-  font-size: 0.6875rem;
+  font-size: 0.75rem;
   font-weight: 650;
   color: var(--accent-ink);
 }
@@ -168,21 +168,34 @@
   font-size: 0.9375rem;
 }
 .wt-controls {
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
   align-items: center;
   gap: 8px;
-  padding: 10px 12px;
-  border-top: 1px solid var(--rule);
+  padding: 8px 12px 12px;
 }
 .wt-controls > button {
-  padding: 5px 10px;
+  min-height: 44px;
+  padding: 0 14px;
   border: 1px solid var(--rule-strong);
   border-radius: var(--radius);
   background: var(--bg-raised);
-  font-size: 0.8125rem;
+  font-size: 0.875rem;
   cursor: pointer;
   color: var(--ink-2);
   white-space: nowrap;
+  touch-action: manipulation;
+}
+.wt-controls > button:first-child {
+  justify-self: start;
+}
+.wt-controls > button:last-child {
+  justify-self: end;
+}
+.wt-controls > .wt-play {
+  min-width: 112px;
+  color: var(--ink);
+  font-weight: 600;
 }
 .wt-controls > button:hover:not(:disabled) {
   color: var(--ink);
@@ -192,34 +205,56 @@
   opacity: 0.4;
   cursor: default;
 }
+/* Step dots: a 24px tap target around a 10px dot */
 .wt-dots {
   display: flex;
   flex-wrap: wrap;
-  gap: 5px;
-  margin: 0 auto;
   justify-content: center;
+  padding: 6px 12px 0;
+  border-top: 1px solid var(--rule);
 }
 .wt-dots button {
-  width: 10px;
-  height: 10px;
+  width: 24px;
+  height: 24px;
   padding: 0;
-  border-radius: 50%;
-  border: 1.5px solid var(--rule-strong);
+  border: 0;
   background: transparent;
   cursor: pointer;
+  display: grid;
+  place-items: center;
+  touch-action: manipulation;
 }
-.wt-dots button.seen {
+.wt-dots button::before {
+  content: '';
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 1.5px solid var(--rule-strong);
+  box-sizing: border-box;
+}
+.wt-dots button.seen::before {
   background: var(--rule-strong);
 }
-.wt-dots button.on {
+.wt-dots button.on::before {
   background: var(--accent);
   border-color: var(--accent);
 }
 @media (max-width: 520px) {
-  .wt-controls > button[aria-label='Play'],
-  .wt-controls > button[aria-label='Pause'],
-  .wt-controls > button[aria-label='Restart'] {
-    display: none;
+  .wt-stage {
+    gap: 14px 20px;
+    padding: 16px 12px;
+  }
+  .wt-cell {
+    min-width: 32px;
+    height: 34px;
+    padding: 0 7px;
+    font-size: 0.8125rem;
+  }
+  .wt-controls > button {
+    padding: 0 10px;
+  }
+  .wt-controls > .wt-play {
+    min-width: 96px;
   }
 }
 @media (prefers-reduced-motion: reduce) {

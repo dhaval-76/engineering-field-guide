@@ -43,7 +43,16 @@ const { hasSidebar } = Astro.props;
         ></path>
         <circle cx="19.5" cy="18.5" r="2" fill="var(--accent)"></circle>
       </svg>
-      <span class="name">{site.name}</span>
+      <span class="name">
+        {site.name.includes(' ') ? (
+          <>
+            <span class="name-lead">{site.name.slice(0, site.name.indexOf(' '))} </span>
+            {site.name.slice(site.name.indexOf(' ') + 1)}
+          </>
+        ) : (
+          site.name
+        )}
+      </span>
     </a>
 
     <nav class="links" aria-label="Site">
@@ -88,6 +97,11 @@ const { hasSidebar } = Astro.props;
   @media (min-width: 960px) {
     .inner {
       padding: 0 32px;
+    }
+  }
+  @media (max-width: 420px) {
+    .name-lead {
+      display: none;
     }
   }
   .brand {

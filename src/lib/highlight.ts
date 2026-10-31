@@ -1,5 +1,5 @@
 import { createHighlighter, type Highlighter } from 'shiki';
-import { CONTRAST_FIXES } from './code-contrast';
+import { CONTRAST_FIXES, indentTransformer } from './code-contrast';
 
 const langs = [
   'java',
@@ -30,5 +30,6 @@ export async function highlight(code: string, lang: string): Promise<string> {
     themes: { light: 'github-light', dark: 'github-dark-dimmed' },
     defaultColor: false,
     colorReplacements: CONTRAST_FIXES as unknown as Record<string, Record<string, string>>,
+    transformers: [indentTransformer],
   });
 }

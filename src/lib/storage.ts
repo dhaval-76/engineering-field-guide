@@ -28,6 +28,7 @@ export const keys = {
   lang: 'lang',
   theme: 'theme',
   focus: 'focus',
+  wrap: 'wrap',
 } as const;
 
 /** Notify other islands on the same page that some stored state changed. */

@@ -121,3 +121,56 @@
 .prose :is(h2, h3):hover .heading-anchor {
   opacity: 1;
 }
+
+/* Phones: tables with 3+ columns (or that would scroll) become one card per row.
+   site.ts adds .stackable and copies each column header into data-label. */
+@media (max-width: 600px) {
+  .prose table.stackable {
+    display: block;
+    overflow: visible;
+  }
+  .prose table.stackable thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+  .prose table.stackable tbody,
+  .prose table.stackable tr,
+  .prose table.stackable td {
+    display: block;
+  }
+  .prose table.stackable tr {
+    margin: 0 0 12px;
+    padding: 4px 14px 8px;
+    border: 1px solid var(--rule);
+    border-radius: var(--radius);
+    background: var(--bg-raised);
+  }
+  .prose table.stackable tbody tr:hover {
+    background: var(--bg-raised);
+  }
+  .prose table.stackable td {
+    min-width: 0;
+    padding: 6px 0;
+    border-bottom: 1px dashed var(--rule);
+  }
+  .prose table.stackable td:last-child {
+    border-bottom: 0;
+  }
+  .prose table.stackable td:first-child {
+    font-weight: 650;
+    color: var(--ink);
+    border-bottom: 1px solid var(--rule);
+  }
+  .prose table.stackable td:not(:first-child)[data-label]::before {
+    content: attr(data-label);
+    display: block;
+    font-size: 0.75rem;
+    font-weight: 650;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+  }
+}

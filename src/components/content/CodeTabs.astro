@@ -38,6 +38,9 @@ const uid = `code-${id}`;
         </button>
       ))}
     </div>
+    <button class="wrap" type="button" data-wrap-toggle aria-pressed="false" title="Wrap long lines">
+      Wrap
+    </button>
     <button class="copy" type="button" data-copy aria-label="Copy code">
       <Icon name="copy" />
       <Icon name="check" class="done" />
@@ -104,6 +107,25 @@ const uid = `code-${id}`;
   [role='tab'][aria-selected='true'] {
     color: var(--ink);
     background: var(--code-bg);
+    border-color: var(--rule);
+  }
+  .wrap {
+    min-height: 28px;
+    margin-bottom: 2px;
+    padding: 0 8px;
+    border: 1px solid transparent;
+    border-radius: var(--radius);
+    background: transparent;
+    color: var(--ink-3);
+    font-size: 0.75rem;
+    cursor: pointer;
+  }
+  .wrap:hover {
+    color: var(--ink);
+    background: var(--bg-sunken);
+  }
+  .wrap[aria-pressed='true'] {
+    color: var(--ink);
     border-color: var(--rule);
   }
   .copy {

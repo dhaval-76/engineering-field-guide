@@ -9,11 +9,7 @@ interface PagefindResultData {
 }
 interface Pagefind {
   init: () => Promise<void>;
-  debouncedSearch: (
-    q: string,
-    opts?: object,
-    ms?: number,
-  ) => Promise<{ results: { data: () => Promise<PagefindResultData> }[] } | null>;
+  search: (q: string) => Promise<{ results: { data: () => Promise<PagefindResultData> }[] }>;
 }
 
 interface Hit {
@@ -27,7 +23,16 @@ interface Hit {
 export default function CommandPalette({ base }: { base: string }) {
   const dialog = useRef<HTMLDialogElement>(null);
   const input = useRef<HTMLInputElement>(null);
-  const pagefind = useRef<Pagefind | null>(null);
+  // One shared load: every keystroke awaits the same promise instead of racing its own import.
+  const pagefind = useRef<Promise<Pagefind> | null>(null);
+  const loadIndex = useCallback(() => {
+    pagefind.current ??= (async () => {
+      const mod = (await import(/* @vite-ignore */ `${base}pagefind/pagefind.js`)) as Pagefind;
+      await mod.init();
+      return mod;
+    })();
+    return pagefind.current;
+  }, [base]);
   const [query, setQuery] = useState('');
   const [hits, setHits] = useState<Hit[]>([]);
   const [active, setActive] = useState(0);
@@ -36,7 +41,8 @@ export default function CommandPalette({ base }: { base: string }) {
   const open = useCallback(() => {
     dialog.current?.showModal();
     input.current?.select();
-  }, []);
+    loadIndex().catch(() => setStatus('unavailable'));
+  }, [loadIndex]);
 
   useEffect(() => {
     const onClick = (e: MouseEvent) => {
@@ -65,22 +71,19 @@ export default function CommandPalette({ base }: { base: string }) {
       setHits([]);
       return;
     }
-    (async () => {
-      if (!pagefind.current) {
+    const timer = setTimeout(async () => {
+      let pf: Pagefind;
+      try {
         setStatus('loading');
-        try {
-          const path = `${base}pagefind/pagefind.js`;
-          const mod = (await import(/* @vite-ignore */ path)) as Pagefind;
-          await mod.init();
-          pagefind.current = mod;
-          setStatus('idle');
-        } catch {
-          setStatus('unavailable');
-          return;
-        }
+        pf = await loadIndex();
+      } catch {
+        pagefind.current = null;
+        setStatus('unavailable');
+        return;
       }
-      const res = await pagefind.current.debouncedSearch(q, {}, 150);
-      if (!res || cancelled) return;
+      const res = await pf.search(q);
+      if (cancelled) return;
+      setStatus('idle');
       const data = await Promise.all(res.results.slice(0, 10).map((r) => r.data()));
       if (cancelled) return;
       const out: Hit[] = [];
@@ -96,11 +99,12 @@ export default function CommandPalette({ base }: { base: string }) {
       }
       setHits(out);
       setActive(0);
-    })();
+    }, 120);
     return () => {
       cancelled = true;
+      clearTimeout(timer);
     };
-  }, [query, base]);
+  }, [query, loadIndex]);
 
   const onKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'ArrowDown') setActive((a) => Math.min(hits.length - 1, a + 1));

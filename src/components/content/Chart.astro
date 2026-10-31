@@ -2,7 +2,8 @@
 /**
  * Small build-time SVG charts. No client JS.
  * - line: series of numbers over shared x labels (optionally log-scaled y)
- * - bar: horizontal bars, good for comparing magnitudes (latency numbers, throughput)
+ * - bar: horizontal bars, good for comparing magnitudes (latency numbers, throughput).
+ *   Bars are HTML, not SVG, so labels wrap and stay readable on a phone.
  */
 interface Series {
   name: string;
@@ -50,9 +51,11 @@ const fmt = (n: number) =>
         : `${+n.toFixed(2)}`;
 
 // Line chart geometry
-const W = 640,
-  H = 300,
-  pad = { l: 56, r: 120, t: 30, b: 40 };
+// A narrow viewBox keeps tick text readable when the chart is shrunk to a phone screen;
+// series are named in the HTML legend rather than at the line ends.
+const W = 440,
+  H = 280,
+  pad = { l: 50, r: 34, t: 24, b: 34 };
 const all = series.flatMap((s) => s.values);
 const yMaxRaw = Math.max(1, ...all);
 const scaleY = (v: number) => {
@@ -68,15 +71,11 @@ const ticks = log
   ? Array.from({ length: Math.floor(Math.log10(yMaxRaw)) + 1 }, (_, i) => 10 ** i)
   : [0, 0.25, 0.5, 0.75, 1].map((f) => f * yMaxRaw);
 
-// Bar chart geometry
+// Bar chart geometry: width as a percentage of the track
 const barMax = Math.max(1, ...bars.map((b) => b[1]));
-const BH = 26,
-  labelW = 200,
-  BW = 640;
-const barLen = (v: number) => {
-  const avail = BW - labelW - 90;
-  if (log) return Math.max(2, (Math.log10(Math.max(v, 1)) / Math.log10(barMax)) * avail);
-  return Math.max(2, (v / barMax) * avail);
+const barPct = (v: number) => {
+  const f = log ? Math.log10(Math.max(v, 1)) / Math.log10(barMax) : v / barMax;
+  return Math.max(0.5, f * 100);
 };
 ---
 
@@ -104,7 +103,6 @@ const barLen = (v: number) => {
       )}
       {series.map((s, si) => {
         const pts = s.values.map((v, i) => `${scaleX(i)},${scaleY(v)}`).join(' ');
-        const last = s.values.length - 1;
         return (
           <g style={`--c:${toneVar(s.tone, si)}`}>
             <polyline points={pts} class="line" />
@@ -113,30 +111,27 @@ const barLen = (v: number) => {
                 <title>{`${s.name}: ${fmt(v)}${unit} at ${x[i] ?? i}`}</title>
               </circle>
             ))}
-            <text x={scaleX(last) + 8} y={scaleY(s.values[last] ?? 0) + 4} class="series">
-              {s.name}
-            </text>
           </g>
         );
       })}
     </svg>
   ) : (
-    <svg viewBox={`0 0 ${BW} ${bars.length * (BH + 10) + 10}`} role="img" aria-label={title}>
-      {bars.map(([label, v, tone], i) => (
-        <g transform={`translate(0 ${10 + i * (BH + 10)})`} style={`--c:${toneVar(tone, 0)}`}>
-          <text x={labelW - 10} y={BH / 2 + 4} class="label" text-anchor="end">
-            {label}
-          </text>
-          <rect x={labelW} y="0" width={barLen(v)} height={BH} rx="3" class="bar" />
-          <text x={labelW + barLen(v) + 8} y={BH / 2 + 4} class="value">
-            {fmt(v)}
-            {unit}
-          </text>
-        </g>
+    <ul class="bars">
+      {bars.map(([label, v, tone]) => (
+        <li style={`--c:${toneVar(tone, 0)}`}>
+          <span class="label">{label}</span>
+          <span class="track">
+            <span class="bar" style={`width:${barPct(v)}%`} />
+            <span class="value">
+              {fmt(v)}
+              {unit}
+            </span>
+          </span>
+        </li>
       ))}
-    </svg>
+    </ul>
   )}
-  {type === 'line' && series.length > 1 && (
+  {type === 'line' && series.length > 0 && (
     <ul class="legend">
       {series.map((s, si) => (
         <li style={`--c:${toneVar(s.tone, si)}`}>{s.name}</li>
@@ -163,7 +158,8 @@ const barLen = (v: number) => {
   svg {
     display: block;
     width: 100%;
-    min-width: 480px;
+    max-width: 600px;
+    margin: 0 auto;
     height: auto;
     font-family: var(--font-sans);
   }
@@ -173,7 +169,7 @@ const barLen = (v: number) => {
   }
   .tick {
     fill: var(--ink-3);
-    font-size: 11px;
+    font-size: 13px;
     font-variant-numeric: tabular-nums;
   }
   .line {
@@ -187,24 +183,52 @@ const barLen = (v: number) => {
     stroke: var(--c);
     stroke-width: 2;
   }
-  .series {
-    fill: var(--c);
-    font-size: 12px;
-    font-weight: 600;
+  .bars {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 10px;
   }
-  .bar {
-    fill: var(--c);
-    opacity: 0.85;
+  .bars li {
+    display: grid;
+    gap: 3px;
   }
   .label {
-    fill: var(--ink-2);
-    font-size: 12px;
+    font-size: 0.8125rem;
+    color: var(--ink-2);
+    line-height: 1.35;
+  }
+  .track {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding-right: 4.5em;
+  }
+  .bar {
+    height: 14px;
+    border-radius: 3px;
+    background: var(--c);
+    opacity: 0.85;
+    flex: none;
   }
   .value {
-    fill: var(--ink);
-    font-size: 12px;
+    margin-right: -4.5em;
+    font-size: 0.8125rem;
     font-weight: 600;
+    color: var(--ink);
     font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+  @media (min-width: 640px) {
+    .bars li {
+      grid-template-columns: minmax(140px, 34%) 1fr;
+      align-items: center;
+      gap: 12px;
+    }
+    .label {
+      text-align: right;
+    }
   }
   .legend {
     display: flex;
