@@ -1,7 +1,13 @@
 # Backlog
 
-Agreed work that hasn't started yet, saved on 2026-11-01. **The owner sets the order.** Until then the
-numbers below are labels only, not priorities. Don't start an item until the owner picks it.
+Agreed work, saved on 2026-11-01.
+
+**Order set by the owner (2026-11-01): 11 → 6 → 7 → 8 → 9 → 10 → 4 → 3 → 1 → 2 → 5.**
+Work top to bottom. The numbers in the headings below are labels, not the order.
+
+**Standing rule after item 11 is done:** every later change updates the docs it affects
+(`README.md`, `AGENTS.md`, this backlog, `research/README.md`) in the same commit, so they never
+drift from the code.
 
 Every content item follows the usual process: research first (demand, interview reports and
 "asked at" tags, each with a source URL), then write. One commit per topic group. Push only at
