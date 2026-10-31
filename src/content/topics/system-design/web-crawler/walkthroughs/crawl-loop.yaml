@@ -1,0 +1,27 @@
+title: One URL through the crawler
+frames:
+  - caption: 'The frontier holds URLs grouped **by host**, each host with a "may fetch again at" time. `news.example.com` is ready (its 1 s delay has passed), so its next URL is handed to a fetcher.'
+    panels:
+      - kind: kv
+        label: hosts ready at
+        pairs: [[news.example.com, { v: 'now', tone: ok }], [shop.example.com, '+0.4 s'], [blog.example.org, '+2.0 s (Crawl-delay: 2)']]
+  - caption: 'The fetcher checks the cached **robots.txt** for the host (Disallow rules, Crawl-delay), resolves DNS from a local cache, and downloads with a timeout and size limit.'
+    panels:
+      - kind: rows
+        label: fetch
+        items: ['robots.txt: allowed', 'DNS: cached', { v: '200 OK, 180 KB', tone: ok }]
+  - caption: 'The page''s content hash (and a SimHash for near-duplicates) is checked. Mirrors and printer-friendly copies are recognised and not re-indexed.'
+    panels:
+      - kind: kv
+        label: content check
+        pairs: [[exact hash, 'new'], [SimHash distance to nearest, '19 bits → not a near-duplicate']]
+  - caption: 'The parser extracts 140 links. Each is **normalised** (lower-case host, default port and fragment removed, tracking params dropped, params sorted) and checked against a **Bloom filter** of seen URLs.'
+    panels:
+      - kind: rows
+        label: links
+        items: ['140 extracted', '23 duplicates after normalising', '61 already seen (Bloom)', { v: '56 new → frontier', tone: ok }]
+  - caption: 'New URLs are prioritised (site importance, depth, freshness needs) and queued under their host. Traps — endless calendars, session ids, ever-deeper paths — are cut off by depth, URL length and per-site budgets.'
+    panels:
+      - kind: rows
+        label: frontier
+        items: ['56 URLs queued across 9 hosts', { v: '/calendar/2041/… dropped (trap pattern)', tone: muted }]

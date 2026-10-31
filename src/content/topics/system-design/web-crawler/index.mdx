@@ -1,0 +1,98 @@
+---
+title: 'Design: Web Crawler'
+summary: Crawling billions of pages politely — a URL frontier with priorities and per-host rate limits, robots.txt, URL normalisation, Bloom filters and content hashing for dedup, trap avoidance, recrawl scheduling and partitioning by host.
+track: system-design
+order: 280
+tags: [system-design, case-study, crawler, search, bloom-filter]
+aliases: [design a web crawler, web spider, distributed crawler, googlebot, url frontier, politeness, crawl delay, robots.txt, url normalization, url canonicalization, bloom filter, duplicate detection, simhash, near duplicate, spider trap, recrawl, freshness, mercator, dns cache]
+prerequisites: [system-design/approach-and-estimation, system-design/consistent-hashing]
+related: [system-design/search-engine, system-design/job-scheduler, system-design/distributed-rate-limiter, system-design/file-storage]
+quickRef:
+  points:
+    - '**Frontier** = what to crawl next: priority queues for importance, **per-host queues with delays** for politeness.'
+    - 'Respect **robots.txt** and Crawl-delay; cache robots and DNS per host.'
+    - '**Normalise** URLs, then check a **Bloom filter** of seen URLs (~10 bits each for 1% false positives).'
+    - 'Detect duplicate **content** with hashes and near-duplicates with **SimHash**; avoid **traps** with depth, length and per-site budgets.'
+    - '**Partition by host** so each worker owns a host''s politeness; recrawl by estimated change rate.'
+  useWhen: '"Design a web crawler", search engine ingestion, price/monitoring scrapers, link checkers.'
+lastReviewed: 2026-10-30
+---
+
+## Requirements
+
+**Functional**: starting from seeds, fetch pages, extract links, discover and crawl new pages; store page content for indexing; recrawl pages to keep them fresh.
+**Non-functional**: politeness (never overload a site, obey robots.txt); scale to billions of pages; robustness against malformed pages and traps; extensibility (new content types, processors).
+
+## Estimates
+
+| | |
+|---|---|
+| Target | 1 B pages per month ≈ **400 pages/s** average, plan for ~1,000/s |
+| Bandwidth | ~500 KB average page ⇒ 200–500 MB/s inbound |
+| Storage | 1 B × 500 KB ≈ 500 TB/month raw; compressed ~5× ⇒ ~100 TB/month |
+| URL "seen" set | 10 B URLs × ~100 B as a hash set ≈ 1 TB; as a 1% Bloom filter ≈ 10 B × 9.6 bits ≈ **12 GB** |
+
+## High-level design
+
+<Diagram id="crawler-arch" caption="The frontier hands URLs to fetchers when their host is allowed; fetched pages are stored, parsed and de-duplicated; new links are normalised and filtered back into the frontier; a scheduler re-queues pages for freshness." />
+
+<Walkthrough id="crawl-loop" />
+
+## The frontier: priority and politeness
+
+The frontier must balance two things: crawl important pages first, and never hit one host too often. The classic Mercator design uses **front queues** by priority feeding **back queues** per host, with a heap of "next allowed time" per host.
+
+<CodeTabs id="frontier" title="URL normalisation and a polite frontier: per-host queues and next-allowed times" />
+
+- **Politeness**: one connection per host at a time, a delay between requests (robots `Crawl-delay`, or adaptive — back off when response times rise or 429/503 appear).
+- **Priority**: PageRank-like importance, depth, sitemap hints, freshness needs.
+- **Scale**: partition the frontier by **hash of host** across workers ([Consistent hashing](../consistent-hashing/)), so each host's politeness is enforced in one place without coordination.
+
+## Have we seen it before?
+
+<Chart
+  type="bar"
+  title="Bloom filter false-positive rate vs memory per URL (measured, 50,000 URLs)"
+  unit="%"
+  bars={[
+    ['4.8 bits/URL (k = 3)', 10.05, 'warn'],
+    ['9.6 bits/URL (k = 7)', 1.00, 'ok'],
+    ['14.4 bits/URL (k = 10)', 0.106, 'ok'],
+  ]}
+  caption="Each ~4.8 extra bits per URL cuts false positives tenfold. A false positive means skipping a URL we never crawled — acceptable at 1% for discovery, with periodic full recrawls catching the misses."
+/>
+
+<CodeTabs id="bloom" title="A Bloom filter with double hashing, sized from the expected count and target false-positive rate" />
+
+- **URL dedup**: normalise first (case, default ports, fragments, tracking parameters, parameter order), then check the Bloom filter; keep an exact store of crawled URLs for recrawl scheduling.
+- **Content dedup**: exact duplicates by content hash; near-duplicates (mirrors, boilerplate changes) by **SimHash** — similar documents have fingerprints that differ in few bits.
+
+## Robustness
+
+- **Traps**: infinite calendars, session ids in URLs, `?page=1..∞`, symlink loops. Limit depth, URL length and pages per site; detect repeating path patterns.
+- **Bad content**: size limits, timeouts, content-type filtering, defensive HTML parsing in sandboxed workers.
+- **DNS**: a local resolver cache — DNS lookups otherwise dominate latency.
+- **Failures**: fetch results and frontier state are persisted; workers are stateless and restartable ([Job scheduler](../job-scheduler/)).
+
+## Freshness
+
+Pages change at very different rates: news front pages every minute, archives never. Track change history per URL (content hash per fetch) and schedule recrawls proportional to estimated change rate and importance, using HTTP conditional requests (`If-Modified-Since`, `ETag`) to make unchanged pages cheap. Sitemaps' `lastmod` hints help.
+
+<Pitfalls>
+
+- **Ignoring politeness** — sites block you, or you take them down.
+- **Not normalising URLs** — the same page crawled under dozens of URLs.
+- **Exact hash sets for billions of URLs** in memory — use Bloom filters plus disk-backed stores.
+- **No trap limits** — crawlers stuck forever in generated URL spaces.
+- **Uniform recrawl intervals** — stale news and wasted fetches of static pages.
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- The frontier combines priority with per-host politeness; partition it by host.
+- Normalise URLs and de-duplicate with Bloom filters; de-duplicate content with hashes and SimHash.
+- Guard against traps and bad content; cache robots.txt and DNS.
+- Recrawl by estimated change rate and importance.
+
+</KeyTakeaways>

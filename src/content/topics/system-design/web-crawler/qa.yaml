@@ -1,0 +1,37 @@
+questions:
+  - q: Design a web crawler that fetches 1 billion pages a month.
+    think: What to crawl next, how not to be rude, and how not to repeat work.
+    answer: |
+      **Numbers**: ~400 pages/s average (plan for 1,000), 200–500 MB/s inbound, ~100 TB/month compressed. **Frontier**: priority queues (importance, depth, freshness) feeding per-host queues with next-allowed times; partitioned across workers by host hash so politeness is local. **Fetchers**: async I/O, robots.txt and DNS caches, timeouts, size limits, adaptive backoff on slow or erroring hosts. **Storage**: raw pages compressed in object storage; metadata (URL, status, hash, last fetch) in a wide-column store. **Processing**: parse links and text; content hash + SimHash for duplicates; normalise links and check a Bloom filter (≈12 GB for 10 B URLs at 1%) before adding to the frontier. **Robustness**: trap limits (depth, length, per-site budget), sandboxed parsing, restartable workers. **Freshness**: recrawl scheduler by change rate with conditional GETs.
+  - q: 'Your crawler got blocked by several large sites. What did it probably do wrong?'
+    think: Politeness.
+    answer: |
+      It likely sent too many concurrent or rapid requests to the same host (no per-host queue or delay), ignored robots.txt or Crawl-delay, kept hammering after 429/503 responses, or used many IPs to bypass limits. Fix: one connection per host, configurable delays honouring robots.txt, adaptive backoff on errors and rising latency, a clear user-agent with contact information, and per-site daily budgets. Partitioning by host makes these limits easy to enforce.
+followUps:
+  - q: Why a Bloom filter for seen URLs?
+    intuition: Billions of membership checks, little memory.
+    approach: |
+      A Bloom filter answers "definitely not seen" or "probably seen" with no false negatives. At ~9.6 bits per URL it gives about 1% false positives, so 10 billion URLs fit in ~12 GB instead of ~1 TB for an exact set. A false positive skips a URL — tolerable for discovery, and periodic recrawls compensate.
+  - q: How do you detect near-duplicate pages?
+    intuition: Similar documents, similar fingerprints.
+    approach: |
+      SimHash computes a 64-bit fingerprint from weighted features (e.g. word shingles); similar documents produce fingerprints that differ in only a few bits. Compare Hamming distance (≤ 3 bits is a common threshold), using permuted-table indexes to find close fingerprints quickly among billions. Exact duplicates are caught earlier by a plain content hash.
+  - q: How do you decide when to recrawl a page?
+    intuition: Change rate × importance.
+    approach: |
+      Record whether the content changed on each fetch, estimate a change rate per URL (or per site/section for new URLs), and schedule the next crawl so expected staleness is bounded, weighted by importance. Use conditional requests to make "not modified" cheap, and sitemap lastmod or feeds as hints.
+practice:
+  - task: Implement URL normalisation and a polite frontier that never contacts a host more often than its delay allows.
+    hint: Per-host queues and a heap (or map) of next-allowed times; remember the next-allowed time even when a host's queue empties.
+    solution: |
+      Normalise by lower-casing scheme and host, dropping default ports and fragments, removing tracking parameters and sorting the rest. On add: skip if seen; append to the host's queue; if the queue was empty, schedule the host at max(now, nextAllowed[host]). On next(now): pop the earliest ready host if its time ≤ now, take its first URL, set nextAllowed = now + delay, and reschedule the host if it has more URLs.
+    solutionCode: frontier
+quiz:
+  - q: What does a Bloom filter answer?
+    options: [Exactly whether an item was added, Definitely not added or probably added, How many times an item was added, Which items were added]
+    correct: 1
+    why: Bloom filters have false positives but no false negatives.
+  - q: Why partition the frontier by host?
+    options: [Hosts have equal pages, So per-host politeness is enforced by one worker without coordination, To improve parsing, DNS requires it]
+    correct: 1
+    why: A single owner per host can apply delays and connection limits locally.

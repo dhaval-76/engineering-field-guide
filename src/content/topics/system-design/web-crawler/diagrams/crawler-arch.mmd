@@ -1,0 +1,10 @@
+flowchart TD
+  SEED[Seed URLs · sitemaps] --> FR[URL frontier<br/>priority × per-host politeness]
+  FR --> FE[Fetchers<br/>robots.txt cache · DNS cache · timeouts]
+  FE --> RAW[(Raw pages<br/>object storage, compressed)]
+  FE --> PA[Parser<br/>links · text · metadata]
+  PA --> CD{Content seen?<br/>hash / SimHash}
+  CD -- new --> IDX[Indexer / downstream consumers]
+  PA --> UF[URL filter<br/>normalise · traps · Bloom 'seen?']
+  UF -- new URLs --> FR
+  SCH[Recrawl scheduler<br/>by change rate · importance] --> FR
