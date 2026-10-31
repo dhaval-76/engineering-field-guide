@@ -6,7 +6,8 @@ export async function summarize(order, { pricing, inventory }) {
         pricing.priceOf(item.sku, { signal: AbortSignal.timeout(300) }),
         inventory.inStock(item.sku, item.qty, { signal: AbortSignal.timeout(300) }),
       ]);
-      return inStock ? { item, price, status: 'AVAILABLE' } : { item, price: null, status: 'UNAVAILABLE' };
+      if (!inStock) return { item, price: null, status: 'UNAVAILABLE' };
+      return { item, price, status: 'AVAILABLE' };
     } catch {
       return { item, price: null, status: 'UNAVAILABLE' };
     }

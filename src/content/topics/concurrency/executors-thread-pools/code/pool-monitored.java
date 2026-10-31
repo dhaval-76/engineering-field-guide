@@ -14,7 +14,9 @@ final class MonitoredExecutor extends ThreadPoolExecutor {
     @Override
     public void execute(Runnable command) {
         int depth = getQueue().size();
-        if (depth >= capacity * 0.8) log.warn("queue at {}% ({} / {})", depth * 100 / capacity, depth, capacity);
+        if (depth >= capacity * 0.8) {
+            log.warn("queue at {}% ({} / {})", depth * 100 / capacity, depth, capacity);
+        }
         super.execute(command);
     }
 

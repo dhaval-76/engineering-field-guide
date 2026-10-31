@@ -27,9 +27,11 @@ public final class RequestContext {
 @Component
 public class RequestContextFilter extends OncePerRequestFilter {
     @Override
-    protected void doFilterInternal(HttpServletRequest req, HttpServletResponse res, FilterChain chain)
+    protected void doFilterInternal(HttpServletRequest req, HttpServletResponse res,
+                                    FilterChain chain)
             throws ServletException, IOException {
-        RequestContext.open(req.getHeader("X-User-Id"), req.getHeader("X-Trace-Id"), req.getHeader("X-Tenant-Id"));
+        RequestContext.open(req.getHeader("X-User-Id"), req.getHeader("X-Trace-Id"),
+                req.getHeader("X-Tenant-Id"));
         try {
             chain.doFilter(req, res);
         } finally {

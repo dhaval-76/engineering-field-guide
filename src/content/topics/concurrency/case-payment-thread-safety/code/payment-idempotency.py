@@ -12,13 +12,17 @@ def pay_once(key: str, req) -> dict:
         with conn.transaction():
             # exactly one request with this key gets to proceed
             first = conn.execute(
-                "INSERT INTO idempotency_keys (key, request_hash, status) VALUES (%s, %s, 'IN_PROGRESS') "
-                "ON CONFLICT (key) DO NOTHING", (key, request_hash(req))).rowcount == 1
+                "INSERT INTO idempotency_keys (key, request_hash, status) "
+                "VALUES (%s, %s, 'IN_PROGRESS') ON CONFLICT (key) DO NOTHING",
+                (key, request_hash(req)),
+            ).rowcount == 1
             if first:
                 # atomic UPDATE + ledger row, same transaction
                 result = debit_and_record(conn, req)
-                conn.execute("UPDATE idempotency_keys SET status = 'DONE', response = %s WHERE key = %s",
-                             (Jsonb(result), key))
+                conn.execute(
+                    "UPDATE idempotency_keys SET status = 'DONE', response = %s WHERE key = %s",
+                    (Jsonb(result), key),
+                )
                 return result
     # replay, or 409 if in progress / different body
     return previous_result_or_conflict(key, req)

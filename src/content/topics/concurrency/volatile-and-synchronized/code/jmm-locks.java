@@ -31,7 +31,13 @@ class Account {
 class Catalogue {
     private final ReadWriteLock rw = new ReentrantReadWriteLock();
     private final Map<String, Product> products = new HashMap<>();
-    Product get(String id) { rw.readLock().lock(); try { return products.get(id); } finally { rw.readLock().unlock(); } }
-    void put(Product p)    { rw.writeLock().lock(); try { products.put(p.id(), p); } finally { rw.writeLock().unlock(); } }
+    Product get(String id) {
+        rw.readLock().lock();
+        try { return products.get(id); } finally { rw.readLock().unlock(); }
+    }
+    void put(Product p) {
+        rw.writeLock().lock();
+        try { products.put(p.id(), p); } finally { rw.writeLock().unlock(); }
+    }
 }
 // StampedLock adds optimistic reads (validate afterwards) for very read-heavy hot paths.

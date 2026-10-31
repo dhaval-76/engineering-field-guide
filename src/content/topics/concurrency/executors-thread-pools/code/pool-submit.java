@@ -14,4 +14,5 @@ try {
 }
 
 // invokeAll: run a batch and wait for all
-List<Future<Price>> prices = pool.invokeAll(List.of(() -> priceA(), () -> priceB()), 1, TimeUnit.SECONDS);
+List<Future<Price>> prices =
+        pool.invokeAll(List.of(() -> priceA(), () -> priceB()), 1, TimeUnit.SECONDS);

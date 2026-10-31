@@ -1,5 +1,10 @@
 const withTimeout = (p, ms) =>
-  Promise.race([p, new Promise((_, reject) => setTimeout(() => reject(new Error(`timeout after ${ms} ms`)), ms))]);
+  Promise.race([
+    p,
+    new Promise((_, reject) => {
+      setTimeout(() => reject(new Error(`timeout after ${ms} ms`)), ms);
+    }),
+  ]);
 
 // orTimeout + exceptionally: recover from a failure with a fallback value
 const price = withTimeout(pricing.get(id), 200).catch(() => ({ unavailable: true }));

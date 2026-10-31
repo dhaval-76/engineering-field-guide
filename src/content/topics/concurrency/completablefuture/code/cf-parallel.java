@@ -8,7 +8,7 @@ public ProductPage buildPage(String productId) {
                                                // Java 9+
                                                .orTimeout(300, MILLISECONDS);
     CompletableFuture<Inventory> stock   = supplyAsync(() -> inventoryService.get(productId), io)
-                                               .completeOnTimeout(Inventory.UNKNOWN, 300, MILLISECONDS);
+            .completeOnTimeout(Inventory.UNKNOWN, 300, MILLISECONDS);
     CompletableFuture<Price>     price   = supplyAsync(() -> pricingService.get(productId), io)
                                                .orTimeout(300, MILLISECONDS);
 

@@ -8,4 +8,5 @@ async function debit(accountId, amount) {
   }
 }
 // 0.1 + 0.2 === 0.30000000000000004 — store integer minor units (paise/cents) instead.
-// An in-process mutex wouldn't help: several Node processes or servers each load their own copy.
+// An in-process mutex wouldn't help: several Node processes or servers each load their
+// own copy.

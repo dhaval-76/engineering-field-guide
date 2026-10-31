@@ -3,7 +3,8 @@ import threading
 import time
 
 def transfer(src, dst, amount, budget_s: float = 1.0) -> bool:
-    """Break "no preemption": if the second lock isn't available soon, release the first and retry."""
+    """Break "no preemption": if the second lock isn't available soon, release the first
+    and retry."""
     deadline = time.monotonic() + budget_s
     while time.monotonic() < deadline:
         if src.lock.acquire(timeout=0.05):

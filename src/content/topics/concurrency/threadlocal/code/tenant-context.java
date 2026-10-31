@@ -7,7 +7,8 @@ public final class TenantContext {
 
 public class TenantFilter extends OncePerRequestFilter {
     @Override
-    protected void doFilterInternal(HttpServletRequest req, HttpServletResponse res, FilterChain chain)
+    protected void doFilterInternal(HttpServletRequest req, HttpServletResponse res,
+                                    FilterChain chain)
             throws ServletException, IOException {
         // Simplified: in production take the tenant from the authenticated token's
         // claims, never from a header the client controls.

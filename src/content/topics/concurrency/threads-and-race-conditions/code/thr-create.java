@@ -1,5 +1,6 @@
 // A thread runs a Runnable. Prefer executors over raw threads in application code.
-Thread t = new Thread(() -> System.out.println("hello from " + Thread.currentThread().getName()), "worker-1");
+Runnable task = () -> System.out.println("hello from " + Thread.currentThread().getName());
+Thread t = new Thread(task, "worker-1");
 // start() creates the new thread; calling run() directly would run on the CURRENT thread
 t.start();
 t.join();           // wait for it to finish

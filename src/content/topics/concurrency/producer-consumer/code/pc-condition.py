@@ -2,7 +2,8 @@ import threading
 from collections import deque
 
 class BoundedQueue:
-    """What queue.Queue does inside: one lock, two conditions, so producers and consumers wait separately."""
+    """What queue.Queue does inside: one lock and two conditions, so producers and
+    consumers wait separately."""
 
     def __init__(self, capacity: int):
         self._items: deque = deque()

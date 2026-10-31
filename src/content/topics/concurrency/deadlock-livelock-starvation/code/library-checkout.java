@@ -28,7 +28,10 @@ public final class Library {
             l2.lock();
             try {
                 String ua = checkedOut.get(bookA), ub = checkedOut.get(bookB);
-                if (ua != null && ub != null) { checkedOut.put(bookA, ub); checkedOut.put(bookB, ua); }
+                if (ua != null && ub != null) {
+                    checkedOut.put(bookA, ub);
+                    checkedOut.put(bookB, ua);
+                }
             } finally { l2.unlock(); }
         } finally { l1.unlock(); }
     }

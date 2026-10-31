@@ -6,7 +6,10 @@ class Mutex {
     if (!this.#locked) { this.#locked = true; return true; }
     return new Promise((resolve) => {
       const waiter = (ok) => { clearTimeout(timer); resolve(ok); };
-      const timer = setTimeout(() => { this.#waiters = this.#waiters.filter((w) => w !== waiter); resolve(false); }, timeoutMs);
+      const timer = setTimeout(() => {
+        this.#waiters = this.#waiters.filter((w) => w !== waiter); // give up waiting
+        resolve(false);
+      }, timeoutMs);
       this.#waiters.push(waiter);
     });
   }

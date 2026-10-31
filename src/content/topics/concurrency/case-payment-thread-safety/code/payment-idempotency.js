@@ -12,16 +12,21 @@ async function payOnce(key, request) {
     await c.query('BEGIN');
     // exactly one request with this key gets to proceed
     const first = await c.query(
-      `INSERT INTO idempotency_keys (key, request_hash, status) VALUES ($1, $2, 'IN_PROGRESS') ON CONFLICT (key) DO NOTHING`,
-      [key, hash(request)]);
+      `INSERT INTO idempotency_keys (key, request_hash, status)
+       VALUES ($1, $2, 'IN_PROGRESS')
+       ON CONFLICT (key) DO NOTHING`,
+      [key, hash(request)],
+    );
     if (first.rowCount === 0) {
       await c.query('ROLLBACK');
       // same key: replay (or 409 if in progress / different body)
       return previousResultOrConflict(key, request);
     }
-    // atomic UPDATE + ledger row, same transaction
-    const result = await debitAndRecord(c, request);
-    await c.query(`UPDATE idempotency_keys SET status = 'DONE', response = $1 WHERE key = $2`, [result, key]);
+    const result = await debitAndRecord(c, request); // atomic UPDATE + ledger row
+    await c.query(`UPDATE idempotency_keys SET status = 'DONE', response = $1 WHERE key = $2`, [
+      result,
+      key,
+    ]);
     await c.query('COMMIT');
     return result;
   } catch (e) {

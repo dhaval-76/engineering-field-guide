@@ -24,7 +24,8 @@ class Library:
             return True
 
     def swap(self, book_a: str, book_b: str) -> None:
-        """Swap two books' holders: take the per-book locks in a global (sorted) order — no deadlock."""
+        """Swap two books' holders: take the per-book locks in a global (sorted) order, so
+        two swaps can never deadlock."""
         first, second = sorted((book_a, book_b))
         with self._guard:
             l1 = self._locks.setdefault(first, threading.Lock())
