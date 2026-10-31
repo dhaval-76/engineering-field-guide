@@ -1,0 +1,91 @@
+---
+title: Design a Food Delivery App
+summary: The object model behind Swiggy- or DoorDash-style ordering — restaurants, menus, carts and orders, an order state machine with actor permissions, partner dispatch and pricing as strategies, and status events for notifications.
+track: low-level-design
+order: 43
+tags: [lld, state-machine, strategy-pattern, observer, food-delivery]
+aliases: [food delivery lld, swiggy lld, zomato lld, doordash lld, uber eats lld, order state machine, delivery partner assignment, dispatch strategy, delivery fee calculation, surge pricing, haversine distance]
+prerequisites: [low-level-design/lld-method, oop-patterns/strategy-and-state, oop-patterns/observer]
+related: [low-level-design/ride-sharing, low-level-design/shopping-cart, low-level-design/inventory-management, system-design/order-tracking]
+quickRef:
+  points:
+    - 'Entities: `Customer`, `Restaurant` + `Menu`/`MenuItem`, `Cart`, `Order`, `DeliveryPartner`, `Payment`.'
+    - 'The order is a **state machine** with **actor permissions**: restaurant accepts/prepares, partner picks up/delivers, customer cancels early.'
+    - '**Dispatch** and **pricing** are strategies — nearest free partner, batching, surge, discounts — swappable without touching orders.'
+    - 'Status changes publish **events** (Observer): notifications, dispatch, ETA, payouts, analytics.'
+    - 'Guard concurrency: one partner per order, one order per partner, and idempotent status updates from flaky mobile networks.'
+  useWhen: '"Design Swiggy / Zomato / DoorDash" as an LLD or machine-coding round.'
+lastReviewed: 2026-10-30
+---
+
+## Why it matters
+
+Food delivery is a favourite machine-coding problem at Indian product companies because it has three kinds of users with different powers over one shared object — the order — plus a matching problem (which partner?) and money (fees, surge, refunds). A clean answer separates the lifecycle, the matching and the pricing so each can change independently.
+
+<Callout type="analogy">
+A relay race with a baton. The restaurant holds the order first and must hand it over when it's ready; only the runner assigned to that lane can take it, and only they can cross the finish line. A referee (the state machine) disqualifies anyone who grabs the baton out of turn.
+</Callout>
+
+## Clarify
+
+- Single restaurant per order? (Yes.)
+- Who can cancel, and when? (Customer free until accepted; with a fee after; system on timeouts.)
+- Partner assignment: on order placed or when the restaurant accepts? (On accept — partners don't wait long.)
+- One order per partner at a time? (Yes; batching is an extension.)
+- Pricing: delivery fee by distance, surge, coupons? (Yes.)
+
+## Entities
+
+| Entity | Key fields |
+|---|---|
+| Restaurant | id, location, open hours, menu, accepting orders |
+| MenuItem | id, name, price (paise), available |
+| Cart | customer, restaurant, items × quantity (one restaurant per cart) |
+| Order | id, items snapshot, pickup/drop locations, amounts, **status**, partner, history |
+| DeliveryPartner | id, location, available, rating, active orders |
+| Payment | order, amount, status (authorised, captured, refunded) |
+
+Snapshot prices into the order at checkout — later menu changes mustn't alter placed orders.
+
+## The order lifecycle
+
+<Diagram id="food-order-states" caption="Order states and who may move between them. Anything not drawn is rejected." />
+
+<Walkthrough id="food-order-flow" />
+
+<CodeTabs id="food-order" title="Order with a transition table of allowed moves per actor, history and status listeners" />
+
+Keeping transitions in a table (rather than `if` chains across services) makes the rules reviewable in one place and lets the UI ask "which actions can this user take now?".
+
+## Dispatch and pricing
+
+<CodeTabs id="food-dispatch" title="Nearest-available dispatch strategy, a dispatcher listening for ACCEPTED, and a pricing function" />
+
+- **Dispatch strategy** variants: nearest to restaurant; minimise total ETA (partner → restaurant → customer, accounting for prep time); batch two orders from the same restaurant; prefer partners finishing a nearby delivery. In production, candidates come from a geospatial index.
+- **Assignment races**: two orders must not grab the same partner — claim atomically (a set or a conditional DB update), and handle partner rejection by re-dispatching.
+- **Pricing**: base fee by distance, surge multiplier by demand/supply in the area, discounts, small-order fees — a pipeline of rules, each a strategy. Money in paise.
+
+## Robustness
+
+- **Idempotent status updates**: partner apps on mobile networks retry; "DELIVERED twice" must be a no-op.
+- **Timeouts**: restaurant doesn't accept in N minutes → reject and refund; no partner found → widen radius, raise incentive, or notify the customer.
+- **Payments**: authorise at checkout, capture on delivery (or on accept), refund on rejection ([Digital wallet](../digital-wallet/) covers holds).
+
+<Pitfalls>
+
+- **Status as a free-form string anyone can set** — orders jump from PLACED to DELIVERED.
+- **Assigning partners at order time** — they wait at the restaurant for 25 minutes.
+- **Referencing live menu prices** from orders.
+- **Pricing and dispatch logic inside the Order class.**
+- **No handling for partner or restaurant no-shows.**
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- Model the order as a state machine with explicit actor permissions.
+- Dispatch and pricing are strategies; status changes are events.
+- Snapshot prices, use integer money, and make status updates idempotent.
+- Plan timeouts and re-dispatch for every waiting state.
+
+</KeyTakeaways>

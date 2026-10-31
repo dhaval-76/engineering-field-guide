@@ -1,0 +1,30 @@
+title: On hand, reserved and available
+frames:
+  - caption: 'Two warehouses stock SKU-1. **Available = on hand − reserved**; customers can only take available units.'
+    panels:
+      - kind: kv
+        label: BLR
+        pairs: [[on hand, '5'], [reserved, '0'], [available, { v: '5', tone: ok }]]
+      - kind: kv
+        label: DEL
+        pairs: [[on hand, '3'], [reserved, '0'], [available, { v: '3', tone: ok }]]
+  - caption: 'Order o1 checks out 4 units. The allocation strategy picks BLR (most stock that can fill it). Nothing ships yet: 4 units are **reserved** with a 10-minute expiry while payment completes.'
+    panels:
+      - kind: kv
+        label: BLR
+        pairs: [[on hand, '5'], [reserved, { v: '4', tone: warn }], [available, '1']]
+  - caption: 'Order o2 wants 4. No single warehouse has 4 available (BLR 1, DEL 3), so the reservation is refused — no overselling. (Split shipments are an extension.)'
+    panels:
+      - kind: rows
+        label: o2
+        items: [{ v: 'refused: insufficient stock in any one warehouse', tone: bad }]
+  - caption: 'o1 pays → **confirm**: reserved and on-hand both drop by 4; the units leave the building. Every change is written to a movement log for audits and stock counts.'
+    panels:
+      - kind: kv
+        label: BLR
+        pairs: [[on hand, '1'], [reserved, '0'], [available, '1']]
+  - caption: 'Had o1 abandoned checkout, the reservation would **expire** and its units return to available automatically. Low available stock triggers a reorder alert to purchasing.'
+    panels:
+      - kind: rows
+        label: events
+        items: ['EXPIRE BLR SKU-1 4 for o1 (if unpaid)', { v: 'LOW STOCK SKU-1: 1 left (reorder point 2)', tone: warn }]

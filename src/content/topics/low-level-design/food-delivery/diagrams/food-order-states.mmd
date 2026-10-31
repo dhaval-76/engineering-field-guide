@@ -1,0 +1,13 @@
+stateDiagram-v2
+  [*] --> PLACED
+  PLACED --> ACCEPTED: restaurant
+  PLACED --> REJECTED: restaurant / timeout
+  PLACED --> CANCELLED: customer (free)
+  ACCEPTED --> PREPARING: restaurant
+  ACCEPTED --> CANCELLED: customer (fee) / system
+  PREPARING --> READY: restaurant
+  READY --> PICKED_UP: partner
+  PICKED_UP --> DELIVERED: partner
+  DELIVERED --> [*]
+  CANCELLED --> [*]
+  REJECTED --> [*]

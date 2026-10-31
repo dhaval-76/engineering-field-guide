@@ -1,0 +1,84 @@
+---
+title: Design an Inventory Management System
+summary: Stock across warehouses without overselling — on-hand, reserved and available quantities, reservations with expiry, pluggable warehouse allocation, confirm and cancel flows, reorder alerts, an audit trail, and atomic SQL updates.
+track: low-level-design
+order: 42
+tags: [lld, inventory, e-commerce, concurrency, strategy-pattern]
+aliases: [inventory system lld, stock management, warehouse management, reserve stock, prevent overselling, stock reservation expiry, available to promise, reorder point, low stock alert, allocation strategy, flash sale inventory]
+prerequisites: [low-level-design/lld-method, oop-patterns/strategy-and-state]
+related: [low-level-design/shopping-cart, architecture/saga-and-outbox, low-level-design/food-delivery, databases/transactions-isolation]
+quickRef:
+  points:
+    - 'Track **on hand** and **reserved** per (warehouse, SKU); **available = on hand − reserved**.'
+    - '**Reserve** at checkout (with expiry), **confirm** when paid/shipped, **release** on cancel or timeout.'
+    - 'The reservation check and update must be **atomic** — a lock, or `UPDATE … WHERE on_hand - reserved >= qty`.'
+    - 'Warehouse choice is a **Strategy** (most stock, nearest, cheapest); low stock fires **Observer** events.'
+    - 'Keep an append-only **movement log** for audits and reconciliation with physical counts.'
+  complexity: 'Reserve O(warehouses holding the SKU); confirm/cancel O(1).'
+  useWhen: '"Design an inventory system", e-commerce stock, flash sales, booking systems with limited units.'
+lastReviewed: 2026-10-30
+---
+
+## Why it matters
+
+Overselling — taking money for stock you don't have — is one of the most visible e-commerce failures. Inventory design is about modelling stock states precisely, making the critical check-and-reserve step atomic under concurrency, and keeping stock consistent across checkout, payment, cancellation and shipping. It's also a common LLD question and a building block for order and booking designs.
+
+<Callout type="analogy">
+A bakery with cakes on the counter and a notepad of "held for" names. A cake held for a customer isn't sold yet, but nobody else can buy it. If the customer doesn't come back by closing, the hold is crossed out and the cake is for sale again. The baker reorders when the counter and holds leave too few cakes.
+</Callout>
+
+## Clarify
+
+- Multiple warehouses? (Yes.)
+- Reserve at add-to-cart or at checkout? (Checkout, with a short expiry — carts don't hold stock.)
+- Split an order across warehouses? (Not initially — extension.)
+- Backorders and pre-orders? (Out of scope.)
+- Audit trail and low-stock alerts? (Yes.)
+
+## Stock states
+
+<Walkthrough id="stock-states" />
+
+## Design
+
+<Diagram id="inventory-classes" caption="The service owns stock levels and reservations; warehouse choice is a pluggable strategy and low-stock handling is an observer." />
+
+<CodeTabs id="inventory" title="Inventory service: reservations with expiry, allocation strategy, confirm and cancel, reorder alerts, movement log" />
+
+Decisions worth saying aloud:
+
+- **Reservation is the unit of consistency**: it records order, warehouse, quantity and expiry, so confirm, cancel and expiry all know exactly what to undo.
+- **Lazy expiry** inside operations (plus a periodic sweeper in production) frees abandoned checkouts.
+- **One lock** around the service keeps the example correct; in a real system the database row is the lock.
+
+## In the database
+
+<CodeTabs id="inventory-reserve" title="Atomic reserve with a conditional UPDATE, confirm, and a batched expiry job" />
+
+- The conditional `UPDATE … WHERE on_hand - reserved >= qty` is both check and reservation in one statement — no race window, no explicit lock.
+- `CHECK (reserved <= on_hand)` catches bugs.
+- `UNIQUE (order_id, sku)` makes retried checkouts idempotent.
+- Reservations fit in the order saga: reserve → pay → confirm, or compensate by releasing ([Sagas](../../architecture/saga-and-outbox/)).
+
+## Flash sales and hot SKUs
+
+When thousands of buyers hit one SKU at once, every reservation updates one row — a hotspot. Options: split the stock into N buckets (rows) and reserve from a random bucket; pre-load the count into Redis and decrement atomically (`DECRBY` and check ≥ 0, or a Lua script), writing reservations to the database asynchronously; queue purchase requests and process them sequentially; and show "sold out" early from a cached counter.
+
+<Pitfalls>
+
+- **Check then update in two statements** without a lock — overselling under load.
+- **Reserving on add-to-cart without expiry** — stock locked by abandoned carts.
+- **No movement log** — stock discrepancies can't be explained.
+- **Decrementing on-hand at checkout** instead of reserving — cancellations and payment failures corrupt counts.
+- **Forgetting to release** on payment failure or cancellation.
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- Model on hand, reserved and available explicitly; reserve, then confirm or release.
+- Make check-and-reserve atomic: a lock or a conditional UPDATE.
+- Allocation is a strategy; low-stock alerts are observers; every movement is logged.
+- Hot SKUs need bucketing, Redis counters or queues.
+
+</KeyTakeaways>

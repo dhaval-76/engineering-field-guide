@@ -1,0 +1,37 @@
+questions:
+  - q: Design inventory for an e-commerce site with several warehouses so that stock is never oversold.
+    think: States of a unit, the atomic step, and the flows around checkout.
+    answer: |
+      Per (warehouse, SKU) store `on_hand` and `reserved`; available = on_hand − reserved. At checkout, choose a warehouse with a strategy (nearest with enough stock, or most stock) and **reserve** atomically — `UPDATE stock SET reserved = reserved + q WHERE … AND on_hand - reserved >= q` — creating a reservation row (order, warehouse, qty, expiry, unique per order and SKU). On payment success **confirm** (reserved −q, on_hand −q when shipped); on failure or cancel **release**; an expiry job releases abandoned ones. Log every movement (receive, reserve, ship, release, adjust) for audits and reconcile with physical counts. Emit low-stock events when available drops below a reorder point. For hot SKUs, bucket stock rows or use an atomic Redis counter.
+  - q: 'During a flash sale for 1,000 units, 50,000 users try to buy within seconds and the database struggles. What do you change?'
+    think: One row is the bottleneck.
+    answer: |
+      Every purchase updates the same row, so writes serialise on its lock. Options: keep the authoritative counter in Redis and decrement atomically (Lua script that checks and decrements), creating database reservations asynchronously via a queue; or split the 1,000 units into 20 bucket rows of 50 and reserve from a random non-empty bucket, spreading the locks; put a queue or virtual waiting room in front so the system admits a controlled rate; cache and serve "sold out" as soon as the counter hits zero so most requests never reach the database. Keep reservations with expiry so unpaid units return to the pool.
+followUps:
+  - q: Reserve at add-to-cart or at checkout?
+    intuition: Who holds stock and for how long?
+    approach: |
+      Reserving at add-to-cart locks stock for people who may never buy, reducing what others can purchase. Most stores reserve at checkout with a short expiry (5–15 minutes) and show availability, not guarantees, in the cart. Ticketing and limited drops sometimes reserve earlier because buyers expect a guarantee — still with expiry.
+  - q: Why keep a movement log if you already store quantities?
+    intuition: Explain every number.
+    approach: |
+      Quantities say what is; movements say why. With an append-only log of receipts, reservations, shipments, returns and adjustments you can rebuild stock at any time, explain discrepancies found in physical counts, trace bugs, and feed analytics. It's the same reasoning as a ledger for money.
+  - q: How does the allocation strategy fit the design?
+    intuition: Strategy pattern.
+    approach: |
+      Choosing a warehouse varies by business rule — nearest to the customer, cheapest shipping, most stock, or splitting across warehouses. Put that decision behind an interface that receives the SKU, quantity and per-warehouse availability (plus customer location) and returns a choice, so new rules are added without touching reservation logic.
+practice:
+  - task: Implement an inventory service with reserve (with expiry), confirm, cancel, an allocation strategy and low-stock alerts, and show concurrent reservations never oversell.
+    hint: Keep on hand and reserved per warehouse and SKU; make reserve atomic.
+    solution: |
+      Store levels per (warehouse, SKU) and reservations by id. reserve: expire old reservations, compute available per warehouse, ask the strategy for one that can fill the quantity, increase its reserved count, record the reservation with an expiry, log, and check the reorder point. confirm decreases reserved and on hand; cancel and expiry decrease reserved. Guard everything with one lock (or a conditional SQL update) and test with many threads reserving the last few units.
+    solutionCode: inventory
+quiz:
+  - q: 'On hand is 10 and reserved is 4. How many units can a new customer reserve?'
+    options: ['10', '6', '4', '14']
+    correct: 1
+    why: Available = on hand − reserved.
+  - q: Which SQL makes check-and-reserve atomic?
+    options: ['SELECT available, then UPDATE if enough', 'UPDATE stock SET reserved = reserved + q WHERE … AND on_hand - reserved >= q', 'A trigger that logs changes', 'SELECT … FOR SHARE']
+    correct: 1
+    why: The condition and the change happen in one statement under the row lock.

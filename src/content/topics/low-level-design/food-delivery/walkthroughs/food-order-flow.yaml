@@ -1,0 +1,27 @@
+title: One order, three apps
+frames:
+  - caption: 'The customer pays and places an order: status **PLACED**. The restaurant tablet rings; if nobody accepts within ~3 minutes, the system rejects and refunds.'
+    panels:
+      - kind: kv
+        label: order o1
+        pairs: [[status, { v: PLACED, tone: accent }], [partner, '—'], [total, '₹450']]
+  - caption: 'The restaurant accepts → **ACCEPTED**. Listeners react: the customer gets a push notification, and the **dispatcher** picks a partner now so they arrive as the food is ready.'
+    panels:
+      - kind: rows
+        label: listeners on ACCEPTED
+        items: ['notify customer', { v: 'dispatch: nearest free partner within 5 km', tone: ok }, 'start prep-time ETA']
+  - caption: 'Dispatch scores candidates: free (no active order), within range, nearest to the restaurant, rating as tie-break. "near" (0.1 km) wins over "far" (8.7 km); "busy" is skipped.'
+    panels:
+      - kind: kv
+        label: candidates
+        pairs: [[near, { v: '0.1 km, 4.1★ ✓', tone: ok }], [far, '8.7 km — out of range'], [busy, { v: 'on another order', tone: muted }]]
+  - caption: 'Each actor may only make their own moves: the restaurant marks READY, only the assigned partner marks PICKED_UP and DELIVERED. Illegal moves (customer accepting, skipping PREPARING) are rejected by the transition table.'
+    panels:
+      - kind: rows
+        label: history
+        items: [PLACED, ACCEPTED, PREPARING, READY, PICKED_UP, { v: DELIVERED, tone: ok }]
+  - caption: 'DELIVERED frees the partner for the next order and triggers payout and rating prompts. The same event stream feeds live tracking and analytics.'
+    panels:
+      - kind: rows
+        label: listeners on DELIVERED
+        items: ['release partner', 'restaurant + partner payout', 'ask for rating']

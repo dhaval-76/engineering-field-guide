@@ -1,0 +1,37 @@
+questions:
+  - q: Design the core classes for a food delivery app like Swiggy, from cart to delivery.
+    think: Entities, the lifecycle, who can do what, and the pluggable parts.
+    answer: |
+      **Entities**: Customer, Restaurant (location, menu of MenuItems with prices in paise), Cart (one restaurant), Order (item snapshot, amounts, pickup/drop, status, partner, history), DeliveryPartner (location, availability, rating), Payment. **Lifecycle**: a transition table — PLACED → ACCEPTED/REJECTED/CANCELLED, ACCEPTED → PREPARING/CANCELLED, PREPARING → READY, READY → PICKED_UP, PICKED_UP → DELIVERED — each allowed only for specific actors; `moveTo(next, actor)` validates and records history. **Events**: listeners for notifications, dispatch (on ACCEPTED), ETA updates and payouts (on DELIVERED). **Strategies**: DispatchStrategy (nearest free partner within range, rating tie-break) and PricingStrategy (distance fee, surge, coupons). **Concurrency**: claim partners atomically, make status updates idempotent, timeouts for acceptance and assignment.
+  - q: 'Two orders accepted at the same moment are both assigned the same delivery partner. How do you prevent it?'
+    think: Check-then-act on a shared resource.
+    answer: |
+      Choosing a partner and marking them busy must be one atomic step. In memory, add the partner id to a concurrent set and only assign if the add succeeded; otherwise pick the next candidate. In a database, `UPDATE partner SET current_order = :order WHERE id = :p AND current_order IS NULL` and check that one row changed; in Redis, `SET partner:{id}:order {order} NX`. Then send the offer; if the partner declines or times out, release and re-dispatch.
+followUps:
+  - q: Why keep allowed transitions in a table?
+    intuition: Rules in one place.
+    approach: |
+      A table of (from, to, allowed actors) is easy to read, test and change, and can be exposed to clients to show only valid actions. Scattered `if` checks drift between services and let illegal transitions slip through. For richer behaviour per state (timeouts, side effects), combine the table with state objects or a workflow engine.
+  - q: When should a partner be assigned?
+    intuition: Minimise waiting on both sides.
+    approach: |
+      Not at placement (the restaurant may reject, and the partner waits through preparation) but around acceptance, timed so the partner's travel time matches the remaining prep time. Some systems delay dispatch until prep time minus travel time, and re-optimise if a better partner frees up.
+  - q: How would you price delivery?
+    intuition: Composable rules.
+    approach: |
+      A pipeline of rules applied in order: base fee by distance bands, surge multiplier from local demand/supply, small-order fee, then discounts and coupons, with a floor of zero and caps. Each rule is a strategy so business can tune them; compute in integer paise and store the breakdown on the order for receipts and disputes.
+practice:
+  - task: Implement an order state machine with actor permissions and a dispatcher that assigns the nearest free partner when the restaurant accepts.
+    hint: Transition table + listeners; the dispatcher is one of the listeners.
+    solution: |
+      Define statuses and a list of (from, to, actors). `moveTo(next, actor)` throws unless the move is in the table for that actor (and a partner is assigned before PICKED_UP), updates status and history, then calls listeners. The dispatcher listens for ACCEPTED, filters partners that are free and within range, picks the nearest (haversine) with rating as tie-break, claims them in a busy set and assigns; on DELIVERED or CANCELLED it frees the partner.
+    solutionCode: food-order
+quiz:
+  - q: Who should be allowed to mark an order PICKED_UP?
+    options: [The customer, The restaurant, The assigned delivery partner, Anyone with the order id]
+    correct: 2
+    why: Each transition belongs to the actor who observes it; only the assigned partner picks up.
+  - q: Why snapshot item prices into the order?
+    options: [To save memory, So later menu changes don't alter placed orders, Because menus are cached, To speed up search]
+    correct: 1
+    why: An order is a record of what was agreed at checkout.

@@ -1,9 +1,10 @@
 stateDiagram-v2
+  direction TB
   [*] --> Idle
-  Idle --> HasCredit: insert accepted coin
-  HasCredit --> HasCredit: insert coin / select refused
-  HasCredit --> Idle: select ok → dispense + change
-  HasCredit --> Idle: cancel → refund coins
-  Idle --> OutOfService: operator / fault
-  HasCredit --> OutOfService: dispense jam → refund
-  OutOfService --> Idle: operator resets
+  Idle --> HasCredit: coin
+  HasCredit --> HasCredit: coin
+  HasCredit --> Idle: vend + change
+  HasCredit --> Idle: cancel → refund
+  HasCredit --> OutOfService: jam → refund
+  Idle --> OutOfService: fault
+  OutOfService --> Idle: reset
