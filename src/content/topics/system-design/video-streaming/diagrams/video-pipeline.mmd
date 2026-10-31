@@ -1,0 +1,10 @@
+flowchart TD
+  UP[Creator upload<br/>resumable, presigned] --> RAW[(Raw video<br/>object storage)]
+  RAW --> SPLIT[Split into GOP-aligned pieces]
+  SPLIT --> ENC[Parallel encoders<br/>each piece × each rung of the ladder]
+  ENC --> PKG[Package<br/>CMAF segments + HLS/DASH manifests · DRM]
+  PKG --> OUT[(Encoded segments<br/>object storage)]
+  OUT --> CDN[CDN edges]
+  CDN --> PL[Player<br/>adaptive bitrate]
+  ENC --> TH[Thumbnails · captions · content checks]
+  PL -. playback events .-> AN[(View counts · QoE metrics)]

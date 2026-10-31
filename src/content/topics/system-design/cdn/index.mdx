@@ -6,7 +6,7 @@ order: 26
 tags: [system-design, building-block, cdn, caching, http, performance]
 aliases: [cdn, content delivery network, edge cache, point of presence, pop, cloudflare, akamai, cloudfront, fastly, cache control, s-maxage, stale while revalidate, stale if error, immutable assets, cache busting, fingerprinted assets, purge, surrogate keys, cache tags, origin shield, tiered caching, signed urls, signed cookies, edge compute, waf, ddos protection]
 prerequisites: [cs-foundations/networking, databases/caching-strategies]
-related: [system-design/load-balancing, system-design/consistent-hashing]
+related: [system-design/load-balancing, system-design/video-streaming, system-design/file-storage, system-design/consistent-hashing]
 quickRef:
   points:
     - 'A CDN caches responses at **edge PoPs** near users; anycast or DNS sends each user to the nearest healthy PoP.'
@@ -20,7 +20,7 @@ lastReviewed: 2026-10-30
 
 ## Why it matters
 
-Distance is latency, and no amount of server tuning beats the speed of light. A CDN moves content close to users, absorbs most traffic before it reaches your servers, and doubles as a shield against spikes and attacks. For media, downloads and global products it's the single largest performance and cost lever — and it appears in nearly every system design.
+Distance is latency, and no amount of server tuning beats the speed of light. A CDN moves content close to users, absorbs most traffic before it reaches your servers, and doubles as a shield against spikes and attacks. For media, downloads and global products it's the single largest performance and cost lever — and it appears in nearly every system design ([Video streaming](../video-streaming/), [File storage](../file-storage/)).
 
 <Callout type="analogy">
 A publisher printing books in one city versus keeping copies in every neighbourhood library. Readers get a local copy in minutes instead of waiting for shipping, and the publisher only sends new editions to the libraries — not a copy to every reader.

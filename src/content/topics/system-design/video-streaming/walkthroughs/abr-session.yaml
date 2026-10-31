@@ -1,0 +1,26 @@
+title: A player adapting to the network
+frames:
+  - caption: 'Playback starts at the **lowest** rendition so the first frame appears fast; the player measures how quickly each 6-second segment downloads.'
+    panels:
+      - kind: kv
+        label: state
+        pairs: [[rendition, { v: '234p (145 kbps)', tone: accent }], [buffer, '6 s'], [measured, '8 Mbps']]
+  - caption: 'Bandwidth is plentiful, so it **climbs one rung per segment** while the buffer grows past 15 s — jumping straight to 1080p could stall if the measurement was a fluke.'
+    panels:
+      - kind: rows
+        label: segments
+        items: ['432p', '540p', '720p', { v: '1080p (buffer 30 s)', tone: ok }]
+  - caption: 'The user walks into a lift: measured throughput falls to 1.5 Mbps. The smoothed estimate drops and the player **steps down immediately** — drops are fast, climbs are slow.'
+    panels:
+      - kind: rows
+        label: segments
+        items: [{ v: '720p', tone: warn }, { v: '540p', tone: warn }]
+  - caption: 'Throughput collapses to 300 kbps and the buffer falls below 5 s — **panic rule**: switch to the lowest rendition to avoid a stall. A blurry picture beats a spinner.'
+    panels:
+      - kind: kv
+        label: state
+        pairs: [[rendition, { v: '234p', tone: bad }], [buffer, '4 s']]
+  - caption: 'Each segment is an independent file on the CDN, so switching rendition is just requesting the next segment from a different playlist. The server does nothing special for adaptation.'
+    panels:
+      - kind: note
+        text: 'GET /v/42/v234/seg00011.m4s  ← from the same CDN, a different rung'

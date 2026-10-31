@@ -1,0 +1,109 @@
+---
+title: 'Design: Video Streaming (YouTube, Netflix)'
+summary: Uploading, processing and streaming video at scale — resumable uploads, parallel transcoding into a bitrate ladder, HLS/DASH segments and manifests, CDN delivery, adaptive bitrate players, live streaming, view counts and cost.
+track: system-design
+order: 260
+tags: [system-design, case-study, video, cdn, streaming]
+aliases: [design youtube, design netflix, video streaming system, video on demand, vod, transcoding, encoding pipeline, bitrate ladder, adaptive bitrate, abr, hls, dash, cmaf, m3u8, video segments, live streaming, ll-hls, video cdn, drm, view count, thumbnails]
+prerequisites: [system-design/cdn, system-design/file-storage]
+related: [system-design/realtime-analytics, system-design/job-scheduler, system-design/distributed-cache]
+quickRef:
+  points:
+    - '**Upload** raw files resumably to object storage; process **asynchronously**.'
+    - '**Transcode** in parallel: split by keyframe-aligned pieces × each rung of a **bitrate ladder** (e.g. 234p 145 kbps … 1080p 6 Mbps).'
+    - '**Package** as short segments (≈2–6 s) with HLS/DASH manifests; segments are plain files served by a **CDN**.'
+    - 'The **player** chooses a rendition per segment from measured throughput and buffer (**adaptive bitrate**).'
+    - 'Cost is dominated by **CDN egress and storage** — popular videos at the edge, long tail in cheaper storage.'
+  useWhen: '"Design YouTube / Netflix / a video platform" and any media upload-and-playback feature.'
+lastReviewed: 2026-10-30
+---
+
+## Requirements
+
+**Functional**: creators upload videos; viewers watch on any device and network; seek, resume, captions; view counts; (live streaming as a deep dive).
+**Non-functional**: playback starts in under ~2 s and rarely stalls; uploads of many GB survive flaky connections; global audience; processing within minutes; cost-efficient at enormous egress.
+
+## Estimates
+
+| | |
+|---|---|
+| Uploads | assume 500 hours of video per minute |
+| Storage per hour of video | all renditions of the ladder below sum to ≈ 16.7 Mbps ⇒ ≈ 7.5 GB per hour |
+| Daily new storage | 500 h/min × 1,440 min × 7.5 GB ≈ **5.4 PB/day** (plus the original) |
+| Playback | 1 B views/day × ~10 min × ~3 Mbps ≈ 225 PB/day of egress — why CDNs and caching dominate the design |
+
+## High-level design
+
+<Diagram id="video-pipeline" caption="Uploads land in object storage; a pipeline splits, encodes in parallel into every rendition, packages segments and manifests, and publishes them for CDN delivery to adaptive players." />
+
+<Steps>
+
+1. **Upload**: resumable multipart upload with presigned URLs ([File storage](../file-storage/)); create a video record in "processing" state.
+2. **Split**: cut the source at keyframes into pieces (e.g. 1 minute) so encoding parallelises.
+3. **Encode**: a job per (piece × rendition) on a worker fleet; a DAG workflow tracks completion and retries failures ([Workflow engine](../workflow-engine/)).
+4. **Package**: produce CMAF segments and HLS/DASH manifests; apply DRM encryption for premium content; generate thumbnails and captions.
+5. **Publish**: write outputs to object storage, mark the video ready, warm the CDN for expected hits.
+
+</Steps>
+
+## The bitrate ladder
+
+<Chart
+  type="bar"
+  title="An H.264 bitrate ladder (initial targets from Apple's HLS authoring specification)"
+  unit=" kbps"
+  bars={[
+    ['416×234', 145, 'muted'],
+    ['768×432', 1100, 'info'],
+    ['960×540', 2000, 'info'],
+    ['1280×720', 3000, 'ok'],
+    ['1280×720 (high)', 4500, 'ok'],
+    ['1920×1080', 6000, 'accent'],
+  ]}
+  caption="Apple publishes these as starting points to tune per content; large services go further with per-title or per-scene encoding (fewer bits for simple scenes) and newer codecs (HEVC, AV1) that need fewer bits for the same quality."
+/>
+
+Source: [HLS Authoring Specification for Apple Devices](https://developer.apple.com/documentation/http-live-streaming/hls-authoring-specification-for-apple-devices).
+
+<CodeTabs id="hls-master" title="An HLS master playlist listing renditions, and a media playlist of 6-second segments" />
+
+## Adaptive bitrate playback
+
+<Walkthrough id="abr-session" />
+
+<CodeTabs id="abr" title="An adaptive bitrate controller: smoothed throughput, headroom, panic rule, slow climbs" />
+
+Real players (hls.js, ExoPlayer, AVPlayer) combine throughput and buffer signals similarly — buffer-based algorithms like BOLA choose mainly from buffer level to avoid oscillation.
+
+## Delivery and cost
+
+- **CDN** serves segments with long TTLs (immutable files) and manifests with short TTLs ([CDN](../cdn/)); signed URLs or tokens protect paid content.
+- **Popularity tiers**: the head of the catalogue is cached at the edge (Netflix even places caches inside ISPs); the long tail lives in cheaper storage tiers and is fetched on demand.
+- **Encode once, serve many**: spending more compute on better compression pays off for popular titles because egress dominates cost.
+
+## Live streaming
+
+Ingest over RTMP/SRT to regional servers; transcode in real time into the ladder; publish segments continuously with a sliding-window playlist. Latency is roughly segment duration × buffered segments — standard HLS ≈ 15–30 s; **low-latency HLS/DASH** with partial segments reaches ~2–5 s; sub-second needs WebRTC. Chat and reactions use [real-time communication](../../backend/realtime-communication/).
+
+## View counts and analytics
+
+Players emit heartbeat events; a stream pipeline de-duplicates, filters bots, and aggregates counts in windows ([Real-time analytics](../realtime-analytics/)). Exact counts can lag; approximate live counters are fine. The same events feed quality-of-experience metrics (startup time, rebuffer ratio, average bitrate) and recommendations.
+
+<Pitfalls>
+
+- **Streaming whole files** instead of segments — no adaptation, no seeking efficiency, poor caching.
+- **Encoding sequentially** — a 2-hour film takes hours; split and parallelise.
+- **Starting playback at high quality** — slow start and early stalls.
+- **Jumping several rungs up at once** — oscillation and rebuffering.
+- **Counting views synchronously** in the playback path.
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- Upload resumably, process asynchronously, encode in parallel into a bitrate ladder.
+- Segments + manifests turn video into cacheable files for CDNs.
+- The player adapts per segment using throughput and buffer.
+- Egress dominates cost — cache the head, tier the tail, compress popular titles harder.
+
+</KeyTakeaways>

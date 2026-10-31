@@ -1,0 +1,37 @@
+questions:
+  - q: Design YouTube.
+    think: Upload path, processing pipeline, playback path, and the numbers.
+    answer: |
+      **Upload**: clients get presigned multipart URLs and upload resumably to object storage; a metadata service records the video (owner, title, status). **Processing**: an orchestrated pipeline splits the source at keyframes, encodes each piece into every rendition of a bitrate ladder in parallel on a worker fleet, packages CMAF segments with HLS/DASH manifests, generates thumbnails and captions, runs content checks, and marks the video ready. **Playback**: the player fetches the master manifest, then segments from the nearest CDN edge, choosing a rendition per segment with an ABR algorithm. **Metadata/reads**: video and channel data in a sharded DB with caches; search and recommendations from separate services. **Views and analytics**: player heartbeat events into a stream pipeline for de-duplicated counts and QoE. **Scale/cost**: ~5 PB/day of new encoded storage at 500 hours/minute; egress dominates — CDN with tiered caching, ISP-embedded caches for popular content, better codecs for popular titles.
+  - q: 'Viewers on mobile networks complain about frequent buffering. What do you look at and change?'
+    think: Player behaviour, ladder, segments, CDN.
+    answer: |
+      Measure QoE by network type and region: startup time, rebuffer ratio, bitrate switches, CDN latency and error rates. Typical fixes: start at a low rendition; make the ABR algorithm more conservative (more headroom, buffer-based decisions, slower climbs); add lower rungs to the ladder for weak networks and use more efficient codecs (HEVC/AV1) where devices support them; shorter segments for faster adaptation; ensure segments are cached at edges near those users (check hit ratio and origin fetch times); prefetch the next segments; and allow offline downloads for predictable viewing.
+followUps:
+  - q: Why split videos into segments?
+    intuition: Small files are easy to cache, switch and seek.
+    approach: |
+      Segments of a few seconds let the player switch renditions at segment boundaries, start quickly, and seek by fetching only nearby segments. Each segment is a static file that CDNs cache efficiently, and encoding can be parallelised by piece. Manifests list the segments for each rendition.
+  - q: How does adaptive bitrate work?
+    intuition: Measure, then pick what the network can sustain.
+    approach: |
+      For each segment the player estimates available throughput (smoothed download rates) and checks its buffer. It picks the highest rendition below a safety fraction of the estimate, drops immediately when throughput or buffer falls, and climbs gradually when there's buffer to spare. All logic is client-side; servers just serve files.
+  - q: How is live streaming different from video on demand?
+    intuition: Real-time encoding and a moving window.
+    approach: |
+      Live ingests a continuous stream, transcodes in real time, and publishes segments to a sliding-window playlist that players reload. Latency comes from segment duration and buffering (≈ 15–30 s for standard HLS); low-latency HLS/DASH uses partial segments to reach a few seconds; WebRTC is used for sub-second interaction. There's no time for multi-pass encoding, and failover of ingest and encoders must be seamless.
+practice:
+  - task: Implement an adaptive bitrate controller that starts low, smooths throughput, keeps headroom, drops fast, climbs one rung at a time, and panics to the lowest rung when the buffer is nearly empty.
+    hint: EWMA of segment download rates; choose by budget = 0.8 × estimate; buffer thresholds for panic and climbing.
+    solution: |
+      Keep an exponentially weighted throughput estimate updated after each segment. Before each download: if there's no estimate or the buffer is under 5 s, choose the lowest rendition. Otherwise find the highest rendition within 80% of the estimate; if that's higher than the current one, move up only one rung and only if the buffer exceeds 15 s; if it's lower, switch down immediately.
+    solutionCode: abr
+quiz:
+  - q: Which mostly determines the cost of a large video platform?
+    options: [Transcoding CPU, CDN egress bandwidth, Metadata database, Thumbnail generation]
+    correct: 1
+    why: Every view transfers megabytes to gigabytes; egress dwarfs other costs at scale.
+  - q: What does an HLS master playlist contain?
+    options: [The video bytes, A list of renditions with bitrates and resolutions pointing to media playlists, Only subtitles, DRM keys]
+    correct: 1
+    why: The player chooses among the listed renditions; media playlists then list the segments.
