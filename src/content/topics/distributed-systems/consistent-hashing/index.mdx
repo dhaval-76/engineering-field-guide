@@ -16,7 +16,7 @@ quickRef:
     - '**Fixed slots** (Redis Cluster''s 16,384) + a slot→node map is the most common production answer; **bounded loads** cap hot servers.'
   complexity: 'Ring lookup O(log(N·V)); rendezvous O(N); jump O(log N); slot map O(1).'
   useWhen: Distributed caches, sharded stores, load balancers with session affinity, CDNs — anywhere keys map to a changing set of servers.
-lastReviewed: 2026-10-30
+lastReviewed: 2026-10-31
 ---
 
 ## Why it matters

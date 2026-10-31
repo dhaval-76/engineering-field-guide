@@ -15,7 +15,7 @@ quickRef:
     - 'For correctness, the protected resource must check a monotonically increasing **fencing token**.'
     - '**Efficiency** locks (avoid duplicate work): Redis is fine. **Correctness** locks: a consensus system (etcd, ZooKeeper) or the database itself, plus fencing.'
   useWhen: Cron jobs on many instances, one-at-a-time processing of a resource, leader election, preventing double work.
-lastReviewed: 2026-10-30
+lastReviewed: 2026-10-31
 ---
 
 ## Why it matters
