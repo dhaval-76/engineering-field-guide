@@ -1,0 +1,37 @@
+questions:
+  - q: Design the home-page recommendations for an e-commerce app with 100 million users.
+    think: Funnel stages, data flow, and how you know it works.
+    answer: |
+      **Events** (views, clicks, carts, purchases, impressions) stream into Kafka, feeding a feature store (fresh user/item counters) and a data lake. **Offline**: compute item-item neighbours, train a two-tower embedding model (item vectors into an HNSW index) and a ranking model; publish to registries. **Online request** (<200 ms): candidate generation from CF neighbours of recent activity, ANN search with the user embedding, trending and followed brands (~1,000 items); ranking with features from the feature store; re-ranking for diversity, availability, purchased-item removal, exploration and sponsored slots; return 20 and log impressions. **Cold start**: popular/regional items for new users, content embeddings for new items. **Evaluation**: offline recall@k/NDCG, online A/B tests on conversion and retention. **Scale**: stateless serving, replicated ANN indexes (~5 GB), cached candidates per user refreshed on activity.
+  - q: 'Click-through rate on recommendations went up after a model change, but purchases fell. What happened, and what do you do?'
+    think: The objective.
+    answer: |
+      The model learned to optimise clicks — attention-grabbing, cheap or misleading items — rather than outcomes users value. Fix the objective: train multi-task models predicting click, add-to-cart and purchase (or watch time/satisfaction), combine them with weights aligned to business goals, add guardrail metrics (returns, conversion, retention) to A/B tests, penalise clickbait features, and keep diversity constraints in re-ranking. Decide launches on the guardrails, not CTR alone.
+followUps:
+  - q: Why split recommendation into candidate generation and ranking?
+    intuition: Latency budget vs model cost.
+    approach: |
+      A precise ranking model is too expensive to run on millions of items within 200 ms. Candidate generation uses cheap methods (precomputed neighbours, ANN search, popularity) to shortlist a thousand plausible items with high recall; the ranker then spends its budget ordering those precisely. Re-ranking handles slate-level constraints the per-item model can't.
+  - q: How does item-item collaborative filtering work?
+    intuition: Co-occurrence across users.
+    approach: |
+      For every pair of items count how many users engaged with both, normalised by each item's popularity (cosine similarity), and keep each item's top neighbours (an offline batch job). To recommend, sum the similarities of unseen items to the items in the user's history and take the highest. It's explainable ("because you bought X") and robust, but can't recommend items without interactions.
+  - q: What is a feature store and why use one?
+    intuition: One definition of each feature for training and serving.
+    approach: |
+      A feature store manages feature definitions, computes them in batch (for training data at historical points in time) and in real time (for serving), and serves them with low latency. Using the same definitions prevents training/serving skew, avoids leaking future information into training, and lets teams reuse features across models.
+practice:
+  - task: Implement item-item collaborative filtering — offline neighbour computation and online recommendations — and check the results across languages.
+    hint: Count co-occurrences per item pair; cosine = co-count / sqrt(users_i × users_j).
+    solution: |
+      Iterate over each user's item set, counting users per item and co-occurrences per ordered pair. For each item, compute cosine similarity with every co-occurring item and keep the top N by similarity (ties by id). To recommend, sum neighbour similarities for items not in the user's history and return the top k (ties by id). On the toy data, a user with a tent gets stove (0.667), then boots and lamp (0.408).
+    solutionCode: item-cf
+quiz:
+  - q: Why log items that were shown but not clicked?
+    options: [For billing, They are the negative examples the model needs to learn what users ignore, To save storage, For SEO]
+    correct: 1
+    why: Without impressions, training data has only positives and learns biased preferences.
+  - q: Which technique helps recommend a brand-new item with no interactions?
+    options: [Item-item collaborative filtering, Content-based features such as text and image embeddings, Matrix factorisation on clicks only, Removing it from the catalogue]
+    correct: 1
+    why: Content features place new items near similar items before any interactions exist.

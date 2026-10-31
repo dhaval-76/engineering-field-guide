@@ -1,0 +1,84 @@
+---
+title: 'Design: Recommendation System'
+summary: Personalised feeds and "you may also like" at scale — the candidate → ranking → re-ranking funnel, collaborative filtering and embedding search, feature stores, training from impressions, cold start and A/B tests.
+track: system-design
+order: 285
+tags: [system-design, case-study, recommendations, machine-learning, ai-engineering]
+aliases: [recommendation engine, recommender system, design netflix recommendations, design youtube recommendations, amazon recommendations, you may also like, collaborative filtering, item to item, matrix factorization, two tower model, embeddings, candidate generation, ranking model, re-ranking, feature store, cold start, exploration, popularity bias, recall at k, ndcg, a/b testing]
+prerequisites: [system-design/approach-and-estimation, ai-engineering/rag]
+related: [system-design/news-feed, system-design/search-engine, system-design/realtime-analytics, ai-engineering/llm-system-design]
+quickRef:
+  points:
+    - '**Funnel**: candidate generation (millions → ~1,000, cheap) → ranking (learned model) → re-ranking (diversity, rules).'
+    - '**Candidates** from several sources: item-item collaborative filtering, embedding **nearest neighbours** (vector index), trending, follows.'
+    - '**Ranking** uses features from a **feature store** shared by training and serving — avoids training/serving skew.'
+    - 'Log **impressions** (shown and not clicked) for training; handle **cold start** with content features and exploration.'
+    - 'Measure offline (recall@k, NDCG) but decide with **online A/B tests** on business metrics.'
+  useWhen: '"Design a recommendation system / home feed / related products / Netflix rows", and AI features built on embeddings.'
+lastReviewed: 2026-10-30
+---
+
+## Requirements
+
+**Functional**: personalised home recommendations; "similar items" on product pages; recommendations update as users interact.
+**Non-functional**: < 200 ms per request; 100 M users, 10 M items; fresh signals within minutes; safe to experiment (A/B tests).
+
+## Estimates
+
+| | |
+|---|---|
+| Requests | 100 M users × 10 page views/day ≈ 12,000 requests/s average, ~40,000 peak |
+| Events | ~100 interaction events per user per day ⇒ 10 B/day ≈ 115,000 events/s into the stream |
+| Item embeddings | 10 M × 128 floats × 4 B ≈ 5 GB — fits in memory per ANN replica |
+| Ranking cost | ~1,000 candidates × model inference per request — batch on CPU/GPU, budget ~50 ms |
+
+## High-level design
+
+<Diagram id="recsys-arch" caption="Online, a request flows down the funnel — candidates, ranking, re-ranking — and the shown items are logged. Those events feed the feature store and training, which publish new neighbours, embeddings and models back to the serving path." />
+
+<Walkthrough id="recsys-funnel" />
+
+## Candidate generation
+
+**Item-item collaborative filtering** — "people who engaged with X also engaged with Y" — is simple, explainable and strong for related items:
+
+<CodeTabs id="item-cf" title="Item-item collaborative filtering: cosine similarity from co-occurrence offline, scoring by history online" />
+
+**Embeddings** generalise it: a two-tower model learns a vector for each user and item so that likely interactions are close; serving retrieves the nearest item vectors to the user vector from an approximate-nearest-neighbour index (HNSW), exactly the machinery used for [RAG retrieval](../../ai-engineering/rag/). Other sources — trending, recently viewed, follows, editorial — are merged and de-duplicated.
+
+## Ranking and re-ranking
+
+- **Ranking model** (gradient-boosted trees or a neural network) predicts click, purchase or watch time from user, item and context features; multi-objective scores are combined with tunable weights.
+- **Feature store**: the same feature definitions computed for training (from history) and serving (fresh counters from the stream), so the model sees consistent inputs.
+- **Re-ranking**: business rules and slate-level goals — remove purchased or unavailable items, diversity across categories and sellers, freshness boosts, exploration slots, sponsored placements.
+
+## Data, training and evaluation
+
+- **Log impressions** with positions and outcomes; unclicked impressions are the negatives. Without them models can't learn what users ignore.
+- **Training** runs daily (or continuously) on logs; correct for position bias (items at the top get clicked more regardless of relevance).
+- **Offline metrics** (recall@k for candidates, NDCG/AUC for ranking) filter ideas; **online A/B tests** on click-through, conversion, watch time and retention decide.
+- **Feedback loops**: recommending only what's popular makes it more popular; keep exploration and diversity in the slate.
+
+## Cold start
+
+- **New users**: popular and trending items by region and context, onboarding preferences, quickly adapting to the first clicks in-session.
+- **New items**: content-based features (category, text and image embeddings) place them near similar items; reserve exploration traffic to collect signal.
+
+<Pitfalls>
+
+- **Scoring the whole catalogue per request** — use a funnel.
+- **Training only on clicks** without impressions — no negatives, biased models.
+- **Different feature code** for training and serving — silent skew.
+- **Optimising click-through alone** — clickbait wins, satisfaction drops; balance objectives.
+- **No exploration** — new items and niche tastes never get a chance.
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- Recommendations are a funnel: many cheap candidates, a learned ranker, rule-based re-ranking.
+- Collaborative filtering and embedding retrieval generate candidates; vector indexes serve them.
+- A feature store and impression logs connect training and serving.
+- Decide with A/B tests; plan for cold start, diversity and feedback loops.
+
+</KeyTakeaways>

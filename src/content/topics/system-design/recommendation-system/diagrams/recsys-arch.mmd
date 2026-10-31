@@ -1,0 +1,12 @@
+flowchart TD
+  REQ[Home page request] --> CG[Candidate generation · ~1,000<br/>item neighbours · vector ANN · trending · follows]
+  CG --> RK[Ranking model<br/>features from the feature store]
+  RK --> RR[Re-ranking<br/>diversity · freshness · rules]
+  RR --> OUT[Top 20 shown<br/>impressions logged]
+  OUT --> EV{{Event stream}}
+  EV --> FS[(Feature store)]
+  EV --> LAKE[(Training logs)]
+  LAKE --> TR[Offline training<br/>CF neighbours · embeddings · ranker]
+  FS -. fresh features .-> RK
+  TR -. publishes indexes .-> CG
+  TR -. publishes model .-> RK
