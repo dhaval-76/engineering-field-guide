@@ -1,0 +1,27 @@
+title: Raft — electing a leader and committing an entry
+frames:
+  - caption: 'Five nodes. S1 leads term 3 and sends heartbeats. Then S1 crashes. Followers wait a **randomised election timeout** (e.g. 150–300 ms) so they rarely time out together.'
+    panels:
+      - kind: array
+        label: Nodes (term)
+        items: [{ v: 'S1 ✕', tone: bad }, 'S2 (3)', 'S3 (3)', 'S4 (3)', 'S5 (3)']
+  - caption: 'S3 times out first, increments to **term 4**, votes for itself and asks everyone to vote. Each node grants **one vote per term**, and only if S3''s log is at least as up to date as its own.'
+    panels:
+      - kind: array
+        label: Votes for S3 in term 4
+        items: [{ v: 'S1 ✕', tone: muted }, { v: 'S2 ✓', tone: ok }, { v: 'S3 ✓', tone: ok, tag: candidate }, { v: 'S4 ✓', tone: ok }, 'S5 …']
+  - caption: '3 of 5 is a **majority** — S3 is leader for term 4. Any two majorities overlap, so two leaders can''t be elected in the same term.'
+    panels:
+      - kind: array
+        label: Nodes
+        items: [{ v: 'S1 ✕', tone: muted }, 'S2', { v: 'S3 leader', tone: accent }, 'S4', 'S5']
+  - caption: 'A client write becomes log entry 7 on S3, which sends it to followers. Once a majority (including itself) store it, the entry is **committed** and applied; the client gets its reply.'
+    panels:
+      - kind: kv
+        label: Entry 7 replicated on
+        pairs: [[S3, { v: '✓', tone: ok }], [S2, { v: '✓', tone: ok }], [S4, { v: '✓', tone: ok }], [S5, 'pending'], [state, { v: 'committed (3/5)', tone: ok }]]
+  - caption: 'S1 restarts with a stale term 3. The first message it sees carries term 4, so it steps down to follower and its log is repaired from S3. A cluster of 5 keeps working with up to 2 nodes down.'
+    panels:
+      - kind: array
+        label: Nodes
+        items: [{ v: 'S1 follower', tone: info }, 'S2', { v: 'S3 leader', tone: accent }, 'S4', 'S5']

@@ -1,0 +1,27 @@
+title: From alert to root cause with metrics, traces and logs
+frames:
+  - caption: '**Alert** (a metric): checkout is burning its error budget 14× too fast. Metrics tell you *that* something is wrong and how big — cheaply, for every request.'
+    panels:
+      - kind: kv
+        label: checkout, last 15 min
+        pairs: [[error ratio, { v: '2.1% (SLO 0.1%)', tone: bad }], [p99 latency, { v: '4.8 s', tone: warn }], [traffic, normal]]
+  - caption: '**Dashboard**: break the error rate down by low-cardinality labels. Errors are concentrated on one route and one dependency; a deploy happened 20 minutes ago? No — but payments latency jumped.'
+    panels:
+      - kind: rows
+        label: errors by downstream
+        items: [{ v: 'payment-gateway — 96%', tone: bad }, 'inventory — 3%', 'other — 1%']
+  - caption: '**Trace**: open a slow, failed request. The span tree shows where time went: 4.5 s waiting on `payment-gateway POST /authorize`, then a timeout.'
+    panels:
+      - kind: rows
+        label: trace 7f3a… (4.9 s)
+        items: ['checkout 4.9 s', '├ inventory.reserve 40 ms', { v: '├ payment.authorize 4.5 s ✕ timeout', tone: bad }, '└ order.save — not reached']
+  - caption: '**Logs** for that trace id show the detail no metric can: the gateway is returning `429 rate limited` and our client retries 3× without backoff — amplifying the problem.'
+    panels:
+      - kind: rows
+        label: logs where trace_id = 7f3a…
+        items: ['WARN payment 429 retry=1', 'WARN payment 429 retry=2', { v: 'ERROR payment timeout after retries', tone: bad }]
+  - caption: 'Mitigate (reduce retries, add backoff, open the circuit breaker), then follow up: a dashboard panel for the dependency''s 429s, and a blameless postmortem. Each signal answered a different question.'
+    panels:
+      - kind: kv
+        label: signals
+        pairs: [[metrics, 'is it broken? how badly?'], [traces, 'where in the call chain?'], [logs, 'why exactly?']]

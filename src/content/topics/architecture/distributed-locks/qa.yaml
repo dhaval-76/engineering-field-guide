@@ -1,0 +1,37 @@
+questions:
+  - q: 'A nightly billing job runs on all 6 instances of a service and customers get charged multiple times. How do you fix it?'
+    think: Two layers — run once, and be harmless if it runs twice.
+    answer: |
+      First make charging **idempotent**: each invoice has a unique idempotency key (`customer + billing period`) enforced by a unique constraint and passed to the payment provider, so a duplicate run can't double-charge. Then avoid duplicate work: elect one runner with a lease — a scheduler library with a DB lock (ShedLock, Quartz clustered), a lease table row with expiry, or a Redis `SET NX PX` with a unique token and heartbeat extension. Better still, split the work into per-customer tasks on a queue with idempotent workers, so any number of instances can help and a crash only retries the unfinished tasks.
+  - q: 'Explain how a Redis-based lock can allow two clients into the critical section, and how to make the protected operation safe.'
+    think: Time, pauses and failover.
+    answer: |
+      (1) Client A acquires with a TTL, then pauses (GC, VM migration, slow I/O) past the TTL; the key expires and B acquires; A resumes believing it still holds the lock. (2) A acquires on the primary; the primary fails before replicating; the replica is promoted without the key; B acquires. In both cases two clients act at once. Fix the protected operation with **fencing tokens**: a monotonically increasing number issued per acquisition (from a consistent source — etcd revision, DB sequence) and checked by the resource, which rejects tokens lower than the highest it has seen. For correctness-critical work use a consensus-backed lock or the database's own locking, and make the operation idempotent.
+followUps:
+  - q: Why must lock release check the token?
+    intuition: Your lock may already be someone else's.
+    approach: |
+      If your lease expired and another client acquired the lock, a plain `DEL` deletes *their* lock, letting a third client in. Releasing with a Lua script that deletes only if the stored value equals your token makes release safe; the same check applies to extending.
+  - q: What is Redlock and why is it controversial?
+    intuition: Majority of independent nodes, but still time-based.
+    approach: |
+      Redlock acquires the same key on a majority of N independent Redis nodes within a time bound, aiming to survive single-node failures. Critics (notably Martin Kleppmann) argue its safety depends on bounded network delay, process pauses and clock drift, and it provides no fencing token — so it's not safe for correctness. Its author disagrees. Practical takeaway: fine for efficiency; for correctness use consensus systems plus fencing.
+  - q: Lock or optimistic concurrency?
+    intuition: Expected conflict rate.
+    approach: |
+      Optimistic concurrency (version checks, conditional updates) costs nothing when conflicts are rare and never blocks; conflicting writers retry. Pessimistic locks suit high-contention hotspots where retries would waste lots of work, and are simplest within one database (`FOR UPDATE`). Distributed locks are for coordinating work across systems that lack a shared transactional store.
+practice:
+  - task: Implement a lease service with fencing tokens and a storage layer that rejects writes from stale lock holders.
+    hint: Tokens increase with every acquisition; storage remembers the highest token per key.
+    solution: |
+      The lease service records holder and expiry; acquire succeeds if there's no live lease or the caller already holds it, and returns `nextToken++`. Storage keeps `highestToken[key]`; a write with a token lower than that is rejected, otherwise it updates the highest token and the value. Simulate: A acquires token 1 and pauses; the lease expires; B acquires token 2 and writes; A's late write with token 1 is rejected.
+    solutionCode: fencing
+quiz:
+  - q: 'Which Redis command acquires a lock with expiry atomically?'
+    options: [SETNX then EXPIRE, SET key token NX PX 30000, INCR key, GETSET key token]
+    correct: 1
+    why: One command sets the value only if absent and attaches the TTL atomically.
+  - q: What protects a resource from a lock holder whose lease expired during a long pause?
+    options: [A longer TTL, A fencing token checked by the resource, Redlock, Retrying the release]
+    correct: 1
+    why: The resource rejects operations carrying a token older than one it has seen.

@@ -1,0 +1,27 @@
+title: State as a fold over events
+frames:
+  - caption: 'An event-sourced account stores **what happened**, not the current balance. Each event is an immutable fact with a version within its stream.'
+    panels:
+      - kind: rows
+        label: stream account-42
+        items: ['v1 Opened (owner Ana)', 'v2 Deposited 100.00', 'v3 Withdrawn 30.00', 'v4 Deposited 15.00']
+  - caption: 'To handle a command, load the stream and **apply** each event to an empty state. The balance is derived: 0 → 100 → 70 → 85.'
+    panels:
+      - kind: kv
+        label: state after replay
+        pairs: [[open, 'true'], [balance, { v: '85.00', tone: ok }], [version, '4']]
+  - caption: '"Withdraw 90" is checked against that state and **rejected** (insufficient funds) — no event is written. "Withdraw 25" is accepted and produces a new event.'
+    panels:
+      - kind: rows
+        label: commands
+        items: [{ v: 'Withdraw 90 → rejected', tone: bad }, { v: 'Withdraw 25 → Withdrawn 25.00', tone: ok }]
+  - caption: 'Append with **expected version 4**. If another request appended v5 first, the unique (stream, version) constraint fails; reload and retry the command. This is optimistic concurrency.'
+    panels:
+      - kind: rows
+        label: stream account-42
+        items: ['v1 … v4', { v: 'v5 Withdrawn 25.00', tone: accent }]
+  - caption: 'Long streams get a **snapshot** (state at v1000) so loading reads one snapshot plus the events after it. Projections read the same events to build query-friendly tables — and can be rebuilt from scratch at any time.'
+    panels:
+      - kind: kv
+        label: load = snapshot + tail
+        pairs: [['snapshot @ v1000', 'balance 4,210.00'], ['events v1001…v1007', 'apply 7 events']]

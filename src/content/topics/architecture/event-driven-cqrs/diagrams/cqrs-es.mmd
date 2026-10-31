@@ -1,0 +1,9 @@
+flowchart TD
+  UI[Client] -- command --> CH[Command handler<br/>load · decide · append]
+  CH -- expected version --> ES[(Event store<br/>append-only)]
+  ES --> P1[Projector:<br/>balances]
+  ES --> P2[Projector:<br/>statements]
+  P1 --> R1[(Read DB)]
+  P2 --> R2[(Search index)]
+  R1 --> Q[Query API]
+  R2 --> Q

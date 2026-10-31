@@ -1,0 +1,41 @@
+questions:
+  - q: 'Design the ledger for a digital wallet so that every balance can be explained and audited.'
+    think: What should be the source of truth — balances or movements?
+    answer: |
+      Make **entries the source of truth**: an append-only, event-sourced (or double-entry) ledger where each movement is an immutable event — `Deposited`, `Withdrawn`, `TransferDebited/Credited` — with amount in minor units, currency, idempotency key, causation and correlation ids, and the actor. The balance is the fold of entries; for speed keep a **projection** (balance table) updated in the same transaction or by a projector, and snapshots for long streams. Commands (withdraw) load the current state, check invariants (sufficient funds), and append with **expected version** so concurrent withdrawals can't overdraw. Corrections are new compensating entries, never edits. Audit queries replay entries up to any timestamp; reconciliation jobs compare projections with the ledger and with bank statements.
+  - q: 'After a user updates their profile, the page reloads and shows the old data. The system uses CQRS. What''s happening and what do you do?'
+    think: Two models, synchronised asynchronously.
+    answer: |
+      The command updated the write model, but the read model is updated asynchronously by a projector that hasn't processed the event yet — **read lag**. Options: return the updated state in the command response and render that; read-your-own-writes by having the command return its event position and the query wait (briefly) until the projection reaches it; route that user's reads to the write model for a short time; or show a pending indicator. Also monitor projection lag — if it's often visible, the projector may be under-provisioned or stuck.
+followUps:
+  - q: Event notification vs event-carried state transfer?
+    intuition: Thin pointer vs full payload.
+    approach: |
+      Notification events carry just identifiers; consumers call the producer for details — small events, but runtime coupling and extra load on the producer. State-transfer events carry the relevant data; consumers maintain local copies and work even when the producer is down — at the cost of larger events, data duplication and a stricter schema contract.
+  - q: How do you evolve event schemas in an event-sourced system?
+    intuition: Old events live forever.
+    approach: |
+      Prefer additive changes (new optional fields with defaults). For meaning changes, introduce a new event type or version and **upcast** older events into the new shape when reading, so domain code handles only the latest. Never rewrite history in place except via a deliberate, audited migration (copy-and-transform into a new store). Keep a schema registry and compatibility checks for integration events.
+  - q: How does optimistic concurrency work in an event store?
+    intuition: Expected version.
+    approach: |
+      A command handler loads stream version N, decides, and appends events at N+1… with a uniqueness constraint on (stream, version) or an explicit expected-version check. If another writer appended first, the append fails; the handler reloads and re-runs the command, which may now be rejected (e.g. insufficient funds). No locks are held during decision-making.
+  - q: When is CQRS not worth it?
+    intuition: When reads and writes look the same.
+    approach: |
+      For simple CRUD domains where the read shape equals the write shape, with modest scale — CQRS adds sync infrastructure, eventual consistency and more code for no benefit. Introduce it where read patterns differ greatly (search, dashboards, feeds) or read load dwarfs write load.
+practice:
+  - task: Implement an event-sourced bank account with Open, Deposit and Withdraw commands, replay, and an optimistic-concurrency append.
+    hint: Separate pure apply(event) from command handlers that validate and return events.
+    solution: |
+      Define events (Opened, Deposited, Withdrawn) and a state (open, balance, version). `apply` updates state per event without validation; `replay` folds the history from an empty state. Command handlers check invariants (must be open, positive amount, sufficient funds) and return new events. To handle a command: load the stream, replay, decide, and append with the version you read as the expected version; on conflict reload and retry.
+    solutionCode: es-account
+quiz:
+  - q: Which is an event, not a command?
+    options: [CancelOrder, ReserveStock, PaymentCaptured, SendInvoice]
+    correct: 2
+    why: Events are past-tense facts; the others are requests that may be rejected.
+  - q: Does CQRS require event sourcing?
+    options: [Yes, always, No — read models can be fed from a normal database via events or CDC, Only with Kafka, Only for microservices]
+    correct: 1
+    why: CQRS is about separate read and write models; event sourcing is one way to feed them.

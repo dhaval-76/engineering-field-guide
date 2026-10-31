@@ -1,0 +1,37 @@
+questions:
+  - q: 'Users report checkout is "sometimes slow", but the average latency dashboard looks fine. How do you investigate?'
+    think: Averages hide tails; find the slow requests and follow them.
+    answer: |
+      Look at **percentiles** from the latency histogram (p95, p99, p99.9) — "sometimes slow" is a tail problem the mean hides — and break them down by route, status, instance and dependency. Use **exemplars** or tail-sampled traces to open specific slow requests and see which span dominates (a downstream call, a DB query, waiting for a pooled connection). Check **saturation** (thread pool and connection pool wait times, GC pauses, CPU throttling in containers). Read the logs for those trace ids. Common culprits: one slow instance, pool exhaustion, a cold cache, N+1 queries for large carts, retries. Then add an SLO on p99 so it's caught next time.
+  - q: Define SLOs and alerting for a payment API.
+    think: What does the user experience, and when should a human wake up?
+    answer: |
+      SLIs: availability = successful (non-5xx, non-timeout) authorisation requests / all; latency = fraction under 800 ms. SLOs: 99.95% availability and 99% < 800 ms over 30 days, plus a business SLI (authorisation success rate excluding legitimate declines). Alerts: multi-window **burn-rate** alerts — page at 14× burn over 1 h (confirmed over 5 min) and at 6× over 6 h, ticket at 1× over 3 days; latency SLO burn similarly; anomaly alert on business success rate. Each alert links a dashboard and runbook. Exclude client errors (4xx) from availability. Review the error budget monthly; when exhausted, freeze risky launches.
+followUps:
+  - q: Why not use user id as a metric label?
+    intuition: Every label value combination is a new time series.
+    approach: |
+      Metrics systems store one series per unique label combination. A million users × routes × status codes creates millions of series — memory blow-ups, slow queries and big bills. Keep labels bounded (route template, status class, region); put user and order ids on spans and logs, where per-event detail is expected.
+  - q: What is the difference between an SLI, SLO and SLA?
+    intuition: Measure, target, contract.
+    approach: |
+      An SLI is a measured indicator of user experience (success ratio, latency under a threshold). An SLO is the internal target for it over a window (99.9% over 30 days), giving an error budget. An SLA is an external contract, usually looser, with financial penalties when missed.
+  - q: Head vs tail sampling for traces?
+    intuition: Decide at the start or at the end.
+    approach: |
+      Head sampling decides when the trace starts (keep 5%) — cheap and simple, but most interesting traces (errors, slow ones) are dropped. Tail sampling buffers spans in a collector until the trace completes and keeps all errors and slow traces plus a sample of the rest — better for debugging, but the collector needs memory and all spans of a trace must reach the same collector.
+practice:
+  - task: Instrument a checkout operation with a span, a counter, a latency histogram and a structured log line that includes the trace id.
+    hint: Low-cardinality metric labels; ids as span attributes; record errors on the span.
+    solution: |
+      Start a span named `checkout` and set attributes (cart id, item count, channel). Time the operation; on success increment `orders.placed{channel}` and log a JSON event with order id and total; on failure record the exception and set the span status to error. In `finally`, record the duration in a histogram with `channel` and `outcome` labels and end the span. Configure the logger to add the active trace id to every line. In Spring, a Micrometer `Observation` gives the timer and span together.
+    solutionCode: instrument
+quiz:
+  - q: Which signal best answers "which downstream call made this request slow"?
+    options: [A counter metric, A distributed trace, CPU utilisation, An uptime check]
+    correct: 1
+    why: A trace shows each hop's timing within one request.
+  - q: Which is a good metric label?
+    options: [user_id, full request URL, 'route template like /orders/{id}', order_id]
+    correct: 2
+    why: Route templates have few values; ids and raw URLs explode cardinality.

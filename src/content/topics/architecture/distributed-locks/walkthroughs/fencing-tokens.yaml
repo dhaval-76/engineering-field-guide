@@ -1,0 +1,30 @@
+title: Why a lease alone isn't safe — and how fencing fixes it
+frames:
+  - caption: 'Client A acquires a lock with a 10 s lease and starts writing a file in shared storage. The lock service also returns a **fencing token**: 33.'
+    panels:
+      - kind: kv
+        label: Lock
+        pairs: [[holder, A], [token, { v: '33', tone: accent }], [expires, 't = 10 s']]
+  - caption: 'A hits a long garbage-collection pause (or a slow network, or a paused VM). It doesn''t know time is passing.'
+    panels:
+      - kind: rows
+        label: Client A
+        items: [{ v: 'paused …', tone: warn }]
+  - caption: 'The lease expires. Client B acquires the lock legitimately and gets token **34**, then writes to storage.'
+    panels:
+      - kind: kv
+        label: Lock
+        pairs: [[holder, B], [token, { v: '34', tone: ok }]]
+      - kind: kv
+        label: Storage
+        pairs: [[highest token seen, '34']]
+  - caption: 'A wakes up, still believing it holds the lock, and sends its write. **Without fencing**, it overwrites B''s data — two "lock holders" at once.'
+    panels:
+      - kind: rows
+        label: Without fencing
+        items: [{ v: 'A writes with token 33 → accepted → corruption', tone: bad }]
+  - caption: '**With fencing**, storage rejects any write whose token is lower than one it has already seen. The lock''s safety now lives in the resource, not in clocks and timing.'
+    panels:
+      - kind: rows
+        label: With fencing
+        items: [{ v: 'A writes with token 33 < 34 → rejected', tone: ok }]

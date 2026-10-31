@@ -1,0 +1,37 @@
+questions:
+  - q: 'You run 3 instances of a job scheduler for availability, but jobs must be triggered exactly once. Design the leader election.'
+    think: One active instance, fast failover, no overlap.
+    answer: |
+      Use a consensus-backed lease: each instance campaigns for an election key in etcd (or ZooKeeper ephemeral sequential nodes, or a Kubernetes `Lease`). The winner holds a lease with a ~10 s TTL kept alive by heartbeats; others watch and take over when it expires. The leader gets a **fencing token** (etcd revision / election sequence) and passes it with every job trigger; the job store rejects triggers with an older token, so a paused ex-leader can't double-trigger. The leader stops scheduling as soon as a keep-alive fails, and resigns on graceful shutdown for fast handover. Jobs are also **idempotent** (unique run id per job and scheduled time), so any duplicate that slips through is harmless.
+  - q: 'A 5-node etcd cluster is split by a network partition into 3 and 2 nodes. What happens on each side?'
+    think: Majorities.
+    answer: |
+      The 3-node side has a majority: if the leader is there it continues; otherwise a node times out and wins an election with 3 votes. Writes and linearizable reads succeed. The 2-node side can't form a majority: an old leader there can't commit (no acknowledgements from a majority) and steps down when its lease/term is superseded; elections fail. Clients there see errors or timeouts. When the partition heals, the minority nodes see the higher term, become followers and catch up their logs. No conflicting writes are ever committed.
+followUps:
+  - q: Why do Raft elections use randomised timeouts?
+    intuition: Avoid everyone standing up at once.
+    approach: |
+      If all followers timed out simultaneously they'd all become candidates, split the votes, and no one would get a majority — repeatedly. Randomising each node's timeout (e.g. 150–300 ms) makes it likely one node starts first and wins before others time out.
+  - q: Why does a cluster of 4 tolerate only one failure?
+    intuition: Majority of 4 is 3.
+    approach: |
+      A decision needs a strict majority — 3 of 4 — so losing 2 nodes leaves 2, not enough. 3 nodes also tolerate 1 failure with fewer machines and faster commits. That's why consensus clusters use odd sizes.
+  - q: What makes a candidate's log "up to date" in Raft?
+    intuition: Compare last term, then length.
+    approach: |
+      Compare the last entry's term: higher term is more up to date; if equal, the longer log wins. Voters reject candidates less up to date than themselves. Because a committed entry is on a majority and the winner needs a majority of votes, at least one voter has the entry and would refuse a candidate lacking it — so new leaders always contain all committed entries.
+practice:
+  - task: Implement Raft's RequestVote handling and the leader's commit-index rule.
+    hint: One vote per term, up-to-date check; commit the highest index replicated on a majority whose entry is from the current term.
+    solution: |
+      Vote: reject if the request's term is older; if newer, adopt it and clear `votedFor`; grant if not yet voted (or voted for this candidate) and the candidate's last log term is higher, or equal with an index at least as long. Commit: sort match indexes (including the leader's own), take the value at the majority position; advance the commit index to it only if it's higher and that entry's term equals the current term.
+    solutionCode: raft-rules
+quiz:
+  - q: How many node failures does a 5-node Raft cluster tolerate while still accepting writes?
+    options: ['1', '2', '3', '4']
+    correct: 1
+    why: A majority of 5 is 3, so up to 2 nodes can fail.
+  - q: When is a Raft log entry committed?
+    options: [When the leader writes it, When a majority of nodes have stored it, When all nodes have stored it, After a fixed delay]
+    correct: 1
+    why: Majority storage guarantees any future leader has the entry.

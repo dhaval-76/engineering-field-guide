@@ -1,0 +1,41 @@
+questions:
+  - q: 'Design checkout across Order, Inventory and Payment services so an order is never charged without stock, and stock is never held for a failed payment.'
+    think: Local transactions, compensations, and reliable messages.
+    answer: |
+      An **orchestrated saga** owned by the order service (or a workflow engine): (1) create order `PENDING`; (2) reserve stock — inventory marks units `RESERVED` with an expiry; (3) authorise payment; (4) confirm stock deduction and mark the order `CONFIRMED`; (5) capture payment and ship. Failures compensate in reverse: payment declined → release reservation → order `REJECTED`. Every command and reply goes through an **outbox** (same transaction as the state change) and is handled through an **inbox** (idempotent). Saga state is persisted with timeouts — a step with no reply after N seconds is retried or compensated. Reservation expiry protects against stuck sagas. Capturing money is the pivot: after it the saga only moves forward (shipping issues become refunds through a separate flow).
+  - q: 'Your service saves an order and then publishes OrderPlaced to Kafka. Occasionally downstream services never hear about an order. Why, and how do you fix it?'
+    think: Two systems, no shared transaction.
+    answer: |
+      It's the **dual write problem**: the process can crash, or Kafka can be unavailable, after the database commit and before the publish succeeds — the order exists, the event doesn't. Retrying in memory doesn't survive crashes. Fix with the **transactional outbox**: insert the event into an `outbox` table in the same transaction as the order; a relay (polling with `FOR UPDATE SKIP LOCKED`, or CDC with Debezium) publishes it and marks it sent. This is at-least-once, so consumers must be idempotent (inbox table or natural idempotency). Key messages by order id to keep per-order ordering.
+followUps:
+  - q: Orchestration vs choreography?
+    intuition: Conductor vs dancers reacting to each other.
+    approach: |
+      Choreography: services publish events and react to others' events — no central coordinator, low coupling for short flows, but the overall process is implicit and hard to monitor or change. Orchestration: a coordinator sends commands and tracks state — explicit, observable, easy to add timeouts and branches, at the cost of a central component. Use choreography for 2–3 steps, orchestration (often a workflow engine) beyond that.
+  - q: What makes a good compensating action?
+    intuition: A business undo that always succeeds.
+    approach: |
+      It semantically reverses the step (refund, release, cancel) rather than deleting history; it's idempotent and retryable; it cannot be rejected by business rules; and it's recorded. Some steps can't be compensated (an email sent, goods shipped) — put them after the pivot so they only happen once the saga will succeed.
+  - q: Does the outbox give exactly-once delivery?
+    intuition: Publishing vs processing.
+    approach: |
+      No — publishing is at-least-once (the relay may resend after a crash). Exactly-once *effects* come from combining it with idempotent consumers: an inbox table in the same transaction as the change, or naturally idempotent updates. Kafka's transactions give exactly-once only within Kafka-to-Kafka processing.
+  - q: Why do sagas need semantic locks?
+    intuition: No isolation between steps.
+    approach: |
+      Each step commits independently, so other transactions see intermediate states — stock reserved for an order that's about to fail, or money authorised but not captured. Marking records with pending states (RESERVED, PENDING) tells readers the data is in flux and lets them wait, skip or treat it specially, preventing anomalies like overselling or double-booking.
+practice:
+  - task: Implement a saga orchestrator that runs steps in order, records progress, compensates completed steps in reverse when one fails, and escalates if a compensation keeps failing.
+    hint: Keep the list of completed steps; retry compensations; return COMPLETED / COMPENSATED / NEEDS_ATTENTION.
+    solution: |
+      For each step: log STARTED, execute, log DONE and remember it; on exception log FAILED and compensate. Compensation walks the completed steps backwards, retrying each up to N times (with backoff in production), logging COMPENSATED or COMPENSATION_FAILED; on a failure stop and return NEEDS_ATTENTION for manual handling. If all succeed, log the saga as COMPENSATED. In production the log is a table, and a restarted orchestrator resumes from it.
+    solutionCode: saga-orchestrator
+quiz:
+  - q: An order is saved and an event published in two steps. What pattern makes them atomic?
+    options: [Two-phase commit with Kafka, Transactional outbox, Retrying the publish in memory, A distributed lock]
+    correct: 1
+    why: The event row commits with the order; a relay publishes it afterwards.
+  - q: A compensation fails three times. What should the orchestrator do?
+    options: [Ignore it, Retry with backoff and escalate to a human if it keeps failing, Delete the saga, Run the forward step again]
+    correct: 1
+    why: Compensations must eventually succeed; persistent failure needs attention, not guessing.

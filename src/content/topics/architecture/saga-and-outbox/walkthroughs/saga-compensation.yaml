@@ -1,0 +1,26 @@
+title: An orchestrated order saga that fails at payment
+frames:
+  - caption: 'The orchestrator persists a saga record, then asks each service to do its local transaction in turn. Each step is recorded before and after, so a crashed orchestrator can resume from the log.'
+    panels:
+      - kind: rows
+        label: Saga log — order A-1001
+        items: [{ v: 'create order (PENDING) — DONE', tone: ok }]
+  - caption: 'Inventory reserves stock (not deducted yet — a **semantic lock**: other sagas see it as reserved).'
+    panels:
+      - kind: rows
+        label: Saga log
+        items: [{ v: 'create order (PENDING) — DONE', tone: ok }, { v: 'reserve stock — DONE', tone: ok }]
+  - caption: 'Payment is declined. There''s no rollback across services, so the orchestrator runs **compensations** for the completed steps, newest first.'
+    panels:
+      - kind: rows
+        label: Saga log
+        items: [{ v: 'create order — DONE', tone: ok }, { v: 'reserve stock — DONE', tone: ok }, { v: 'charge card — FAILED', tone: bad }]
+  - caption: 'Release the stock, then mark the order REJECTED. Compensations are retried until they succeed — they must be idempotent and must not fail for business reasons.'
+    panels:
+      - kind: rows
+        label: Saga log
+        items: [{ v: 'release stock — COMPENSATED', tone: warn }, { v: 'order → REJECTED — COMPENSATED', tone: warn }, { v: 'saga — COMPENSATED', tone: muted }]
+  - caption: 'Every message between orchestrator and services goes through an **outbox** on the sending side and an **inbox** on the receiving side, so no command is lost and none is applied twice.'
+    panels:
+      - kind: note
+        text: 'DB write + outbox row (one tx) → relay → broker → inbox check + DB write (one tx)'

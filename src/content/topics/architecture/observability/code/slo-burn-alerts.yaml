@@ -1,0 +1,48 @@
+# Prometheus rules: 99.9% availability SLO over 30 days → error budget = 0.1% of requests.
+# Multi-window burn-rate alerts (Google SRE workbook): page on 14.4x/1h and 6x/6h, ticket on 1x/3d.
+groups:
+  - name: checkout-slo
+    rules:
+      - record: checkout:error_ratio:rate5m
+        expr: |
+          sum(rate(http_server_requests_seconds_count{service="checkout", status=~"5.."}[5m]))
+          / sum(rate(http_server_requests_seconds_count{service="checkout"}[5m]))
+      - record: checkout:error_ratio:rate1h
+        expr: |
+          sum(rate(http_server_requests_seconds_count{service="checkout", status=~"5.."}[1h]))
+          / sum(rate(http_server_requests_seconds_count{service="checkout"}[1h]))
+      - record: checkout:error_ratio:rate30m
+        expr: |
+          sum(rate(http_server_requests_seconds_count{service="checkout", status=~"5.."}[30m]))
+          / sum(rate(http_server_requests_seconds_count{service="checkout"}[30m]))
+      - record: checkout:error_ratio:rate6h
+        expr: |
+          sum(rate(http_server_requests_seconds_count{service="checkout", status=~"5.."}[6h]))
+          / sum(rate(http_server_requests_seconds_count{service="checkout"}[6h]))
+
+      # 14.4× burn for 1h spends 2% of a 30-day budget: page someone now.
+      - alert: CheckoutErrorBudgetFastBurn
+        expr: checkout:error_ratio:rate1h > (14.4 * 0.001) and checkout:error_ratio:rate5m > (14.4 * 0.001)
+        labels: { severity: page }
+        annotations:
+          summary: Checkout is burning its error budget 14x too fast
+          runbook: https://runbooks.example.com/checkout-errors
+
+      # 6× burn for 6h spends 5% of the budget: also worth a page.
+      - alert: CheckoutErrorBudgetSlowBurn
+        expr: checkout:error_ratio:rate6h > (6 * 0.001) and checkout:error_ratio:rate30m > (6 * 0.001)
+        labels: { severity: page }
+
+      # 1× burn for 3 days spends 10% of the budget: a ticket, fix in working hours.
+      - alert: CheckoutErrorBudgetTicket
+        expr: |
+          (sum(rate(http_server_requests_seconds_count{service="checkout", status=~"5.."}[3d]))
+            / sum(rate(http_server_requests_seconds_count{service="checkout"}[3d]))) > 0.001
+        labels: { severity: ticket }
+
+      # Latency SLO: 99% of requests under 500 ms (needs histogram buckets)
+      - alert: CheckoutLatencyP99High
+        expr: |
+          histogram_quantile(0.99, sum by (le) (rate(http_server_requests_seconds_bucket{service="checkout"}[10m]))) > 0.5
+        for: 10m
+        labels: { severity: ticket }
