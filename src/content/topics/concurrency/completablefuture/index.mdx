@@ -15,7 +15,7 @@ quickRef:
     - '`join()` throws unchecked `CompletionException`; `get()` throws checked `ExecutionException` — unwrap `getCause()`.'
     - Non-`Async` callbacks run on whichever thread completed the previous stage; use `…Async(fn, executor)` for slow callbacks.
   useWhen: Fanning out to several services, or chaining non-blocking steps without tying up a thread per request.
-lastReviewed: 2026-10-30
+lastReviewed: 2026-10-31
 ---
 
 ## Why it matters
@@ -58,7 +58,7 @@ A failed stage skips every following transformation until something handles it �
 - `supplyAsync(fn)` **without** an executor uses `ForkJoinPool.commonPool()` — sized to CPU cores − 1 and shared by the whole JVM (parallel streams too). Blocking I/O there starves everyone.
 - `thenApply(fn)` runs on the thread that completed the previous stage — or immediately on the caller's thread if the future is already done. Fine for quick transforms.
 - `thenApplyAsync(fn, executor)` hands the callback to your executor. Use it for anything slow.
-- With **virtual threads** (Java 21+), plain blocking code in `newVirtualThreadPerTaskExecutor` is often simpler than long callback chains; `CompletableFuture` is still useful for combining and timeouts. Structured concurrency (`StructuredTaskScope`, preview) aims at the same fan-out-and-join problem.
+- With **virtual threads** (Java 21+), plain blocking code in `newVirtualThreadPerTaskExecutor` is often simpler than long callback chains; `CompletableFuture` is still useful for combining and timeouts. Structured concurrency (`StructuredTaskScope`) targets the same fan-out-and-join problem with automatic cancellation of sibling tasks; it is a preview API through JDK 27 and is final in JDK 28 (March 2027).
 
 <Pitfalls>
 
