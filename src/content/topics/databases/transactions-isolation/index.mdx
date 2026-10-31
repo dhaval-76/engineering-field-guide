@@ -16,7 +16,7 @@ quickRef:
     - 'Serializable and deadlocks abort transactions by design: **retry the whole transaction** on `40001` / `40P01`.'
     - '`FOR UPDATE SKIP LOCKED` turns a table into a safe work queue.'
   useWhen: Writing code where concurrent requests read and modify the same data — balances, stock, bookings, quotas, job queues.
-lastReviewed: 2026-10-30
+lastReviewed: 2026-10-31
 ---
 
 ## Why it matters
@@ -76,6 +76,19 @@ The most common bug: read a value into application code, change it, write it bac
 <CodeTabs id="write-skew" title="The on-call bug and three fixes" />
 
 Write skew is the anomaly snapshot isolation doesn't prevent, because the two transactions never write the *same* row. Typical cases: "at least one doctor on call", "a meeting room can't be double-booked" (insert two overlapping bookings), "a username must be unique" (without a unique constraint), "total spending under a limit across several cards". Fixes: run it as **Serializable**; **lock the rows the decision depends on** (`FOR UPDATE` on the set — but you can't lock rows that don't exist yet); or **materialize the conflict** as a constraint the database enforces: a unique index, an exclusion constraint for overlapping ranges, a single "summary" row that every transaction updates.
+
+### What PostgreSQL actually does
+
+We ran both anomalies against PostgreSQL 14 with two connections interleaved step by step (both read, then both write):
+
+| Scenario | Isolation level | Outcome |
+|---|---|---|
+| Two read-modify-write increments of 10 | Read Committed | both commit — result **11**, one increment silently lost |
+| Same | Repeatable Read | second transaction fails with a **serialization error** — retry it |
+| Two doctors each go off call if 2 are on call | Repeatable Read | both commit — **0 doctors** on call (write skew) |
+| Same | Serializable | second transaction fails with a **serialization error** — 1 doctor stays |
+
+The pattern to remember: Repeatable Read protects a row you read **and** write; only Serializable (or an explicit lock or constraint) protects a decision based on rows you read but **don't** write.
 
 ## Locking reads and job queues
 
