@@ -6,7 +6,10 @@ class JobRunner {
     private final Map<String, JobHandler> handlers;
     private final String workerId = "worker-" + UUID.randomUUID();
 
-    /** Claim up to `batch` due jobs in my partitions; commit the claim before running anything. */
+    /**
+     * Claim up to `batch` due jobs in my partitions; commit the claim before running
+     * anything.
+     */
     List<Claimed> claim(List<Integer> partitions, int batch) {
         return tx.execute(s -> jdbc.query("""
             UPDATE jobs j SET status = 'RUNNING', lease_owner = ?, lease_until = now() + ?::interval,

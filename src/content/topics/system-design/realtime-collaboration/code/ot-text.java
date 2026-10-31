@@ -3,7 +3,10 @@ record Insert(int pos, String text) implements Op {}
 record Delete(int pos, int len) implements Op {}
 
 final class Ot {
-    /** Rewrite `op` so it applies AFTER `applied` (both were made against the same revision). */
+    /**
+     * Rewrite `op` so it applies AFTER `applied` (both were made against the same
+     * revision).
+     */
     static Op transform(Op op, Op applied, boolean opWinsTies) {
         return switch (op) {
             case Insert ins -> switch (applied) {

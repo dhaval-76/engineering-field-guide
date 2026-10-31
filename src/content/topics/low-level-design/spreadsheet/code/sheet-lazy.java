@@ -1,4 +1,7 @@
-/** Alternative: mark dependents dirty on write, recompute on read (good when most cells are never viewed). */
+/**
+ * Alternative: mark dependents dirty on write, recompute on read (good when most cells
+ * are never viewed).
+ */
 final class LazySheet {
     private final Map<String, Cell> cells = new HashMap<>();
     private final Map<String, Set<String>> dependents = new HashMap<>();

@@ -43,7 +43,10 @@ final class PricingEngine {
     private final TaxPolicy tax;
     PricingEngine(Catalogue catalogue, TaxPolicy tax) { this.catalogue = catalogue; this.tax = tax; }
 
-    /** Pipeline: item-level promos → order-level promos → coupons → tax. Best offer per non-stacking group. */
+    /**
+     * Pipeline: item-level promos → order-level promos → coupons → tax. Best offer per
+     * non-stacking group.
+     */
     PriceBreakdown price(Cart cart, List<Promotion> active) {
         List<PricedLine> lines = cart.lines().stream().map(l -> {
             Product p = catalogue.get(l.sku());

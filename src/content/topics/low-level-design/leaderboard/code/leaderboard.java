@@ -1,4 +1,6 @@
-/** In-memory leaderboard: higher score first; ties go to whoever reached the score first. */
+/**
+ * In-memory leaderboard: higher score first; ties go to whoever reached the score first.
+ */
 class Leaderboard {
     private record Entry(String player, long score, long reachedAt) {}
 
@@ -31,7 +33,10 @@ class Leaderboard {
         return out;
     }
 
-    /** 1-based rank, or -1. headSet().size() walks the tree: O(n). Redis ZREVRANK does this in O(log n). */
+    /**
+     * 1-based rank, or -1. headSet().size() walks the tree: O(n). Redis ZREVRANK does
+     * this in O(log n).
+     */
     synchronized int rank(String player) {
         Entry e = byPlayer.get(player);
         return e == null ? -1 : ranking.headSet(e).size() + 1;

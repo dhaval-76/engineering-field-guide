@@ -7,7 +7,10 @@ int numIslands(char[][] grid) {
     return count;
 }
 
-/** Iterative flood fill: no stack overflow on a 1000×1000 all-land grid. Marks visited by sinking. */
+/**
+ * Iterative flood fill: no stack overflow on a 1000×1000 all-land grid. Marks visited by
+ * sinking.
+ */
 private void sink(char[][] grid, int r0, int c0) {
     Deque<int[]> stack = new ArrayDeque<>();
     stack.push(new int[]{r0, c0});

@@ -9,7 +9,9 @@ class TransactionRetrier {
         this.tx.setIsolationLevel(TransactionDefinition.ISOLATION_SERIALIZABLE);
     }
 
-    /** Runs the WHOLE unit of work again on a retryable failure — every read is redone. */
+    /**
+     * Runs the WHOLE unit of work again on a retryable failure — every read is redone.
+     */
     public <T> T run(Supplier<T> work) {
         for (int attempt = 1; ; attempt++) {
             try {

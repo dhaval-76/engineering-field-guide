@@ -1,4 +1,7 @@
-/** Any binary tree: the first node where p and q are found in different subtrees (or it is one of them). */
+/**
+ * Any binary tree: the first node where p and q are found in different subtrees (or it is
+ * one of them).
+ */
 TreeNode lowestCommonAncestor(TreeNode n, TreeNode p, TreeNode q) {
     if (n == null || n == p || n == q) return n;
     TreeNode left = lowestCommonAncestor(n.left, p, q);

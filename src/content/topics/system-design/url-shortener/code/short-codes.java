@@ -20,7 +20,10 @@ final class ShortCodes {
         return n;
     }
 
-    /** Spread consecutive ids across the code space so codes aren't sequential (not encryption). */
+    /**
+     * Spread consecutive ids across the code space so codes aren't sequential (not
+     * encryption).
+     */
     static String scrambled(long id) {
         BigInteger n = BigInteger.valueOf(id);
         if (n.signum() < 0 || n.compareTo(SPACE) >= 0) throw new IllegalArgumentException("id out of range");
@@ -36,7 +39,9 @@ final class ShortCodes {
     }
 }
 
-/** Each instance reserves 10,000 ids at a time, so creating a link needs no shared call. */
+/**
+ * Each instance reserves 10,000 ids at a time, so creating a link needs no shared call.
+ */
 final class IdRange {
     private final JdbcTemplate jdbc;
     private long next, end;                                        // [next, end)

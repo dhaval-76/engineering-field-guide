@@ -1,4 +1,6 @@
-/** Hands events to a background thread so request threads never wait on disk or network. */
+/**
+ * Hands events to a background thread so request threads never wait on disk or network.
+ */
 class AsyncAppender implements Appender {
     private final BlockingQueue<LogEvent> queue;
     private final Appender target;

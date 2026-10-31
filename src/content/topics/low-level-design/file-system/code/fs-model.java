@@ -1,4 +1,7 @@
-/** Composite: files and directories share one type, so traversal code treats them uniformly. */
+/**
+ * Composite: files and directories share one type, so traversal code treats them
+ * uniformly.
+ */
 sealed abstract class Node permits FileNode, DirNode {
     final String name;
     DirNode parent;

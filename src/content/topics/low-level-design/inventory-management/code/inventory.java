@@ -1,7 +1,10 @@
 record StockKey(String warehouse, String sku) {}
 record Reservation(String id, String orderId, StockKey key, int qty, long expiresAt) {}
 
-/** Picks a warehouse that can fill the whole quantity — Strategy, so "nearest", "cheapest" etc. plug in. */
+/**
+ * Picks a warehouse that can fill the whole quantity — Strategy, so "nearest", "cheapest"
+ * etc. plug in.
+ */
 interface AllocationStrategy {
     Optional<String> choose(String sku, int qty, Map<String, Integer> availableByWarehouse);
 }

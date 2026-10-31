@@ -1,4 +1,7 @@
-/** "Have we seen this URL?" in ~10 bits per URL. No false negatives; a tunable rate of false positives. */
+/**
+ * "Have we seen this URL?" in ~10 bits per URL. No false negatives; a tunable rate of
+ * false positives.
+ */
 class BloomFilter {
     final long m; final int k;
     private final long[] bits;

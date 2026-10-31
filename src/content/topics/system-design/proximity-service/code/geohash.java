@@ -57,7 +57,10 @@ final class Geohash {
 
     record Place(String id, double lat, double lon) {}
 
-    /** index: geohash cell → places. Cells must be at least radiusKm wide for 9 cells to cover the circle. */
+    /**
+     * index: geohash cell → places. Cells must be at least radiusKm wide for 9 cells to
+     * cover the circle.
+     */
     static List<String> nearby(Map<String, List<Place>> index, double lat, double lon, double radiusKm, int precision) {
         List<Map.Entry<Double, String>> hits = new ArrayList<>();
         for (String cell : neighbours(encode(lat, lon, precision)))

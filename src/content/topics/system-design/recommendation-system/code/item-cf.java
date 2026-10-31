@@ -1,7 +1,10 @@
 final class ItemCF {
     record Neighbour(String item, double sim) {}
 
-    /** Offline batch job: cosine similarity from co-occurrence; keep the top N neighbours per item. */
+    /**
+     * Offline batch job: cosine similarity from co-occurrence; keep the top N neighbours
+     * per item.
+     */
     static Map<String, List<Neighbour>> itemNeighbours(Map<String, Set<String>> interactions, int topN) {
         Map<String, Integer> usersOf = new HashMap<>();
         Map<String, Map<String, Integer>> co = new HashMap<>();

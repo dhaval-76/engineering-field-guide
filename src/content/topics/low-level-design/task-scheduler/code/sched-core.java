@@ -1,4 +1,7 @@
-/** A task due at `runAtNanos`. DelayQueue orders by remaining delay and only releases due tasks. */
+/**
+ * A task due at `runAtNanos`. DelayQueue orders by remaining delay and only releases due
+ * tasks.
+ */
 final class ScheduledTask implements Delayed {
     final String id;
     final Runnable body;

@@ -2,7 +2,10 @@
 class Ledger {
     private final JdbcTemplate jdbc;
 
-    /** Moves `amount` minor units from one account to another exactly once per idempotency key. */
+    /**
+     * Moves `amount` minor units from one account to another exactly once per idempotency
+     * key.
+     */
     @Transactional
     public UUID transfer(String idempotencyKey, long from, long to, long amount) {
         if (amount <= 0) throw new IllegalArgumentException("amount must be positive");

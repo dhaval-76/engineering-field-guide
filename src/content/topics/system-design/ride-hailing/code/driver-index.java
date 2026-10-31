@@ -1,4 +1,7 @@
-/** In-memory index of moving drivers for one city shard: frequent updates, expiry, nearest-k by rings. */
+/**
+ * In-memory index of moving drivers for one city shard: frequent updates, expiry,
+ * nearest-k by rings.
+ */
 class DriverIndex {
     // degrees ≈ 1.1 km of latitude
     static final double CELL = 0.01;
@@ -22,7 +25,10 @@ class DriverIndex {
         cells.computeIfAbsent(cellOf(lat, lon), c -> new HashSet<>()).add(id);
     }
 
-    /** Atomically take an available driver for one offer, so two riders can't both get them. */
+    /**
+     * Atomically take an available driver for one offer, so two riders can't both get
+     * them.
+     */
     synchronized boolean claim(String id) {
         Driver d = drivers.get(id);
         if (d == null || !d.available()) return false;
@@ -41,7 +47,10 @@ class DriverIndex {
         return gone.size();
     }
 
-    /** Search rings of cells outward until k drivers are found that are closer than any unvisited cell. */
+    /**
+     * Search rings of cells outward until k drivers are found that are closer than any
+     * unvisited cell.
+     */
     synchronized List<String> nearest(double lat, double lon, int k, double maxKm, double now) {
         Cell c = cellOf(lat, lon);
         // narrowest side

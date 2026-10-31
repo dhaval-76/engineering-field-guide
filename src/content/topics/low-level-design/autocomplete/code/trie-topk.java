@@ -16,7 +16,10 @@ final class RankedAutocomplete {
     private final Node root = new Node();
     private final Map<String, Long> scores = new HashMap<>();
 
-    /** Add `delta` to a phrase's score (e.g. +1 per search) and refresh the caches on its path. */
+    /**
+     * Add `delta` to a phrase's score (e.g. +1 per search) and refresh the caches on its
+     * path.
+     */
     synchronized void record(String phrase, long delta) {
         String p = phrase.trim().toLowerCase(Locale.ROOT);
         long score = scores.merge(p, delta, Long::sum);

@@ -13,7 +13,9 @@ class GatewaySecurity {
             .build();
     }
 
-    /** Rate-limit key: API key for partners, user id for signed-in users, IP otherwise. */
+    /**
+     * Rate-limit key: API key for partners, user id for signed-in users, IP otherwise.
+     */
     @Bean
     KeyResolver apiKeyResolver() {
         return exchange -> {

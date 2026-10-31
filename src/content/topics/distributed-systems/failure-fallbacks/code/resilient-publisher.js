@@ -61,7 +61,10 @@ export class FileSpool {
   }
 }
 
-/** Minimal breaker: opens after N consecutive failures, lets traffic try again after a cool-down. */
+/**
+ * Minimal breaker: opens after N consecutive failures, lets traffic try again after a
+ * cool-down.
+ */
 export class Breaker {
   constructor(threshold, coolDownMs, clock = Date.now) {
     Object.assign(this, { threshold, coolDownMs, clock, failures: 0, openedAt: 0, state: 'CLOSED' });
@@ -123,7 +126,10 @@ export class ResilientPublisher {
     else this.#spooledPerKey.set(key, n);
   }
 
-  /** Call on a timer (e.g. setInterval every 100 ms). Returns how many events were replayed. */
+  /**
+   * Call on a timer (e.g. setInterval every 100 ms). Returns how many events were
+   * replayed.
+   */
   async drainOnce() {
     if (this.#draining) return 0; // one drain at a time keeps the spool's order
     this.#draining = true;

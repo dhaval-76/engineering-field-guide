@@ -71,7 +71,9 @@ class VendingMachine {
     synchronized void loadCoins(int coin, int count) { coinBox.merge(coin, count, Integer::sum); }
     synchronized void setOutOfService(boolean off) { state = off ? State.OUT_OF_SERVICE : State.IDLE; }
 
-    /** Fewest coins for `amount` from a box with limited counts (greedy can fail here). */
+    /**
+     * Fewest coins for `amount` from a box with limited counts (greedy can fail here).
+     */
     static Optional<Map<Integer, Integer>> makeChange(int amount, Map<Integer, Integer> box) {
         List<Map.Entry<Integer, Integer>> coins = new ArrayList<>(box.entrySet());
         int d = coins.size(), inf = Integer.MAX_VALUE / 2;

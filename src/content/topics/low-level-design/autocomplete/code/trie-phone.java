@@ -1,4 +1,7 @@
-/** Digits-only trie with the contact stored at the end node; prefix search returns contacts. */
+/**
+ * Digits-only trie with the contact stored at the end node; prefix search returns
+ * contacts.
+ */
 final class PhoneDirectory {
     private static final class Node { final Node[] next = new Node[10]; final List<Contact> contacts = new ArrayList<>(); }
     record Contact(String name, String number) {}

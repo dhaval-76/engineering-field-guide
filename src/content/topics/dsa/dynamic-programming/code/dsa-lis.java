@@ -11,7 +11,10 @@ int lengthOfLISQuadratic(int[] nums) {
     return best;
 }
 
-/** O(n log n): tails[k] = smallest possible tail of an increasing subsequence of length k + 1. */
+/**
+ * O(n log n): tails[k] = smallest possible tail of an increasing subsequence of length k
+ * + 1.
+ */
 int lengthOfLIS(int[] nums) {
     int[] tails = new int[nums.length];
     int size = 0;

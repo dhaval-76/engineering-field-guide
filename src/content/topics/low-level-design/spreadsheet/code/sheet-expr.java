@@ -24,7 +24,10 @@ sealed interface Expr {
     }
 }
 
-/** Recursive-descent parser: expr := term (('+'|'-') term)*, term := factor (('*'|'/') factor)*. */
+/**
+ * Recursive-descent parser: expr := term (('+'|'-') term)*, term := factor (('*'|'/')
+ * factor)*.
+ */
 final class Parser {
     private final String s; private int i;
     private Parser(String s) { this.s = s.replace(" ", ""); }

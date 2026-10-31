@@ -3,7 +3,10 @@ enum SpotSize { SMALL, MEDIUM, LARGE }
 
 record Vehicle(String plate, VehicleType type) {}
 
-/** Which spot sizes a vehicle may use, smallest first (so cars don't take truck spots unnecessarily). */
+/**
+ * Which spot sizes a vehicle may use, smallest first (so cars don't take truck spots
+ * unnecessarily).
+ */
 final class SpotRules {
     static List<SpotSize> fitsIn(VehicleType t) {
         return switch (t) {

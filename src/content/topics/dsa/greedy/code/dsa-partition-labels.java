@@ -1,4 +1,6 @@
-/** Split s into as many parts as possible so that each letter appears in at most one part. */
+/**
+ * Split s into as many parts as possible so that each letter appears in at most one part.
+ */
 List<Integer> partitionLabels(String s) {
     int[] last = new int[26];
     for (int i = 0; i < s.length(); i++) last[s.charAt(i) - 'a'] = i;

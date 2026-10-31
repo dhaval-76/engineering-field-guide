@@ -1,4 +1,6 @@
-/** Each find option is a small predicate; and/or/not compose them (Specification pattern). */
+/**
+ * Each find option is a small predicate; and/or/not compose them (Specification pattern).
+ */
 @FunctionalInterface
 interface Filter {
     boolean test(Node n);

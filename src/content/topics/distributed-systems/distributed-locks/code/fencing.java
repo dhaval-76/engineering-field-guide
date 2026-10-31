@@ -12,7 +12,10 @@ class LeaseService {
     }
 }
 
-/** The protected resource checks tokens: a write with an older token than one already seen is rejected. */
+/**
+ * The protected resource checks tokens: a write with an older token than one already seen
+ * is rejected.
+ */
 class FencedStorage {
     private final Map<String, Long> highestToken = new HashMap<>();
     private final Map<String, String> data = new HashMap<>();

@@ -1,4 +1,7 @@
-/** prerequisites[i] = {course, prereq}. Returns an order, or an empty array if impossible (cycle). */
+/**
+ * prerequisites[i] = {course, prereq}. Returns an order, or an empty array if impossible
+ * (cycle).
+ */
 int[] findOrder(int n, int[][] prerequisites) {
     List<List<Integer>> next = new ArrayList<>();
     for (int i = 0; i < n; i++) next.add(new ArrayList<>());

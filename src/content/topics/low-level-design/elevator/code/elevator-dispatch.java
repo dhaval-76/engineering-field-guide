@@ -2,7 +2,9 @@ record HallCall(int floor, Direction wants) {}
 
 interface DispatchStrategy { ElevatorCar choose(HallCall call, List<ElevatorCar> cars); }
 
-/** Cost = floors to travel before reaching the caller, given each car's current direction. */
+/**
+ * Cost = floors to travel before reaching the caller, given each car's current direction.
+ */
 final class NearestSuitableCar implements DispatchStrategy {
     private final int topFloor;
     NearestSuitableCar(int topFloor) { this.topFloor = topFloor; }

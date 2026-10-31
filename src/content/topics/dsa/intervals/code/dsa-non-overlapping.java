@@ -1,4 +1,7 @@
-/** Minimum number of intervals to remove so the rest don't overlap (touching ends are fine). */
+/**
+ * Minimum number of intervals to remove so the rest don't overlap (touching ends are
+ * fine).
+ */
 int eraseOverlapIntervals(int[][] intervals) {
     int[][] sorted = intervals.clone();
     Arrays.sort(sorted, Comparator.comparingInt(i -> i[1]));     // earliest END first

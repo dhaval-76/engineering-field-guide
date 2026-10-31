@@ -3,7 +3,9 @@ class AccountDao {
     private final JdbcTemplate jdbc;
     AccountDao(JdbcTemplate jdbc) { this.jdbc = jdbc; }
 
-    /** Check and debit in ONE statement: the database does it atomically under a row lock. */
+    /**
+     * Check and debit in ONE statement: the database does it atomically under a row lock.
+     */
     @Transactional
     public boolean debit(String accountId, BigDecimal amount) {
         int rows = jdbc.update(

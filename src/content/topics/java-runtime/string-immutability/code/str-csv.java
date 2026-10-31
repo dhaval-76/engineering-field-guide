@@ -1,4 +1,7 @@
-/** RFC 4180: quote a field if it contains a comma, quote or newline; double any quotes inside. */
+/**
+ * RFC 4180: quote a field if it contains a comma, quote or newline; double any quotes
+ * inside.
+ */
 static String toCsvRow(List<String> fields) {
     StringBuilder sb = new StringBuilder(fields.size() * 16);
     for (int i = 0; i < fields.size(); i++) {

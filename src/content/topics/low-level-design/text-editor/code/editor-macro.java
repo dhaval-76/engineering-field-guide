@@ -1,4 +1,7 @@
-/** A composite command: one undo step for many actions (paste-with-format, find-and-replace-all, macros). */
+/**
+ * A composite command: one undo step for many actions (paste-with-format,
+ * find-and-replace-all, macros).
+ */
 final class CompositeCommand implements Command {
     private final List<Command> steps;
     CompositeCommand(List<Command> steps) { this.steps = List.copyOf(steps); }
@@ -9,7 +12,9 @@ final class CompositeCommand implements Command {
     }
 }
 
-/** Macro recording: capture commands while recording, replay them later as one composite. */
+/**
+ * Macro recording: capture commands while recording, replay them later as one composite.
+ */
 final class MacroRecorder {
     private List<Command> recording;
     void start() { recording = new ArrayList<>(); }

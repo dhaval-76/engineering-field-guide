@@ -10,7 +10,10 @@ abstract sealed class Piece permits King, Queen, Rook, Bishop, Knight, Pawn {
     final Color color;
     Piece(Color color) { this.color = color; }
 
-    /** Squares this piece attacks/moves to by its own rules — ignoring whether the king is left in check. */
+    /**
+     * Squares this piece attacks/moves to by its own rules — ignoring whether the king is
+     * left in check.
+     */
     abstract List<Square> candidateMoves(Board board, Square from);
 
     /** Shared helper for sliding pieces (rook, bishop, queen). */

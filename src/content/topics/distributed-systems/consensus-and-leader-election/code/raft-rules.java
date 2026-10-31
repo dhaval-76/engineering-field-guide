@@ -1,4 +1,7 @@
-/** Two core Raft rules: granting votes and advancing the commit index. (Networking, timers omitted.) */
+/**
+ * Two core Raft rules: granting votes and advancing the commit index. (Networking, timers
+ * omitted.)
+ */
 class RaftNode {
     long currentTerm = 0;
     String votedFor = null;
@@ -8,7 +11,10 @@ class RaftNode {
     long lastLogIndex() { return logTerms.size(); }
     long lastLogTerm()  { return logTerms.isEmpty() ? 0 : logTerms.get(logTerms.size() - 1); }
 
-    /** RequestVote: grant at most one vote per term, and only to a candidate whose log is at least as up to date. */
+    /**
+     * RequestVote: grant at most one vote per term, and only to a candidate whose log is
+     * at least as up to date.
+     */
     boolean handleRequestVote(long term, String candidate, long candLastIndex, long candLastTerm) {
         if (term < currentTerm) return false;                         // stale candidate
         // newer term: step down, new vote

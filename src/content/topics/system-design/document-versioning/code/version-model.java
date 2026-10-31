@@ -23,7 +23,10 @@ class PageVersions {
         return id;
     }
 
-    /** Rebuild content: walk back to the nearest full snapshot, then apply deltas forwards. */
+    /**
+     * Rebuild content: walk back to the nearest full snapshot, then apply deltas
+     * forwards.
+     */
     public String read(byte[] hash) {
         Deque<Blob> chain = new ArrayDeque<>();
         Blob b = blobs.get(hash);

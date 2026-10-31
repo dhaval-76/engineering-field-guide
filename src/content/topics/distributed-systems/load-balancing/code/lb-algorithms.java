@@ -7,7 +7,10 @@ class RoundRobin implements Balancer {
     public String pick() { return servers.get(Math.floorMod(next.getAndIncrement(), servers.size())); }
 }
 
-/** Smooth weighted round robin (nginx): weights 5,1,1 → a a b a c a a — spread out, not bunched. */
+/**
+ * Smooth weighted round robin (nginx): weights 5,1,1 → a a b a c a a — spread out, not
+ * bunched.
+ */
 class SmoothWeighted implements Balancer {
     private final Map<String, Integer> weight; private final Map<String, Integer> current = new LinkedHashMap<>();
     SmoothWeighted(Map<String, Integer> weights) {
@@ -40,7 +43,10 @@ class LeastConnections implements Balancer {
     public synchronized void done(String server) { active.merge(server, -1, Integer::sum); }
 }
 
-/** Power of two choices: sample two at random, take the less loaded. Nearly as good, no global scan. */
+/**
+ * Power of two choices: sample two at random, take the less loaded. Nearly as good, no
+ * global scan.
+ */
 class PowerOfTwo implements Balancer {
     final Map<String, Integer> active = new ConcurrentHashMap<>();
     private final List<String> servers; private final Random random;

@@ -21,7 +21,10 @@ class ConsoleAppender implements Appender {
     }
 }
 
-/** Loggers form a tree by dotted name; a logger with no level inherits its nearest ancestor's. */
+/**
+ * Loggers form a tree by dotted name; a logger with no level inherits its nearest
+ * ancestor's.
+ */
 class Logger {
     private final String name;
     private final Logger parent;
@@ -62,7 +65,9 @@ class Logger {
     void setAdditive(boolean additive) { this.additive = additive; }
 }
 
-/** One registry per process: the root logger plus every named logger, created on demand. */
+/**
+ * One registry per process: the root logger plus every named logger, created on demand.
+ */
 final class LoggerFactory {
     private static final Logger ROOT = new Logger("root", null);
     private static final Map<String, Logger> LOGGERS = new ConcurrentHashMap<>();

@@ -10,7 +10,10 @@ long uniqueToday(List<String> hourKeys) {
     return redis.opsForHyperLogLog().size(hourKeys.toArray(String[]::new));
 }
 
-/** Approximate top-K: Count-Min Sketch estimates counts; a small heap keeps the current leaders. */
+/**
+ * Approximate top-K: Count-Min Sketch estimates counts; a small heap keeps the current
+ * leaders.
+ */
 final class TopK {
     private final int depth = 4, width = 1 << 16;
     private final long[][] table = new long[depth][width];

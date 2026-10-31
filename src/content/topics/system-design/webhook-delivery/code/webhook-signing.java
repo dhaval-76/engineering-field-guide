@@ -1,9 +1,14 @@
-/** Sender: sign "timestamp.body" so receivers can verify origin, integrity and freshness. */
+/**
+ * Sender: sign "timestamp.body" so receivers can verify origin, integrity and freshness.
+ */
 static String signatureHeader(String body, long timestamp, byte[] secret) throws Exception {
     return "t=" + timestamp + ",v1=" + hmacHex(timestamp + "." + body, secret);
 }
 
-/** Receiver: recompute over the RAW body bytes, compare in constant time, reject old timestamps (replays). */
+/**
+ * Receiver: recompute over the RAW body bytes, compare in constant time, reject old
+ * timestamps (replays).
+ */
 static boolean verify(String body, String header, byte[] secret, long now, long toleranceSeconds) throws Exception {
     long t = -1; String v1 = null;
     for (String part : header.split(",")) {

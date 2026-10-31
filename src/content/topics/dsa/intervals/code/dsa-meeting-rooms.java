@@ -1,4 +1,7 @@
-/** Minimum rooms so no two meetings in one room overlap. A room freed at t can host a meeting starting at t. */
+/**
+ * Minimum rooms so no two meetings in one room overlap. A room freed at t can host a
+ * meeting starting at t.
+ */
 int minMeetingRooms(int[][] meetings) {
     int[][] sorted = meetings.clone();
     Arrays.sort(sorted, Comparator.comparingInt(m -> m[0]));
@@ -12,7 +15,9 @@ int minMeetingRooms(int[][] meetings) {
     return ends.size();
 }
 
-/** Same answer with a sweep line: +1 at each start, −1 at each end, ends first on ties. */
+/**
+ * Same answer with a sweep line: +1 at each start, −1 at each end, ends first on ties.
+ */
 int minMeetingRoomsSweep(int[][] meetings) {
     int[] starts = Arrays.stream(meetings).mapToInt(m -> m[0]).sorted().toArray();
     int[] ends = Arrays.stream(meetings).mapToInt(m -> m[1]).sorted().toArray();

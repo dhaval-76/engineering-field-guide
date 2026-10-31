@@ -1,4 +1,7 @@
-/** Merge half-open [start, end) slots that overlap or touch. Input may be unsorted; not mutated. */
+/**
+ * Merge half-open [start, end) slots that overlap or touch. Input may be unsorted; not
+ * mutated.
+ */
 List<int[]> mergeSlots(List<int[]> slots) {
     List<int[]> sorted = new ArrayList<>();
     // copy: don't touch caller's data

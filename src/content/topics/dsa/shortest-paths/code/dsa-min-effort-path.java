@@ -1,4 +1,7 @@
-/** Cost of a path = largest absolute height difference between consecutive cells. Minimise it. */
+/**
+ * Cost of a path = largest absolute height difference between consecutive cells. Minimise
+ * it.
+ */
 int minimumEffortPath(int[][] heights) {
     int rows = heights.length, cols = heights[0].length;
     int[][] effort = new int[rows][cols];

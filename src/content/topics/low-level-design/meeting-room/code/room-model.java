@@ -1,4 +1,7 @@
-/** Half-open interval [start, end): a meeting ending at 10:00 doesn't clash with one starting at 10:00. */
+/**
+ * Half-open interval [start, end): a meeting ending at 10:00 doesn't clash with one
+ * starting at 10:00.
+ */
 record TimeSlot(Instant start, Instant end) {
     TimeSlot {
         if (!start.isBefore(end)) throw new IllegalArgumentException("start must be before end");
@@ -18,7 +21,10 @@ final class Room {
 
     Room(String id, int capacity, Set<Amenity> amenities) { this.id = id; this.capacity = capacity; this.amenities = amenities; }
 
-    /** O(log n): only the booking that starts just before, and the one that starts just after, can overlap. */
+    /**
+     * O(log n): only the booking that starts just before, and the one that starts just
+     * after, can overlap.
+     */
     synchronized boolean isFree(TimeSlot s) {
         var before = byStart.floorEntry(s.start());
         if (before != null && before.getValue().slot().overlaps(s)) return false;

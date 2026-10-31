@@ -10,7 +10,10 @@ final class RoomFinder {
                 .toList();
     }
 
-    /** Try candidates in order; another thread may book one between the search and our attempt. */
+    /**
+     * Try candidates in order; another thread may book one between the search and our
+     * attempt.
+     */
     Booking bookBest(TimeSlot s, int people, Set<Amenity> needs, String organizer, Set<String> attendees) {
         for (Room r : candidates(s, people, needs)) {
             try { return r.book(s, organizer, attendees, null); }

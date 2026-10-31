@@ -14,12 +14,18 @@ final class NotificationService {
         this.prefs = prefs; this.log = log;
     }
 
-    /** Broadcast: every preferred channel independently (e.g. in-app + push for a reminder). */
+    /**
+     * Broadcast: every preferred channel independently (e.g. in-app + push for a
+     * reminder).
+     */
     void broadcast(User u, Notification n) {
         for (Channel c : prefs.of(u).broadcast()) deliverOnce(u, n, c);
     }
 
-    /** Fallback chain: try channels in order until one succeeds (e.g. OTP: push → SMS → email). */
+    /**
+     * Fallback chain: try channels in order until one succeeds (e.g. OTP: push → SMS →
+     * email).
+     */
     boolean deliverWithFallback(User u, Notification n) {
         for (Channel c : prefs.of(u).fallbackOrder()) {
             if (deliverOnce(u, n, c)) return true;

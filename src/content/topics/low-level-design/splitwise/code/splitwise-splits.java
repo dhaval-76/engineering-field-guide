@@ -1,6 +1,8 @@
 /** Amounts are in the smallest currency unit (paise) as long — never double. */
 interface SplitStrategy {
-    /** Returns how much each participant owes; the values must add up to exactly `total`. */
+    /**
+     * Returns how much each participant owes; the values must add up to exactly `total`.
+     */
     Map<String, Long> shares(long total, List<String> participants);
 }
 

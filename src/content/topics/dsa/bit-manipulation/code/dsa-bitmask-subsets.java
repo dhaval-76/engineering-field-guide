@@ -11,7 +11,10 @@ List<List<Integer>> subsetsByMask(int[] nums) {
     return out;
 }
 
-/** Every non-empty submask of `mask` (useful in bitmask DP); total over all masks is O(3^n). */
+/**
+ * Every non-empty submask of `mask` (useful in bitmask DP); total over all masks is
+ * O(3^n).
+ */
 List<Integer> submasks(int mask) {
     List<Integer> out = new ArrayList<>();
     for (int sub = mask; sub > 0; sub = (sub - 1) & mask) out.add(sub);

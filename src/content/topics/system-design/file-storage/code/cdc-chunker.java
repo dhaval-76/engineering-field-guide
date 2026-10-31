@@ -1,4 +1,7 @@
-/** Content-defined chunking with a gear rolling hash; boundaries follow content, not offsets. */
+/**
+ * Content-defined chunking with a gear rolling hash; boundaries follow content, not
+ * offsets.
+ */
 final class Chunker {
     private static final long[] GEAR = new long[256];
     // xorshift64*: same table on every client
@@ -28,7 +31,10 @@ final class Chunker {
         return chunks;
     }
 
-    /** Chunks are stored once, named by SHA-256: identical content dedupes across files and users. */
+    /**
+     * Chunks are stored once, named by SHA-256: identical content dedupes across files
+     * and users.
+     */
     static List<String> chunkIds(byte[] data) throws Exception {
         List<String> ids = new ArrayList<>();
         for (byte[] c : chunk(data, 2048, 13, 65536))

@@ -1,4 +1,7 @@
-/** Rendezvous (highest-random-weight) hashing: every key scores every node; the highest score wins. */
+/**
+ * Rendezvous (highest-random-weight) hashing: every key scores every node; the highest
+ * score wins.
+ */
 static String rendezvous(String key, List<String> nodes) {
     String best = null;
     long bestScore = 0;
@@ -10,7 +13,10 @@ static String rendezvous(String key, List<String> nodes) {
     return best;
 }
 
-/** Jump consistent hash (Lamping & Veach): bucket in [0, buckets) with no ring and no memory. */
+/**
+ * Jump consistent hash (Lamping & Veach): bucket in [0, buckets) with no ring and no
+ * memory.
+ */
 static int jumpHash(long key, int buckets) {
     long b = -1, j = 0;
     while (j < buckets) {

@@ -3,7 +3,10 @@ final class Sheet {
     // A1 → {B1, C1}: who reads A1
     private final Map<String, Set<String>> dependents = new HashMap<>();
 
-    /** Set a value ("42") or formula ("=A1+B1*2"). Rejects cycles without changing anything. */
+    /**
+     * Set a value ("42") or formula ("=A1+B1*2"). Rejects cycles without changing
+     * anything.
+     */
     public void set(String id, String input) {
         Expr expr = input.startsWith("=") ? Parser.parse(input.substring(1)) : new Expr.Num(Double.parseDouble(input));
         Set<String> refs = expr.references();
@@ -24,7 +27,10 @@ final class Sheet {
 
     public double get(String id) { Cell c = cells.get(id); return c == null ? 0 : c.value; }
 
-    /** Would `id` (directly or indirectly) end up depending on itself? DFS from its new references. */
+    /**
+     * Would `id` (directly or indirectly) end up depending on itself? DFS from its new
+     * references.
+     */
     private boolean createsCycle(String id, Set<String> refs) {
         Deque<String> stack = new ArrayDeque<>(refs);
         Set<String> seen = new HashSet<>();
@@ -39,7 +45,10 @@ final class Sheet {
         return false;
     }
 
-    /** Recompute the changed cell and everything downstream, in topological order (Kahn's algorithm). */
+    /**
+     * Recompute the changed cell and everything downstream, in topological order (Kahn's
+     * algorithm).
+     */
     private void recalculateFrom(String start) {
         // 1. collect the downstream subgraph
         Set<String> affected = new HashSet<>();

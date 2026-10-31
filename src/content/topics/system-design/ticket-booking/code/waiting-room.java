@@ -31,7 +31,10 @@ class WaitingRoom {
         return Math.max(0, seq - admittedUpTo + 1);
     }
 
-    /** The booking service checks this (in production: a signed, expiring token instead of a lookup). */
+    /**
+     * The booking service checks this (in production: a signed, expiring token instead of
+     * a lookup).
+     */
     synchronized boolean mayBook(String userId, long now) {
         Long seq = seqOf.get(userId);
         if (seq == null || seq >= admittedUpTo) return false;

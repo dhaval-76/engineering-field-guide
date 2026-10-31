@@ -7,7 +7,10 @@ final class StockTicker {                                     // the subject
     private final Map<String, List<PriceListener>> listeners = new ConcurrentHashMap<>();
     private final Map<String, BigDecimal> prices = new ConcurrentHashMap<>();
 
-    /** Returns a handle that unsubscribes — callers can't forget which listener they added. */
+    /**
+     * Returns a handle that unsubscribes — callers can't forget which listener they
+     * added.
+     */
     public Runnable subscribe(String symbol, PriceListener l) {
         listeners.computeIfAbsent(symbol, k -> new CopyOnWriteArrayList<>()).add(l);
         return () -> listeners.getOrDefault(symbol, List.of()).remove(l);

@@ -1,4 +1,7 @@
-/** One partition: segments named by base offset, each with a sparse index. Single writer per partition. */
+/**
+ * One partition: segments named by base offset, each with a sparse index. Single writer
+ * per partition.
+ */
 final class PartitionLog {
     private static final long SEGMENT_BYTES = 1L << 30;     // roll to a new file at 1 GB
     // one index entry per ~4 KB of log

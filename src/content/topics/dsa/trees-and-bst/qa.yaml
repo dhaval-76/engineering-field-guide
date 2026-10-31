@@ -22,6 +22,16 @@ practice:
     solution: |
       General: if the node is null or one of the targets, return it; otherwise recurse left and right; if both return non-null, this node is the LCA; else return the non-null one. O(n) time, O(h) space. BST: start at the root; if both values are smaller go left, if both larger go right, otherwise the current node splits them and is the LCA — O(h) time, O(1) space.
     solutionCode: dsa-lca
+  - task: Serialise a binary tree to a string and deserialise it back exactly.
+    hint: Which traversal, and what must you write for missing children?
+    solution: |
+      Pre-order with a marker for every null child: `1,2,#,#,3,4,#,#,5,#,#`. To rebuild, read tokens in the same order: a marker returns null; a value creates a node whose left subtree is built from the next tokens, then its right. O(n) both ways.
+    solutionCode: dsa-serialize-tree
+  - task: Find the maximum path sum in a binary tree whose values may be negative.
+    hint: What can a node return to its parent, and what does it record?
+    solution: |
+      Post-order. `gain(n)` returns `n.val + max(left, right)` where each side is `max(0, gain(child))` — the best path starting at n and going down one side, which is all a parent can extend. At each node, record `n.val + left + right`, the best path bending there. The answer is the best recorded value. O(n).
+    solutionCode: dsa-max-path-sum
 quiz:
   - q: Which traversal visits a BST's values in sorted order?
     options: [Pre-order, In-order, Post-order, Level order]

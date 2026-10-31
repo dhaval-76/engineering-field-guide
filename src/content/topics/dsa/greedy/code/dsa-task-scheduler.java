@@ -1,4 +1,7 @@
-/** Minimum slots to run all tasks when identical tasks need n idle-or-other slots between them. */
+/**
+ * Minimum slots to run all tasks when identical tasks need n idle-or-other slots between
+ * them.
+ */
 int leastInterval(char[] tasks, int n) {
     int[] count = new int[26];
     for (char t : tasks) count[t - 'A']++;

@@ -27,7 +27,9 @@ final class SnakeGame {
         foodAt = food.spawn(rows, cols, occupied);
     }
 
-    /** Input is buffered and applied on the next tick; reversing into yourself is ignored. */
+    /**
+     * Input is buffered and applied on the next tick; reversing into yourself is ignored.
+     */
     void turn(Direction d) { if (!d.isOpposite(direction)) pending = d; }
 
     Status tick() {
@@ -62,7 +64,10 @@ final class SnakeGame {
 
 interface FoodSpawner { Cell spawn(int rows, int cols, Set<Cell> occupied); }
 
-/** Rejection sampling: fast while the board is mostly empty; fall back to scanning when crowded. */
+/**
+ * Rejection sampling: fast while the board is mostly empty; fall back to scanning when
+ * crowded.
+ */
 final class RandomFood implements FoodSpawner {
     private final Random rnd;
     // seeded Random → reproducible tests

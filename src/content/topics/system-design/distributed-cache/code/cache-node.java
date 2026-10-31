@@ -38,7 +38,10 @@ class CacheNode {
         it.lastAccess = now;
     }
 
-    /** Approximate LRU: sample a few keys, evict the least recently used among them (expired first). */
+    /**
+     * Approximate LRU: sample a few keys, evict the least recently used among them
+     * (expired first).
+     */
     private void evictOne(long now) {
         String victim = null;
         long oldest = Long.MAX_VALUE;
@@ -52,7 +55,9 @@ class CacheNode {
         evictions++;
     }
 
-    /** Active expiry, run ~10×/s: sample keys; if more than 25% were expired, go again. */
+    /**
+     * Active expiry, run ~10×/s: sample keys; if more than 25% were expired, go again.
+     */
     synchronized int activeExpireCycle(long now, int sampleSize) {
         int removed = 0, expiredInRound;
         do {

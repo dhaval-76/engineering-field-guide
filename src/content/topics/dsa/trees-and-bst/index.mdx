@@ -4,7 +4,7 @@ summary: Thinking recursively about trees — the four traversals, depth and dia
 track: dsa
 order: 80
 tags: [dsa, trees, binary-tree, bst, recursion, patterns]
-aliases: [binary tree, binary search tree, bst, tree traversal, preorder, inorder, postorder, level order, bfs on tree, maximum depth, diameter of binary tree, invert binary tree, same tree, validate bst, kth smallest in bst, lowest common ancestor, lca, path sum, serialize deserialize tree, balanced tree]
+aliases: [binary tree, binary search tree, bst, tree traversal, preorder, inorder, postorder, level order, bfs on tree, maximum depth, diameter of binary tree, invert binary tree, same tree, validate bst, kth smallest in bst, lowest common ancestor, lca, path sum, binary tree maximum path sum, serialize deserialize tree, balanced tree, construct tree from traversals]
 prerequisites: [dsa/stacks-and-monotonic-stacks]
 related: [dsa/graphs-bfs-dfs, databases/indexing, dsa/heaps-and-top-k]
 quickRef:
@@ -17,22 +17,41 @@ quickRef:
     - 'Height h is O(log n) when balanced, O(n) when degenerate — recursion depth too.'
   complexity: 'Traversals O(n) time, O(h) stack space; BST operations O(h).'
   useWhen: 'Hierarchical data, recursive structure, ordered sets, and anything asking for depths, paths or ancestors.'
-lastReviewed: 2026-10-30
+lastReviewed: 2026-10-31
 ---
+
+## Why it matters
+
+Trees are how computers store anything **hierarchical** (file systems, the DOM, org charts, JSON, abstract syntax trees) and anything **ordered and searchable** (`TreeMap`, database indexes, priority structures). A balanced search tree finds, inserts and deletes in O(log n) while keeping keys in order — something neither a hash map (no order) nor a sorted array (O(n) inserts) can do.
+
+Tree problems are also the best practice for **recursive thinking**. Almost every one is solved by answering a single question: *if I already had the answer for the left and right subtrees, how would I compute the answer for this node?* Once you can write that sentence, the code is a few lines.
+
+<Callout type="analogy">
+A company asking "how many people work under each manager?" Every manager asks their direct reports for their counts, adds them up and adds one for themselves — the question flows down, the answers flow back up. That is post-order recursion. Announcing a policy from the CEO down, with each level adding its own notes, is pre-order: information flows down.
+</Callout>
 
 ## Recognise it
 
-- Input is a tree (or a hierarchy: org charts, file systems, expression trees).
-- The answer for a node depends on its children's answers → **post-order recursion**.
-- The answer depends on the path from the root → **pass state down** (pre-order).
-- "By level", "right side view", "minimum depth" → **BFS**.
-- Sorted order, k-th smallest, range queries → **BST** properties.
-
-<Callout type="analogy">
-A company asking "how many people work under each manager?" Every manager asks their direct reports for their counts, adds them up and adds one for themselves — the question flows down, the answers flow back up. That's post-order recursion.
-</Callout>
+- Input is a tree, or a hierarchy (org charts, file systems, expression trees, nested JSON).
+- The answer for a node depends on its children's answers (height, size, sums, diameter) → **post-order recursion**.
+- The answer depends on the path from the root (path sums, depth limits, BST bounds) → **pass state down** (pre-order).
+- "By level", "right side view", "minimum depth", "closest" → **BFS** with a queue.
+- Sorted order, k-th smallest, range queries, predecessor/successor → **BST** properties.
 
 <CodeTabs id="dsa-tree-node" title="The tree node used in these examples" />
+
+## The recursive contract
+
+For each recursive function, write down two things before coding: **what it returns** for a subtree, and **what it records** globally (if anything). Most bugs come from mixing the two.
+
+| Problem | Function returns (per subtree) | Recorded globally |
+|---|---|---|
+| Max depth | height of the subtree | — |
+| Balanced? | height, or −1 if unbalanced | — |
+| Diameter | height | best `leftH + rightH` |
+| Max path sum | best downward path from this node | best path bending here |
+| Validate BST | valid within `(low, high)`? | — |
+| LCA | the found node(s) in this subtree | — |
 
 ## Traversals
 
@@ -40,45 +59,89 @@ A company asking "how many people work under each manager?" Every manager asks t
 
 <CodeTabs id="dsa-tree-traversals" title="Pre/in/post-order (recursive and iterative) and level order" />
 
+- **Pre-order** (node, left, right): copy or serialise a tree; pass information down.
+- **In-order** (left, node, right): on a BST, visits keys in **sorted order**.
+- **Post-order** (left, right, node): compute values from children; delete a tree safely.
+- **Level order** (BFS): process one level at a time by reading the queue's size before each level.
+
+Recursion uses O(h) stack — fine for balanced trees (h ≈ log n), dangerous for a degenerate tree of 10⁵ nodes. The iterative versions with an explicit stack avoid stack overflow.
+
 ## Information flowing up: depth and diameter
 
-The diameter (longest path between any two nodes) passes through some node as `leftHeight + rightHeight`. A single post-order pass computes heights and tracks the best sum.
+**Insight.** The longest path between any two nodes (the diameter) bends at some node, where its length is `height(left) + height(right)`. A single post-order pass returns heights and records the best bend. Computing the height separately at each node would be O(n²).
 
 <CodeTabs id="dsa-tree-depth-diameter" title="Max depth and diameter — post-order in one pass" />
 
+### Binary tree maximum path sum
+
+**Problem.** The largest sum along any path (any start and end, values may be negative). `[-10,9,20,null,null,15,7]` → 42 (`15 → 20 → 7`).
+
+**Insight.** The same shape as diameter, with sums instead of lengths. The function returns the best path that **starts at this node and goes down one side** — that's the only kind a parent can extend. At the same node, the best path that **bends here** is `left + node + right`; record it globally. Drop a child's contribution when it's negative (`max(0, …)`): a path doesn't have to include it.
+
+<CodeTabs id="dsa-max-path-sum" title="Maximum path sum — return one side, record the bend" />
+
 ## Binary search trees
+
+A **binary search tree** keeps every key in a node's left subtree smaller than the node, and every key in the right subtree larger. Search, insert and delete walk one root-to-leaf path: O(h).
 
 <CodeTabs id="dsa-validate-bst" title="Validate a BST with bounds, and k-th smallest via in-order" />
 
-A BST stays efficient only when balanced; self-balancing variants (red-black trees in Java's `TreeMap`, AVL trees) keep height O(log n). Databases use B-trees, which are wide, shallow relatives ([Indexing](../../databases/indexing/)).
+**Validating** needs bounds passed down, not just a comparison with the parent: in the tree `5 → left 3 → right 7`, node 7 is larger than its parent 3 but sits in 5's **left** subtree, so it's invalid. Pass `(low, high)` limits down — going left lowers `high` to the node's value, going right raises `low`.
+
+**Balance matters.** Inserting sorted keys into a plain BST builds a linked list (h = n). Self-balancing trees — red-black trees in Java's `TreeMap` and `TreeSet`, AVL trees — rotate on insert and delete to keep h = O(log n). Databases use **B-trees**, which store hundreds of keys per node so the tree is only 3–4 levels deep even for billions of rows ([Indexing](../../databases/indexing/)).
 
 ## Lowest common ancestor
 
+**Insight.** In a general binary tree, recurse into both children. If both return a non-null node, `p` and `q` are on different sides, so the current node is their LCA; otherwise pass up whichever side found something. In a **BST**, values tell you where to go: if both are smaller, go left; both larger, go right; otherwise you're at the split point — O(h).
+
 <CodeTabs id="dsa-lca" title="Lowest common ancestor — general tree and BST" />
 
-| Problem | Technique | Complexity |
-|---|---|---|
-| Max depth, balanced check, diameter | post-order, return heights | O(n) |
-| Path sum, root-to-leaf paths | pre-order, pass remaining sum down | O(n) |
-| Level order, right side view | BFS by level | O(n) |
-| Validate BST | bounds passed down | O(n) |
-| k-th smallest in BST | in-order, stop at k | O(h + k) |
-| LCA | post-order "found in left/right" | O(n); O(h) in a BST |
+## Serialising a tree
+
+**Problem.** Turn a tree into a string and back, exactly.
+
+**Insight.** A pre-order traversal alone is ambiguous — `1,2` could be 2 as a left or a right child. Writing a marker (`#`) for every **null** child makes the shape explicit, so a single pre-order pass is enough to rebuild it: read a value, then build its left subtree from the following tokens, then its right.
+
+<CodeTabs id="dsa-serialize-tree" title="Serialise and deserialise — pre-order with null markers" />
+
+Without null markers you need two traversals — pre-order **and** in-order (with distinct values) — to reconstruct a tree; that's the classic "construct a tree from traversals" problem.
+
+## Complexity at a glance
+
+| Problem | Technique | Time | Space |
+|---|---|---|---|
+| Max depth, balanced, diameter | post-order, return heights | O(n) | O(h) |
+| Max path sum | post-order, return one side | O(n) | O(h) |
+| Path sum, root-to-leaf paths | pre-order, pass remaining sum | O(n) | O(h) |
+| Level order, right side view | BFS by level | O(n) | O(width) |
+| Validate BST | bounds passed down | O(n) | O(h) |
+| k-th smallest in BST | in-order, stop at k | O(h + k) | O(h) |
+| LCA | post-order; BST: walk down | O(n); O(h) | O(h) |
+| Serialise / deserialise | pre-order with null markers | O(n) | O(n) |
+
+## Talking through it in an interview
+
+- State the recursive contract: "this returns the height of the subtree; I track the best diameter separately".
+- Walk the base case first (`null` → 0, or null, or true).
+- Mention the stack depth: O(h), and what happens on a degenerate tree.
+- For BST problems, say which invariant you rely on (bounds, sorted in-order) and the balance assumption behind O(log n).
 
 <Pitfalls>
 
 - **Validating a BST by comparing only with the parent** — a deep node can violate an ancestor's bound.
 - **Missing base cases** (`null` children).
-- **Recomputing heights** at every node (O(n²)) instead of returning them up.
-- **Recursion depth** on degenerate trees (a "linked list" of 10⁵ nodes) — use iteration.
+- **Recomputing heights at every node** (O(n²)) instead of returning them up.
+- **Returning the bending path to the parent** in path problems — a parent can only extend a one-sided path.
+- **Recursion depth** on degenerate trees (10⁵ nodes in a line) — use iteration.
 - **Integer bounds** when values can equal `Integer.MIN_VALUE` — use `null` or `long` bounds.
 
 </Pitfalls>
 
 <KeyTakeaways>
 
-- Define the answer recursively: what do children return, what does the node combine?
+- Define the answer recursively: what children return, what the node combines, what is recorded globally.
 - Post-order for bottom-up values; pre-order for top-down state; BFS for levels.
-- BST invariants are about whole subtrees: pass bounds; in-order is sorted.
+- BST invariants are about whole subtrees: pass bounds; in-order is sorted; balance keeps O(log n).
+- Null markers make a single traversal enough to serialise a tree.
 
 </KeyTakeaways>

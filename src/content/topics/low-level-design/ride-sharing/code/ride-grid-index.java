@@ -1,4 +1,7 @@
-/** A uniform grid of ~1 km cells: updating a location is O(1), "nearby" scans the surrounding cells. */
+/**
+ * A uniform grid of ~1 km cells: updating a location is O(1), "nearby" scans the
+ * surrounding cells.
+ */
 final class GridIndex implements DriverIndex {
     private static final double CELL_DEG = 0.009;               // ≈ 1 km of latitude
     private final Map<Long, Set<Driver>> cells = new ConcurrentHashMap<>();

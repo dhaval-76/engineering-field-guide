@@ -1,6 +1,8 @@
 interface RetryPolicy { Optional<Duration> delayFor(int failedAttempt, Exception cause); }
 
-/** Exponential backoff with full jitter: random delay in [0, min(cap, base·2^attempt)]. */
+/**
+ * Exponential backoff with full jitter: random delay in [0, min(cap, base·2^attempt)].
+ */
 final class ExponentialBackoff implements RetryPolicy {
     private final int maxAttempts; private final Duration base, cap;
     ExponentialBackoff(int maxAttempts, Duration base, Duration cap) { this.maxAttempts = maxAttempts; this.base = base; this.cap = cap; }

@@ -18,7 +18,10 @@ class RedisLock {
         }
     }
 
-    /** Only the holder can release: never DEL a lock that expired and was taken by someone else. */
+    /**
+     * Only the holder can release: never DEL a lock that expired and was taken by someone
+     * else.
+     */
     boolean release(String key, String token) {
         try (Jedis j = pool.getResource()) {
             return Long.valueOf(1).equals(j.eval(RELEASE, List.of(key), List.of(token)));

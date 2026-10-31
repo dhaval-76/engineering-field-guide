@@ -1,4 +1,7 @@
-/** Fixed window: one counter per (key, window). Cheap, but allows 2× the limit across a boundary. */
+/**
+ * Fixed window: one counter per (key, window). Cheap, but allows 2× the limit across a
+ * boundary.
+ */
 final class FixedWindowLimiter implements RateLimiter {
     private final int limit; private final long windowNanos; private final Ticker ticker;
     // {windowStart, count}

@@ -6,7 +6,10 @@ class MessageService {
     private final DedupStore dedup;              // client_msg_id → seq, with TTL
     private final KafkaTemplate<String, Delivered> kafka;
 
-    /** Called by a gateway when a client sends. Returns the ack the sender's app shows as "sent". */
+    /**
+     * Called by a gateway when a client sends. Returns the ack the sender's app shows as
+     * "sent".
+     */
     public Ack accept(SendCommand cmd) {
         Long existing = dedup.get(cmd.senderId(), cmd.clientMsgId());
         // retry → same answer

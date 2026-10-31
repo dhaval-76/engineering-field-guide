@@ -1,4 +1,7 @@
-/** A teaching version of java.util.HashMap: array of buckets, chaining, power-of-two resize. */
+/**
+ * A teaching version of java.util.HashMap: array of buckets, chaining, power-of-two
+ * resize.
+ */
 public final class MiniHashMap<K, V> {
     private static final class Node<K, V> {
         final int hash; final K key; V value; Node<K, V> next;
@@ -33,7 +36,9 @@ public final class MiniHashMap<K, V> {
         return null;
     }
 
-    /** Double the table. Each entry either stays at index i or moves to i + oldCapacity. */
+    /**
+     * Double the table. Each entry either stays at index i or moves to i + oldCapacity.
+     */
     private void resize() {
         Node<K, V>[] old = table;
         table = newTable(old.length * 2);

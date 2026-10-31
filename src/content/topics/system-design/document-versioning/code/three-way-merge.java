@@ -1,4 +1,6 @@
-/** Merge two edited versions of a document made of blocks (paragraphs) with stable ids. */
+/**
+ * Merge two edited versions of a document made of blocks (paragraphs) with stable ids.
+ */
 static MergeResult merge(Map<String, String> base, Map<String, String> ours, Map<String, String> theirs) {
     Map<String, String> merged = new LinkedHashMap<>();
     List<Conflict> conflicts = new ArrayList<>();

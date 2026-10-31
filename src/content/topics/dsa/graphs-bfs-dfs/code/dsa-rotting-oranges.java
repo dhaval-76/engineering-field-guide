@@ -1,4 +1,7 @@
-/** 0 empty, 1 fresh, 2 rotten. Each minute rot spreads to 4 neighbours. Minutes until none fresh, or -1. */
+/**
+ * 0 empty, 1 fresh, 2 rotten. Each minute rot spreads to 4 neighbours. Minutes until none
+ * fresh, or -1.
+ */
 int orangesRotting(int[][] grid) {
     Deque<int[]> queue = new ArrayDeque<>();
     int fresh = 0;

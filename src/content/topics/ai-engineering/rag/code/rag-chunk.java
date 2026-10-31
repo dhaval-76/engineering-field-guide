@@ -1,4 +1,7 @@
-/** Split text into ~maxWords-word chunks on paragraph boundaries, carrying `overlap` words forward. */
+/**
+ * Split text into ~maxWords-word chunks on paragraph boundaries, carrying `overlap` words
+ * forward.
+ */
 List<String> chunk(String text, int maxWords, int overlap) {
     List<String> chunks = new ArrayList<>();
     List<String> current = new ArrayList<>();

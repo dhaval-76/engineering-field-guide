@@ -39,7 +39,9 @@ class Dispatcher implements OrderListener {
     }
 }
 
-/** Pricing is another strategy: base + distance + surge, minus discount, never below zero. */
+/**
+ * Pricing is another strategy: base + distance + surge, minus discount, never below zero.
+ */
 long deliveryFeePaise(Order o, double surgeMultiplier, long discountPaise) {
     double km = o.pickup.km(o.drop);
     // ₹20 for the first 2 km, ₹8/km after

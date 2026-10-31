@@ -2,7 +2,10 @@ record CartLine(String sku, int qty) {
     CartLine { if (qty <= 0) throw new IllegalArgumentException("qty must be > 0"); }
 }
 
-/** The cart stores intent (what and how many), not prices — prices are looked up when pricing. */
+/**
+ * The cart stores intent (what and how many), not prices — prices are looked up when
+ * pricing.
+ */
 final class Cart {
     private final String cartId;
     private final String ownerId;                       // user id, or a guest session id

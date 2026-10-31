@@ -1,4 +1,6 @@
-/** Words sorted in an unknown alphabet → one valid letter order, or "" if inconsistent. */
+/**
+ * Words sorted in an unknown alphabet → one valid letter order, or "" if inconsistent.
+ */
 String alienOrder(String[] words) {
     Map<Character, Set<Character>> next = new HashMap<>();
     Map<Character, Integer> inDegree = new HashMap<>();

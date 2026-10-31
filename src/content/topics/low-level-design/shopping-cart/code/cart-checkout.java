@@ -10,7 +10,10 @@ final class CheckoutService {
         carts = c; pricing = p; promotions = pr; inventory = i; payments = g; orders = o;
     }
 
-    /** `checkoutId` comes from the client and makes the whole operation idempotent (double-clicks, retries). */
+    /**
+     * `checkoutId` comes from the client and makes the whole operation idempotent
+     * (double-clicks, retries).
+     */
     Order checkout(String checkoutId, String cartId, PaymentMethod method) {
         Optional<Order> existing = orders.findByCheckoutId(checkoutId);
         if (existing.isPresent()) return existing.get();

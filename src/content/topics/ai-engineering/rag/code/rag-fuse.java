@@ -1,6 +1,9 @@
 record Hit(String chunkId, String text) {}
 
-/** Reciprocal rank fusion: score = Σ 1 / (k + rank). Rewards chunks ranked high by either retriever. */
+/**
+ * Reciprocal rank fusion: score = Σ 1 / (k + rank). Rewards chunks ranked high by either
+ * retriever.
+ */
 List<Hit> fuse(List<Hit> vectorHits, List<Hit> keywordHits, int topN) {
     final int k = 60;
     Map<String, Double> score = new HashMap<>();

@@ -18,7 +18,10 @@ class Agent {
         this.tools = tools.stream().collect(Collectors.toMap(Tool::name, t -> t));
     }
 
-    /** Runs the model ↔ tool loop. `mayRun` is the caller's authorization check, enforced in code. */
+    /**
+     * Runs the model ↔ tool loop. `mayRun` is the caller's authorization check, enforced
+     * in code.
+     */
     String run(String userRequest, BiPredicate<Tool, Map<String, Object>> mayRun) {
         List<Msg> history = new ArrayList<>(List.of(new Msg("user", userRequest, List.of(), null)));
         for (int step = 0; step < maxSteps; step++) {

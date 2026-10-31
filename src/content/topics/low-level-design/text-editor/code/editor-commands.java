@@ -1,7 +1,10 @@
 interface Command {
     void execute(Buffer buf);
     void undo(Buffer buf);
-    /** Merge a follow-up command into this one (e.g. consecutive keystrokes) — returns false if it can't. */
+    /**
+     * Merge a follow-up command into this one (e.g. consecutive keystrokes) — returns
+     * false if it can't.
+     */
     default boolean absorb(Command next) { return false; }
 }
 

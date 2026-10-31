@@ -1,7 +1,10 @@
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-/** LinkedHashMap already keeps a doubly linked list; accessOrder=true makes it LRU-ordered. */
+/**
+ * LinkedHashMap already keeps a doubly linked list; accessOrder=true makes it
+ * LRU-ordered.
+ */
 public class LRUCache<K, V> extends LinkedHashMap<K, V> {
     private final int capacity;
 

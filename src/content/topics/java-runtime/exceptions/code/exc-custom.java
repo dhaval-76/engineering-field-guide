@@ -1,4 +1,7 @@
-/** Checked: an expected business outcome the caller should handle (show a message, offer a smaller amount). */
+/**
+ * Checked: an expected business outcome the caller should handle (show a message, offer a
+ * smaller amount).
+ */
 public class InsufficientFundsException extends Exception {
     private final long shortfallPaise;
     public InsufficientFundsException(long shortfallPaise) {

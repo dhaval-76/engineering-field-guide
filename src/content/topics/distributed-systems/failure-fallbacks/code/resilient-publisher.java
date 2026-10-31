@@ -7,7 +7,10 @@ import java.util.function.LongSupplier;
 /** What we publish. The id lets consumers drop the duplicates a replay can produce. */
 record Event(String id, String key, String payload) {}
 
-/** The real broker call, e.g. kafkaProducer.send(record).get(timeout) — it must throw on failure. */
+/**
+ * The real broker call, e.g. kafkaProducer.send(record).get(timeout) — it must throw on
+ * failure.
+ */
 interface Broker { void send(Event e) throws Exception; }
 
 /** Ordered storage for events that could not be published yet. */
@@ -81,7 +84,10 @@ final class FileSpool implements Spool {
     public List<Event> pending() { return List.copyOf(queue); }
 }
 
-/** Minimal breaker: opens after N consecutive failures, lets traffic try again after a cool-down. */
+/**
+ * Minimal breaker: opens after N consecutive failures, lets traffic try again after a
+ * cool-down.
+ */
 final class Breaker {
     enum State { CLOSED, OPEN, HALF_OPEN }
     private final int threshold; private final long coolDownMs; private final LongSupplier clock;
@@ -144,7 +150,10 @@ final class ResilientPublisher {
         return Result.SPOOLED;
     }
 
-    /** Run on a schedule (e.g. every 100 ms) from one background thread. Returns how many were replayed. */
+    /**
+     * Run on a schedule (e.g. every 100 ms) from one background thread. Returns how many
+     * were replayed.
+     */
     synchronized int drainOnce() throws IOException {
         long now = clock.getAsLong();
         tokens = Math.min(drainPerSecond, tokens + (now - lastRefill) / 1000.0 * drainPerSecond);

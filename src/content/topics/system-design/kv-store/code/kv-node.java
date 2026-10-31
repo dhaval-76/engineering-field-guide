@@ -1,4 +1,7 @@
-/** A single node's in-memory store with TTL. Values and expiries live together, so overwrites can't leave stale TTLs. */
+/**
+ * A single node's in-memory store with TTL. Values and expiries live together, so
+ * overwrites can't leave stale TTLs.
+ */
 final class KvNode {
     private record Entry(byte[] value, long expiresAtMs) {      // 0 = no expiry
         boolean expired(long now) { return expiresAtMs != 0 && now >= expiresAtMs; }
@@ -26,7 +29,10 @@ final class KvNode {
 
     void delete(String key) { data.remove(key); }
 
-    /** Active expiry: sample a bounded number of keys per pass (Redis does a similar sampling). */
+    /**
+     * Active expiry: sample a bounded number of keys per pass (Redis does a similar
+     * sampling).
+     */
     int sweep(int maxChecks) {
         long now = clock.millis();
         int removed = 0, checked = 0;

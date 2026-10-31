@@ -1,4 +1,7 @@
-/** Committed offsets per (group, topic, partition). Real systems store these as records in a compacted log. */
+/**
+ * Committed offsets per (group, topic, partition). Real systems store these as records in
+ * a compacted log.
+ */
 final class OffsetStore {
     private record Key(String group, String topic, int partition) {}
     private final ConcurrentHashMap<Key, Long> committed = new ConcurrentHashMap<>();
@@ -9,7 +12,9 @@ final class OffsetStore {
         committed.merge(new Key(group, topic, partition), lastProcessed + 1, Math::max);
     }
 
-    /** Where a consumer starts: committed position, or the reset policy for a new group. */
+    /**
+     * Where a consumer starts: committed position, or the reset policy for a new group.
+     */
     long startOffset(String group, String topic, int partition, long logStart, long logEnd, boolean earliest) {
         Long c = committed.get(new Key(group, topic, partition));
         // new group, or data expired
@@ -18,7 +23,10 @@ final class OffsetStore {
     }
 }
 
-/** Range assignment for one topic: partitions split as evenly as possible across sorted members. */
+/**
+ * Range assignment for one topic: partitions split as evenly as possible across sorted
+ * members.
+ */
 static Map<String, List<Integer>> assign(List<String> members, int partitions) {
     List<String> sorted = members.stream().sorted().toList();
     Map<String, List<Integer>> out = new LinkedHashMap<>();

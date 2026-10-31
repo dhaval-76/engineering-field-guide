@@ -1,11 +1,16 @@
-/** Road graph in compact arrays: edges of node u are to[firstEdge[u] .. firstEdge[u+1]). */
+/**
+ * Road graph in compact arrays: edges of node u are to[firstEdge[u] .. firstEdge[u+1]).
+ */
 record Graph(int[] firstEdge, int[] to, int[] travelMillis, double[] lat, double[] lon) {}
 
 final class Router {
     // 130 km/h — keeps A* admissible
     private static final double MAX_SPEED_M_PER_MS = 130_000.0 / 3_600_000;
 
-    /** A* search; with heuristic = 0 it is exactly Dijkstra. Returns travel time in ms, or -1. */
+    /**
+     * A* search; with heuristic = 0 it is exactly Dijkstra. Returns travel time in ms, or
+     * -1.
+     */
     static long shortest(Graph g, int src, int dst, boolean useHeuristic) {
         int n = g.firstEdge().length - 1;
         long[] best = new long[n];
@@ -33,7 +38,10 @@ final class Router {
         return -1;
     }
 
-    /** Admissible estimate: straight-line metres to the goal at the maximum possible speed. */
+    /**
+     * Admissible estimate: straight-line metres to the goal at the maximum possible
+     * speed.
+     */
     private static long h(Graph g, int u, int dst, boolean use) {
         if (!use) return 0;
         return (long) (haversineMetres(g.lat()[u], g.lon()[u], g.lat()[dst], g.lon()[dst]) / MAX_SPEED_M_PER_MS);

@@ -1,4 +1,7 @@
-/** In-memory inverted index with BM25 ranking — the core of what Lucene does, minus compression and disk. */
+/**
+ * In-memory inverted index with BM25 ranking — the core of what Lucene does, minus
+ * compression and disk.
+ */
 final class InvertedIndex {
     private static final double K1 = 1.2, B = 0.75;                     // BM25 defaults
     private static final Set<String> STOP = Set.of("the", "a", "an", "and", "of", "on", "to", "in");

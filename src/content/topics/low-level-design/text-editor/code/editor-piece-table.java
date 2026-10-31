@@ -39,7 +39,10 @@ final class PieceTable implements Buffer {
         }
     }
 
-    /** Keep the parts of each piece outside [pos, pos + len); return the removed text (for undo). */
+    /**
+     * Keep the parts of each piece outside [pos, pos + len); return the removed text (for
+     * undo).
+     */
     public String delete(int pos, int len) {
         StringBuilder removed = new StringBuilder();
         List<Piece> kept = new ArrayList<>();

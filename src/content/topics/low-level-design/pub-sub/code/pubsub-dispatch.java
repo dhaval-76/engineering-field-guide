@@ -1,4 +1,7 @@
-/** Push delivery for one group: poll, hand to the handler, retry with backoff, dead-letter, then commit. */
+/**
+ * Push delivery for one group: poll, hand to the handler, retry with backoff,
+ * dead-letter, then commit.
+ */
 class Dispatcher implements Runnable {
     private final Broker broker;
     private final String topic, group;

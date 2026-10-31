@@ -1,4 +1,6 @@
-/** times[i] = {u, v, w}; nodes 1..n. Time for a signal from k to reach all nodes, or -1. */
+/**
+ * times[i] = {u, v, w}; nodes 1..n. Time for a signal from k to reach all nodes, or -1.
+ */
 int networkDelayTime(int[][] times, int n, int k) {
     List<List<int[]>> adj = new ArrayList<>();
     for (int i = 0; i <= n; i++) adj.add(new ArrayList<>());

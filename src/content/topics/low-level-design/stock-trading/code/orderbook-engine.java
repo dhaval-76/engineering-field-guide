@@ -1,4 +1,7 @@
-/** One order book per symbol. Called from a single thread per symbol, so no locks are needed inside. */
+/**
+ * One order book per symbol. Called from a single thread per symbol, so no locks are
+ * needed inside.
+ */
 final class OrderBook {
     final String symbol;
     // Price levels: best bid = highest price, best ask = lowest. FIFO queue within a

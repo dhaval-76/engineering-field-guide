@@ -14,7 +14,10 @@ class PoliteFrontier {
 
     PoliteFrontier(double defaultDelaySeconds) { this.defaultDelay = defaultDelaySeconds; }
 
-    /** One canonical form per page: lower-case scheme/host, default ports and fragments dropped, tracking params removed, params sorted. */
+    /**
+     * One canonical form per page: lower-case scheme/host, default ports and fragments
+     * dropped, tracking params removed, params sorted.
+     */
     static String normalise(String url) {
         URI u = URI.create(url.trim());
         String scheme = u.getScheme().toLowerCase(), host = u.getHost().toLowerCase();
@@ -37,7 +40,10 @@ class PoliteFrontier {
         return true;
     }
 
-    /** The next URL whose host may be contacted now, or null if every host is cooling down. */
+    /**
+     * The next URL whose host may be contacted now, or null if every host is cooling
+     * down.
+     */
     String next(double now) {
         Ready r = ready.peek();
         if (r == null || r.at() > now) return null;

@@ -13,7 +13,9 @@ public final class Library {
         return checkedOut.remove(bookId, userId);
     }
 
-    /** Swap two books between users atomically: lock in a global order to avoid deadlock. */
+    /**
+     * Swap two books between users atomically: lock in a global order to avoid deadlock.
+     */
     private final ConcurrentHashMap<String, ReentrantLock> locks = new ConcurrentHashMap<>();
 
     public void swap(String bookA, String bookB) {

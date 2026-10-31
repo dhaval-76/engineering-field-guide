@@ -1,4 +1,7 @@
-/** flights[i] = {from, to, price}. Cheapest price from src to dst with at most k stops (k + 1 flights). */
+/**
+ * flights[i] = {from, to, price}. Cheapest price from src to dst with at most k stops (k
+ * + 1 flights).
+ */
 int findCheapestPrice(int n, int[][] flights, int src, int dst, int k) {
     int INF = Integer.MAX_VALUE;
     int[] cost = new int[n];

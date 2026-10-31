@@ -1,4 +1,7 @@
-/** Bounded pool that rejects with a domain exception and warns when the queue is filling up. */
+/**
+ * Bounded pool that rejects with a domain exception and warns when the queue is filling
+ * up.
+ */
 final class MonitoredExecutor extends ThreadPoolExecutor {
     private final int capacity;
 

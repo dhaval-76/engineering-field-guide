@@ -5,7 +5,10 @@ record Notification(String id, String userId, Category category, String dedupKey
 record Prefs(Set<Channel> optedOut, Set<Category> mutedCategories, LocalTime quietStart, LocalTime quietEnd, ZoneId zone) {}
 record Decision(List<Channel> sendNow, List<Channel> deferred, String reason) {}
 
-/** Decides where a notification goes, applying dedup, preferences, quiet hours and frequency caps. */
+/**
+ * Decides where a notification goes, applying dedup, preferences, quiet hours and
+ * frequency caps.
+ */
 class NotificationRouter {
     // Redis SET NX EX in production
     private final Map<String, Long> seenDedupKeys = new HashMap<>();

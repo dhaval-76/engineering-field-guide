@@ -1,4 +1,7 @@
-/** Signed URLs let the CDN serve private files (paid videos, invoices) without calling the origin. */
+/**
+ * Signed URLs let the CDN serve private files (paid videos, invoices) without calling the
+ * origin.
+ */
 static String sign(String path, long expiresEpochSeconds, byte[] secret) throws Exception {
     Mac mac = Mac.getInstance("HmacSHA256");
     mac.init(new SecretKeySpec(secret, "HmacSHA256"));
