@@ -1,0 +1,37 @@
+questions:
+  - q: Design a vending machine that accepts coins, sells products and returns change.
+    think: States, entities, and the money flow — especially change.
+    answer: |
+      **States**: Idle, HasCredit, OutOfService (and Dispensing if hardware confirmation is modelled). **Entities**: Product (code, name, price), Inventory (code → quantity), CoinBox (denomination → count), the current customer's inserted coins, and a Result. **Flow**: insert coin — accept known denominations and move to HasCredit; select — check stock, credit ≥ price, and that change can be made from the box plus inserted coins (DP for limited counts); if all pass, atomically add inserted coins to the box, remove change coins, decrement stock, clear credit and return to Idle; otherwise return a message and keep the credit. Cancel returns the exact inserted coins. Operator actions restock, load/collect coins and toggle out-of-service. Use integer money and one lock around operations.
+  - q: 'The machine owes ₹30 and has one ₹25 and three ₹10 coins. Your code says "exact change only". What''s wrong?'
+    think: Which algorithm chose the coins?
+    answer: |
+      It's using greedy change-making: it takes ₹25 first, then can't make ₹5. Greedy is only guaranteed optimal for canonical coin systems with unlimited supply. With limited counts, use dynamic programming: `best[i][a]` = fewest coins to make amount a using the first i denominations with at most `count(i)` of coin i; reconstruct the choice from a `take` table. It finds ₹10 × 3. Include the customer's inserted coins in the pool.
+followUps:
+  - q: When would you switch from an enum to state objects?
+    intuition: Count the switch statements.
+    approach: |
+      With 2–3 states and a few inputs, an enum with guard clauses is clearer. As states and inputs grow (card authorisation, dispensing with sensor confirmation, maintenance, low-change mode), every method becomes a switch over all states — changes then touch many places. State objects put each state's behaviour and transitions in one class, so adding a state is adding a class.
+  - q: How do you handle a product that fails to drop?
+    intuition: The customer must not lose money.
+    approach: |
+      Confirm the drop with a sensor. If it doesn't fire within a timeout, refund the credit (or void the card authorisation), mark the slot faulty, move to OutOfService or disable that slot, and report the fault to the operator backend. Only decrement stock and capture payment after confirmation.
+  - q: Why return the inserted coins on cancel rather than their value?
+    intuition: Small coins are precious for change.
+    approach: |
+      Returning the same coins is what customers expect and keeps the coin box unchanged. Paying back the value from the box could use up small denominations needed for change and make later sales fail with "exact change only".
+practice:
+  - task: Implement select() so it never takes money it can't fully honour, with change made from a limited coin box.
+    hint: Validate stock, credit and change first; then commit all updates together.
+    solution: |
+      In HasCredit: look up the product and stock; compare credit with price; build a pool from the box plus inserted coins and run bounded change-making DP for credit − price. If any check fails, return a message without changing anything. Otherwise move inserted coins into the box, remove the change coins, decrement stock, clear inserted coins, set Idle and return the product with the change list.
+    solutionCode: vending-machine
+quiz:
+  - q: Which algorithm reliably makes change from a box with limited coin counts?
+    options: [Greedy largest-first, Dynamic programming over denominations and amounts, Random selection, Binary search]
+    correct: 1
+    why: Greedy can fail with limited supply; DP explores combinations and finds the fewest coins or proves none exist.
+  - q: What should happen when change cannot be made?
+    options: [Vend anyway and keep the difference, Refuse the sale and keep the credit available to cancel, Return a random coin, Go out of service]
+    correct: 1
+    why: The customer should never lose money; they can choose another item or cancel.

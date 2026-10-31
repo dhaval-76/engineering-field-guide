@@ -1,0 +1,101 @@
+---
+title: Design a Vending Machine
+summary: A state-driven vending machine with inventory, accepted coins, a coin box and exact change-making with limited coins (where greedy fails), atomic vending, cancel and refunds, operator actions and hardware faults.
+track: low-level-design
+order: 37
+tags: [lld, state-pattern, dynamic-programming, vending-machine]
+aliases: [vending machine lld, vending machine design, state pattern vending, coin change limited coins, exact change only, snack machine, atm-like state machine]
+prerequisites: [low-level-design/lld-method, oop-patterns/strategy-and-state]
+related: [dsa/dynamic-programming, low-level-design/parking-lot, low-level-design/elevator]
+quickRef:
+  points:
+    - 'States: **Idle → HasCredit → (vend) → Idle**, plus **OutOfService**; each input means something different per state.'
+    - 'Entities: `Product`, `Inventory` (slot → product, quantity), `CoinBox` (denomination → count), inserted coins, `Result`.'
+    - 'Check stock, credit **and change availability before** committing; then update stock, coins and state together.'
+    - 'With limited coins, greedy change can fail — use **DP** over denominations; refuse the sale with "exact change only".'
+    - '**Cancel** returns the exact coins inserted; a dispense failure refunds and goes out of service.'
+  complexity: 'Change-making O(D × A × maxCount) for D denominations and amount A — tiny in practice.'
+  useWhen: '"Design a vending machine" — the classic State-pattern LLD question, often with change-making as the twist.'
+lastReviewed: 2026-10-30
+---
+
+## Why it matters
+
+The vending machine is the standard question for the **State** pattern: the same buttons behave differently depending on whether money is inserted, an item is dispensing or the machine is broken. Strong answers also get the money right — integer amounts, exact change with a limited coin supply, and no state where the customer loses money. The pattern itself is introduced in [Strategy and State](../../oop-patterns/strategy-and-state/); this page builds the whole machine.
+
+<Callout type="analogy">
+A shop with one cashier who only follows the rule card for the current situation: "no money yet", "money received", "closed". Before handing over a product, the cashier checks they can actually give the right change from the till — and if not, gives the customer's coins back rather than keeping them.
+</Callout>
+
+## Clarify
+
+- Payment: coins only, or notes and cards? (Coins first; cards as an extension.)
+- Which denominations are accepted? (₹1, 2, 5, 10, 20.)
+- One product per transaction? (Yes.)
+- What if the machine can't make change? (Refuse the sale and keep the credit; customer can cancel.)
+- Operator actions: restock, load coins, collect cash, out of service. (Yes.)
+
+## States
+
+<Diagram id="vending-machine-states" caption="The machine's states and the inputs that move between them. A fault in any state goes to OutOfService after refunding." />
+
+| Input | Idle | HasCredit | OutOfService |
+|---|---|---|---|
+| insert coin | accept → HasCredit | accept, add to credit | reject (coin returned) |
+| select | "Insert money first" | vend if stock, credit and change all OK | rejected |
+| cancel | nothing | refund inserted coins → Idle | nothing |
+
+With three states, an enum plus guards (as in the code below) is clear. With more states and transitions (card authorisation, dispensing with sensor confirmation, maintenance), switch to **state objects** so each state's rules live in one class.
+
+## Entities
+
+- **`Product`** (code, name, price) and **inventory** (code → quantity).
+- **`CoinBox`** — denomination → count; used for change.
+- **Inserted coins** — kept separately until the sale commits, so cancel returns the *same* coins.
+- **`Result`** — product + change, or a message with nothing taken.
+
+## Change-making with a limited coin box
+
+<Walkthrough id="limited-change" />
+
+## The machine
+
+<CodeTabs id="vending-machine" title="Vending machine: states, inventory, coin box, change-making DP and atomic vending" />
+
+Key decisions:
+
+- **Validate everything before mutating**: stock, credit, and that change can be made. Only then update the coin box, stock and state together — no half-completed sale.
+- **Money as integers** in the smallest unit.
+- **Thread safety**: one customer at a time in reality, but the operator console or a telemetry thread may act concurrently — one lock around operations is enough.
+
+## Hardware and real-world concerns
+
+- **Dispense failure**: a drop sensor confirms the item fell. If not, refund and move to OutOfService, logging the slot.
+- **Card payments**: authorise first, dispense, then capture; void the authorisation if dispensing fails.
+- **Power loss**: persist credit and in-progress state to non-volatile memory so a reboot doesn't eat money.
+- **Telemetry**: report stock levels and faults to a backend so restocking is planned ([Order tracking](../../system-design/order-tracking/) uses similar event flows).
+
+## Extensions
+
+- Multiple items per transaction (a cart), promotions, dynamic pricing (Strategy).
+- Notes and cards (new payment types behind a `PaymentMethod` interface).
+- Low-change mode: prefer exact-change sales when the coin box runs low.
+
+<Pitfalls>
+
+- **Greedy change** with a limited coin box.
+- **Taking money before checking** stock and change.
+- **Refunding by amount instead of returning the inserted coins** — drains the box of small coins.
+- **A giant `switch` on state** in every method as the machine grows — use state objects.
+- **Floating-point money.**
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- Model explicit states; each input is handled per state.
+- Check stock, credit and change before committing; update everything together.
+- Use DP for change with limited coins; refuse the sale when change is impossible.
+- Plan for faults: refunds, out-of-service, persisted credit.
+
+</KeyTakeaways>

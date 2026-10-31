@@ -1,0 +1,26 @@
+title: Why greedy change-making fails in a real machine
+frames:
+  - caption: 'A customer pays ₹50 for a ₹20 item: the machine owes ₹30. The coin box holds one ₹25 coin and three ₹10 coins (an illustrative coin set).'
+    panels:
+      - kind: kv
+        label: coin box
+        pairs: [['25', '× 1'], ['10', '× 3']]
+  - caption: '**Greedy** takes the largest coin that fits: ₹25. Now it owes ₹5 and has no coin small enough. It would wrongly report "exact change only" — or worse, short-change.'
+    panels:
+      - kind: rows
+        label: greedy
+        items: [{ v: 'take 25 → owe 5', tone: warn }, { v: 'no 5 available → stuck', tone: bad }]
+  - caption: 'Greedy is optimal only for "canonical" coin systems **with unlimited coins**. A real box has limited counts, so we need dynamic programming over (denominations used, amount).'
+    panels:
+      - kind: note
+        text: 'best[i][a] = fewest coins making a with the first i denominations, using at most count(i) of coin i'
+  - caption: '**DP** finds ₹10 × 3. The table also tells us when change is truly impossible, so the machine can refuse the sale *before* taking the money.'
+    panels:
+      - kind: rows
+        label: DP
+        items: [{ v: '10 + 10 + 10 = 30 ✓', tone: ok }]
+  - caption: 'The customer''s own inserted coins join the pool first: paying ₹50 with two ₹20s and a ₹10 for a ₹40 item can return that same ₹10.'
+    panels:
+      - kind: kv
+        label: pool for change
+        pairs: [[box, '25×1, 10×3'], [inserted, '20×2, 10×1']]
