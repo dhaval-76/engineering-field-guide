@@ -1,0 +1,26 @@
+title: A 45-minute AI-assisted coding round
+frames:
+  - caption: '**0–5 min — understand before you prompt.** Read the task and any existing code, restate it, and ask about edge cases. Candidates who paste the task straight into the assistant lose the interviewer here.'
+    panels:
+      - kind: rows
+        label: Clarify
+        items: ['half-open or closed ranges?', 'unsorted input?', 'touching ranges merge?', 'existing tests?']
+  - caption: '**5–10 min — plan and prompt with constraints.** Outline the approach yourself, then ask the AI for a specific piece: signature, language version, constraints, what not to do.'
+    panels:
+      - kind: note
+        text: '"Java 21. mergeSlots(List<int[]>). Half-open, unsorted, don''t mutate input, merge touching ranges, O(n log n)."'
+  - caption: '**10–25 min — review out loud.** Read every line the AI produced and narrate: what it does, what''s wrong, what''s missing. This is the most heavily weighted part.'
+    panels:
+      - kind: rows
+        label: Review notes
+        items: [{ v: 'not sorted', tone: bad }, { v: '< should be <=', tone: bad }, { v: 'needs max(end)', tone: bad }, { v: 'mutates input', tone: warn }]
+  - caption: '**25–40 min — test and iterate.** Write or generate tests for the edge cases you named, run them, fix failures yourself or with targeted prompts. Extend the feature when the interviewer adds a requirement.'
+    panels:
+      - kind: rows
+        label: Tests
+        items: [{ v: 'empty ✓', tone: ok }, { v: 'touching ✓', tone: ok }, { v: 'nested ✓', tone: ok }, { v: 'unsorted ✓', tone: ok }]
+  - caption: '**40–45 min — wrap up.** State complexity, remaining risks and what you''d do with more time. You own the final code — whoever typed it.'
+    panels:
+      - kind: kv
+        label: Summary
+        pairs: [[complexity, 'O(n log n) time, O(n) space'], [risks, 'very large inputs → stream by day'], [ownership, { v: 'I can explain every line', tone: ok }]]

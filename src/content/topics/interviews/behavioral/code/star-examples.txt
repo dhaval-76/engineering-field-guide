@@ -1,0 +1,48 @@
+QUESTION: "Tell me about a time you disagreed with a senior engineer."
+
+SITUATION (≈15%)
+"Our order service needed to notify five downstream teams. The tech lead proposed each team
+poll our database every minute."
+
+TASK
+"I owned the integration and had to get something shipped within the quarter."
+
+ACTION (≈60% — say "I", be specific)
+"I was worried about load and coupling: five teams reading our tables would freeze our schema.
+Instead of arguing in the meeting, I measured — polling would add ~300 queries/s at peak
+on our primary. I wrote a one-page comparison: polling vs an outbox + Kafka topic, with cost,
+effort (two weeks vs one) and failure modes, and asked for 20 minutes to review it with him.
+He raised a fair point — the teams didn't run Kafka consumers yet — so we agreed on Kafka
+plus a small adapter that two teams could poll during migration."
+
+RESULT (numbers)
+"We shipped in five weeks. Primary DB load stayed flat, and two more teams subscribed later
+without any work on our side."
+
+REFLECTION
+"I learned to bring data and a written proposal rather than debate live, and to look for the
+part of the other person's concern that's right."
+
+----------------------------------------------------------------------------------------
+
+QUESTION: "Tell me about a mistake you made."
+
+SITUATION
+"I wrote a migration that backfilled a new column on a 200-million-row table."
+
+TASK / ACTION — the mistake
+"I tested it on staging with 1% of the data and ran it in one transaction in production.
+It locked the table, and checkout errors spiked for eight minutes before I cancelled it."
+
+ACTION — the recovery
+"I cancelled the migration, confirmed the rollback, and posted in the incident channel
+with what happened. Then I rewrote it as batched updates of 10,000 rows with a pause,
+ran it off-peak, and added a migration checklist item: estimate lock time on production-sized data."
+
+RESULT
+"The batched version finished in 40 minutes with no impact. The checklist caught two similar
+migrations from other teams that quarter."
+
+REFLECTION
+"I now test data migrations against production-scale copies and assume anything that
+touches a big table needs batching."

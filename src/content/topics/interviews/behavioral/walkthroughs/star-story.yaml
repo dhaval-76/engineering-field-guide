@@ -1,0 +1,26 @@
+title: Turning a memory into a STAR answer
+frames:
+  - caption: 'Raw memory: "We had double charges, I fixed it with idempotency." True — and forgettable. Interviewers can''t score what they can''t see: your judgement, actions and impact.'
+    panels:
+      - kind: note
+        text: '"We had double charges and I fixed it."'
+  - caption: '**Situation + Task** in two sentences, with stakes: who was affected and how much. Skip company history.'
+    panels:
+      - kind: kv
+        label: S + T
+        pairs: [[situation, '0.1% of payments charged twice, ~40 tickets/day'], [task, 'I owned the payment API and the fix']]
+  - caption: '**Action** is most of the answer. Say "I", not "we". Show how you found the cause, the options you weighed and why you chose one.'
+    panels:
+      - kind: rows
+        label: Action
+        items: ['added correlation ids → found client retries after timeouts', 'rejected a Redis lock (not durable)', { v: 'chose idempotency keys with a unique constraint', tone: ok }, 'rolled out behind a flag, endpoint by endpoint']
+  - caption: '**Result** with numbers and a time frame — then a **reflection**: what you learned or would do differently. That last line is what signals growth.'
+    panels:
+      - kind: kv
+        label: R + reflection
+        pairs: [[result, { v: '40/day → 0 within 3 months', tone: ok }], [reflection, 'make idempotency a platform default']]
+  - caption: 'Expect **follow-ups** that dig into the action: "Why not a lock?", "What did your manager think?", "What would you do differently?" Prepare two for each story; that''s where rehearsed-but-shallow stories fall apart.'
+    panels:
+      - kind: rows
+        label: Likely follow-ups
+        items: ['Why not a distributed lock?', 'How did you get buy-in?', 'What if the key store is down?']

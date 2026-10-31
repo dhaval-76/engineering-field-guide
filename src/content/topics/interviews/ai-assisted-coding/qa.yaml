@@ -1,0 +1,37 @@
+questions:
+  - q: 'The AI assistant produces a solution that passes the example in the prompt. The interviewer asks, "Are you done?" What do you do?'
+    think: Passing one example isn't evidence of correctness.
+    answer: |
+      Not yet. Review the code line by line out loud: input assumptions (sorted? empty? nulls? duplicates?), boundary conditions (`<` vs `<=`, half-open ranges), mutation of inputs, overflow, and complexity versus the stated limits. List edge cases explicitly and write tests for them — ideally separately from the code generation — then run them. Fix failures by hand or with targeted prompts, and finish by stating complexity and remaining risks. The interviewer is checking whether you verify before you trust.
+  - q: 'How would you handle an AI-assisted round where you must add a feature to an unfamiliar codebase?'
+    think: Read and understand before generating.
+    answer: |
+      Spend the first minutes orienting: run the tests, skim the structure, find the entry point and the code path the feature touches, and summarise it aloud (the assistant can help explain files, but verify against the code). Restate the requirement and edge cases. Plan the change (which classes, which tests), then ask the assistant for scoped edits that follow the existing style and patterns. Review diffs, add tests next to existing ones, run the full suite, and explain any trade-offs or follow-ups. Stay in charge of the design.
+followUps:
+  - q: How do you know if AI is allowed in a round?
+    intuition: Ask; never assume.
+    approach: |
+      Ask the recruiter in writing before the loop, for each round, which tools are allowed (built-in assistant only, or your own IDE tools). Policies differ between companies and between rounds of the same loop. If unsure on the day, ask the interviewer at the start. Using AI where it isn't allowed is treated as cheating.
+  - q: What does a good prompt in an interview look like?
+    intuition: Constraints, not just a problem name.
+    approach: |
+      It names the language and version, the exact signature, input guarantees and edge cases, behaviour rules (e.g. half-open ranges, touching ranges merge), complexity target, and style constraints, and asks for one piece of work. It's short enough to say aloud as you type, so the interviewer hears your understanding.
+  - q: Does this mean DSA fundamentals matter less?
+    intuition: You review what you understand.
+    approach: |
+      They matter differently. You may type less algorithm code, but you must recognise the right approach, spot wrong complexity, off-by-one errors and missing edge cases in generated code, and fix them under time pressure. Many loops also still have traditional coding rounds without AI.
+practice:
+  - task: Take a classic problem (merge intervals), get an AI draft, and find and fix every bug before writing tests for six edge cases.
+    hint: Look for sorting assumptions, boundary comparisons, max vs assignment, and input mutation.
+    solution: |
+      Prompt with explicit constraints (half-open, unsorted, touching ranges merge, don't mutate). Review the draft for missing sort, `<` vs `<=`, `end = s.end` instead of `max`, and aliasing of input arrays. Fix by copying and sorting, merging when `start <= lastEnd`, and taking the max end. Test empty, single, unsorted, touching, nested and disjoint inputs, and confirm the input is unchanged.
+    solutionCode: merge-slots
+quiz:
+  - q: In an AI-assisted coding round, which behaviour is valued most?
+    options: [Typing the fastest, Getting the AI to write everything in one prompt, Reviewing and verifying the AI's output while explaining it, Avoiding the AI entirely]
+    correct: 2
+    why: The round tests judgement — directing, reviewing and verifying generated code.
+  - q: Why ask for tests separately from the implementation?
+    options: [It's faster, So the tests don't inherit the same misunderstanding as the code, Interviewers require it, To save tokens]
+    correct: 1
+    why: Tests derived from your own edge-case list catch mistakes the implementation prompt baked in.

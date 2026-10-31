@@ -1,0 +1,33 @@
+TASK (from the interviewer)
+"Our booking service stores meeting slots as [start, end) minute ranges. Write mergeSlots so the
+calendar shows busy blocks. Slots arrive in any order. Adjacent slots like [60,90) and [90,120)
+should show as one block."
+
+YOUR PROMPT — constraints first, not "write merge intervals"
+"Java 21. Write `List<int[]> mergeSlots(List<int[]> slots)`.
+ Ranges are half-open [start, end). Input is unsorted and may be empty; don't mutate it.
+ Merge overlapping AND touching ranges. O(n log n). No streams; I'll add tests next."
+
+AI DRAFT (plausible, and wrong in three ways)
+    List<int[]> mergeSlots(List<int[]> slots) {
+        List<int[]> out = new ArrayList<>();
+        for (int[] s : slots) {                               // (1) never sorted
+            if (!out.isEmpty() && s[0] < out.get(out.size() - 1)[1]) {   // (2) '<' misses touching ranges
+                out.get(out.size() - 1)[1] = s[1];            // (3) should be max(); also mutates input arrays
+            } else {
+                out.add(s);                                   //     aliases the caller's array
+            }
+        }
+        return out;
+    }
+
+WHAT YOU SAY WHILE REVIEWING (this is what's being graded)
+- "It assumes sorted input — the task says any order. Sort by start on a copy."
+- "Touching ranges should merge, so the condition is start <= lastEnd."
+- "A slot fully inside the previous one, e.g. [0,100) then [10,20), would shrink the block to 20.
+   It needs Math.max."
+- "It writes into the caller's arrays. I'll copy each range."
+- "Tests I'd run: empty, single, unsorted, touching, nested, disjoint."
+
+THEN: fix it yourself or re-prompt with the specific failures, run the tests, and explain
+the final complexity: O(n log n) for the sort, O(n) extra space.

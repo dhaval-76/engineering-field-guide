@@ -1,0 +1,37 @@
+questions:
+  - q: 'Tell me about a time you disagreed with your manager.'
+    think: Show you can disagree with data, listen, commit to a decision, and keep the relationship.
+    answer: |
+      Pick a real disagreement about a work decision (not personalities) with stakes. **S/T**: the decision and why it mattered. **A**: how you prepared — data, a written comparison of options — how you raised it privately and respectfully, what you learned from their view, and how a decision was reached (theirs, yours or a mix). If you lost, show you **disagreed and committed** and helped it succeed. **R**: the outcome, with numbers. **Reflection**: what you'd repeat (bringing data) or change. Avoid stories where you were simply right and the manager wrong, or where you escalated without talking first.
+  - q: 'What is your biggest professional mistake?'
+    think: A real mistake, owned, fixed, and turned into a process change.
+    answer: |
+      Choose a genuine mistake with real impact that you caused (a bad migration, a missed edge case that hit production, a wrong estimate), not a disguised strength. Describe it plainly, then spend most of the answer on what you did: immediate mitigation, communication (who you told, how fast), the fix, and the systemic change — a checklist, a test, an alert, a review step — that prevents a repeat for you and others. End with the measured result and what you now do differently. Interviewers look for ownership and learning, not perfection.
+followUps:
+  - q: How long should a behavioural answer be?
+    intuition: Long enough for detail, short enough for follow-ups.
+    approach: |
+      About two to three minutes: Situation and Task in under 30 seconds, most time on Action, then Result and a one-line reflection. Interviewers usually have several questions to cover and will dig deeper with follow-ups — leave room for them rather than front-loading every detail.
+  - q: How do you prepare for values-based loops like Amazon's?
+    intuition: Map stories to the published values.
+    approach: |
+      Read the company's published values (Amazon's Leadership Principles, for example). For each, prepare at least one story — ideally two — and tag every story in your bank with the values it demonstrates. Expect several questions per round, each mapped to a value, and probing follow-ups ("what data did you use?", "what was the impact on the customer?"). Use the company's vocabulary only where it fits naturally.
+  - q: What if you don't have a story for a question?
+    intuition: Honesty plus the closest real example.
+    approach: |
+      Say briefly that you haven't faced exactly that, then offer the closest real experience and explain how it applies — or, if asked, how you would approach it. Don't invent a story: follow-up questions expose invented details quickly, and credibility matters more than coverage.
+practice:
+  - task: Build your story bank — six stories in STAR form, mapped to at least eight themes, each with numbers and two prepared follow-ups.
+    hint: Start from incidents, launches, disagreements, mistakes and mentoring moments from the last two to three years.
+    solution: |
+      List 10–15 memories, keep the 6–8 with real stakes where you personally acted, and write each as STAR with a hook line and measurable results. Build a grid of stories × themes (ownership, conflict, failure, ambiguity, influence, customer, delivery, learning) and fill gaps with new stories. Rehearse aloud to three minutes each and run at least two mock behavioural sessions.
+    solutionCode: story-bank
+quiz:
+  - q: In a STAR answer, where should most of the time go?
+    options: [Situation, Task, Action, Result]
+    correct: 2
+    why: The actions you personally took are the evidence interviewers score.
+  - q: 'Which answer to "tell me about a failure" is strongest?'
+    options: ['"I work too hard"', A real mistake you owned plus the process change you made, A team failure caused by someone else, '"I haven''t really failed"']
+    correct: 1
+    why: Ownership and learning are what failure questions test.

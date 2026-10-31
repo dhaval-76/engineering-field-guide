@@ -1,0 +1,88 @@
+---
+title: AI-Assisted Coding Interviews
+summary: The newer interview rounds where you code with an AI assistant — what companies are testing, a minute-by-minute approach, prompting with constraints, reviewing and testing generated code out loud, and the mistakes that sink candidates.
+track: interviews
+order: 25
+tags: [interviews, ai-engineering, coding-round]
+aliases: [ai assisted coding interview, ai enabled coding interview, ai coding round, copilot interview, cursor interview, vibe coding interview, using chatgpt in interview, can i use ai in interview, prompt engineering interview, code review round, ai fluency]
+prerequisites: [interviews/how-interviews-work]
+related: [ai-engineering/llm-fundamentals, interviews/mock-practice, interviews/interview-day-checklist, backend/testing]
+quickRef:
+  points:
+    - 'Some companies now **allow or require** an AI assistant in a coding round; others still forbid it. **Ask the recruiter for each round.**'
+    - 'The round tests **judgement**: decomposing the problem, prompting with constraints, **reviewing**, testing and owning the result.'
+    - 'Understand and plan first; prompt for specific pieces; **narrate your review** of every generated line.'
+    - 'Tests prove it works — name edge cases before generating code, then run them.'
+    - 'Fundamentals still matter: you must spot wrong complexity, missing edge cases and subtle bugs in confident-looking code.'
+  useWhen: Preparing for a loop that includes an AI-enabled or AI-assisted coding round, or a code-review/debugging round.
+lastReviewed: 2026-10-30
+---
+
+## Why it matters
+
+Engineers now write much of their code with assistants, and some companies have changed their interviews to match. [Canva replaced its computer-science fundamentals round with an AI-assisted coding round](https://canva.dev/blog/engineering/yes-you-can-use-ai-in-our-interviews) for backend and frontend roles in June 2025, expecting candidates to use tools like Copilot, Cursor or Claude ([The Register](https://www.theregister.com/2025/06/11/canva_coding_assistant_job_interviews/)). [Meta began letting candidates use AI in some coding interviews](https://www.techradar.com/pro/meta-is-going-to-let-candidates-use-ai-in-job-interviews) in 2025. Candidates also report similar rounds at other product companies. Policies differ by company *and by round*, and using AI where it isn't allowed is treated as cheating, so always confirm.
+
+<Callout type="analogy">
+A driving test in a car with lane assist. The examiner isn't checking whether the car can steer; they're checking whether you know where to go, notice when the assist drifts toward the kerb, and take the wheel at the right moment.
+</Callout>
+
+## What's being evaluated
+
+| Signal | Strong | Weak |
+|---|---|---|
+| Problem understanding | Clarifies requirements and edge cases before prompting | Pastes the task into the assistant |
+| Decomposition | Plans the approach, asks AI for well-scoped pieces | Asks for the whole solution in one prompt |
+| Prompting | States language, signature, constraints, invariants | "Write merge intervals" |
+| Review | Reads every line, explains it, catches bugs and complexity issues | Accepts output that "looks right" |
+| Verification | Names edge cases, writes/generates tests, runs them | "It should work" |
+| Ownership | Can explain and modify every line without the AI | Stuck when asked "why this?" |
+| Communication | Narrates decisions and trade-offs throughout | Silent typing |
+
+Formats vary: building a small feature in an existing codebase, extending a multi-part problem as requirements are added, or debugging and reviewing given code. Many include reading unfamiliar code — practise that, not just writing from scratch.
+
+## A minute-by-minute approach
+
+<Walkthrough id="ai-round" />
+
+<CodeTabs id="ai-session-review" title="A constrained prompt, a plausible AI draft with three bugs, and how to review it out loud" />
+
+<CodeTabs id="merge-slots" title="The final, tested version" />
+
+## Prompting well under time pressure
+
+<Steps>
+
+1. **Give context and constraints**: language and version, signature, input guarantees (or lack of them), performance target, style (no streams, no new dependencies).
+2. **Ask for one piece at a time**: the data model, then the core function, then tests — easier to review than 200 lines at once.
+3. **Ask for tests separately**, from your list of edge cases, so the tests aren't shaped by the same misunderstanding as the code.
+4. **Re-prompt with the specific failure** ("fails for touching ranges [60,90),[90,120): should merge") rather than "fix it".
+5. **Know when to type it yourself** — small fixes are faster by hand, and show you understand the code.
+
+</Steps>
+
+## How to practise
+
+- Solve familiar problems with an assistant while narrating aloud; record yourself.
+- Practise **reviewing**: generate solutions to classic problems and hunt for bugs, complexity issues and missing edge cases ([DSA patterns](../../dsa/arrays-and-hashing/) help you recognise them).
+- Work in **unfamiliar repositories**: add a feature to an open-source project with an assistant in 45 minutes.
+- Run [mock interviews](../mock-practice/) where the interviewer adds requirements halfway.
+
+<Pitfalls>
+
+- **Using AI in a round that doesn't allow it** — confirm per round.
+- **Prompting before understanding** the problem.
+- **Accepting output silently** — the review is the interview.
+- **Huge prompts and huge outputs** you can't review in time.
+- **No tests**, or tests generated from the same flawed understanding as the code.
+- **Losing the fundamentals** — you can't catch an O(n²) loop or an off-by-one you don't recognise.
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- AI-assisted rounds grade judgement: decomposition, constraints, review, verification and ownership.
+- Clarify and plan first, prompt for scoped pieces, narrate the review, run tests.
+- Confirm the AI policy for every round.
+- Fundamentals are what let you catch the assistant's mistakes.
+
+</KeyTakeaways>

@@ -1,0 +1,15 @@
+STORY BANK — 6 to 8 stories cover almost every behavioural question.
+Mark which themes each story can answer (●) and which it can answer with small changes (○).
+
+                          Ownership  Conflict  Failure  Ambiguity  Influence  Customer  Deadline  Learning
+1 Duplicate-charge fix        ●                    ○                    ●          ●
+2 Disagreed on Kafka vs DB              ●                     ○          ●
+3 Missed a migration bug                           ●                                                ●
+4 Vague "make search fast"                                    ●                    ○          ○
+5 Mentored a new teammate               ○                                ●                            ●
+6 On-call incident at 2 am    ●                                                    ●          ●
+7 Pushed back on scope                  ●                     ○          ●                    ●
+
+For each story keep a one-line hook, the numbers, and the two follow-ups you dread most:
+  1  "0.1% of payments charged twice → idempotency keys → 40 tickets/day to zero"
+     Follow-ups: Why not a lock? What would you do differently?
