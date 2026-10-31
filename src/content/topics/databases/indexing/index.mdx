@@ -17,7 +17,7 @@ quickRef:
     - '`EXPLAIN (ANALYZE, BUFFERS)`: compare **estimated vs actual rows**; look for Seq Scan on big tables, Sort, and rows removed by filter.'
   complexity: 'Lookup O(log n) — about 4 levels plus one table page for 100M rows, and the upper levels are usually cached; full scan O(n).'
   useWhen: A query is slow, you're designing a table's access paths, or reviewing a migration that adds an index.
-lastReviewed: 2026-10-30
+lastReviewed: 2026-10-31
 ---
 
 ## Why it matters
@@ -50,6 +50,8 @@ The index at the back of a textbook: terms in alphabetical order, each with page
   yLabel="pages"
   caption="Index levels plus one table page, assuming ~100 rows per table page and ~300 keys per index page. The index gains a level each time the table grows ~300×."
 />
+
+Measured on PostgreSQL 14 with 2 million rows: counting the rows where `total = 777` took **27.4 ms** as a full scan and **0.13 ms** with an index on `total` — about 200× faster, and the gap grows with the table.
 
 ### Clustered and secondary indexes
 
@@ -113,7 +115,21 @@ Read the plan inside-out and look for: **estimated `rows` far from actual** (sta
 
 ## What indexes cost
 
-- **Writes.** Every `INSERT` and `DELETE` updates every index; an `UPDATE` updates the indexes on changed columns (in PostgreSQL, changing any indexed column also rules out cheap "HOT" updates). Ten indexes can make writes several times slower.
+- **Writes.** Every `INSERT` and `DELETE` updates every index; an `UPDATE` updates the indexes on changed columns (in PostgreSQL, changing any indexed column also rules out cheap "HOT" updates).
+
+<Chart
+  type="bar"
+  title="Inserting 300,000 rows into PostgreSQL by number of indexes (measured)"
+  bars={[
+    ['No indexes', 791, 'ok'],
+    ['1 index', 1156, 'info'],
+    ['3 indexes', 2304, 'warn'],
+    ['6 indexes', 4378, 'bad'],
+  ]}
+  unit=" ms"
+  caption="Each extra index is another B-tree to update on every write: six indexes made the same insert 5.5× slower. Index for the queries you actually run, and drop the ones nobody uses."
+/>
+
 - **Memory.** Indexes compete with table data for the buffer cache. An index that doesn't fit in memory is much slower.
 - **Locks during creation.** Plain `CREATE INDEX` blocks writes to the table while it builds. In production use `CREATE INDEX CONCURRENTLY` (PostgreSQL) or online DDL (MySQL).
 
