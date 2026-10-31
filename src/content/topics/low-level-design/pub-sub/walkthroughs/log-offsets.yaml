@@ -1,0 +1,27 @@
+title: One log, independent consumer groups
+frames:
+  - caption: 'Topic `orders` is an append-only log. Publishing appends and returns the next **offset**. Messages are not deleted when read.'
+    panels:
+      - kind: array
+        label: orders log
+        items: [{ v: m0, tag: '0' }, { v: m1, tag: '1' }, { v: m2, tag: '2' }, { v: m3, tag: '3' }, { v: m4, tag: '4' }]
+  - caption: 'Each **consumer group** keeps its own committed offset — the next message it will read. `email` is at 4; `audit` subscribed from the beginning and has processed only m0, so it is at 1. Neither affects the other.'
+    panels:
+      - kind: array
+        label: orders log
+        items: [{ v: m0, tone: muted }, { v: m1, tag: audit }, m2, m3, { v: m4, tag: email }]
+  - caption: '`audit` polls two messages (m1, m2) and crashes before committing. Its offset is still 1, so the next poll returns m1 and m2 again: **at-least-once** delivery. Handlers must be idempotent.'
+    panels:
+      - kind: rows
+        label: audit
+        items: ['poll → m1, m2', { v: 'crash (no commit)', tone: bad }, { v: 'poll → m1, m2 again', tone: warn }]
+  - caption: 'After handling, `audit` commits 3. Committing *before* handling would give at-most-once instead: a crash then loses messages.'
+    panels:
+      - kind: array
+        label: orders log
+        items: [{ v: m0, tone: muted }, { v: m1, tone: muted }, { v: m2, tone: muted }, { v: m3, tag: audit }, { v: m4, tag: email }]
+  - caption: '**Retention** trims messages every group has passed (here m0–m2) — or, in real brokers, by age and size regardless of readers. A group that falls behind retention loses data, so monitor consumer lag.'
+    panels:
+      - kind: array
+        label: orders log (after trim)
+        items: [{ v: m3, tag: audit }, { v: m4, tag: email }]

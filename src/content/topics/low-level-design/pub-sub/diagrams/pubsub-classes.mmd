@@ -1,0 +1,27 @@
+classDiagram
+  class Broker {
+    +publish(topic, key, payload) long
+    +subscribe(topic, group, fromBeginning)
+    +poll(topic, group, max) List~Message~
+    +commit(topic, group, nextOffset)
+    +trim(topic) int
+  }
+  class Topic {
+    -List~Message~ log
+    -long baseOffset
+    -Map~String,Long~ committed
+  }
+  class Message {
+    +long offset
+    +String key
+    +String payload
+  }
+  class Dispatcher {
+    -Consumer~Message~ handler
+    -int maxAttempts
+    +run()
+    +stop()
+  }
+  Broker "1" *-- "many" Topic
+  Topic "1" *-- "many" Message
+  Dispatcher --> Broker : polls and commits

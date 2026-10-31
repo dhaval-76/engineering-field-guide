@@ -1,0 +1,93 @@
+---
+title: Design a Pub/Sub Message Broker
+summary: An in-memory publish/subscribe broker built like a log — topics as append-only logs, consumer groups with committed offsets, at-least-once delivery, push dispatch with retries and dead letters, ordering by key, retention and backpressure.
+track: low-level-design
+order: 39
+tags: [lld, pub-sub, messaging, observer, concurrency]
+aliases: [pub sub lld, publish subscribe, message queue design, message broker lld, design kafka lld, event bus, topic subscriber, consumer group, offset commit, at least once, dead letter queue, dlq, backpressure, observer vs pub sub]
+prerequisites: [low-level-design/lld-method, concurrency/producer-consumer]
+related: [system-design/kafka-deep-dive, system-design/messaging-system, oop-patterns/observer, architecture/saga-and-outbox]
+quickRef:
+  points:
+    - 'Publishers write to **topics**; subscribers receive without either side knowing the other.'
+    - 'Model a topic as an **append-only log**; each **consumer group** tracks its own **offset** — replay and independent consumers for free.'
+    - '**Commit after handling** → at-least-once (make handlers idempotent); commit before → at-most-once.'
+    - 'Push delivery: a dispatcher per group with **retries + backoff** and a **dead-letter topic** for poison messages.'
+    - 'Ordering holds within a log (or partition); use a **key** to keep related messages in one partition.'
+  complexity: 'publish O(1) amortised; poll O(batch); trim O(dropped).'
+  useWhen: '"Design a pub/sub system / message queue / event bus" (LLD), or explaining how Kafka-like brokers work inside.'
+lastReviewed: 2026-10-30
+---
+
+## Why it matters
+
+Pub/sub is how services and components stay decoupled, and "design a message queue" is a common machine-coding question. Interviewers look for the delivery guarantees (when exactly is a message "done"?), independent subscribers, ordering, failure handling and thread safety. Designing it as a **log with offsets** — the way Kafka works — answers most of those questions at once.
+
+<Callout type="analogy">
+A newsroom's wire feed. Every story is appended to the feed with a number. Each newspaper keeps a bookmark of the last story it has printed; a paper that was offline catches up from its bookmark, and a new paper can start from today or read the archive. Nobody tears stories out of the feed when they read them.
+</Callout>
+
+## Clarify
+
+- Multiple independent subscribers per topic, each seeing every message? (Yes — consumer groups.)
+- Several workers sharing one subscription's load? (Extension — partitions.)
+- Delivery guarantee? (At-least-once.)
+- Push (callbacks) or pull (poll)? (Both: pull core, push dispatcher on top.)
+- Ordering? (Per topic; per key with partitions.)
+- Persistence? (In memory; discuss segment files.)
+
+## Observer vs pub/sub vs queue
+
+| | Observer | Pub/sub (log) | Work queue |
+|---|---|---|---|
+| Coupling | Subject holds a list of observers | Broker in between; parties don't know each other | Broker in between |
+| Each message goes to | every observer, synchronously | every **group** (and one consumer within a group) | one consumer |
+| After reading | — | kept (until retention) | deleted on ack |
+| Replay | no | yes — reset the offset | no |
+
+See [Observer](../../oop-patterns/observer/) for the in-process pattern and [Kafka vs RabbitMQ](../../system-design/kafka-vs-rabbitmq/) for the two broker styles.
+
+## Design
+
+<Diagram id="pubsub-classes" caption="A Broker owns Topics; each Topic is a log of Messages plus a committed offset per consumer group. A Dispatcher turns polling into push delivery." />
+
+<Walkthrough id="log-offsets" />
+
+<CodeTabs id="pubsub-broker" title="Broker: append-only topics, consumer groups, poll/commit and retention" />
+
+## Push delivery, retries and dead letters
+
+<CodeTabs id="pubsub-dispatch" title="A dispatcher per group: poll, deliver with backoff, dead-letter poison messages, commit" />
+
+- **Retry with backoff** for transient failures; after N attempts publish to `topic.dlq` and move on, so one bad message doesn't block the whole topic.
+- **Commit after handling** — at-least-once; handlers de-duplicate by message id or offset ([Idempotency](../../backend/idempotency/)).
+- **Backpressure**: pull-based consumption naturally limits in-flight work to the batch size; push systems need bounded buffers and flow control.
+
+## Ordering and scaling out
+
+A single log is totally ordered but consumed by one consumer per group. To scale, split a topic into **partitions**: publish chooses `partition = hash(key) % n`, each partition is its own log, and a group's partitions are spread across its consumers. Messages with the same key (an order id) stay in order; there's no order across partitions. Retries reorder messages unless the dispatcher blocks the partition while retrying.
+
+## Concurrency and persistence
+
+- One lock per topic keeps publish/poll/commit consistent while topics proceed in parallel; `publish` notifies waiting pollers for long polling.
+- Persistence: append messages to segment files, `fsync` per batch, keep an offset index; store committed offsets in an internal topic — exactly how Kafka works ([Kafka deep dive](../../system-design/kafka-deep-dive/)).
+
+<Pitfalls>
+
+- **Deleting messages when one subscriber reads them** — other subscribers miss them.
+- **Committing before processing** — crashes silently lose messages.
+- **No dead-letter path** — one poison message stalls everything behind it.
+- **Unbounded in-memory queues** for slow subscribers.
+- **Promising global ordering** across partitions.
+- **Calling subscriber callbacks while holding the topic lock** — a slow handler blocks publishers.
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- Topics as append-only logs + per-group offsets give independent subscribers and replay.
+- Commit after handling for at-least-once; make handlers idempotent.
+- Retries with backoff and a dead-letter topic keep the stream moving.
+- Partition by key to scale while keeping per-key order.
+
+</KeyTakeaways>

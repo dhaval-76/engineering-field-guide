@@ -1,0 +1,37 @@
+questions:
+  - q: Design an in-memory pub/sub system where multiple services subscribe to topics, each receives every message, and nothing is lost if a subscriber crashes mid-processing.
+    think: Where is "progress" recorded, and when?
+    answer: |
+      Model each topic as an append-only log of messages with increasing offsets. Each subscriber (consumer group) has a committed offset stored by the broker. `poll(group, max)` returns messages from the committed offset without advancing it; the subscriber processes them and then calls `commit(nextOffset)`. A crash before commit means the same messages are returned again — at-least-once — so handlers are idempotent. Subscribers are independent because they have independent offsets; a new subscriber chooses to start at the end or replay from the beginning. Retention trims messages all groups have passed (or by age/size). A push dispatcher per group wraps poll/commit with retries, backoff and a dead-letter topic. One lock per topic makes operations thread-safe.
+  - q: 'A single malformed message causes a subscriber to fail and retry forever, and the whole topic stops for that subscriber. How do you fix the design?'
+    think: Poison messages.
+    answer: |
+      Bound the retries: retry with exponential backoff for a fixed number of attempts, then publish the message (with error details and attempt count) to a dead-letter topic and commit past it, so the stream continues. Alert on DLQ growth and provide tooling to inspect, fix and replay dead letters. Distinguish retryable errors (timeouts) from non-retryable ones (validation errors), which go straight to the DLQ. If per-key ordering matters, decide whether later messages for the same key should wait (park the key) instead of overtaking.
+followUps:
+  - q: Pull or push delivery?
+    intuition: Who controls the pace?
+    approach: |
+      Pull lets each consumer fetch at its own pace and batch size — natural backpressure, simple broker; it costs polling latency unless long-polling. Push delivers immediately but the broker must track per-subscriber in-flight messages, buffers and flow control, or slow consumers get overwhelmed. Many systems pull at the protocol level (Kafka) and offer push-style callbacks in client libraries.
+  - q: How do you scale one subscriber group across several workers without losing order?
+    intuition: Partition by key.
+    approach: |
+      Split the topic into partitions, route each message by `hash(key) % partitions`, and assign each partition to exactly one worker in the group (rebalancing when workers join or leave). Ordering is preserved per partition — hence per key — while partitions are processed in parallel.
+  - q: What's the difference between at-least-once and exactly-once here?
+    intuition: Commit timing vs effect.
+    approach: |
+      At-least-once: commit after processing; crashes cause redelivery and duplicates. At-most-once: commit before processing; crashes lose messages. Exactly-once *effects* require making the processing and the offset commit atomic (store the offset in the same database transaction as the result) or idempotent handling of duplicates.
+practice:
+  - task: Implement a broker with publish, subscribe (from beginning or end), poll, commit and retention, and show that uncommitted messages are redelivered.
+    hint: Per topic, a list plus a base offset; per group, the next offset to read.
+    solution: |
+      Keep, per topic, a message list, the offset of its first element (base offset after trimming) and a map from group to next offset. publish appends with offset base + size. subscribe sets the group's offset to base or base + size. poll slices from the group's offset without changing it; commit takes the max of the current and given offsets. trim removes messages below the minimum committed offset and advances the base. Test: poll twice without commit returns the same messages.
+    solutionCode: pubsub-broker
+quiz:
+  - q: When should a subscriber commit its offset for at-least-once delivery?
+    options: [Before processing, After processing, Never, When the broker restarts]
+    correct: 1
+    why: Committing after processing means a crash leads to redelivery rather than loss.
+  - q: How do two independent subscribers both receive every message in a log-based broker?
+    options: [The broker copies each message per subscriber queue, Each consumer group keeps its own offset into the same log, Subscribers share one offset, Messages are deleted on read]
+    correct: 1
+    why: Independent offsets let groups read the same retained log at their own pace.
