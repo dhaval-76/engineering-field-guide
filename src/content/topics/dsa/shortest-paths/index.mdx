@@ -16,61 +16,115 @@ quickRef:
     - 'All pairs on small graphs (V ≤ ~400): Floyd-Warshall, O(V³).'
   complexity: 'Dijkstra O((V + E) log V); Bellman-Ford O(V · E); Floyd-Warshall O(V³).'
   useWhen: 'Weighted graphs where the question is cheapest/fastest/minimum-effort path.'
-lastReviewed: 2026-10-30
+lastReviewed: 2026-10-31
 ---
+
+## Why it matters
+
+When edges have **costs** — kilometres, milliseconds of latency, ticket prices, risk — the fewest-edges path from BFS is no longer the cheapest. Shortest-path algorithms find the cheapest route, and they run everywhere: maps and ride-hailing ETAs ([Maps and navigation](../../system-design/maps-navigation/)), network routing protocols (OSPF is Dijkstra; RIP is Bellman-Ford), game AI pathfinding (A*), currency arbitrage detection (negative cycles), and dependency-aware scheduling.
+
+The interview skill is **picking the right algorithm from the weights**: equal weights, 0/1 weights, non-negative weights, negative weights, a limit on the number of edges, or all pairs. Each has a different best tool.
+
+<Callout type="analogy">
+Dijkstra is water flooding from the source through pipes of different lengths: it reaches nearby junctions first, and the moment water arrives at a junction, no other route can get it there sooner — every other route is still on its way through longer pipes. A pipe of negative length would break that guarantee: water could arrive later by a route that ends up "shorter".
+</Callout>
 
 ## Choosing an algorithm
 
-| Graph | Algorithm | Complexity |
-|---|---|---|
-| Unweighted (every edge 1) | BFS | O(V + E) |
-| Weights 0 or 1 | 0-1 BFS (deque: weight-0 edges to the front) | O(V + E) |
-| Non-negative weights | **Dijkstra** with a min-heap | O((V + E) log V) |
-| Negative weights, or "at most k edges" | **Bellman-Ford** | O(V · E), O(k · E) |
-| DAG (any weights) | relax in topological order | O(V + E) |
-| All pairs, small V | Floyd-Warshall | O(V³) |
-| One target, good heuristic (maps) | A* | depends on heuristic |
-
-<Callout type="analogy">
-Dijkstra is water flooding from the source through pipes of different lengths: it reaches nearby junctions first, and the moment water arrives at a junction, no other route can get there sooner. A negative-length pipe would break that guarantee — water could arrive later by a "shorter" route.
-</Callout>
-
-<Walkthrough id="dijkstra" />
+<DecisionGuide
+  title="Which shortest-path algorithm?"
+  steps={[
+    ['Does every edge cost the same?', 'BFS — O(V + E).'],
+    ['Do edges cost only 0 or 1?', '0-1 BFS with a deque — O(V + E).'],
+    ['Is the graph a DAG?', 'Relax edges in topological order — O(V + E), negative weights allowed.'],
+    ['Are all weights non-negative (and no limit on edge count)?', 'Dijkstra with a min-heap — O((V + E) log V).'],
+    ['Negative weights, or "at most k edges/stops"?', 'Bellman-Ford — O(V · E), or O(k · E) rounds.'],
+    ['Do you need every pair, with V up to a few hundred?', 'Floyd-Warshall — O(V³).'],
+  ]}
+  otherwise="One target and a good distance estimate (maps, games): A*, which is Dijkstra guided by a heuristic."
+/>
 
 ## Dijkstra
 
+<Walkthrough id="dijkstra" />
+
 <CodeTabs id="dsa-dijkstra" title="Network delay time — Dijkstra with a min-heap and lazy deletion" />
 
-- **Relaxation**: if `dist[u] + w < dist[v]`, update `dist[v]` and push `(dist[v], v)`.
-- **Lazy deletion**: the heap may hold outdated entries for a node; skip any popped entry whose distance is larger than the recorded one.
-- Track `prev[v]` when relaxing to reconstruct the path.
+- **Relaxation**: if `dist[u] + w < dist[v]`, a cheaper way to reach `v` has been found: update `dist[v]` and push `(dist[v], v)`.
+- **Settling**: the node popped from the heap with the smallest distance is final. Any other route to it would leave through some unsettled node whose distance is already ≥ the popped one, and with non-negative weights can only get longer.
+- **Lazy deletion**: Java's and Python's heaps can't decrease a key, so a node may be pushed several times. Skip a popped entry whose distance is larger than `dist[node]` — it's stale.
+- **Paths**: record `prev[v] = u` when relaxing, then walk back from the target.
 
-## Dijkstra on a grid with a custom cost
+**Why negative edges break it** — a concrete case: edges `A→B` (2), `A→C` (5), `C→B` (−4). Classic Dijkstra pops B at distance 2 and treats it as final, but the true distance is 5 − 4 = 1, discovered only after B was settled (and anything relaxed from B used the wrong value). Lazy-deletion versions without a "settled" check may happen to recover on small examples, but can take exponential time on others — use Bellman-Ford when weights can be negative.
 
-"Minimum effort" (the cost of a path is its largest height difference) still works with Dijkstra because extending a path never decreases its cost.
+**Complexity** O((V + E) log V) with a binary heap. Early exit: when the target is popped, its distance is final.
+
+## Dijkstra with a custom cost
+
+"Path with minimum effort" — the cost of a path is its **largest** height difference between adjacent cells. Dijkstra still works because extending a path never makes its cost smaller (`max` is monotone just like `+` with non-negative weights). Any cost that never decreases along a path qualifies.
 
 <CodeTabs id="dsa-min-effort-path" title="Path with minimum effort — Dijkstra with max instead of sum" />
 
+## 0-1 BFS
+
+**Insight.** When edges cost 0 or 1, a heap is overkill. Keep a **deque**: a 0-cost edge leads to a node at the *same* distance, so push it to the **front**; a 1-cost edge to the **back**. The deque then always holds nodes in distance order (only two distinct values at a time), which is all Dijkstra's heap was providing — in O(V + E). Typical uses: minimum walls to break, minimum direction changes in a grid, minimum edges to reverse to connect two nodes.
+
+<CodeTabs id="dsa-zero-one-bfs" title="0-1 BFS — a deque instead of a heap" />
+
 ## Bellman-Ford and "at most k stops"
 
-Each round relaxes every edge using distances from the **previous** round, so after round i, distances use at most i edges. That makes it natural for limited hops — and it tolerates negative weights.
+Bellman-Ford relaxes **every edge**, in rounds. After round i, every distance that uses at most i edges is correct, so V − 1 rounds suffice for any shortest path (a simple path has at most V − 1 edges). If a V-th round still improves something, there is a **negative cycle** — the cost can be lowered forever.
+
+For "cheapest flight with at most k stops" (k + 1 edges), run k + 1 rounds, each reading distances from a **copy of the previous round**, so a single round can't chain several edges together.
 
 <CodeTabs id="dsa-cheapest-flights" title="Cheapest flights within k stops — k + 1 rounds of Bellman-Ford" />
+
+Why not Dijkstra here? A cheap path with too many stops can settle a node first and block a slightly more expensive path with few enough stops. You'd have to put the stop count into the state `(node, stops)`, which multiplies the graph size.
+
+## All pairs: Floyd-Warshall
+
+**Insight.** Let `dist[i][j]` be the shortest path using only nodes `0..k` as intermediate stops. Allowing node k as well, the best path either avoids k or goes `i → k → j`: `dist[i][j] = min(dist[i][j], dist[i][k] + dist[k][j])`. Repeat for every k — **k must be the outer loop**. Three nested loops, O(V³) time, O(V²) memory; negative edges are fine, and a negative `dist[i][i]` afterwards reveals a negative cycle.
+
+<CodeTabs id="dsa-floyd-warshall" title="Floyd-Warshall — all pairs in O(V³)" />
+
+For large sparse graphs, running Dijkstra from every node (O(V · (V + E) log V)) is faster than Floyd-Warshall's O(V³).
+
+## Complexity at a glance
+
+| Weights / question | Algorithm | Time | Notes |
+|---|---|---|---|
+| All equal | BFS | O(V + E) | |
+| 0 or 1 | 0-1 BFS | O(V + E) | deque |
+| DAG, any weights | topological relaxation | O(V + E) | |
+| Non-negative | Dijkstra | O((V + E) log V) | heap, lazy deletion |
+| Negative, or ≤ k edges | Bellman-Ford | O(V · E) / O(k · E) | detects negative cycles |
+| All pairs, small V | Floyd-Warshall | O(V³) | V ≤ a few hundred |
+| One target with a heuristic | A* | ≤ Dijkstra | heuristic must not overestimate |
+
+## Talking through it in an interview
+
+- Start from the weights: "non-negative, no hop limit — Dijkstra".
+- Explain why Dijkstra is correct (popped node is final) and what breaks it.
+- Mention lazy deletion and the stale-entry check.
+- For hop limits, explain why the previous-round copy matters.
+- Use a safe infinity (`Long.MAX_VALUE / 4` or a check before adding) to avoid overflow.
 
 <Pitfalls>
 
 - **Dijkstra with negative edges** — silently wrong answers.
 - **Not skipping stale heap entries** — extra work, or wrong results if you relax from them.
-- **Plain Dijkstra for "at most k stops"** — a cheaper path with too many stops can block a valid one; use Bellman-Ford rounds or put the stop count in the state.
-- **Updating distances in place within a Bellman-Ford round** when the edge limit matters — copy the previous round.
-- **Integer overflow** adding to `Integer.MAX_VALUE` as "infinity".
+- **Plain Dijkstra for "at most k stops"** — a cheaper path with too many stops can block a valid one.
+- **Updating distances in place within a Bellman-Ford round** when the edge limit matters — read from the previous round's copy.
+- **Floyd-Warshall with k as an inner loop** — the recurrence no longer holds.
+- **Integer overflow** adding to `Integer.MAX_VALUE` used as "infinity".
 
 </Pitfalls>
 
 <KeyTakeaways>
 
-- Match the algorithm to the weights: BFS, 0-1 BFS, Dijkstra, Bellman-Ford.
-- Dijkstra: min-heap, relax, skip stale entries; non-negative weights only.
+- Match the algorithm to the weights: BFS, 0-1 BFS, DAG relaxation, Dijkstra, Bellman-Ford, Floyd-Warshall.
+- Dijkstra: min-heap, relax, skip stale entries; non-negative (or monotone) costs only.
 - Bellman-Ford rounds bound the number of edges and detect negative cycles.
+- All pairs on small graphs: Floyd-Warshall with k outermost.
 
 </KeyTakeaways>

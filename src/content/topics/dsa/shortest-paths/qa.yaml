@@ -22,6 +22,16 @@ practice:
     solution: |
       Run Dijkstra over cells with cost = maximum absolute difference along the path: popping `(effort, cell)`, relaxing neighbours with `max(effort, |h[next] − h[cur]|)`. Because extending a path never decreases its cost, Dijkstra's settling argument holds. Return the effort when the target is popped. O(R·C log(R·C)). (Binary search on the answer + BFS, or union-find on sorted edges, also work.)
     solutionCode: dsa-min-effort-path
+  - task: Find shortest distances from a source when every edge costs 0 or 1, in O(V + E).
+    hint: What data structure keeps nodes in distance order when distances only differ by 0 or 1?
+    solution: |
+      0-1 BFS: a deque. Pop from the front; when relaxing an edge of weight 0 push the neighbour to the front (same distance), weight 1 to the back. The deque holds at most two distinct distances in order, so each pop is the closest node, as with Dijkstra, without a heap.
+    solutionCode: dsa-zero-one-bfs
+  - task: Compute shortest distances between all pairs of nodes in a small graph that may have negative edges.
+    hint: Allow intermediate nodes one at a time.
+    solution: |
+      Floyd-Warshall: start from the weight matrix (0 on the diagonal, ∞ without an edge); for k in 0..n−1, for every i, j: `dist[i][j] = min(dist[i][j], dist[i][k] + dist[k][j])`. k must be the outer loop. O(V³) time, O(V²) space; a negative diagonal entry means a negative cycle.
+    solutionCode: dsa-floyd-warshall
 quiz:
   - q: Which algorithm fits a graph with negative edge weights?
     options: [Dijkstra, BFS, Bellman-Ford, Prim]
