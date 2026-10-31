@@ -73,6 +73,17 @@ Counting votes at a large election in real time. Tally clerks count ballots by d
 - **Raw events** in Parquet on object storage for ad-hoc analysis and reprocessing.
 - **Reprocessing**: with logs retained (or the lake), fix a bug by replaying into new tables and switching — the **Kappa** approach. Lambda keeps a separate batch path that recomputes truth nightly, at the cost of two codebases.
 
+## When things fail
+
+Interviewers almost always ask "what happens when X goes down?". Decide the degraded behaviour in advance:
+
+| What fails | What users see | What the design does |
+|---|---|---|
+| A stream processing job crashes | dashboard freezes briefly | the job restarts from its last checkpoint and replays from the log; output is idempotent or transactional |
+| Events arrive late | numbers revise slightly | watermarks allow lateness; late events update the right window, and very late ones go to a correction path |
+| The OLAP store is down | dashboards unavailable | ingestion keeps writing to the log; the store backfills when it recovers |
+| A traffic spike | dashboards lag | the log buffers the spike; consumers catch up; approximate counts keep memory bounded |
+
 <Pitfalls>
 
 - **Querying raw events for dashboards.**

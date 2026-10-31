@@ -73,6 +73,17 @@ Refinements: skip fan-out to users inactive for 30+ days (rebuild on their retur
 
 Likes and views are high-write, low-precision: increment sharded counters in Redis (or a counter service), flush aggregates to durable storage periodically, and show approximate numbers. Whether *you* liked a post is exact and stored per user.
 
+## When things fail
+
+Interviewers almost always ask "what happens when X goes down?". Decide the degraded behaviour in advance:
+
+| What fails | What users see | What the design does |
+|---|---|---|
+| The feed cache is lost | slower first loads | feeds are rebuilt on read from the follow graph and recent posts; warm the most active users first |
+| Fan-out workers fall behind | new posts appear late | the queue absorbs the spike; pull-on-read merges recent posts for active readers |
+| Ranking service is down | a less personalised feed | fall back to reverse-chronological order |
+| A celebrity posts | nothing unusual | celebrity posts are pulled at read time, so no million-way fan-out happens |
+
 <Pitfalls>
 
 - **Synchronous fan-out in the post request** — a celebrity's post would take minutes.

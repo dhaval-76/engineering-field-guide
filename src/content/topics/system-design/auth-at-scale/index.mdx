@@ -79,6 +79,18 @@ Each workload gets a cryptographic identity — mTLS certificates issued automat
 - Because verification is local, **an IdP outage blocks new logins and refreshes, not existing traffic** — tokens remain valid until expiry. Run the IdP in several zones/regions.
 - Audit every authentication event (success, failure, MFA, reset, token reuse) to a durable log.
 
+## When things fail
+
+Interviewers almost always ask "what happens when X goes down?". Decide the degraded behaviour in advance:
+
+| What fails | What users see | What the design does |
+|---|---|---|
+| The identity provider is down | new logins fail; existing sessions keep working | access tokens verify locally against cached keys until they expire; refresh retries with backoff |
+| The user database primary fails | logins briefly fail | replicated database with automatic failover; reads can come from replicas |
+| A signing key is leaked | none if handled fast | rotate keys (publish the new key, stop signing with the old, then remove it); revoke refresh tokens issued with it |
+| Credential-stuffing attack | slower logins for some | rate limits per IP and per account, bot detection, breached-password checks, step-up MFA |
+| The permission service is slow | slower or denied actions | cache decisions briefly; fail closed (deny) — never fail open on authorization |
+
 <Pitfalls>
 
 - **Calling the auth service on every request.**

@@ -65,6 +65,17 @@ Connection servers subscribe to channels for the orders their clients are watchi
 
 Couriers' apps send positions every few seconds to a location service that keeps the **latest** position per courier in memory/Redis (geo index), throttles updates pushed to watchers (one every few seconds), and samples points into storage for disputes and analytics. ETA comes from a routing service using the current position, road graph and traffic ([Maps and navigation](../maps-navigation/) covers routing).
 
+## When things fail
+
+Interviewers almost always ask "what happens when X goes down?". Decide the degraded behaviour in advance: For services that publish events, the general patterns — circuit breakers, spooling, ordered replay — are in [Surviving dependency outages](../../distributed-systems/failure-fallbacks/).
+
+| What fails | What users see | What the design does |
+|---|---|---|
+| A courier partner's events stop | status looks stuck | poll the partner's API as a fallback; show 'last updated' times honestly |
+| Events arrive out of order or twice | nothing | events carry the time they happened; the state machine ignores transitions that move backwards and de-duplicates by event id |
+| The live-update connection drops | updates pause | clients reconnect and fetch state since the last event id; fall back to polling |
+| The tracking database is down | page shows last known state | serve from cache; queue incoming events and apply them on recovery |
+
 <Pitfalls>
 
 - **Overwriting status without history** — no timeline, no audit.

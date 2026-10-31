@@ -86,6 +86,17 @@ The frontier must balance two things: crawl important pages first, and never hit
 
 Pages change at very different rates: news front pages every minute, archives never. Track change history per URL (content hash per fetch) and schedule recrawls proportional to estimated change rate and importance, using HTTP conditional requests (`If-Modified-Since`, `ETag`) to make unchanged pages cheap. Sitemaps' `lastmod` hints help.
 
+## When things fail
+
+Interviewers almost always ask "what happens when X goes down?". Decide the degraded behaviour in advance:
+
+| What fails | What users see | What the design does |
+|---|---|---|
+| A website is slow or returns errors | nothing | per-host back-off; respect Retry-After; lower that host's crawl rate |
+| A crawler worker crashes | nothing | URLs it had claimed are leased and return to the frontier when the lease expires |
+| A spider trap (infinite URLs) | wasted crawl budget | URL normalisation, depth and per-host page limits, and duplicate-content detection |
+| The frontier store is lost | crawl restarts slowly | the frontier is persisted and checkpointed; seeds and recent crawl logs rebuild it |
+
 <Pitfalls>
 
 - **Ignoring politeness** — sites block you, or you take them down.

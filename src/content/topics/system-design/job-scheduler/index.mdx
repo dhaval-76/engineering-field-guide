@@ -76,6 +76,18 @@ The single-process version (a priority queue and a worker pool) is the [LLD task
 | Temporal | long-running, stateful workflows with timers |
 | SQS delay queues / EventBridge Scheduler | managed delayed and cron triggers on AWS |
 
+## When things fail
+
+Interviewers almost always ask "what happens when X goes down?". Decide the degraded behaviour in advance: For services that publish events, the general patterns — circuit breakers, spooling, ordered replay — are in [Surviving dependency outages](../../distributed-systems/failure-fallbacks/).
+
+| What fails | What users see | What the design does |
+|---|---|---|
+| A worker dies mid-job | the job runs a little late | its lease expires and the reaper makes the job due again; handlers must be idempotent because it may run twice |
+| A scheduler instance dies | its jobs start late | partition ownership moves to another scheduler (leases or a coordinator) |
+| The jobs database is down | no new jobs start | claims stop; running jobs finish; on recovery the backlog drains at a controlled rate so workers aren't flooded |
+| A job keeps failing | nothing for other jobs | retries with exponential backoff and jitter, then a dead-letter state with an alert |
+| A downstream the jobs call is down | jobs pile up | per-downstream concurrency limits and circuit breakers pause those jobs instead of burning retries |
+
 <Pitfalls>
 
 - **Delete-then-publish** of due jobs — a crash in between loses them; claim durably first.

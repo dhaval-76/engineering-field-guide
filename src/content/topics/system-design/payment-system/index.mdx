@@ -79,6 +79,18 @@ Daily (or more frequent) jobs compare three views — our ledger, our payment re
 - Encrypt sensitive data, restrict and audit access, sign and verify webhooks, rate-limit and run risk/fraud scoring before authorising.
 - Keep data where regulations require it (for example, payment data localisation rules).
 
+## When things fail
+
+Interviewers almost always ask "what happens when X goes down?". Decide the degraded behaviour in advance: For services that publish events, the general patterns — circuit breakers, spooling, ordered replay — are in [Surviving dependency outages](../../distributed-systems/failure-fallbacks/).
+
+| What fails | What users see | What the design does |
+|---|---|---|
+| The provider times out on a charge | "processing" status | never assume failure: mark it pending, query the provider by idempotency key, and let webhooks or reconciliation settle it |
+| A webhook from the provider is lost | payment stays pending | poll pending payments after a delay; daily reconciliation against the provider's report catches the rest |
+| The client retries after a timeout | no double charge | the idempotency key returns the original result |
+| The ledger database is down | payments rejected | fail closed — never accept money you can't record; the payment page shows a clear retry message |
+| Kafka (payment events) is down | nothing | events are in the outbox table, committed with the payment; the relay publishes them later |
+
 <Pitfalls>
 
 - **Treating a timeout as a failure** and retrying with a new key — double charges.

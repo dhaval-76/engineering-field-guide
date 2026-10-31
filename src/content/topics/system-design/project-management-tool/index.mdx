@@ -71,6 +71,17 @@ Comment saves parse `@mentions` and emit events; a notification service resolves
 
 Permission schemes map project roles to actions (browse, create, transition, administer); issue-level security can restrict sensitive issues to groups. Effective permissions are cached per (user, project) and invalidated on role changes; search queries include them as filters. Data is keyed by tenant, with enterprise tenants placed on dedicated shards ([Multi-tenant data](../../databases/multi-tenant-schema/), [Auth at scale](../auth-at-scale/)).
 
+## When things fail
+
+Interviewers almost always ask "what happens when X goes down?". Decide the degraded behaviour in advance: For services that publish events, the general patterns — circuit breakers, spooling, ordered replay — are in [Surviving dependency outages](../../distributed-systems/failure-fallbacks/).
+
+| What fails | What users see | What the design does |
+|---|---|---|
+| The search index lags or is down | new issues missing from search | boards and issue pages read the primary database; search catches up from the change stream |
+| Live updates are disconnected | board doesn't refresh itself | clients reconnect and refetch the board; edits still work through the API |
+| One tenant runs a huge import | others unaffected | per-tenant rate limits and separate queues for bulk work |
+| The notification service is down | late emails or mentions | notifications are queued from the outbox and sent when it recovers |
+
 <Pitfalls>
 
 - **Hard-coded statuses** — every customer wants their own workflow.

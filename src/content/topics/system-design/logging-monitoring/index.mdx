@@ -79,6 +79,17 @@ What the platform asks of every service: structured logs that carry the trace id
 
 <CodeTabs id="slo-alerts" title="Multi-window burn-rate alerts in Prometheus" />
 
+## When things fail
+
+Interviewers almost always ask "what happens when X goes down?". Decide the degraded behaviour in advance: For services that publish events, the general patterns — circuit breakers, spooling, ordered replay — are in [Surviving dependency outages](../../distributed-systems/failure-fallbacks/).
+
+| What fails | What users see | What the design does |
+|---|---|---|
+| The log storage cluster is down | dashboards show gaps | agents buffer to local disk and ship later; the pipeline queue (Kafka) absorbs the backlog |
+| A service floods logs (a bug in a loop) | costs spike; others' logs delayed | per-service rate limits and sampling at the collector; drop debug logs first |
+| A label with unbounded values is added | metrics storage melts down | cardinality limits reject new series above a budget; alerts on series growth |
+| The alerting system itself fails | no pages during an incident | a separate, simple watchdog alert (dead man's switch) that fires when alerts stop arriving |
+
 <Pitfalls>
 
 - **Unstructured logs** — grepping free text across 500 services.

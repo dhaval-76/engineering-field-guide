@@ -97,6 +97,17 @@ Ingest over RTMP/SRT to regional servers; transcode in real time into the ladder
 
 Players emit heartbeat events; a stream pipeline de-duplicates, filters bots, and aggregates counts in windows ([Real-time analytics](../realtime-analytics/)). Exact counts can lag; approximate live counters are fine. The same events feed quality-of-experience metrics (startup time, rebuffer ratio, average bitrate) and [recommendations](../recommendation-system/).
 
+## When things fail
+
+Interviewers almost always ask "what happens when X goes down?". Decide the degraded behaviour in advance:
+
+| What fails | What users see | What the design does |
+|---|---|---|
+| A transcoding worker dies | processing finishes a bit later | each segment-rendition is a separate job; failed jobs are retried on another worker |
+| A CDN edge has an outage | a short stall, then playback | the player switches to another CDN or edge (multi-CDN) |
+| The viewer's bandwidth drops | lower quality, no stall | adaptive bitrate: the player picks a lower rendition for the next segments |
+| The upload is interrupted | upload resumes | resumable uploads in chunks; only missing chunks are re-sent |
+
 <Pitfalls>
 
 - **Streaming whole files** instead of segments — no adaptation, no seeking efficiency, poor caching.

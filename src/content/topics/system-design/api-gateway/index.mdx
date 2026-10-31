@@ -60,6 +60,18 @@ A hotel reception desk. Guests don't wander the corridors looking for housekeepi
 
 **Gateway vs BFF vs service mesh.** The gateway handles north-south traffic (clients → services). A **backend for frontend** per client type (web, mobile) aggregates and reshapes data for one UI. A **service mesh** handles east-west traffic (service → service): mTLS, retries, traffic splitting via sidecars or ambient proxies. Putting aggregation logic for every screen into the shared gateway creates a monolith that every team must change.
 
+## When things fail
+
+Interviewers almost always ask "what happens when X goes down?". Decide the degraded behaviour in advance:
+
+| What fails | What users see | What the design does |
+|---|---|---|
+| A downstream service is slow or down | errors only on that service's routes | per-route timeouts and circuit breakers fail fast; other routes keep working; 503 with Retry-After |
+| A gateway instance dies | nothing, or one failed request | stateless instances behind the L4 balancer; health checks remove it; clients retry idempotent calls |
+| Redis (rate-limit counters) is unavailable | nothing visible | fail open with a local per-instance limit, or fail closed for sensitive endpoints — decided per route in advance |
+| The identity provider's key endpoint is down | nothing, until keys rotate | JWKS keys are cached and refreshed in the background; tokens verify locally |
+| A bad routing config is deployed | a whole service unreachable | configs versioned and validated before rollout; canary to a few instances; instant rollback |
+
 <Pitfalls>
 
 - **Business logic in the gateway** — every change touches a shared, critical component.

@@ -66,6 +66,17 @@ Large uploads can go straight to object storage with a **presigned URL** limited
 
 **Abuse.** Per-IP and per-account rate limits on creation ([Rate limiting](../distributed-rate-limiter/)), size limits enforced at the edge and in presigned policies, scanning for leaked credentials and malware, and a takedown path.
 
+## When things fail
+
+Interviewers almost always ask "what happens when X goes down?". Decide the degraded behaviour in advance:
+
+| What fails | What users see | What the design does |
+|---|---|---|
+| A paste goes viral | nothing | content is immutable and served from the CDN; the origin sees a tiny fraction of reads |
+| Object storage is unavailable | new pastes fail, old ones still load | CDN keeps serving cached content; writes return a clear error and clients retry |
+| The metadata database is down | creating fails | reads by id can come from cache/CDN; writes fail fast |
+| Expiry job falls behind | expired pastes visible briefly | reads check the expiry time before serving, regardless of cleanup |
+
 <Pitfalls>
 
 - **Large blobs in the database or Redis** — bloats backups and memory; use object storage.

@@ -74,6 +74,17 @@ Offline clients queue ops locally; on reconnect they send them with their last k
 
 Most documents are idle: session servers hold only active documents in memory and unload them after inactivity. A document with thousands of viewers fans out broadcasts through a pub/sub tier; editors stay on the owner. Op logs go to a write-optimised store; snapshots to object storage or a database.
 
+## When things fail
+
+Interviewers almost always ask "what happens when X goes down?". Decide the degraded behaviour in advance:
+
+| What fails | What users see | What the design does |
+|---|---|---|
+| The document's session server crashes | a brief reconnect | clients reconnect to a new server, which loads the latest snapshot plus the operation log |
+| A user goes offline | they keep typing | edits are stored locally and merged on reconnect (OT rebase or CRDT merge) |
+| An operation is delivered twice | nothing | operations carry client id + sequence number and are applied once |
+| The operation log storage is slow | edits lag | the session server batches writes; acknowledgements wait for durability so nothing is lost |
+
 <Pitfalls>
 
 - **Sending whole documents** on every keystroke.

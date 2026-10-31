@@ -72,6 +72,17 @@ A bookshop assistant with a good memory. When you walk in, they quickly think of
 - **New users**: popular and trending items by region and context, onboarding preferences, quickly adapting to the first clicks in-session.
 - **New items**: content-based features (category, text and image embeddings) place them near similar items; reserve exploration traffic to collect signal.
 
+## When things fail
+
+Interviewers almost always ask "what happens when X goes down?". Decide the degraded behaviour in advance:
+
+| What fails | What users see | What the design does |
+|---|---|---|
+| The ranking model service is down | less relevant items | fall back to candidate scores or popular items for that segment |
+| The feature store is stale | slightly worse picks | features have freshness checks; stale features fall back to defaults rather than failing |
+| A new model performs badly | worse engagement | A/B tests and gradual rollout with automatic rollback on metric drops |
+| Candidate generation is slow | page loads slowly | a strict time budget; return what's ready plus cached or popular items |
+
 <Pitfalls>
 
 - **Scoring the whole catalogue per request** — use a funnel.

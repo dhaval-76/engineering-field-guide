@@ -64,6 +64,17 @@ The index at the back of a textbook. To find every page mentioning "photosynthes
 
 Index each document with its access control (space ids, groups) and add a filter for the user's memberships to every query — filters are cached and cheap. Filtering after retrieval leaks counts and breaks pagination. Permission changes trigger reindexing of affected documents (or store ACLs at a coarser level, like spaces, that change rarely).
 
+## When things fail
+
+Interviewers almost always ask "what happens when X goes down?". Decide the degraded behaviour in advance:
+
+| What fails | What users see | What the design does |
+|---|---|---|
+| An index shard is lost | partial results briefly | replicas take over; the shard is rebuilt from a replica or reindexed from the source of truth |
+| Indexing lags behind writes | new items missing for a while | the change stream buffers; show 'recently added' from the database if freshness matters |
+| A slow query | slow search for one user | query timeouts and limits on expensive features (wildcards, deep pagination) |
+| The search cluster is down | search unavailable | degrade to a simple database query for exact matches, or a clear error — the rest of the product works |
+
 <Pitfalls>
 
 - **SQL `LIKE '%…%'` for search** — full scans and no relevance.

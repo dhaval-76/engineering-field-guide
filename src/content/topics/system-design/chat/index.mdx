@@ -72,6 +72,18 @@ Presence is high-churn and disposable: gateways update `presence:{user}` with a 
 
 With the Signal protocol (used by WhatsApp and Signal), each device publishes public keys; senders derive per-conversation keys (X3DH) and ratchet keys per message (Double Ratchet), so the server stores and forwards only ciphertext. Consequences: server-side search, moderation and multi-device sync need client-side work (each device is a separate recipient), and backups must be encrypted by the client.
 
+## When things fail
+
+Interviewers almost always ask "what happens when X goes down?". Decide the degraded behaviour in advance:
+
+| What fails | What users see | What the design does |
+|---|---|---|
+| A connection server crashes | clients reconnect within seconds | clients reconnect to another server and resume from their last acknowledged message id |
+| The recipient is offline | message delivered later | messages are stored before delivery is attempted; push notification; sync on reconnect |
+| The message store is slow | sending spins | send is acknowledged only after a durable write; the client retries with the same message id, which de-duplicates |
+| The message bus between servers is down | delays for users on other servers | messages are already durable; delivery catches up from storage when the bus recovers |
+| Presence service overloaded | stale 'online' dots | presence is best-effort: degrade to less frequent updates; it never blocks messaging |
+
 <Pitfalls>
 
 - **Delivering before persisting** — a crash loses messages that the sender saw as sent.

@@ -74,6 +74,17 @@ A recipe card that a relay of cooks follows. Each finished step is ticked on the
 
 Per-tenant concurrency limits and fair queues (a tenant with a million-row import shouldn't delay everyone), step and run limits (max steps, max runtime, max loop iterations), sandboxed execution for user code steps (isolated containers or WASM with CPU/memory/network limits), and audit logs of every run. Run payloads may contain personal data — retention limits and redaction in logs. See [Multi-tenant data design](../../databases/multi-tenant-schema/).
 
+## When things fail
+
+Interviewers almost always ask "what happens when X goes down?". Decide the degraded behaviour in advance: For services that publish events, the general patterns — circuit breakers, spooling, ordered replay — are in [Surviving dependency outages](../../distributed-systems/failure-fallbacks/).
+
+| What fails | What users see | What the design does |
+|---|---|---|
+| A worker crashes mid-workflow | the run continues | each step's result is persisted; the run resumes from the last completed step |
+| A third-party API is down | steps wait and retry | retries with backoff; per-integration circuit breakers; the run pauses rather than failing at once |
+| A step succeeded but its result wasn't saved | a step may repeat | steps are called with idempotency keys so a repeat is harmless |
+| One tenant's workflow loops endlessly | nothing for others | per-run step limits, per-tenant quotas and timeouts |
+
 <Pitfalls>
 
 - **Keeping run state in worker memory** — a deploy loses every in-flight run.

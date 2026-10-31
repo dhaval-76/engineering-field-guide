@@ -81,6 +81,17 @@ Ordering isn't guaranteed: retries and parallel workers reorder events. Include 
 - **SSRF**: customer-supplied URLs could target internal services or cloud metadata. Resolve DNS, reject private, loopback and link-local ranges, connect to the resolved IP (no re-resolution), disallow redirects to internal addresses, and send from dedicated egress IPs customers can allow-list.
 - HTTPS only; no secrets in URLs; payload size limits; redact sensitive fields per event type.
 
+## When things fail
+
+Interviewers almost always ask "what happens when X goes down?". Decide the degraded behaviour in advance: For services that publish events, the general patterns — circuit breakers, spooling, ordered replay — are in [Surviving dependency outages](../../distributed-systems/failure-fallbacks/).
+
+| What fails | What users see | What the design does |
+|---|---|---|
+| A customer endpoint is down | they receive events later | retries with exponential backoff and jitter for days; then a dead-letter list they can replay |
+| One endpoint is very slow | nothing for others | per-endpoint queues and concurrency limits; a circuit breaker pauses unhealthy endpoints |
+| The delivery workers crash | slight delays | deliveries are durable jobs; another worker picks them up |
+| Events are delivered twice | customers handle it | every event has an id; documented at-least-once delivery so receivers de-duplicate |
+
 <Pitfalls>
 
 - **Sending webhooks inside the business transaction** — slow customers slow your API, and failures roll back orders.

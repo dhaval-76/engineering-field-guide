@@ -69,6 +69,17 @@ Find the **common ancestor** of the draft and the current head; for each block, 
 
 Real-time editors ([Collaborative editing](../realtime-collaboration/)) produce a stream of tiny operations; version history groups them into meaningful versions (per editing session or every few minutes of activity) and lets users name versions. Retention policies thin old autosaves (keep hourly, then daily) while keeping named versions; deleted pages' blobs are garbage-collected when no version references them.
 
+## When things fail
+
+Interviewers almost always ask "what happens when X goes down?". Decide the degraded behaviour in advance:
+
+| What fails | What users see | What the design does |
+|---|---|---|
+| Blob storage is unavailable | can't open old versions | the current version is cached separately; history loads when storage recovers; saves are queued or rejected clearly |
+| A save is interrupted halfway | nothing | write the blob first, then the version record in one transaction — a version never points to a missing blob |
+| Two people save the same base version | a merge or a conflict prompt | compare base version ids; three-way merge or keep both as drafts |
+| A delta chain becomes very long | slow history views | periodic full snapshots bound how many deltas must be applied |
+
 <Pitfalls>
 
 - **Mutable versions** or "restore" that overwrites history.

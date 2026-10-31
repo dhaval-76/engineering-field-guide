@@ -98,6 +98,17 @@ A small **controller quorum** (Raft — Kafka's KRaft) stores the cluster's meta
 | Rebalancing partitions | add brokers then move replicas gradually (throttled) to avoid saturating the network |
 | Multi-region | replicate topics between clusters asynchronously (MirrorMaker 2, cluster linking); per-region producers |
 
+## When things fail
+
+Interviewers almost always ask "what happens when X goes down?". Decide the degraded behaviour in advance: For services that publish events, the general patterns — circuit breakers, spooling, ordered replay — are in [Surviving dependency outages](../../distributed-systems/failure-fallbacks/).
+
+| What fails | What users see | What the design does |
+|---|---|---|
+| A broker dies | a brief pause for some partitions | a follower in the in-sync replica set becomes leader; acks=all ensures acknowledged messages survive |
+| A consumer crashes | processing pauses for its partitions | the group rebalances; another consumer resumes from the last committed offset (some messages re-processed) |
+| A consumer falls far behind | delayed downstream effects | lag alerts; scale consumers up to the partition count; retention gives time to catch up |
+| The whole cluster is unreachable | producers can't publish | producers spool or use an outbox and replay later — see Surviving dependency outages |
+
 <Pitfalls>
 
 - **Treating the broker as a database** — no indexes beyond offset and time; query by key needs another store.

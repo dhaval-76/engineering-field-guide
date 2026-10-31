@@ -74,6 +74,17 @@ Unlike [proximity search](../proximity-service/) over static businesses, drivers
 
 Aggregate open requests and available drivers per cell over a sliding window ([Real-time analytics](../realtime-analytics/)); when demand outstrips supply, raise a multiplier (smoothed and capped) to attract drivers and dampen demand. Show the price before confirmation and lock it into the trip.
 
+## When things fail
+
+Interviewers almost always ask "what happens when X goes down?". Decide the degraded behaviour in advance:
+
+| What fails | What users see | What the design does |
+|---|---|---|
+| A location service shard dies | drivers briefly invisible in that area | drivers re-send locations every few seconds, so a replacement shard rebuilds its index within seconds |
+| Two riders get offered the same driver | nothing | the driver is claimed atomically (compare-and-set on the driver's state); the loser re-dispatches |
+| The driver's phone loses connectivity | the trip continues | the trip state is server-side; the app resyncs on reconnect; fares use server-recorded points |
+| Payments are down at trip end | trip completes normally | the card was authorised at booking; capture is retried asynchronously |
+
 <Pitfalls>
 
 - **Writing every location update to a relational database.**

@@ -76,6 +76,17 @@ Spatial indexes map 2-D locations to cells or trees so that "within 2 km" reads 
 
 The client downloads the route geometry and upcoming tiles (and can cache regions offline), follows GPS locally, and contacts the server for rerouting when it detects a deviation or when traffic changes make a better route available. This keeps per-user server load low.
 
+## When things fail
+
+Interviewers almost always ask "what happens when X goes down?". Decide the degraded behaviour in advance:
+
+| What fails | What users see | What the design does |
+|---|---|---|
+| Live traffic data stops | ETAs less accurate | fall back to historical speeds for that time of day; routing never depends on live data being present |
+| A routing server for a region fails | a retry, then a route | several replicas per region hold the graph in memory; requests go to another replica |
+| The phone loses connectivity mid-trip | navigation continues | the route and nearby tiles are downloaded at the start; re-routing resumes when back online |
+| A tile CDN edge is down | slower map loading | the CDN routes to another edge or the origin; the app keeps cached tiles |
+
 <Pitfalls>
 
 - **Distance instead of travel time** as edge weights.

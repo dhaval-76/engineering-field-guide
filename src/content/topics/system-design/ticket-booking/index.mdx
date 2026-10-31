@@ -77,6 +77,17 @@ The hold must be one atomic check-and-set per seat — a conditional `UPDATE` (o
 
 Rate limits per account, device and IP ([Distributed rate limiter](../distributed-rate-limiter/)); CAPTCHA or proof-of-work at queue entry; verified accounts; purchase limits per account; and anomaly detection on holding patterns (many holds, no payments).
 
+## When things fail
+
+Interviewers almost always ask "what happens when X goes down?". Decide the degraded behaviour in advance:
+
+| What fails | What users see | What the design does |
+|---|---|---|
+| Traffic far beyond capacity | a place in a waiting room | a virtual queue admits users at a rate the inventory service can handle |
+| A user abandons checkout | seats free up after minutes | holds expire automatically (TTL) and return seats to sale |
+| Payment fails or times out | seats held until expiry | the hold stays until it expires; the payment is reconciled before seats are released if the outcome is unknown |
+| The inventory store fails | sale pauses | fail closed: selling without the source of truth risks double booking; resume from the waiting room |
+
 <Pitfalls>
 
 - **Check availability, then book** in two steps — double booking under load.

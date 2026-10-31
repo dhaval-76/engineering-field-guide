@@ -77,6 +77,16 @@ Distance is rarely the only factor: combine distance, rating, popularity, open-n
 - **Shard** only if the index or write rate outgrows memory — by region or by geohash prefix.
 - **Moving objects** (drivers, couriers) are a different problem: frequent writes, short-lived data — see [Ride-hailing](../ride-hailing/).
 
+## When things fail
+
+Interviewers almost always ask "what happens when X goes down?". Decide the degraded behaviour in advance:
+
+| What fails | What users see | What the design does |
+|---|---|---|
+| The geo index service is down | search fails or degrades | replicas serve reads; clients can show cached results for the area |
+| A business's details change | stale for minutes | index updates are batched from change events; stale entries are acceptable for this use |
+| Heavy load in one city | slower results there | cache popular cells; add read replicas for hot regions |
+
 <Pitfalls>
 
 - **Searching only the user's cell** — misses nearby results across boundaries.

@@ -84,6 +84,17 @@ DELETE /api/links/{code}
 
 **Abuse**: shorteners are used to hide phishing and malware. Check URLs against safe-browsing lists at creation and periodically; rate-limit creation per user/IP ([Rate limiting](../distributed-rate-limiter/)); allow reports and disabling of codes.
 
+## When things fail
+
+Interviewers almost always ask "what happens when X goes down?". Decide the degraded behaviour in advance:
+
+| What fails | What users see | What the design does |
+|---|---|---|
+| The database is down | existing links still work | redirects are served from cache and the CDN; creating links fails clearly |
+| A link goes viral | nothing | 301/302 responses cached at the CDN; hot keys in an in-memory cache |
+| The id generator fails | creating links fails | each server pre-allocates a range of ids, so short outages of the range service don't matter |
+| The click-analytics pipeline is down | redirects unaffected | analytics are written asynchronously to a queue; redirects never wait for them |
+
 <Pitfalls>
 
 - **Synchronous analytics writes** in the redirect path.
