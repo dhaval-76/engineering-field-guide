@@ -16,7 +16,7 @@ quickRef:
     - 'Offset is fine for small, slow-changing data and "jump to page 7" UIs; avoid exact totals on big tables.'
   complexity: 'OFFSET page at depth d: O(d + n) rows read. Keyset page: O(log N + n) with a B-tree index.'
   useWhen: Any list endpoint that can return more than a few hundred items — feeds, order histories, logs, exports.
-lastReviewed: 2026-10-30
+lastReviewed: 2026-10-31
 ---
 
 ## Why it matters
@@ -33,15 +33,15 @@ Finding your place in a book. OFFSET is "count 312 pages from the start every ti
 
 <Chart
   type="line"
-  title="Rows the database must read to return a 20-row page"
+  title="Time to fetch one 20-row page from 2 million orders (PostgreSQL, measured)"
   log
-  x={['page 1', 'page 10', 'page 100', 'page 1,000', 'page 10,000']}
+  x={['page 1', 'page 100', 'page 1,000', 'page 10,000', 'page 50,000']}
   series={[
-    { name: 'OFFSET', values: [20, 200, 2000, 20000, 200000], tone: 'bad' },
-    { name: 'keyset (cursor)', values: [20, 20, 20, 20, 20], tone: 'ok' },
+    { name: 'OFFSET', values: [0.15, 0.24, 1.36, 13.01, 64.95], tone: 'bad' },
+    { name: 'keyset (cursor)', values: [0.16, 0.10, 0.09, 0.13, 0.14], tone: 'ok' },
   ]}
-  yLabel="rows"
-  caption="OFFSET reads offset + limit rows (plus index traversal); keyset seeks to the cursor and reads only the page."
+  yLabel="ms"
+  caption="Same table, same composite index (customer_id, created_at DESC, id DESC), best of five runs. OFFSET still walks the index past every skipped row, so its cost grows with depth; keyset seeks straight to the cursor and stays near 0.1 ms."
 />
 
 ## Correctness: rows shifting under you
