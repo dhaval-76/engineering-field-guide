@@ -22,7 +22,10 @@ int lastIndex(int[] nums, int target) {
     return i >= 0 && nums[i] == target ? i : -1;
 }
 
-/** The generic form: smallest x in [lo, hi] with ok(x) true, assuming ok is monotone and ok(hi) is true. */
+/**
+ * The generic form: smallest x in [lo, hi] with ok(x) true,
+ * assuming ok is monotone and ok(hi) is true.
+ */
 long firstTrue(long lo, long hi, LongPredicate ok) {
     while (lo < hi) {
         long mid = lo + (hi - lo) / 2;

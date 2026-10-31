@@ -22,6 +22,16 @@ practice:
     solution: |
       Set `lo = max(weights)`, `hi = sum(weights)`. While `lo < hi`, test `mid`: walk the weights, starting a new day whenever adding the next package would exceed `mid`; if the days used ≤ D, `hi = mid`, else `lo = mid + 1`. Return `lo`. O(n log(sum)) time, O(1) space.
     solutionCode: dsa-ship-capacity
+  - task: Find any peak element (greater than both neighbours) in O(log n).
+    hint: Compare nums[mid] with nums[mid + 1] — which side must contain a peak?
+    solution: |
+      If `nums[mid] > nums[mid + 1]`, you are on a downhill slope and a peak exists at `mid` or to its left (`hi = mid`); otherwise you're going uphill and one exists strictly to the right (`lo = mid + 1`). When `lo == hi`, that index is a peak. Works because positions outside the array count as −∞.
+    solutionCode: dsa-find-peak
+  - task: Find the median of two sorted arrays in O(log(min(m, n))).
+    hint: Binary search how many elements the left half takes from the shorter array.
+    solution: |
+      Let `half = (m + n + 1) / 2`. Search `i` in `[0, m]` over the shorter array, with `j = half − i`. A split is valid when `a[i−1] ≤ b[j]` and `b[j−1] ≤ a[i]` (treat missing sides as ±∞). Too many from `a` (`a[i−1] > b[j]`) → move left; too few → move right. Median = max of the left sides (odd total), or its average with the min of the right sides (even).
+    solutionCode: dsa-median-two-arrays
 quiz:
   - q: How many probes does binary search need for about a million elements?
     options: ['~1,000', '~100', '~20', '~1']
@@ -31,3 +41,7 @@ quiz:
     options: [It's faster, It avoids integer overflow, It rounds up, It handles duplicates]
     correct: 1
     why: lo + hi can exceed the integer range for large indices.
+  - q: Binary search can find a peak in an unsorted array. What makes that possible?
+    options: [The array is secretly sorted, Comparing mid with mid+1 tells you which side certainly contains a peak, Peaks are always in the middle, It only works for even lengths]
+    correct: 1
+    why: Binary search needs a rule that guarantees an answer in one half; an uphill slope guarantees a peak on that side.

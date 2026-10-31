@@ -6,7 +6,7 @@ order: 40
 tags: [dsa, binary-search, arrays, patterns]
 aliases: [binary search, lower bound, upper bound, first true, leftmost, rightmost, search insert position, rotated sorted array, find minimum in rotated array, binary search on answer, koko eating bananas, capacity to ship packages, split array largest sum, sqrt, peak element, median of two sorted arrays]
 prerequisites: [cs-foundations/complexity]
-related: [dsa/two-pointers, databases/indexing]
+related: [dsa/two-pointers, databases/indexing, distributed-systems/consistent-hashing]
 quickRef:
   points:
     - 'Needs a **monotone predicate**: false, false, …, true, true. Binary search finds the first true in O(log n).'
@@ -16,67 +16,138 @@ quickRef:
     - 'Use `lo + (hi − lo) / 2` to avoid overflow.'
   complexity: 'O(log n) probes; with an O(n) feasibility check, O(n log range).'
   useWhen: 'Sorted data, or any yes/no question whose answer flips exactly once as a parameter grows.'
-lastReviewed: 2026-10-30
+lastReviewed: 2026-10-31
 ---
+
+## Why it matters
+
+Looking for a value in a million sorted items by scanning takes up to a million comparisons. Binary search takes **20** — each comparison throws away half of what's left, so the work grows with log₂ n, not n. A billion items need only 30.
+
+<Chart
+  type="bar"
+  title="Comparisons needed in the worst case"
+  bars={[
+    ['1,000 items — linear scan', 1000, 'bad'],
+    ['1,000 items — binary search', 10, 'ok'],
+    ['1,000,000 items — linear scan', 1000000, 'bad'],
+    ['1,000,000 items — binary search', 20, 'ok'],
+  ]}
+  log
+  caption="Log scale. Doubling the data adds one comparison to binary search and doubles a linear scan."
+/>
+
+But the real power isn't "find a number in a sorted array". Binary search finds the **boundary of any yes/no question whose answer flips exactly once** — the first version with a bug (`git bisect`), the smallest machine size that meets a deadline, the first timestamp after a given offset in a Kafka index. Recognising that shape is the skill interviewers test.
+
+<Callout type="analogy">
+Guessing a number between 1 and 1,000 with "higher/lower" hints. Always guess the middle: at most 10 guesses, because each guess throws away half of what's left. Binary search on the answer is the same game with a different question — "is a ship of capacity 15 enough?" instead of "is the number above 500?".
+</Callout>
 
 ## Recognise it
 
-- The input is **sorted** (or sorted then rotated) and you need a position, first/last occurrence, or insertion point.
-- "Find the **minimum** X such that something is possible" or "maximum X such that…" — and feasibility is monotone in X.
-- Constraints with huge ranges (10⁹) but cheap checks → binary search over the value range.
-
-<Callout type="analogy">
-Guessing a number between 1 and 1,000 with "higher/lower" hints. Always guess the middle: at most 10 guesses, because each guess throws away half of what's left.
-</Callout>
-
-<Walkthrough id="first-true" />
+- The input is **sorted** (or sorted then rotated) and you need a position, the first/last occurrence, or an insertion point.
+- "Find the **minimum** X such that something is possible" or "the **maximum** X such that…" — and feasibility is **monotone** in X (if X works, every bigger X works).
+- A huge range (up to 10⁹ or 10¹⁸) but a cheap check for a single candidate → binary search over the value range.
+- A local property tells you which side must contain an answer (peak finding), even without full sortedness.
 
 ## The one template to remember
 
-Think of the search as finding the **first index where a predicate is true** (`nums[i] >= target`, "capacity is enough"). Maintain the invariant that the answer lies in `[lo, hi]`.
+Think of every binary search as finding the **first index where a predicate becomes true** — `nums[i] >= target`, "capacity C is enough", "version v has the bug". The predicate looks like `false false false true true`, and we want the first `true`.
+
+<Walkthrough id="first-true" />
 
 <CodeTabs id="dsa-binary-search-template" title="First true / lower bound — the boundary template" />
 
+- **Invariant:** the answer is always in `[lo, hi]` (with `hi = n` meaning "no element is true").
 - `predicate(mid)` true → the answer is `mid` or to its left → `hi = mid`.
-- false → the answer is to the right → `lo = mid + 1`.
-- Loop ends when `lo == hi`: that's the first true (or `n` if none).
-- Last occurrence = (first index with `nums[i] > target`) − 1.
+- false → the answer is strictly right → `lo = mid + 1`.
+- The range shrinks every iteration (because `mid < hi`), so the loop ends with `lo == hi`: the first true.
+- **Last occurrence** of x = (first index with `nums[i] > x`) − 1. **Count** of x = upper bound − lower bound.
+
+**Why `lo + (hi − lo) / 2`?** `(lo + hi) / 2` can overflow when both are near the integer maximum — a real bug that sat in the JDK's own `Arrays.binarySearch` for years.
 
 ## Worked problems
 
 ### Search in a rotated sorted array
 
-`[4,5,6,7,0,1,2]`: at any `mid`, one side is sorted. If the target lies within the sorted side's range, search there; otherwise search the other side.
+**Problem.** A sorted array was rotated at an unknown point, e.g. `[4,5,6,7,0,1,2]`. Find a target in O(log n).
+
+**Insight.** Cut at any `mid` and **one half is still sorted** — compare `nums[lo]` with `nums[mid]` to see which. If the target lies inside the sorted half's range, search there; otherwise it must be in the other half.
+
+| lo..hi | mid (value) | sorted half | target 0 is… | next |
+|---|---|---|---|---|
+| 0..6 | 3 (7) | left [4..7] | not in [4, 7) | lo = 4 |
+| 4..6 | 5 (1) | left [0..1] | in [0, 1) | hi = 4 |
+| 4..4 | 4 (0) | — | found | 4 |
 
 <CodeTabs id="dsa-rotated-search" title="Search in rotated sorted array — O(log n)" />
 
+**With duplicates** (`[1,1,1,0,1]`) you can't tell which half is sorted when `nums[lo] == nums[mid] == nums[hi]`; shrink both ends by one and continue — the worst case becomes O(n).
+
 ### Find the minimum in a rotated sorted array
 
-Compare `nums[mid]` with `nums[hi]`: if larger, the rotation point (minimum) is right of `mid`; otherwise it's at `mid` or left.
+**Insight.** Compare `nums[mid]` with `nums[hi]`. If `nums[mid] > nums[hi]`, the drop (and so the minimum) is right of `mid`; otherwise the minimum is at `mid` or to its left. That's the first-true template with the predicate `nums[i] ≤ nums[last]`.
 
 <CodeTabs id="dsa-rotated-min" title="Minimum of a rotated array — first index where nums[i] ≤ nums[last]" />
 
+### Find a peak element
+
+**Problem.** Return any index whose value is larger than its neighbours (outside the array counts as −∞). `[1,2,1,3,5,6,4]` → 5 (or 1).
+
+**Insight.** The array is **not sorted**, yet binary search works: if `nums[mid] < nums[mid + 1]` you are walking uphill, and following the slope to the right must reach a peak (either the values turn down, or the array ends — and the end counts as a peak). So discard the left half. Binary search needs a rule that tells you which half certainly contains *an* answer, not full sortedness.
+
+<CodeTabs id="dsa-find-peak" title="Find a peak — follow the uphill side" />
+
 ### Binary search on the answer: shipping capacity
 
-Ship packages in order within D days; find the minimum ship capacity. "Can we ship with capacity C?" is monotone (if C works, C + 1 works), so search C between `max(weight)` and `sum(weights)`, checking each guess greedily in O(n).
+**Problem.** Packages must ship in order within D days; find the smallest ship capacity. weights `[1..10]`, D = 5 → 15.
+
+**Insight.** We are not searching the array — we search the **capacity**. "Can we ship within D days at capacity C?" is monotone: if C works, C + 1 works. The smallest sensible C is the heaviest package (it must fit); the largest is the sum (everything in one day). Each guess is checked greedily in O(n) — fill a day until the next package doesn't fit.
 
 <CodeTabs id="dsa-ship-capacity" title="Minimum capacity — binary search over the answer" />
 
+**Complexity.** O(n · log(sum)). The same shape solves *Koko eating bananas* (minimum speed), *split array largest sum* (minimum of the maximum part), *minimum days to make bouquets*, and integer square root.
+
+### Median of two sorted arrays
+
+**Problem.** The median of two sorted arrays in O(log(min(m, n))). `[1,3]` and `[2]` → 2.
+
+**Insight.** The median splits the combined data into a left half and a right half where every left value ≤ every right value. Choose how many elements `i` come from the shorter array; then `j = half − i` come from the other. The split is valid when `a[i−1] ≤ b[j]` and `b[j−1] ≤ a[i]`. If `a[i−1] > b[j]`, we took too many from `a` (move left); otherwise too few (move right). The median is then the largest left value (odd total) or the average of the largest left and smallest right (even).
+
+<CodeTabs id="dsa-median-two-arrays" title="Median of two sorted arrays — binary search on the split" />
+
+This is one of the hardest common interview problems; the key is to say the invariant ("left halves ≤ right halves") before coding, and to handle empty sides with ±∞.
+
+## Binary search in real systems
+
+- **Database indexes**: a B-tree lookup is a binary search inside each page, repeated down a few levels ([Indexing](../../databases/indexing/)).
+- **Consistent hashing**: finding a key's node is "the first ring position ≥ hash(key)" — a lower bound on a sorted ring (`TreeMap.ceilingKey` in Java) ([Consistent hashing](../../distributed-systems/consistent-hashing/)).
+- **Kafka and LSM storage**: sparse offset/time indexes and SSTable block indexes are searched with binary search, then scanned briefly.
+- **`git bisect`**: finds the first bad commit in log₂(commits) test runs — first-true over history.
+- **Capacity planning**: the smallest instance count that meets a latency target, checked by load tests.
+
+## Talking through it in an interview
+
+- Name the predicate and show it is monotone before writing code ("if capacity C works, C + 1 works").
+- State the invariant (`answer in [lo, hi]`) and how each branch keeps it.
+- Check termination: does every branch shrink the range? `lo = mid` with a rounded-down `mid` does not.
+- Test the template on a 1- and 2-element array, a target smaller than everything, and one larger than everything.
+
 <Pitfalls>
 
-- **Infinite loops** from `lo = mid` with `mid` rounded down — use the first-true template, or round up when moving `lo`.
+- **Infinite loops** from `lo = mid` with `mid` rounded down — use the first-true template (`lo = mid + 1`), or round `mid` up when moving `lo`.
 - **Mixing conventions** (`hi = n` vs `n − 1`, `<` vs `<=`) — pick one template and keep its invariant.
-- **Overflow** in `(lo + hi) / 2` with large ints.
-- **Non-monotone predicates** — binary search silently gives wrong answers.
-- **Wrong bounds for answer search** — the lower bound must be feasible-or-not, and the upper bound must be feasible.
+- **Overflow** in `(lo + hi) / 2` with large values.
+- **Non-monotone predicates** — binary search silently returns a wrong answer.
+- **Wrong bounds for answer search** — the upper bound must be feasible, or the "first true" doesn't exist.
+- **Duplicates in rotated arrays** — the O(log n) guarantee breaks; handle the equal case.
 
 </Pitfalls>
 
 <KeyTakeaways>
 
 - Binary search finds the boundary of a monotone predicate in O(log n).
-- One invariant-based template handles first/last occurrence and insertion points.
-- Rotated arrays: one half is always sorted.
-- Search the answer space when feasibility is monotone.
+- One invariant-based template handles first/last occurrence, insertion points and answer search.
+- You need a rule that tells you which half contains an answer — sortedness is one such rule, slopes and feasibility are others.
+- Search the answer space when "is X enough?" is monotone.
 
 </KeyTakeaways>
