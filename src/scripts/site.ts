@@ -3,7 +3,15 @@
  * this adds theme switching, the mobile drawer, code tabs, copy buttons,
  * progress/bookmarks and keyboard shortcuts.
  */
-import { broadcast, keys, read, write, type ProgressMap, type RecentList } from '~/lib/storage';
+import {
+  broadcast,
+  HISTORY_LIMIT,
+  keys,
+  read,
+  write,
+  type ProgressMap,
+  type RecentList,
+} from '~/lib/storage';
 import { goTo, languageKeys } from '~/lib/shortcuts';
 import '~/scripts/offline';
 import { flash, openShortcuts } from '~/scripts/shortcuts';
@@ -162,13 +170,17 @@ window.addEventListener('efg:storage', renderProgress);
 window.addEventListener('storage', renderProgress);
 renderProgress();
 
-/* Remember recently viewed topics for the home page. */
+/* Reading history (/history/ and "Continue reading" on the home page): one entry per topic per day,
+   so opening a topic twice today moves it to the top instead of adding a second line. */
 const topicMeta = document.querySelector<HTMLElement>('[data-topic-id]');
 if (topicMeta) {
   const id = topicMeta.dataset.topicId!;
   const title = topicMeta.dataset.topicTitle ?? id;
-  const recent = read<RecentList>(keys.recent, []).filter((r) => r.id !== id);
-  write(keys.recent, [{ id, title, at: Date.now() }, ...recent].slice(0, 8));
+  const today = new Date().toDateString();
+  const recent = read<RecentList>(keys.recent, []).filter(
+    (r) => r.id !== id || new Date(r.at).toDateString() !== today,
+  );
+  write(keys.recent, [{ id, title, at: Date.now() }, ...recent].slice(0, HISTORY_LIMIT));
 }
 
 /* ── Reading mode ──────────────────────────────────────── */

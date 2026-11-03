@@ -43,13 +43,14 @@ src/
 │     └─ walkthroughs/<id>.yaml
 ├─ components/
 │  ├─ content/   MDX components (registered in mdx.ts, no imports needed in MDX)
-│  ├─ islands/   React: CommandPalette, WalkthroughPlayer, Quiz, Review, PersonalPanel
+│  ├─ islands/   React: CommandPalette, WalkthroughPlayer, Quiz, Review, History, LastUpdate,
+│  │             PersonalPanel
 │  ├─ layout/    Header, Sidebar, Toc, PrevNext, Footer
 │  └─ qa/        interview section, company tags
 ├─ layouts/      BaseLayout (head, theme script, manifest), TopicLayout
 ├─ lib/          nav, snippets, highlight, storage (localStorage), url, companies, …
 ├─ pages/        home, [track], [...topic], cheatsheets, companies, glossary, progress, review,
-│                shortcuts, offline, 404
+│                history, whats-new, shortcuts, offline, 404
 ├─ scripts/      site.ts (keyboard, code tabs, diagram viewer, …), shortcuts.ts (? panel),
 │                offline.ts (service worker client)
 └─ styles/       tokens.css (light + dark), base.css, prose.css, code.css
@@ -196,10 +197,20 @@ reported as small; that is expected.
   opts in.
 - **`/offline/` page**: status, size, storage used, persistence, version, last check; actions:
   check for updates, repair missing files, re-download everything, remove the offline copy, install.
+- **What changed**: on install the worker compares its file list with the previous version's and
+  saves `{ version, at, added, changed, removed }` as `__changes__` in its cache. The `status` reply
+  includes it, and `src/scripts/offline.ts` stores it once as `efg:last-update`; the what's new
+  page lists the topics it touched. The first install records nothing.
 - Worker messages: `status`, `skip-waiting`, `repair` (download only missing files), `resync`
   (download everything again).
 - Icons: `npm run icons` renders `public/icons/` from the header mark. The manifest is
   `public/manifest.webmanifest`.
+
+## What's new dates
+
+`src/lib/git-dates.ts` reads each topic's first commit date from git at build time, following
+moves and renames. It returns nothing on a shallow clone, so CI checks out with `fetch-depth: 0`.
+"Recently reviewed" uses each topic's `lastReviewed`, so set that date when you check a topic.
 
 ## Keyboard shortcuts
 
@@ -213,8 +224,13 @@ with code tabs (the review page uses them to answer).
 ## Personal data in the browser
 
 All keys live under the `efg:` prefix via `src/lib/storage.ts`: `progress`, `bookmarks`, `recent`,
-`lang`, `theme`, `focus`, `wrap`, `quiz`, `offline-optin`, `offline-checked` (and any added by
-later features; list them here when you add one).
+`lang`, `theme`, `focus`, `wrap`, `quiz`, `last-update`, `offline-optin`, `offline-checked` (and
+any added by later features; list them here when you add one).
+
+- `recent`: reading history, `[{ id, title, at }]`, newest first, one entry per topic per day, at
+  most `HISTORY_LIMIT` (200). Written by `src/scripts/site.ts` on every topic page; shown on
+  `/history/` and (deduplicated) as "Continue reading" on the home page.
+- `last-update`: what the last offline update changed (`src/lib/update-changes.ts`).
 
 - `quiz`: `{ [questionId]: { box, due, last, right, wrong } }`, written by the topic self-check and
   `/review/` through `src/lib/review.ts`. A question id is `<topicId>#<hash of the question text>`,

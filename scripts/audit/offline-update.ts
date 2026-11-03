@@ -5,7 +5,8 @@
  *     switches to the new version, leaving one cache;
  *  3. deleting saved files shows them as missing and Repair restores them;
  *  4. Re-download everything finishes with every file saved;
- *  5. Check for updates with nothing new says so.
+ *  5. Check for updates with nothing new says so;
+ *  6. the what's new page lists the changed topic under "In your last update".
  * It edits one file in dist/ and regenerates dist/sw.js, then puts both back.
  *   npm run build && npm run preview   (in another terminal)
  *   npm run test:offline-update
@@ -75,6 +76,11 @@ try {
     path,
   );
   expect(!!updated, 'the changed file is saved');
+  await page.goto(`${BASE}whats-new/`);
+  await page.waitForSelector('.lu');
+  expect((await text('.lu')).includes('Sliding Window'), "what's new lists the changed topic");
+  await page.goto(`${BASE}offline/`);
+  await ready();
 
   const files = await text('[data-f="files"]'); // "616 of 616"
   await page.evaluate(async (p) => {

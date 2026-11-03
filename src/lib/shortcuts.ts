@@ -24,6 +24,8 @@ export const shortcutGroups: ShortcutGroup[] = [
       { keys: ['g h'], does: 'Go to the home page' },
       { keys: ['g p'], does: 'Go to your progress' },
       { keys: ['g r'], does: 'Go to review' },
+      { keys: ['g y'], does: 'Go to your reading history' },
+      { keys: ['g n'], does: "Go to what's new" },
       { keys: ['g o'], does: 'Go to the offline page' },
       { keys: ['Esc'], does: 'Close search, the menu, a diagram or this panel' },
     ],
@@ -78,6 +80,8 @@ export const goTo: Record<string, string> = {
   h: '',
   p: 'progress/',
   r: 'review/',
+  y: 'history/',
+  n: 'whats-new/',
   o: 'offline/',
 };
 

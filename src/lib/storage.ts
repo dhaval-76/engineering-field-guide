@@ -19,7 +19,9 @@ export function write(key: string, value: unknown): void {
 }
 
 export type ProgressMap = Record<string, number>; // topicId → completed-at epoch ms
+/** Reading history, newest first: one entry per topic per day (see site.ts), up to HISTORY_LIMIT. */
 export type RecentList = { id: string; title: string; at: number }[];
+export const HISTORY_LIMIT = 200;
 
 export const keys = {
   progress: 'progress',

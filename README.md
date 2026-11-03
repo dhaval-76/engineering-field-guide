@@ -24,11 +24,15 @@ and its order are in [`BACKLOG.md`](BACKLOG.md).
   code wrap, a remembered code language.
 - **Keyboard shortcuts:** press `?` on any page for the list, or open `/shortcuts/`. For example
   `j`/`k` next and previous topic, `[`/`]` sections, `m` mark complete, `b` save, `t` theme,
-  `1`–`5` code language, `g` then `h`/`p`/`r`/`o` to jump to a page.
+  `1`–`5` code language, `g` then `h`/`p`/`r`/`y`/`n`/`o` to jump to a page.
 - **Progress and bookmarks** saved in the browser, with a `/progress/` page.
 - **Review** (`/review/`): quiz answers are remembered per question. Missed questions come back
   straight away; right ones come back after 1, 3, 7, 16 and 35 days (spaced repetition). Rounds
   of 10, filterable by track, with new questions optionally limited to topics you've completed.
+- **Reading history** (`/history/`): every topic you open, newest first, grouped by day, with a
+  filter and per-entry or clear-all removal. Up to 200 entries, one per topic per day.
+- **What's new** (`/whats-new/`): topics recently added (dated by their first git commit) and
+  recently reviewed, plus the topics changed by the last update your offline copy downloaded.
 - **Offline app:** the first visit saves the whole site (about 68 MB). Updates download only changed
   files and ask before switching. The `/offline/` page checks for updates, repairs missing files,
   re-downloads everything, removes the copy, and explains how to install the app.
@@ -175,6 +179,7 @@ npm run diagrams -- --check
 npm run build
 ```
 
-The GitHub Actions workflow in `.github/workflows/deploy.yml` runs all of these, builds, and deploys
+The GitHub Actions workflow in `.github/workflows/deploy.yml` checks out the full git history (the
+what's new page needs each topic's first commit date), runs all of these, builds, and deploys
 to Pages on every push to `main`. In the repository settings, set **Pages → Source** to
 **GitHub Actions**. The repository name and base path are set in `src/site.config.ts`.

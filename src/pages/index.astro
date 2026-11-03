@@ -31,7 +31,13 @@ const index = await getTopicIndex();
     </p>
   </section>
 
-  <PersonalPanel client:only="react" mode="home" topics={index.topics} tracks={index.tracks} />
+  <PersonalPanel
+    client:only="react"
+    mode="home"
+    topics={index.topics}
+    tracks={index.tracks}
+    historyUrl={url('history/')}
+  />
 
   <section class="tracks" aria-label="Tracks">
     {nav.map(({ track, topics }) => (
@@ -126,6 +132,10 @@ const index = await getTopicIndex();
   }
   :global(.pp-home li) {
     padding: 4px 0;
+  }
+  :global(.pp-more) {
+    margin: 4px 0 0;
+    font-size: 0.875rem;
   }
   .tracks {
     display: grid;

@@ -1,0 +1,148 @@
+---
+import BaseLayout from '~/layouts/BaseLayout.astro';
+import LastUpdate from '~/components/islands/LastUpdate';
+import { topicAddedDates } from '~/lib/git-dates';
+import { getNav } from '~/lib/nav';
+import { topicUrl, url } from '~/lib/url';
+
+const SHOW = 40;
+const nav = await getNav();
+const added = topicAddedDates();
+const topics = nav.flatMap(({ track, topics }) =>
+  topics.map((t) => ({
+    id: t.id,
+    title: t.data.title,
+    summary: t.data.summary,
+    url: topicUrl(t.id),
+    track: track.data.title,
+    added: added.get(t.id),
+    reviewed: t.data.lastReviewed.toISOString().slice(0, 10),
+  })),
+);
+const newest = topics
+  .filter((t) => t.added)
+  .sort((a, b) => b.added!.localeCompare(a.added!) || a.title.localeCompare(b.title))
+  .slice(0, SHOW);
+const reviewed = [...topics]
+  .sort((a, b) => b.reviewed.localeCompare(a.reviewed) || a.title.localeCompare(b.title))
+  .slice(0, SHOW);
+const fmt = (d: string) =>
+  new Date(`${d}T00:00:00Z`).toLocaleDateString('en-GB', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+    timeZone: 'UTC',
+  });
+/** Group a list by one of its date fields, keeping order. */
+function byDate<T>(list: T[], key: (t: T) => string) {
+  const groups: { date: string; items: T[] }[] = [];
+  for (const t of list) {
+    const d = key(t);
+    if (groups.at(-1)?.date === d) groups.at(-1)!.items.push(t);
+    else groups.push({ date: d, items: [t] });
+  }
+  return groups;
+}
+// For the update panel: built page file → topic title.
+const pageTitles = Object.fromEntries(topics.map((t) => [`${t.id}/index.html`, t.title]));
+---
+
+<BaseLayout title="What's new" noindex>
+  <div class="wrap">
+    <h1>What's new</h1>
+    <p class="lede">
+      Topics added or checked recently. Your own reading is in{' '}
+      <a href={url('history/')}>your history</a>.
+    </p>
+
+    <LastUpdate client:only="react" pageTitles={pageTitles} base={url()} />
+
+    {newest.length > 0 && (
+      <section>
+        <h2>Recently added</h2>
+        {byDate(newest, (t) => t.added!).map((g) => (
+          <>
+            <h3>{fmt(g.date)}</h3>
+            <ul class="topics">
+              {g.items.map((t) => (
+                <li>
+                  <a href={t.url}>{t.title}</a>
+                  <span class="track">{t.track}</span>
+                </li>
+              ))}
+            </ul>
+          </>
+        ))}
+      </section>
+    )}
+
+    <section>
+      <h2>Recently reviewed</h2>
+      <p class="muted">The date each topic's content was last checked.</p>
+      {byDate(reviewed, (t) => t.reviewed).map((g) => (
+        <>
+          <h3>{fmt(g.date)}</h3>
+          <ul class="topics">
+            {g.items.map((t) => (
+              <li>
+                <a href={t.url}>{t.title}</a>
+                <span class="track">{t.track}</span>
+              </li>
+            ))}
+          </ul>
+        </>
+      ))}
+    </section>
+  </div>
+</BaseLayout>
+
+<style>
+  .wrap {
+    max-width: 760px;
+  }
+  h1 {
+    font-family: var(--font-serif);
+    font-weight: 560;
+    font-size: var(--step-4);
+    margin: 0;
+  }
+  .wrap :global(h2) {
+    font-family: var(--font-serif);
+    font-weight: 560;
+    font-size: var(--step-2);
+    margin: 32px 0 8px;
+  }
+  h3 {
+    margin: 20px 0 4px;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+  }
+  .lede {
+    color: var(--ink-2);
+  }
+  .muted {
+    color: var(--ink-3);
+    font-size: 0.9375rem;
+    margin: 0;
+  }
+  .topics {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  .topics li {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 2px 16px;
+    padding: 6px 0;
+    border-bottom: 1px solid var(--rule);
+  }
+  .track {
+    font-size: 0.8125rem;
+    color: var(--ink-3);
+  }
+</style>

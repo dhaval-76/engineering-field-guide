@@ -4,6 +4,7 @@
  * /offline/ page render from.
  */
 import { read, write } from '~/lib/storage';
+import { LAST_UPDATE, type UpdateChanges } from '~/lib/update-changes';
 
 export type Phase =
   | 'unsupported' // no service workers (or a dev build)
@@ -84,6 +85,10 @@ function onMessage(e: MessageEvent) {
       msg.kind === 'install' ? (sw()?.controller ? 'updating' : 'installing') : msg.kind;
     set({ phase, done: msg.done, total: msg.total, fetched: msg.fetched, error: undefined });
   } else if (msg.type === 'status') {
+    // The active worker reports what its version changed; keep it once, for the "what's new" page.
+    const changes = msg.changes as UpdateChanges | null;
+    if (changes && read<UpdateChanges | null>(LAST_UPDATE, null)?.version !== changes.version)
+      write(LAST_UPDATE, changes);
     const keep = state.phase === 'update-ready' || state.phase === 'updating';
     set({
       phase: keep ? state.phase : 'ready',

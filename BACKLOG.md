@@ -144,7 +144,16 @@ Suggested new shortcuts:
 Shortcuts must be ignored while typing in inputs, the same as the existing handler in
 `src/scripts/site.ts`.
 
-### 8. History, both meanings
+### 8. History, both meanings (done 2026-11-03)
+
+Done: `/history/` (grouped Today, Yesterday, This week, then by month; filter; remove one or clear
+all; up to 200 entries, one per topic per day; topics no longer on the site keep their title), an
+"All reading history" link under "Continue reading". `/whats-new/`: recently added (first git
+commit date; CI now fetches full history), recently reviewed (`lastReviewed`), and "In your last
+update" from the service worker's record of added, changed and removed files. Shortcuts `g y` and
+`g n`. `test:offline-update` checks that an update's changed topic appears there.
+
+Original scope:
 
 **a. Your reading history**
 

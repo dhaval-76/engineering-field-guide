@@ -1,0 +1,40 @@
+---
+import BaseLayout from '~/layouts/BaseLayout.astro';
+import History from '~/components/islands/History';
+import { getTopicIndex } from '~/lib/topic-index';
+import { url } from '~/lib/url';
+
+const index = await getTopicIndex();
+---
+
+<BaseLayout title="Reading history" noindex>
+  <div class="wrap">
+    <h1>Reading history</h1>
+    <p class="lede">
+      Every topic you have opened in this browser, newest first. For what has been added or changed
+      on the site itself, see <a href={url('whats-new/')}>what's new</a>.
+    </p>
+    <History client:only="react" topics={index.topics} tracks={index.tracks} />
+  </div>
+</BaseLayout>
+
+<style>
+  .wrap {
+    max-width: 760px;
+  }
+  h1 {
+    font-family: var(--font-serif);
+    font-weight: 560;
+    font-size: var(--step-4);
+    margin: 0;
+  }
+  .lede {
+    color: var(--ink-2);
+  }
+  .wrap :global(h2) {
+    font-family: var(--font-serif);
+    font-weight: 560;
+    font-size: var(--step-1);
+    margin: 28px 0 4px;
+  }
+</style>

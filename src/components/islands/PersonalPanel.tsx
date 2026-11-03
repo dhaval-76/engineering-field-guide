@@ -16,6 +16,8 @@ interface Props {
   topics: TopicInfo[];
   tracks: TrackInfo[];
   mode: 'home' | 'progress';
+  /** link under "Continue reading" to the full reading history */
+  historyUrl?: string | undefined;
 }
 
 const PREFIX = 'efg:';
@@ -29,7 +31,7 @@ function read<T>(key: string, fallback: T): T {
 }
 
 /** Client-only view of what this browser has stored: recent topics, bookmarks, completion. */
-export default function PersonalPanel({ topics, tracks, mode }: Props) {
+export default function PersonalPanel({ topics, tracks, mode, historyUrl }: Props) {
   const [state, setState] = useState<{
     progress: Record<string, number>;
     bookmarks: string[];
@@ -50,7 +52,10 @@ export default function PersonalPanel({ topics, tracks, mode }: Props) {
 
   if (!state) return null;
   const byId = new Map(topics.map((t) => [t.id, t]));
-  const recent = state.recent.map((r) => byId.get(r.id)).filter((t): t is TopicInfo => !!t);
+  // History can hold a topic once per day; "Continue reading" shows each topic once.
+  const recent = [...new Set(state.recent.map((r) => r.id))]
+    .map((id) => byId.get(id))
+    .filter((t): t is TopicInfo => !!t);
   const bookmarks = state.bookmarks.map((id) => byId.get(id)).filter((t): t is TopicInfo => !!t);
   const done = Object.keys(state.progress).filter((id) => byId.has(id));
 
@@ -68,6 +73,11 @@ export default function PersonalPanel({ topics, tracks, mode }: Props) {
                 </li>
               ))}
             </ul>
+            {historyUrl && (
+              <p className="pp-more">
+                <a href={historyUrl}>All reading history</a>
+              </p>
+            )}
           </section>
         )}
         {bookmarks.length > 0 && (
