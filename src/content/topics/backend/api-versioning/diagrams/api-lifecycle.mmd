@@ -1,0 +1,11 @@
+flowchart TD
+  A[Change needed] --> B{Can it be additive?}
+  B -->|yes| C[Ship it, with no new version]
+  B -->|no| D[New version alongside the old one]
+  D --> E[Announce: docs, changelog,<br/>Deprecation and Sunset headers]
+  E --> F[Measure who still calls it]
+  F --> G[Contact the remaining clients]
+  G --> H[Brownouts: planned<br/>short outages of the old version]
+  H --> I{Traffic near zero?}
+  I -->|no| G
+  I -->|yes| J[After the Sunset date,<br/>return 410 Gone]

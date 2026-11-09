@@ -1,0 +1,75 @@
+questions:
+  - q: How do you version a REST API?
+    think: Start with how to avoid needing to, then options, then retirement.
+    answer: |
+      First, avoid needing to. Additive changes don't need a new version: new optional request fields, new response fields, new endpoints, as long as clients are told to ignore what they don't recognise.
+
+      For a real break, I'd normally use a major version in the URL, like `/v2`, as it's visible and simple to route, cache and test. If breaking changes are frequent and there are many outside clients, date-based pinning with translation layers works better, like Stripe's. I'd keep one implementation and make the old version a thin adapter.
+
+      To retire: announce with `Deprecation` and `Sunset` headers, measure usage per client, contact the top callers, run brownouts, and return `410 Gone` after the date.
+    askedAt:
+      - company: Goldman Sachs
+        year: 2025
+        round: Resume and Spring Boot
+        source: https://leetcode.com/discuss/post/6891139/goldman-sachs-analyst-interview-experien-3cm8/
+  - q: We need to rename a field that thousands of mobile clients use. Walk me through it.
+    think: Old apps never update on your schedule.
+    answer: |
+      Use expand, migrate, contract. Add the new field and return both, writing to both if it's also an input. Ship the new app reading the new field. Measure usage of the old one by app version. Mobile is slow, so this may take a year or more; a minimum-version check can eventually force the last holdouts. Only once usage is close to zero and the notice period has ended do I stop sending the old field.
+
+      If the benefit is only a nicer name, I'd question whether it's worth it at all.
+  - q: Which of these changes are breaking? Adding a response field, making a request field required, adding an enum value, changing a price to include tax.
+    think: Think about each kind of compatibility.
+    answer: |
+      Adding a response field is safe if clients ignore unknown fields. Making a request field required is breaking, because existing callers don't send it. Adding an enum value is often breaking for responses, because clients with exhaustive handling may fail, so document that values can grow. Including tax in the price is the most dangerous one: same name, same type, passes every schema check, and every client quietly produces wrong numbers. It's a semantic break and should be a new field.
+  - q: How would you support five old API versions without five copies of the code?
+    think: Where does the difference between versions live?
+    answer: |
+      Keep one current implementation and put each difference in a small, separately tested adapter. A request gets upgraded to the latest shape on the way in, and the response gets walked back through each change newer than the client's version. So each old version costs one small transformation per change.
+
+      It works for shape changes. Behaviour changes need a branch in the real code, so try to avoid them. Keep usage metrics per version so you know when an adapter can be deleted, and run contract tests for each supported version.
+followUps:
+  - q: What's the difference between the Deprecation and Sunset headers?
+    intuition: 'Please stop, versus it stops on this date.'
+    approach: |
+      `Deprecation` says the resource is deprecated; it still works and behaves the same. `Sunset` gives the date it's expected to stop responding. They can be used together, and the sunset date must not be earlier than the deprecation date.
+  - q: Is it breaking to add a required field to a response?
+    intuition: Which direction does the data flow?
+    approach: |
+      No. Old clients ignore a response field they don't know about. It's breaking on a request, because existing callers don't send it. Compatibility rules are opposite in the two directions.
+  - q: Why not put the version in a header?
+    intuition: What can people see and try?
+    approach: |
+      It keeps URLs clean, and can be per resource, but it's hidden: you can't paste it in a browser or see it in most access logs, and caches need `Vary` to avoid mixing versions. URL versions are less elegant and much easier to operate.
+  - q: How do you find out who would be broken by a change?
+    intuition: What do you log?
+    approach: |
+      Log the client identity and API version on every request, or field usage for GraphQL. For internal services, use consumer-driven contract tests, so each consumer states what it depends on. Before a big change, replay production traffic against the new version.
+practice:
+  - task: 'Write a function that compares two API contracts and reports breaking changes. Treat requests and responses differently.'
+    hint: A new required field matters on a request. Losing a guarantee matters on a response.
+    solution: |
+      For each old field: missing means removed, and a different type means changed. For a request, going from optional to required is breaking. For a response, going from required to optional is breaking. For requests only, any new required field is breaking. Purely additive changes report nothing.
+    solutionCode: api-compat-check
+  - task: Build a date-based version layer. The handler produces only the newest response, and older clients get it transformed step by step.
+    hint: Walk the changes newest first, and stop at the first one that isn't newer than the client's version.
+    solution: |
+      Keep a list of changes, newest first, each with a date and a downgrade function. Copy the response, then apply each change whose date is later than the client's version. ISO dates compare correctly as strings.
+    solutionCode: api-version-transforms
+quiz:
+  - q: A field changes meaning but keeps its name and type. What kind of break is that?
+    options: ['Source', 'Wire', 'Semantic', 'Not a break']
+    correct: 2
+    why: 'Code compiles and data parses, but the behaviour is wrong, and no schema check will notice.'
+  - q: Which is safe to do without a new version?
+    options: ['Add a required request field', 'Rename a response field', 'Add an optional request field with a default that matches the old behaviour', 'Tighten validation']
+    correct: 2
+    why: 'Existing callers don''t send it and get the same behaviour as before.'
+  - q: How should a rename be done?
+    options: ['In one deploy', 'Add the new field, migrate clients, then remove the old field', 'Reuse the old name', 'Only in a major version, with no notice']
+    correct: 1
+    why: 'Expand, migrate and contract means no client breaks at any single step.'
+  - q: What is a brownout?
+    options: ['A data centre failure', 'A planned, short switch-off of an old version, to find remaining users', 'A way of compressing responses', 'A load test']
+    correct: 1
+    why: 'It flushes out forgotten integrations while there is still time to fix them.'

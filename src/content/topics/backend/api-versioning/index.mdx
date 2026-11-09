@@ -1,0 +1,155 @@
+---
+title: API Versioning and Evolution
+summary: How to change an API without breaking the clients you can't update — what counts as breaking, URL, header and date-based versions, translation layers, safe renames, contract checks in CI, and how to retire a version.
+track: backend
+order: 12
+tags: [backend, api, versioning, rest, grpc, graphql]
+aliases: [api versioning, versioning strategy, backward compatibility, backwards compatible, breaking change, breaking api change, url versioning, header versioning, media type versioning, date based versioning, stripe versioning, deprecation header, sunset header, api deprecation, api lifecycle, expand and contract, tolerant reader, consumer driven contract, pact, contract testing, brownout, api retirement, semantic compatibility, wire compatibility]
+prerequisites: [backend/rest-api-design]
+related: [backend/grpc, backend/graphql, backend/api-styles, backend/testing, system-design/api-gateway]
+quickRef:
+  points:
+    - 'The best version is **no new version**. Additive changes need none.'
+    - 'Breaking means **removing, renaming, retyping, tightening or changing the meaning** of anything clients rely on.'
+    - 'Compatibility has three kinds: **source, wire and semantic**. A change can pass the first two and still break behaviour.'
+    - 'URL versions are simple and visible. Date-based pinning with translation layers suits APIs that change often.'
+    - 'Rename by **expand, migrate, contract**. Never in one step.'
+    - 'Retire with `Deprecation` and `Sunset` headers, usage data, direct outreach and brownouts.'
+  useWhen: 'Changing a published API, planning a v2, or being asked "how do you version your API?".'
+askedAt:
+  - company: Goldman Sachs
+    year: 2025
+    round: Resume and Spring Boot
+    source: https://leetcode.com/discuss/post/6891139/goldman-sachs-analyst-interview-experien-3cm8/
+lastReviewed: 2026-11-09
+---
+
+## Why it matters
+
+Once an API has clients you don't control, every change is a negotiation with people you can't reach. A mobile app stays installed for years, and a partner's integration may have been written by someone who has since left. You can deploy in five minutes and still be supporting today's mistake in five years.
+
+Good versioning is mostly about avoiding versions. Each live version is another thing to test, document, secure and keep running.
+
+<Callout type="analogy">
+A power socket. You can make better appliances for decades, as long as the socket stays the same. Changing the socket means every home in the country needs an adapter. So you keep the old shape as long as you can, and when you really must change it, you ship adapters and announce it years in advance.
+</Callout>
+
+## What counts as breaking
+
+Google's API guidance separates three kinds of compatibility, and the third is the one people forget:
+
+| Kind | Question | Example failure |
+|---|---|---|
+| **Source** | Does client code still compile? | A renamed generated class |
+| **Wire** | Do old clients and new servers still understand each other? | A changed type in the data |
+| **Semantic** | Does it still behave as clients expect? | A price now includes tax. Same field, same type, wrong results |
+
+| Change | Breaks clients? |
+|---|---|
+| Add an optional request field, with a default matching the old behaviour | No |
+| Add a response field | No, if clients ignore unknown fields |
+| Add a new endpoint | No |
+| Remove or rename anything | **Yes** |
+| Change a type, even a wire-compatible one | **Yes** |
+| Make an optional request field required, or add a required one | **Yes** |
+| Stop guaranteeing a response field | **Yes** |
+| Tighten validation | **Yes**: inputs that worked now fail |
+| Change a default value or a value's format | **Yes** |
+| Add an enum value to a response | Often: strict clients may fail on it |
+| Change an error code, or a sort order clients rely on | Usually |
+
+Note that direction matters. A new required field is breaking on a request but fine on a response. Removing "required" is fine on a request but breaking on a response. A check in CI catches these before anyone reads the diff:
+
+<CodeTabs id="api-compat-check" title="Detect breaking changes between two contracts" />
+
+## Keeping changes additive
+
+- **Tolerant reader.** Clients must ignore fields they don't know. Make that part of your API's documented rules, and test it.
+- **Don't expose what you might change.** Use opaque ids and cursors, and don't return your database columns as they are.
+- **Design enums to grow.** Tell clients to handle unknown values.
+- **Rename in stages.**
+
+<Walkthrough id="api-expand-contract" />
+
+## Ways to version
+
+| Strategy | Example | Good | Bad | Used for |
+|---|---|---|---|---|
+| URL path | `/v2/orders` | Visible; easy to route, cache and test | The whole API moves together | Most public APIs |
+| Header or media type | `Accept: application/vnd.acme.v2+json` | Clean URLs; per-resource | Hidden; harder to test; caches need `Vary` | Some hypermedia APIs |
+| Date pinning | `Stripe-Version: 2026-06-01` | Small, frequent changes; upgrade when ready | Needs serious tooling | High-change platforms |
+| Protobuf package | `shop.orders.v2` | Fits generated code | Internal use mostly | [gRPC](../grpc/) |
+| No versions | `@deprecated` on fields | No version sprawl; usage known by field | Needs field-level metrics | [GraphQL](../graphql/) |
+
+<DecisionGuide
+  title="How should this API be versioned?"
+  steps={[
+    ['Can the change be additive?', 'Do that. No new version needed.'],
+    ['Do you control every client, and can you deploy them together?', 'Expand and contract, without a version.'],
+    ['Is it GraphQL?', 'Add new fields and use @deprecated.'],
+    ['Is it gRPC?', 'Add fields compatibly; use a new package version for a true break.'],
+    ['Do breaking changes happen often, with many outside clients?', 'Date-based pinning with translation layers.'],
+  ]}
+  otherwise="A major version in the URL. It is simple and obvious."
+/>
+
+## Translation layers
+
+Running a full copy of the code per version doesn't last. The better shape is **one current implementation with small adapters**. Stripe's published design works like this: every account is pinned to the date it started, and each breaking change is a small module that describes how to transform a response back to the earlier shape.
+
+<Walkthrough id="api-version-walkback" />
+
+<CodeTabs id="api-version-transforms" title="Walk a response back to the client's version" />
+
+The same idea works at a smaller scale: keep `/v1` as a thin adapter over the `/v2` code, not as a separate copy. An [API gateway](../../system-design/api-gateway/) can handle simple rewrites, but business rules shouldn't live there.
+
+## Protecting clients in CI
+
+| Technique | Catches |
+|---|---|
+| Compare the contract with the last published one | Removed fields, type changes |
+| Tools such as `buf breaking` for Protobuf | Unsafe proto changes |
+| Consumer-driven contract tests (Pact) | Changes that break what a real consumer depends on |
+| Replay recorded production requests | Behaviour changes that no schema can show |
+
+Only the last two have a chance of catching semantic breaks.
+
+## Retiring a version
+
+<Diagram id="api-lifecycle" caption="Most of the work is after the announcement: measure who is left, talk to them, and only then switch it off." />
+
+Two standard HTTP headers tell clients what's coming. `Deprecation` says the resource is deprecated and still works. `Sunset` says when it will stop responding. The sunset date can't be earlier than the deprecation date.
+
+<CodeTabs id="api-lifecycle-headers" title="Telling clients what is coming" />
+
+Practical steps:
+
+1. **Publish a policy** before you need it, for example "at least 12 months' notice".
+2. **Record usage per client and per version**, so you know exactly who to contact.
+3. **Reach out directly.** Few people read response headers, so email the owners of the top callers.
+4. **Run brownouts.** Switch the old version off for a planned hour or two, then longer. It finds forgotten integrations while the fix is still cheap.
+5. **After the sunset date**, return `410 Gone` with a link to the migration guide.
+
+For mobile, add a **minimum-version check** at app start, so you have a way to force upgrades when you truly need to.
+
+<Pitfalls>
+
+- **Treating `/v2` as a free pass** to redesign everything, leaving nobody able to migrate.
+- **A separate copy of the code for each version.** Bug fixes then need applying several times.
+- **Changing meaning without changing the shape.** No schema check can catch it.
+- **Tightening validation** and calling it a bug fix.
+- **Having no usage data**, so you can't tell who you'd break.
+- **Relying on headers alone** to warn people.
+- **Assuming clients ignore unknown fields** without having asked them to.
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- Avoid versions by making additive changes and rename by expand, migrate, contract.
+- Check source, wire and semantic compatibility, in the right direction for requests and responses.
+- URL versions suit most APIs; date pinning suits frequent changes, if you have the tooling.
+- Keep one implementation with thin adapters, not a copy per version.
+- Retire with usage data, direct contact, brownouts and clear headers.
+
+</KeyTakeaways>

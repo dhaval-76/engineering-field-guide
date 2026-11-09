@@ -1,0 +1,27 @@
+title: Renaming a field without breaking anyone
+legend:
+  info: 'the old field'
+  ok: 'the new field'
+  warn: 'waiting on clients'
+  muted: 'gone'
+frames:
+  - caption: 'You want to rename `user_name` to `display_name`. A straight rename is a removal plus an addition, so it breaks every client on the day you deploy it.'
+    panels:
+      - kind: kv
+        label: Response
+        pairs: [[user_name, { v: Priya, tone: info }]]
+  - caption: '**Expand.** Add the new field and fill in both. Nothing breaks, because clients ignore fields they do not know.'
+    panels:
+      - kind: kv
+        label: Response
+        pairs: [[user_name, { v: Priya, tone: info }], [display_name, { v: Priya, tone: ok }]]
+  - caption: '**Migrate.** Tell clients and measure. Mobile apps are the slow part: an installed app can stay in use for years, so this stage usually takes the longest.'
+    panels:
+      - kind: kv
+        label: Clients still reading user_name
+        pairs: [[web, 0%], [partners, 4%], [old mobile versions, { v: 11%, tone: warn }]]
+  - caption: '**Contract.** Only when usage reaches almost zero and the published date has passed, stop sending the old field. The rename took months, and no client broke on any given day.'
+    panels:
+      - kind: kv
+        label: Response
+        pairs: [[user_name, { v: removed, tone: muted }], [display_name, { v: Priya, tone: ok }]]

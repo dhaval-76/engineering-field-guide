@@ -1,0 +1,30 @@
+title: Serving 2024 clients from code that only knows today
+legend:
+  accent: 'the only version the code builds'
+  warn: 'a change being walked back'
+  ok: 'what this client receives'
+frames:
+  - caption: 'The business logic only builds the **newest** response. It knows nothing about old versions.'
+    panels:
+      - kind: kv
+        label: Newest response
+        pairs: [[id, o1], [status, { v: paid, tone: accent }], [amount, { v: '{value: 100, currency: INR}', tone: accent }]]
+  - caption: 'A client pinned to `2026-06-01` asks. No change is newer than its version, so it gets the response untouched.'
+    panels:
+      - kind: kv
+        label: Client on 2026-06-01
+        pairs: [[id, o1], [status, { v: paid, tone: ok }], [amount, { v: '{value: 100, currency: INR}', tone: ok }]]
+  - caption: 'A client pinned to `2025-06-01` predates one change: amount became an object on 2026-06-01. That change has a small `downgrade` function, which runs once.'
+    panels:
+      - kind: kv
+        label: Client on 2025-06-01
+        pairs: [[id, o1], [status, { v: paid, tone: ok }], [amount_cents, { v: 100, tone: warn }]]
+  - caption: 'A client pinned to `2024-01-01` predates both. The changes run newest first, so each sees the output of the one before: `status` also goes back to `state`.'
+    panels:
+      - kind: kv
+        label: Client on 2024-01-01
+        pairs: [[id, o1], [state, { v: paid, tone: warn }], [amount_cents, { v: 100, tone: warn }]]
+  - caption: 'Old versions cost **one small function each**, not a copy of the codebase. The catch: this only works for changes to response shape. A change in behaviour needs a branch in the real code.'
+    panels:
+      - kind: note
+        text: 'Stripe uses this approach, and says it avoids changes with side effects where it can.'

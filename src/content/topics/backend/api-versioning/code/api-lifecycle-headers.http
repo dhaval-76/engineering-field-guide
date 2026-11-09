@@ -1,0 +1,5 @@
+HTTP/1.1 200 OK
+Content-Type: application/json
+Deprecation: @1798761600
+Sunset: Sat, 01 Jul 2028 00:00:00 GMT
+Link: <https://developer.example.com/migrate-to-v2>; rel="deprecation"; type="text/html"
