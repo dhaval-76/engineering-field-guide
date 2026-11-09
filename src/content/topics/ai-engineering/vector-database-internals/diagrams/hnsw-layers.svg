@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 350 322" font-family="var(--font-sans)" role="img" aria-label="Three stacked graph layers. Layer 2 has nodes A and F, layer 1 has A, C, F and H, and layer 0 has every node. A search takes a long jump from A to F on layer 2, drops to F on layer 1, moves to H, drops to H on layer 0, and then moves to J.">
+<defs><marker id="hnsw-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="var(--d-accent)"/></marker></defs>
+<rect x="6" y="12" width="338" height="80" rx="6" fill="var(--d-fill)" stroke="var(--d-line)"/>
+<text x="16" y="31" font-size="13" fill="var(--d-muted)">Layer 2: few nodes, long jumps</text>
+<line x1="30" y1="64" x2="215" y2="64" stroke="var(--d-line)" stroke-width="1.5"/>
+<rect x="6" y="116" width="338" height="80" rx="6" fill="var(--d-fill)" stroke="var(--d-line)"/>
+<text x="16" y="135" font-size="13" fill="var(--d-muted)">Layer 1: more nodes, shorter jumps</text>
+<line x1="30" y1="168" x2="104" y2="168" stroke="var(--d-line)" stroke-width="1.5"/>
+<line x1="104" y1="168" x2="215" y2="168" stroke="var(--d-line)" stroke-width="1.5"/>
+<line x1="215" y1="168" x2="289" y2="168" stroke="var(--d-line)" stroke-width="1.5"/>
+<rect x="6" y="220" width="338" height="80" rx="6" fill="var(--d-fill)" stroke="var(--d-line)"/>
+<text x="16" y="239" font-size="13" fill="var(--d-muted)">Layer 0: every vector, short local links</text>
+<line x1="30" y1="272" x2="67" y2="272" stroke="var(--d-line)" stroke-width="1.5"/>
+<line x1="67" y1="272" x2="104" y2="272" stroke="var(--d-line)" stroke-width="1.5"/>
+<line x1="104" y1="272" x2="141" y2="272" stroke="var(--d-line)" stroke-width="1.5"/>
+<line x1="141" y1="272" x2="178" y2="272" stroke="var(--d-line)" stroke-width="1.5"/>
+<line x1="178" y1="272" x2="215" y2="272" stroke="var(--d-line)" stroke-width="1.5"/>
+<line x1="215" y1="272" x2="252" y2="272" stroke="var(--d-line)" stroke-width="1.5"/>
+<line x1="252" y1="272" x2="289" y2="272" stroke="var(--d-line)" stroke-width="1.5"/>
+<line x1="289" y1="272" x2="326" y2="272" stroke="var(--d-line)" stroke-width="1.5"/>
+<line x1="43" y1="64" x2="202" y2="64" stroke="var(--d-accent)" stroke-width="2.5" marker-end="url(#hnsw-arrow)"/>
+<line x1="215" y1="77" x2="215" y2="155" stroke="var(--d-accent)" stroke-width="2.5" marker-end="url(#hnsw-arrow)"/>
+<line x1="228" y1="168" x2="276" y2="168" stroke="var(--d-accent)" stroke-width="2.5" marker-end="url(#hnsw-arrow)"/>
+<line x1="289" y1="181" x2="289" y2="259" stroke="var(--d-accent)" stroke-width="2.5" marker-end="url(#hnsw-arrow)"/>
+<line x1="302" y1="272" x2="313" y2="272" stroke="var(--d-accent)" stroke-width="2.5" marker-end="url(#hnsw-arrow)"/>
+<circle cx="30" cy="64" r="13" fill="var(--d-accent-soft)" stroke="var(--d-accent)" stroke-width="1.5"/>
+<text x="30" y="69" text-anchor="middle" font-size="13" fill="var(--d-text)">A</text>
+<circle cx="215" cy="64" r="13" fill="var(--d-accent-soft)" stroke="var(--d-accent)" stroke-width="1.5"/>
+<text x="215" y="69" text-anchor="middle" font-size="13" fill="var(--d-text)">F</text>
+<circle cx="30" cy="168" r="13" fill="var(--d-bg)" stroke="var(--d-line)" stroke-width="1.5"/>
+<text x="30" y="173" text-anchor="middle" font-size="13" fill="var(--d-text)">A</text>
+<circle cx="104" cy="168" r="13" fill="var(--d-bg)" stroke="var(--d-line)" stroke-width="1.5"/>
+<text x="104" y="173" text-anchor="middle" font-size="13" fill="var(--d-text)">C</text>
+<circle cx="215" cy="168" r="13" fill="var(--d-accent-soft)" stroke="var(--d-accent)" stroke-width="1.5"/>
+<text x="215" y="173" text-anchor="middle" font-size="13" fill="var(--d-text)">F</text>
+<circle cx="289" cy="168" r="13" fill="var(--d-accent-soft)" stroke="var(--d-accent)" stroke-width="1.5"/>
+<text x="289" y="173" text-anchor="middle" font-size="13" fill="var(--d-text)">H</text>
+<circle cx="30" cy="272" r="13" fill="var(--d-bg)" stroke="var(--d-line)" stroke-width="1.5"/>
+<text x="30" y="277" text-anchor="middle" font-size="13" fill="var(--d-text)">A</text>
+<circle cx="67" cy="272" r="13" fill="var(--d-bg)" stroke="var(--d-line)" stroke-width="1.5"/>
+<text x="67" y="277" text-anchor="middle" font-size="13" fill="var(--d-text)">B</text>
+<circle cx="104" cy="272" r="13" fill="var(--d-bg)" stroke="var(--d-line)" stroke-width="1.5"/>
+<text x="104" y="277" text-anchor="middle" font-size="13" fill="var(--d-text)">C</text>
+<circle cx="141" cy="272" r="13" fill="var(--d-bg)" stroke="var(--d-line)" stroke-width="1.5"/>
+<text x="141" y="277" text-anchor="middle" font-size="13" fill="var(--d-text)">D</text>
+<circle cx="178" cy="272" r="13" fill="var(--d-bg)" stroke="var(--d-line)" stroke-width="1.5"/>
+<text x="178" y="277" text-anchor="middle" font-size="13" fill="var(--d-text)">E</text>
+<circle cx="215" cy="272" r="13" fill="var(--d-bg)" stroke="var(--d-line)" stroke-width="1.5"/>
+<text x="215" y="277" text-anchor="middle" font-size="13" fill="var(--d-text)">F</text>
+<circle cx="252" cy="272" r="13" fill="var(--d-bg)" stroke="var(--d-line)" stroke-width="1.5"/>
+<text x="252" y="277" text-anchor="middle" font-size="13" fill="var(--d-text)">G</text>
+<circle cx="289" cy="272" r="13" fill="var(--d-accent-soft)" stroke="var(--d-accent)" stroke-width="1.5"/>
+<text x="289" y="277" text-anchor="middle" font-size="13" fill="var(--d-text)">H</text>
+<circle cx="326" cy="272" r="13" fill="var(--d-accent-soft)" stroke="var(--d-accent)" stroke-width="1.5"/>
+<text x="326" y="277" text-anchor="middle" font-size="13" fill="var(--d-text)">J</text>
+</svg>

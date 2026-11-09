@@ -1,0 +1,21 @@
+title: Why a filter can quietly lose your results
+legend:
+  info: 'found by the index'
+  ok: 'matches the filter'
+  bad: 'removed by the filter'
+frames:
+  - caption: 'Query: nearest 10 documents **where `tenant = 7`**. Tenant 7 owns 10% of the rows. The index knows nothing about tenants, so it walks the graph as usual and finds `ef_search` = 40 nearest rows.'
+    panels:
+      - kind: kv
+        label: 'Index scan'
+        pairs: [[candidates found, { v: 40, tone: info }]]
+  - caption: 'The filter runs **after** the scan. About 90% of those 40 rows belong to other tenants and are thrown away.'
+    panels:
+      - kind: kv
+        label: 'After filtering'
+        pairs: [[other tenants, { v: 36, tone: bad }], [tenant 7, { v: 4, tone: ok }]]
+  - caption: 'The caller asked for 10 and gets **about 4**, with no error. Rarer filters do worse. Fixes: scan more when too few survive (iterative scan), use a filter-aware index, or partition by tenant.'
+    panels:
+      - kind: kv
+        label: 'Returned'
+        pairs: [[asked for, 10], [received, { v: 4, tone: ok }]]

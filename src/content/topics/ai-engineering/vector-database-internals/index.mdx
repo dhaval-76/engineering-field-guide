@@ -1,0 +1,166 @@
+---
+title: 'Vector Database Internals: HNSW and Friends'
+summary: How vector databases find nearest neighbours fast — HNSW step by step, what m and ef_search really trade, memory sizing, quantization, IVF and disk indexes, filtering, deletes, and scaling out.
+track: ai-engineering
+order: 25
+tags: [ai-engineering, vector-database, hnsw, search, internals]
+aliases: [hnsw, hierarchical navigable small world, ann index, approximate nearest neighbour, approximate nearest neighbor, ef_search, ef_construction, m parameter, ivf, ivfflat, ivfpq, diskann, product quantization, scalar quantization, binary quantization, recall at k, filtered vector search, pre filter, post filter, iterative scan, vector index tuning, curse of dimensionality]
+prerequisites: [ai-engineering/rag]
+related: [databases/indexing, system-design/search-engine, ai-engineering/llm-system-design, databases/sharding]
+quickRef:
+  points:
+    - 'Exact nearest-neighbour search compares the query with **every** vector. **ANN** indexes check a tiny fraction and accept missing a few true neighbours.'
+    - '**HNSW** is a layered graph: long jumps on sparse upper layers, then a careful local search on layer 0.'
+    - '`m` (links per node) and `ef_construction` are fixed at build. `ef_search` is the **live recall vs latency dial**.'
+    - 'Measure **recall@k** against exact search on your own data; never tune by feel.'
+    - 'At embedding sizes, **the vectors themselves use most of the RAM**, so quantization saves more than lowering `m`.'
+    - 'A filter applied after the scan can **silently return too few rows**. Deletes leave tombstones that need cleaning up.'
+  complexity: 'HNSW search scales about O(log n) distance calculations; exact search is O(n · d). Memory about n · (4d + 8m) bytes, plus overhead.'
+  useWhen: '"How does HNSW work?", "IVF or HNSW?", "search got slow or results went missing", and sizing a vector store.'
+lastReviewed: 2026-11-09
+---
+
+## Why it matters
+
+[RAG](../rag/) treats the vector index as a box: put <Term id="embedding">embeddings</Term> in, get neighbours out. Most production problems live inside that box. Recall drops after a bulk delete. A filtered query returns 4 rows instead of 10. The index no longer fits in memory and latency jumps sharply. You can only reason about these if you know how the index works.
+
+The core problem: with 10 million vectors of 1,536 numbers each, one exact search does 15 billion multiplications. Approximate nearest-neighbour (ANN) indexes get the answer by checking only a few hundred vectors.
+
+<Callout type="analogy">
+Finding a street in another country. You don't walk every road. You take a flight to the right city (top layer), a train to the right district (middle layer), then walk the last few blocks and look around carefully (layer 0). `ef_search` is how many nearby streets you are willing to check before deciding you have found the best one.
+</Callout>
+
+## The HNSW idea
+
+HNSW stands for Hierarchical Navigable Small World. It builds several graphs stacked on top of each other, like a skip list. Every vector is on layer 0. Each vector also gets a random top layer, with the chance falling off exponentially, so each layer up holds about `1/m` of the nodes below.
+
+<Diagram id="hnsw-layers" caption="A search enters at the top, takes long jumps across few nodes, and drops down a layer whenever it can get no closer. Layer 0 holds every vector, and that is where the careful local search happens." />
+
+<Walkthrough id="hnsw-search" />
+
+**Inserting** uses the same walk. Pick the new node's random top layer, walk down to it, then on each layer from there to 0 find the nearest nodes and link to them in both directions. If a neighbour now has too many links, drop some. That is why a build is much slower than a search: every insert is a full search with a large candidate list.
+
+Production implementations choose links with a heuristic that prefers neighbours in different directions, not just the closest ones. It keeps clusters connected to each other. The code below uses the simple nearest-first rule so the structure stays readable.
+
+<CodeTabs id="hnsw-index" title="A complete small HNSW index" />
+
+## What the parameters really trade
+
+| Parameter | Set when | Raises | Costs |
+|---|---|---|---|
+| `m` | Build | Recall, especially on hard data | Memory and build time |
+| `ef_construction` | Build | Graph quality, so recall at any `ef_search` | Build and insert time |
+| `ef_search` | Each query | Recall | Query latency |
+
+pgvector's defaults are `m = 16`, `ef_construction = 64`, `hnsw.ef_search = 40`. These are real measurements from the code above: 20,000 clustered 64-dimensional vectors, 200 queries, `ef_construction = 64`.
+
+<Chart
+  type="line"
+  title="Recall@10 as ef_search grows (measured)"
+  x={[10, 20, 40, 80, 160, 320]}
+  series={[
+    { name: 'm = 8', values: [0.555, 0.738, 0.85, 0.926, 0.972, 0.986], tone: 'muted' },
+    { name: 'm = 16', values: [0.836, 0.915, 0.968, 0.989, 0.998, 0.999], tone: 'accent' },
+  ]}
+  caption="Each doubling of ef_search buys less recall. Recall depends heavily on the data, so run this sweep on your own embeddings."
+/>
+
+<Chart
+  type="bar"
+  title="Distance calculations per query (m = 16, measured)"
+  bars={[
+    ['Exact search', 20000, 'bad'],
+    ['ef_search 320 (recall 0.999)', 3630, 'warn'],
+    ['ef_search 80 (recall 0.989)', 855, 'info'],
+    ['ef_search 40 (recall 0.968)', 482, 'ok'],
+  ]}
+  caption="The last 3% of recall costs about 7 times the work. That is why ANN exists: exact answers are expensive, and nearly exact ones are cheap."
+/>
+
+**How to tune.** Take a few hundred real queries. Compute their true top 10 with an exact scan. Sweep `ef_search` and record recall@10 and p99 latency. Choose the smallest value that meets your target. Only rebuild with a larger `m` or `ef_construction` if no `ef_search` gets there.
+
+## Sizing memory
+
+HNSW is an in-memory structure. When it stops fitting in RAM, every hop becomes a random disk read, and latency falls off a cliff. Do the arithmetic first.
+
+| 10 million vectors, 1,536 dimensions | Size |
+|---|---|
+| Raw vectors, 4 bytes per number | about 61 GB |
+| Layer 0 links, `m = 16` (32 links × 4 bytes) | about 1.3 GB |
+
+At embedding dimensions **the vectors dominate**, so lowering `m` barely helps. Real engines add metadata and allocator overhead, so measure. To shrink it, compress the vectors:
+
+| Technique | Idea | Typical saving | Trade-off |
+|---|---|---|---|
+| Fewer dimensions | Use an embedding model that outputs shorter vectors | 2–6× | May lose quality; re-embed everything |
+| Scalar quantization | Each number becomes 1 byte | 4× | Small recall loss |
+| Binary quantization | Each number becomes 1 bit | 32× | Larger loss; needs reranking; works only on some models |
+| Product quantization | Split the vector and store the id of the nearest learned centroid per part | 10–100× | Training step; lower recall |
+
+The common pattern is **compress and rerank**: search compressed vectors in RAM, fetch the top few hundred full vectors from disk, and re-score them exactly.
+
+## HNSW vs the alternatives
+
+| Index | How it works | Best for | Weakness |
+|---|---|---|---|
+| Exact (flat) | Compare with everything | Under about 100k vectors, or after a strong filter | Linear time |
+| **HNSW** | Layered graph | The default: high recall, low latency, updates allowed | RAM-hungry, slow builds |
+| IVF | Cluster vectors; search only the nearest `nprobe` clusters | Large batch-built indexes; pairs well with PQ | Needs training; clusters drift as data changes |
+| Disk-based graph (DiskANN family) | A graph on SSD with compressed vectors in RAM | Billions of vectors on a budget | More complex; higher latency than RAM |
+
+<DecisionGuide
+  title="Which index?"
+  steps={[
+    ['Fewer than about 100k vectors?', 'Exact search. It is simple and its recall is 100%.'],
+    ['Does it all fit in RAM at a cost you accept?', 'HNSW, the default.'],
+    ['Can scalar or binary quantization make it fit?', 'HNSW on compressed vectors, then rerank.'],
+    ['Mostly batch loaded, and very large?', 'IVF with product quantization.'],
+  ]}
+  otherwise="A disk-based graph index."
+/>
+
+## Filtering: the classic trap
+
+Real queries have conditions: tenant, language, date. The index doesn't know about them.
+
+<Walkthrough id="hnsw-filter" />
+
+| Strategy | How | Good when | Bad when |
+|---|---|---|---|
+| Pre-filter | Find matching rows, then scan them exactly | The filter matches few rows | The filter matches millions of rows |
+| Post-filter | Run ANN, then filter | The filter matches most rows | The filter is selective: too few results |
+| Iterative scan | Post-filter, and keep walking the graph until enough rows pass | Moderately selective filters | Very rare matches: long scans |
+| Filter-aware traversal | Check the filter during the walk and keep the graph connected | Purpose-built engines | Needs engine support |
+| Partition | A separate index per tenant | Hard multi-tenancy | Many tiny tenants |
+
+In pgvector, filters run after the index scan, and `SET hnsw.iterative_scan = strict_order` turns on the iterative approach. Permission filters are not optional, so check the result count rather than assuming you got `k` rows.
+
+## Running it in production
+
+- **Deletes leave tombstones.** Removing a node from a graph is hard, because it may be the only bridge between regions. Engines mark it deleted, skip it in results, and repair or rebuild later. A heavy churn without cleanup slows search and lowers recall.
+- **Updates are delete plus insert.** Changing an embedding model means rebuilding everything, so build a new index alongside the old one and switch over.
+- **Writes usually go through segments.** Many engines buffer new vectors in small searchable segments and merge them in the background, like an LSM tree. Search hits all segments, so too many segments hurts latency.
+- **Build cost is real.** In pgvector, a build is much faster while the graph fits in `maintenance_work_mem`; past that it slows dramatically. Plain `vector` columns can only be HNSW-indexed up to 2,000 dimensions, and `halfvec` up to 4,000.
+- **Scaling out.** Split vectors across shards, query every shard, and merge. There is no shard key that keeps similar vectors together without hurting balance, so expect scatter-gather. Replicas add read throughput.
+- **Pick the metric the model expects.** Cosine, dot product and Euclidean rank the same on unit-length vectors. Mixing them up on unnormalized vectors gives quietly wrong neighbours.
+
+<Pitfalls>
+
+- **Tuning without ground truth.** Without exact results to compare to, you can't see recall drop.
+- **Assuming you got `k` rows** back from a filtered query.
+- **Letting the index outgrow RAM.** Latency doesn't degrade gently; it falls off a cliff.
+- **Bulk deleting without a rebuild or vacuum**, then wondering why recall fell.
+- **Lowering `m` to save memory** when the vectors are 98% of it.
+- **Blaming the index for bad answers.** If the embedding doesn't put the right chunk nearby, even an exact search won't find it.
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- HNSW takes long jumps on sparse layers, then searches carefully on layer 0.
+- `ef_search` is the runtime dial; `m` and `ef_construction` are set at build.
+- Sweep recall@k against exact search on your own data, and pick the smallest setting that meets the target.
+- Vectors dominate memory, so compress and rerank before reaching for anything else.
+- Check filtered result counts; plan for tombstones, segment merges and re-embedding.
+
+</KeyTakeaways>

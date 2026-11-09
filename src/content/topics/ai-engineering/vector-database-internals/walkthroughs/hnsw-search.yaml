@@ -1,0 +1,42 @@
+title: Finding the nearest neighbours of a query, layer by layer
+legend:
+  accent: 'being compared now'
+  info: 'kept as a candidate'
+  ok: 'returned as a result'
+  muted: 'checked, too far away'
+frames:
+  - caption: 'Search starts at the single **entry point** on the top layer. Distances below are from the query. On this layer each node has only a few, long links.'
+    panels:
+      - kind: kv
+        label: 'Layer 2, distance to query'
+        pairs: [[{ v: A, tone: accent, tag: entry }, 9.0], [F, '?']]
+  - caption: 'Compare A''s neighbour F: 3.1 is closer than 9.0, so **move to F**. F has no closer neighbour on this layer, so this layer is finished. One big jump crossed most of the data.'
+    panels:
+      - kind: kv
+        label: 'Layer 2, distance to query'
+        pairs: [[{ v: A, tone: muted }, 9.0], [{ v: F, tone: accent }, 3.1]]
+  - caption: 'Drop to layer 1, **starting from F**. Its neighbours here are C and H. H is closer (1.4), so move to H. On these upper layers the search keeps only the single best node.'
+    panels:
+      - kind: kv
+        label: 'Layer 1, distance to query'
+        pairs: [[{ v: C, tone: muted }, 5.2], [{ v: F, tone: muted }, 3.1], [{ v: H, tone: accent }, 1.4]]
+  - caption: 'Layer 0 holds every vector. Now the search keeps a **candidate list of size `ef_search`** (3 here) instead of one node. It starts with H and adds H''s neighbour G.'
+    panels:
+      - kind: kv
+        label: 'Layer 0 candidates (ef_search = 3)'
+        pairs: [[{ v: H, tone: info }, 1.4], [{ v: G, tone: accent }, 0.9]]
+  - caption: 'Take the closest unexplored candidate, G, and check its neighbours. F (3.1) joins and fills the list. J is 0.7, the best so far, and pushes out F, the worst.'
+    panels:
+      - kind: kv
+        label: 'Layer 0 candidates (ef_search = 3)'
+        pairs: [[{ v: J, tone: accent }, 0.7], [{ v: G, tone: info }, 0.9], [{ v: H, tone: info }, 1.4], [{ v: F, tone: muted, tag: pushed out }, 3.1]]
+  - caption: 'Explore J. Its neighbours K (2.2) and L (2.9) are both worse than the worst candidate (1.4), so they are not kept. Every unexplored candidate is now further than the list''s worst entry, so the search **stops**.'
+    panels:
+      - kind: kv
+        label: 'Layer 0 candidates (ef_search = 3)'
+        pairs: [[{ v: J, tone: info }, 0.7], [{ v: G, tone: info }, 0.9], [{ v: H, tone: info }, 1.4], [{ v: K, tone: muted }, 2.2], [{ v: L, tone: muted }, 2.9]]
+  - caption: 'Return the closest `k` of the list. About ten distance calculations, not one per vector. A bigger `ef_search` explores more before stopping: higher recall, more work.'
+    panels:
+      - kind: list
+        label: 'Top 2 results'
+        items: [{ v: 'J (0.7)', tone: ok }, { v: 'G (0.9)', tone: ok }]

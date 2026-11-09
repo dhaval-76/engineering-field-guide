@@ -1,0 +1,3 @@
+term: HNSW
+short: Hierarchical Navigable Small World, the usual vector index. A layered graph that finds nearest neighbours approximately, checking only a tiny fraction of the vectors.
+topic: ai-engineering/vector-database-internals

@@ -1,0 +1,65 @@
+questions:
+  - q: Explain how HNSW finds nearest neighbours, and why it is faster than scanning.
+    think: Layers, greedy descent, a candidate list on layer 0.
+    answer: |
+      HNSW is a stack of proximity graphs. Every vector is on layer 0; each also gets a random top layer, with exponentially fewer nodes on each layer up. Search starts at a fixed entry point on the top layer and greedily moves to the closest neighbour until it can't improve. It then drops down one layer from that node and repeats. Upper layers have few nodes and long links, so a handful of hops crosses the dataset.
+
+      On layer 0 it runs a best-first search with a candidate list of size `ef_search`, and stops when every unexplored candidate is further than the worst one kept. It returns the top `k`. The number of distance calculations grows about logarithmically with the number of vectors, instead of linearly. The price is memory for the graph, slow builds, and answers that are approximate.
+  - q: Search results got worse after a large cleanup that deleted 40% of the vectors. What happened, and what do you do?
+    think: What does a delete do to a graph?
+    answer: |
+      Deleting from a graph is hard because a node may be the only route between two regions, so engines usually mark nodes as deleted (tombstones). The walk still goes through them, but they can't be returned. After 40% deletes, the search spends much of its `ef_search` budget on dead nodes, so fewer real candidates are found and recall falls. Latency can rise too.
+
+      First confirm it: measure recall against an exact scan on a sample of real queries. As an immediate fix, raise `ef_search`. As the real fix, run the engine's compaction, or rebuild the index (for example `REINDEX INDEX CONCURRENTLY` in Postgres), ideally alongside the old one. Then add a tombstone ratio alert and schedule cleanup.
+  - q: A multi-tenant search asks for 10 results but often returns 2 or 3. Why?
+    think: When does the filter run?
+    answer: |
+      The filter runs after the index scan. HNSW walks to the `ef_search` nearest vectors regardless of tenant, then the `WHERE tenant_id = ?` removes rows from other tenants. If a tenant owns 1% of the rows and `ef_search` is 40, on average under one row survives.
+
+      Options, depending on the tenant's size: use exact search for small tenants, since a B-tree on `tenant_id` narrows to few rows and a scan is fast; turn on iterative scans (pgvector's `hnsw.iterative_scan`) so the search continues until enough rows pass; use an engine with filter-aware traversal; or partition large tenants into their own index. Keep the filter in the query for security, and add a metric for "returned fewer than requested".
+  - q: Estimate the memory needed for 100 million 768-dimensional embeddings with HNSW, and how you would reduce it.
+    think: Vectors first, then links.
+    answer: |
+      Vectors: 100M × 768 × 4 bytes ≈ 307 GB. Layer-0 links at `m = 16`: 100M × 32 × 4 bytes ≈ 13 GB. So about 320 GB before overhead; plan for about 400 GB, measured on a sample.
+
+      The vectors are over 95% of that, so lowering `m` is the wrong lever. Use scalar quantization (about 77 GB of vectors) with the full vectors on disk for reranking, or product or binary quantization if recall holds up. Alternatively, use a disk-based graph index, shrink dimensions if the embedding model supports it, or shard across several machines. Validate each choice with recall@k on real queries.
+followUps:
+  - q: Why not always set ef_search very high?
+    intuition: Look at the shape of the curve.
+    approach: |
+      Latency grows about linearly with `ef_search`, while recall flattens out. In the measurements on the page, going from `ef_search` 40 to 320 raised recall from 0.968 to 0.999 and did 7.5 times as many distance calculations. Past the target recall, you pay for nothing a user can notice. It is usually better to spend latency on a reranker.
+  - q: HNSW or IVF?
+    intuition: Updates and memory.
+    approach: |
+      HNSW is the default when the data fits in RAM: high recall, low latency, and it handles inserts well. IVF needs a training step and suits very large, mostly batch-loaded data, especially combined with product quantization for memory savings. IVF's clusters drift as the data changes, so it needs retraining. Below about 100k vectors, an exact scan may be all you need.
+  - q: Why does the top layer of a node come from a random draw?
+    intuition: What would a planned structure cost?
+    approach: |
+      An exponentially decaying random choice gives the layer sizes you want, on average, with no global coordination, the same trick as a skip list. Each insert decides on its own, so the structure needs no rebalancing when data arrives in any order.
+  - q: Does a better vector index fix wrong answers?
+    intuition: Compare to exact search.
+    approach: |
+      Only if the index is what's missing results. Compare it with an exact search. If exact search also misses the right chunk, the problem is the embedding model, the chunking, or the need for keyword search, and no index will help. Index tuning can only get you up to what exact search would have found.
+practice:
+  - task: Implement a small HNSW index with `add` and `search`, and measure its recall against exact search.
+    hint: Write one function that searches a single layer with a candidate list of size ef. Insert and search both use it.
+    solution: |
+      Use two heaps in the layer search: a min-heap of nodes to explore and a max-heap of the best `ef` found. Stop when the closest unexplored node is further than the worst kept. Descend with `ef = 1` on upper layers. On insert, search with `ef_construction` on each layer from the node's top layer down and link both ways, pruning a neighbour's links when it exceeds the limit. For recall, compute exact top-k by sorting all distances, and count the overlap.
+    solutionCode: hnsw-index
+quiz:
+  - q: Which HNSW parameter can you change without rebuilding the index?
+    options: ['m', 'ef_construction', 'ef_search', 'The number of layers']
+    correct: 2
+    why: '`ef_search` only affects the query. `m` and `ef_construction` shape the graph when it is built.'
+  - q: You have 10 million 1,536-dimension vectors and need to cut memory substantially. What helps most?
+    options: ['Lower m from 16 to 8', 'Use scalar quantization and rerank', 'Lower ef_search', 'Add more layers']
+    correct: 1
+    why: 'The vectors take about 61 GB and the links about 1.3 GB. Compressing vectors is where the memory is; `ef_search` does not affect memory at all.'
+  - q: A filter matches 5% of rows and an HNSW query with ef_search 40 returns too few results. Why?
+    options: ['The embeddings are wrong', 'The filter runs after the scan, so only about 2 of the 40 candidates survive', 'HNSW cannot use cosine distance', 'm is too large']
+    correct: 1
+    why: 'With post-filtering, the index finds candidates without knowing about the condition. Only about 5% of the 40 pass it.'
+  - q: How do you know your recall is 0.97?
+    options: ['The vector database reports it', 'Compare results with an exact search over the same queries', 'Check query latency', 'Ask the LLM']
+    correct: 1
+    why: 'Recall is the overlap with the true nearest neighbours, which only an exact scan gives you.'
