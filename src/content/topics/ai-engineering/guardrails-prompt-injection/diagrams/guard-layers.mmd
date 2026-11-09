@@ -1,0 +1,7 @@
+flowchart TD
+  U[User input and<br/>untrusted content] --> I[Input checks<br/>size, moderation, classifier]
+  I --> M[Model<br/>data marked as untrusted]
+  M --> G{Tool gate in code:<br/>allow, ask a human or deny}
+  G --> T[Tool runs with the<br/>user's own permissions]
+  T --> O[Output checks<br/>schema, citations, links, secrets]
+  O --> R[Reply to the user]

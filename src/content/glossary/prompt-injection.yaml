@@ -1,0 +1,3 @@
+term: Prompt injection
+short: Text that makes an LLM follow an attacker's instructions instead of the developer's, either typed directly or hidden in content the model reads.
+topic: ai-engineering/guardrails-prompt-injection
