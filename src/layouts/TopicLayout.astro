@@ -12,7 +12,7 @@ import { mdxComponents } from '~/components/content/mdx';
 import { getNeighbours, resolveTopics, type Topic } from '~/lib/nav';
 import { interviewHeadings } from '~/lib/qa';
 import { NOTE_MAX_CHARS } from '~/lib/storage';
-import { topicUrl, trackUrl } from '~/lib/url';
+import { topicUrl, trackUrl, url } from '~/lib/url';
 
 interface Props {
   topic: Topic;
@@ -114,7 +114,7 @@ const reviewed = data.lastReviewed.toLocaleDateString('en-GB', { month: 'short',
         <Toc headings={toc} />
       </details>
 
-      <div class="prose">
+      <div class="prose" data-highlight-root>
         <Content components={mdxComponents} />
       </div>
 
@@ -129,6 +129,7 @@ const reviewed = data.lastReviewed.toLocaleDateString('en-GB', { month: 'short',
           rows="4"
           placeholder="Private to this browser. Saved as you type."></textarea>
         <p id="your-notes-status" data-note-status role="status"></p>
+        <p data-hl-lost hidden><span></span> <a href={url('notes/')}>See your notes</a></p>
       </section>
 
       {related.length > 0 && (
@@ -159,7 +160,8 @@ const reviewed = data.lastReviewed.toLocaleDateString('en-GB', { month: 'short',
   .note-box {
     margin-top: 40px;
   }
-  .note-box[hidden] {
+  .note-box[hidden],
+  .note-box p[hidden] {
     display: none;
   }
   .note-box h2 {

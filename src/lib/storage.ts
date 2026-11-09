@@ -62,6 +62,7 @@ export const keys = {
   /** quiz answers per question, for /review/ (see lib/review.ts) */
   quiz: 'quiz',
   notes: 'notes',
+  highlights: 'highlights',
   /** when progress was last exported, and until when the backup reminder is snoozed (epoch ms) */
   lastExport: 'last-export',
   backupSnooze: 'backup-snooze',

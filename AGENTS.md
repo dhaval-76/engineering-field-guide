@@ -44,15 +44,15 @@ src/
 ├─ components/
 │  ├─ content/   MDX components (registered in mdx.ts, no imports needed in MDX)
 │  ├─ islands/   React: CommandPalette, WalkthroughPlayer, Quiz, Review, History, LastUpdate,
-│  │             PersonalPanel, YourData, BackupReminder
+│  │             PersonalPanel, YourData, BackupReminder, Notes
 │  ├─ layout/    Header, Sidebar, Toc, PrevNext, Footer
 │  └─ qa/        interview section, company tags
 ├─ layouts/      BaseLayout (head, theme script, manifest), TopicLayout
 ├─ lib/          nav, snippets, highlight, storage (localStorage), url, companies, …
 ├─ pages/        home, [track], [...topic], cheatsheets, companies, glossary, progress, review,
-│                history, whats-new, data, shortcuts, offline, 404
+│                history, whats-new, notes, data, shortcuts, offline, 404
 ├─ scripts/      site.ts (keyboard, code tabs, diagram viewer, …), shortcuts.ts (? panel),
-│                offline.ts (service worker client)
+│                highlights.ts (text highlights), offline.ts (service worker client)
 └─ styles/       tokens.css (light + dark), base.css, prose.css, code.css
 scripts/
 ├─ check-content.ts        structural checks (see Verification)
@@ -60,7 +60,8 @@ scripts/
 ├─ render-diagrams.ts      Mermaid → SVG (--check in CI)
 ├─ og-images.ts            Open Graph cards per track into public/og/
 ├─ pwa/                    build-sw.ts, sw.template.js, icons.ts
-├─ audit/                  browser audits: mobile.ts, offline.ts, offline-update.ts, data.ts
+├─ audit/                  browser audits: mobile.ts, offline.ts, offline-update.ts, data.ts,
+│                          highlights.ts
 └─ research/               LeetCode Discuss fetch, analysis, apply reports
 research/                  research data and method (research/README.md)
 ```
@@ -171,6 +172,7 @@ npm run audit:mobile          # every page at 360px: no horizontal scroll (fails
 npm run audit:offline         # every page loads from the service worker with no failed requests
 npm run test:offline-update   # update prompt, reload, repair, re-download, check for updates
 npm run test:data             # notes, backup, restore, rejected files, rollback, sync codes, delete, reminder
+npm run test:highlights       # selections, re-finding text, notes, code, deep links, hostile text, backups
 ```
 
 `scripts/verify.sh` runs the content checks and the build in one go.
@@ -207,6 +209,19 @@ reported as small; that is expected.
 - Icons: `npm run icons` renders `public/icons/` from the header mark. The manifest is
   `public/manifest.webmanifest`.
 
+## Highlights
+
+`src/scripts/highlights.ts` stores each highlight as its exact text plus 32 characters of context on
+each side, not as a DOM position, so it survives edits elsewhere on the page. On load it searches
+the text of the `[data-highlight-root]` elements and picks the occurrence whose context matches
+best. If the text is gone, the highlight stays on `/notes/` and the topic says so.
+
+- **Rewording a sentence orphans any highlight on it**, so mention that in the commit if you do it
+  widely. The owner's existing highlights are worth keeping.
+- `SKIP` lists what is left out of the text: islands (React must never find its DOM changed),
+  diagrams, popovers and controls. Never add `<mark>` inside an island.
+- Render stored text with `textContent` or `.value` only. It can come from an imported backup.
+
 ## What's new dates
 
 `src/lib/git-dates.ts` reads each topic's first commit date from git at build time, following
@@ -225,7 +240,7 @@ with code tabs (the review page uses them to answer).
 ## Personal data in the browser
 
 All keys live under the `efg:` prefix via `src/lib/storage.ts`: `progress`, `bookmarks`, `recent`,
-`lang`, `theme`, `focus`, `wrap`, `quiz`, `notes`, `last-update`, `last-export`, `backup-snooze`,
+`lang`, `theme`, `focus`, `wrap`, `quiz`, `notes`, `highlights`, `last-update`, `last-export`, `backup-snooze`,
 `offline-optin`, `offline-checked` (and any added by later features; list them here when you add
 one).
 
@@ -234,6 +249,7 @@ one).
   `/history/` and (deduplicated) as "Continue reading" on the home page.
 - `last-update`: what the last offline update changed (`src/lib/update-changes.ts`).
 - `notes`: `{ [topicId]: { text, at } }`, the private note box on each topic (`src/scripts/site.ts`).
+- `highlights`: `{ [id]: { topic, quote, prefix, suffix, note?, at } }` (`src/lib/highlights.ts`).
 - `last-export`, `backup-snooze`: when progress was last exported and until when the reminder is
   snoozed (`src/lib/backup-reminder.ts`).
 

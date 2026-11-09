@@ -1,0 +1,44 @@
+---
+import BaseLayout from '~/layouts/BaseLayout.astro';
+import Notes from '~/components/islands/Notes';
+import { getTopicIndex } from '~/lib/topic-index';
+import { url } from '~/lib/url';
+
+const { topics } = await getTopicIndex();
+---
+
+<BaseLayout title="Notes and highlights" noindex>
+  <div class="wrap">
+    <h1>Notes and highlights</h1>
+    <p class="lede">
+      Everything you have marked, in one place. To add more, select text on any topic and choose
+      Highlight or Add note.
+    </p>
+    <Notes
+      client:only="react"
+      topics={topics.map(({ id, title, url }) => ({ id, title, url }))}
+      dataUrl={url('data/')}
+    />
+  </div>
+</BaseLayout>
+
+<style>
+  .wrap {
+    max-width: 760px;
+  }
+  h1 {
+    font-family: var(--font-serif);
+    font-weight: 560;
+    font-size: var(--step-4);
+    margin: 0;
+  }
+  .lede {
+    color: var(--ink-2);
+  }
+  .wrap :global(h2) {
+    font-family: var(--font-serif);
+    font-weight: 560;
+    font-size: var(--step-1);
+    margin: 0 0 8px;
+  }
+</style>

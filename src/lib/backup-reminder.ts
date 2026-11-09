@@ -1,3 +1,4 @@
+import type { HighlightMap } from './highlights';
 import type { QuizHistory } from './review';
 import { keys, read, write, type NotesMap, type ProgressMap } from './storage';
 
@@ -14,6 +15,7 @@ export function backupDue(now = Date.now()): boolean {
     ...Object.values(read<ProgressMap>(keys.progress, {})),
     ...Object.values(read<QuizHistory>(keys.quiz, {})).map((r) => r.last),
     ...Object.values(read<NotesMap>(keys.notes, {})).map((n) => n.at),
+    ...Object.values(read<HighlightMap>(keys.highlights, {})).map((h) => h.at),
   ];
   if (!stamps.length) return false;
   const last = read<number | null>(keys.lastExport, null);

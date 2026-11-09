@@ -3,6 +3,7 @@
  * device unless the reader downloads a file or copies a code. Every incoming file or code is
  * validated field by field, and only known fields are kept.
  */
+import { CONTEXT_CHARS, QUOTE_MAX_CHARS, type HighlightMap } from './highlights';
 import { BOX_DAYS, type QuizHistory } from './review';
 import {
   broadcast,
@@ -38,6 +39,7 @@ export interface UserData {
   recent: RecentList;
   quiz: QuizHistory;
   notes: NotesMap;
+  highlights: HighlightMap;
   preferences: Preferences;
 }
 export type SectionId = keyof UserData;
@@ -54,6 +56,7 @@ export const SECTIONS: { id: SectionId; label: string }[] = [
   { id: 'recent', label: 'Reading history' },
   { id: 'quiz', label: 'Quiz answers' },
   { id: 'notes', label: 'Topic notes' },
+  { id: 'highlights', label: 'Highlights' },
   { id: 'preferences', label: 'Preferences' },
 ];
 const PREFERENCE_KEYS = ['lang', 'theme', 'focus', 'wrap'] as const;
@@ -63,6 +66,7 @@ const STORAGE_KEYS: Record<SectionId, readonly string[]> = {
   recent: [keys.recent],
   quiz: [keys.quiz],
   notes: [keys.notes],
+  highlights: [keys.highlights],
   preferences: PREFERENCE_KEYS,
 };
 
@@ -78,6 +82,7 @@ export function loadAll(): UserData {
     recent: read<RecentList>(keys.recent, []),
     quiz: read<QuizHistory>(keys.quiz, {}),
     notes: read<NotesMap>(keys.notes, {}),
+    highlights: read<HighlightMap>(keys.highlights, {}),
     preferences,
   };
 }
@@ -99,6 +104,7 @@ export function buildBundle(data: UserData, sections: Iterable<SectionId>): Bund
 export class ImportError extends Error {}
 
 const TOPIC_ID = /^[a-z0-9-]+\/[a-z0-9-]+$/;
+const HIGHLIGHT_ID = /^[a-z0-9]{4,40}$/;
 const QUESTION_ID = /^[a-z0-9-]+\/[a-z0-9-]+#[a-z0-9]+$/;
 const isObject = (x: unknown): x is Record<string, unknown> =>
   typeof x === 'object' && x !== null && !Array.isArray(x);
@@ -170,6 +176,34 @@ const validators: { [K in SectionId]: (value: unknown, label: string) => UserDat
           fail(label, `the note for ${id} is invalid`);
         if (!isStamp(at)) fail(label, `the date for ${id} is invalid`);
         return [id, { text, at }];
+      }),
+    );
+  },
+  highlights(value, label) {
+    return Object.fromEntries(
+      entriesOf(value, label).map(([id, h]) => {
+        if (!HIGHLIGHT_ID.test(id) || !isObject(h)) fail(label, 'an entry is not a highlight');
+        const { topic, quote, prefix, suffix, note, at } = h;
+        const context = (x: unknown) => typeof x === 'string' && x.length <= CONTEXT_CHARS;
+        if (typeof topic !== 'string' || !TOPIC_ID.test(topic))
+          fail(label, `highlight ${id} has no valid topic`);
+        if (typeof quote !== 'string' || !quote || quote.length > QUOTE_MAX_CHARS)
+          fail(label, `the text of highlight ${id} is invalid`);
+        if (!context(prefix) || !context(suffix)) fail(label, `highlight ${id} is invalid`);
+        if (note !== undefined && (typeof note !== 'string' || note.length > NOTE_MAX_CHARS))
+          fail(label, `the note on highlight ${id} is invalid`);
+        if (!isStamp(at)) fail(label, `the date of highlight ${id} is invalid`);
+        return [
+          id,
+          {
+            topic,
+            quote,
+            prefix: prefix as string,
+            suffix: suffix as string,
+            at,
+            ...(note ? { note } : {}),
+          },
+        ];
       }),
     );
   },
@@ -278,6 +312,8 @@ function combine(id: SectionId, mine: unknown, theirs: unknown): unknown {
       return newest(mine as QuizHistory, theirs as QuizHistory, (r) => r.last);
     case 'notes':
       return newest(mine as NotesMap, theirs as NotesMap, (n) => n.at);
+    case 'highlights':
+      return newest(mine as HighlightMap, theirs as HighlightMap, (h) => h.at);
     case 'preferences':
       // No timestamps to compare, and preferences are often per device: only fill in what's unset.
       return { ...(theirs as Preferences), ...(mine as Preferences) };

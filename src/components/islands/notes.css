@@ -1,0 +1,81 @@
+.nt-filter {
+  width: 100%;
+  min-height: 36px;
+  margin-top: 16px;
+  padding: 0 10px;
+  border: 1px solid var(--rule-strong);
+  border-radius: var(--radius);
+  background: var(--bg-raised);
+  color: var(--ink);
+  font: inherit;
+}
+.nt-muted {
+  margin: 8px 0;
+  color: var(--ink-3);
+  font-size: 0.9375rem;
+}
+.nt-error {
+  margin: 12px 0;
+  padding: 10px 14px;
+  border: 1px solid var(--bad);
+  border-radius: var(--radius);
+  background: var(--bad-soft);
+}
+.nt-topic {
+  margin-top: 28px;
+}
+.nt-item {
+  padding: 12px 0;
+  border-top: 1px solid var(--rule);
+}
+.nt-item blockquote {
+  margin: 0 0 6px;
+  padding: 2px 0 2px 10px;
+  border-left: 3px solid var(--warn);
+  overflow-wrap: anywhere;
+}
+.nt-text {
+  margin: 0 0 6px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.nt-label {
+  margin: 0 0 4px;
+  color: var(--ink-3);
+  font-size: 0.8125rem;
+}
+.nt-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 16px;
+  font-size: 0.875rem;
+}
+.nt-link {
+  min-height: 28px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--ink-3);
+  font-size: 0.875rem;
+  text-decoration: underline;
+  text-underline-offset: 0.18em;
+  cursor: pointer;
+}
+.nt-link:hover {
+  color: var(--ink);
+}
+.nt-edit textarea {
+  display: block;
+  width: 100%;
+  margin-bottom: 8px;
+  padding: 8px 10px;
+  border: 1px solid var(--rule-strong);
+  border-radius: var(--radius);
+  background: var(--bg-raised);
+  color: var(--ink);
+  font: inherit;
+}
+.nt-edit .btn {
+  min-height: 36px;
+}

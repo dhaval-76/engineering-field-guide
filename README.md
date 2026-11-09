@@ -24,7 +24,8 @@ and its order are in [`BACKLOG.md`](BACKLOG.md).
   code wrap, a remembered code language.
 - **Keyboard shortcuts:** press `?` on any page for the list, or open `/shortcuts/`. For example
   `j`/`k` next and previous topic, `[`/`]` sections, `m` mark complete, `b` save, `t` theme,
-  `1`–`5` code language, `g` then `h`/`p`/`r`/`y`/`n`/`d`/`o` to jump to a page.
+  `1`–`5` code language, `g` then `h`/`p`/`r`/`y`/`n`/`d`/`m`/`o` to jump to a page, `h`/`n` to highlight or note the
+  selected text.
 - **Progress and bookmarks** saved in the browser, with a `/progress/` page.
 - **Review** (`/review/`): quiz answers are remembered per question. Missed questions come back
   straight away; right ones come back after 1, 3, 7, 16 and 35 days (spaced repetition). Rounds
@@ -37,7 +38,9 @@ and its order are in [`BACKLOG.md`](BACKLOG.md).
   including quiz results by topic. Back it up to a versioned file, restore with a preview (merge or
   replace), copy it to another device with a sync code or QR code (no account, no server), or delete
   a section or everything. A gentle reminder appears if progress goes 30 days without a backup.
-- **Private notes** on every topic, saved in the browser and included in backups.
+- **Notes and highlights:** select text on a topic to highlight it or attach a note, and write in
+  the private note box on each topic. All of it is collected at `/notes/`, searchable, and included
+  in backups.
 - **Offline app:** the first visit saves the whole site (about 68 MB). Updates download only changed
   files and ask before switching. The `/offline/` page checks for updates, repairs missing files,
   re-downloads everything, removes the copy, and explains how to install the app.
@@ -73,6 +76,7 @@ Requires Node 22+. The diagram, icon, OG-image and audit scripts use Playwright:
 | `audit:offline` | Lets the service worker save the site, goes offline and opens every page; fails if any page or request isn't served from the saved copy. Needs a preview. |
 | `test:offline-update` | Tests the update flow end to end: 404 offline, update prompt, reload, repair, re-download, check for updates. Needs a preview. |
 | `test:data` | Tests notes, backup, restore (merge, replace, rejected files, rollback), sync codes, delete and the backup reminder. Needs a preview. |
+| `test:highlights` | Tests highlights and the notes page with real selections: drawing, finding text again, notes, overlaps, code, closed answers, deep links, hostile imported text, backups. Needs a preview. |
 | `research:fetch`, `research:analyze`, `research:apply` | The interview-report research pipeline (see `research/README.md`). |
 | `report:migration` | Legacy migration coverage report (kept for reference). |
 

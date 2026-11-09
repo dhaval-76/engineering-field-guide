@@ -38,7 +38,7 @@ const practice = await Promise.all(
 const quiz = await quizItems(topicId, qa);
 ---
 
-<div class="interview prose">
+<div class="interview prose" data-highlight-root>
   {questions.length > 0 && (
     <section aria-labelledby="interview-questions">
       <h2 id="interview-questions">Interview questions</h2>

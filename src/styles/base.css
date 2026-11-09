@@ -380,3 +380,104 @@ kbd {
 .key-toast[hidden] {
   display: none;
 }
+
+/* Highlights on topic pages (src/scripts/highlights.ts) */
+mark.hl {
+  background: var(--warn-soft);
+  color: inherit;
+  border-radius: 2px;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+  cursor: pointer;
+}
+mark.hl.has-note {
+  box-shadow: inset 0 -2px 0 var(--warn);
+}
+mark.hl-flash {
+  outline: 2px solid var(--warn);
+  outline-offset: 1px;
+}
+.hl-bar {
+  position: absolute;
+  z-index: 70;
+  display: flex;
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid var(--rule-strong);
+  border-radius: var(--radius);
+  background: var(--bg-raised);
+  box-shadow: 0 6px 24px rgb(0 0 0 / 0.16);
+}
+.hl-bar[hidden] {
+  display: none;
+}
+.hl-bar.docked {
+  position: fixed;
+  left: 50%;
+  bottom: max(16px, env(safe-area-inset-bottom));
+  transform: translateX(-50%);
+}
+.hl-bar button {
+  min-height: 36px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--ink);
+  font-size: 0.9375rem;
+  white-space: nowrap;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.hl-bar button:hover {
+  background: var(--warn-soft);
+}
+.hl-note {
+  width: min(520px, calc(100vw - 2 * var(--gutter)));
+  padding: 16px;
+  border: 1px solid var(--rule-strong);
+  border-radius: var(--radius);
+  background: var(--bg);
+  color: var(--ink);
+}
+.hl-note::backdrop {
+  background: rgb(0 0 0 / 0.4);
+}
+.hl-note blockquote {
+  max-height: 120px;
+  overflow: auto;
+  margin: 0 0 12px;
+  padding-left: 10px;
+  border-left: 3px solid var(--warn);
+  color: var(--ink-2);
+  font-size: 0.9375rem;
+}
+.hl-note textarea {
+  display: block;
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--rule-strong);
+  border-radius: var(--radius);
+  background: var(--bg-raised);
+  color: var(--ink);
+  font: inherit;
+}
+.hl-note-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+.hl-note-actions button {
+  min-height: 36px;
+  padding: 0 14px;
+  border: 1px solid var(--rule-strong);
+  border-radius: var(--radius);
+  background: var(--bg-raised);
+  color: var(--ink);
+  cursor: pointer;
+}
+.hl-note-actions [data-save] {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--bg);
+}

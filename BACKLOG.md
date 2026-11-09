@@ -209,7 +209,19 @@ Suggestions to build in as well:
 - **c. Per-topic private notes:** a note box on each topic, saved locally and included in export.
 - **d. Quiz history:** saved quiz answers (needed for item 6) shown and exported here.
 
-### 10. Notes and highlights
+### 10. Notes and highlights (done 2026-11-09)
+
+Done: select text on a topic to highlight it or add a note, by the floating bar (docked at the
+bottom on touch screens) or the `h` and `n` keys. Click a highlight to edit its note or remove it.
+`/notes/` collects highlights and topic notes by topic, with a filter, editing, removal and "Show on
+the page", which opens a closed answer or switches code tab if needed. Included in backups and
+sync. Highlights are found again by their text and surroundings; if the text changes, they stay on
+`/notes/` and the topic says so.
+
+Limits: one colour; text inside walkthroughs, quizzes and diagrams can't be highlighted. A highlight
+on a link or question heading is edited from `/notes/`, since a click there keeps its normal job.
+
+Original scope:
 
 Select text on a topic to highlight it or attach a note. Collect them all on one page, and include
 them in export and import. This extends 9c.

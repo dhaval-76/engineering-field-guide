@@ -51,6 +51,8 @@ function summary(data: UserData, id: SectionId): string {
       return plural(n, 'history entry', 'history entries');
     case 'notes':
       return plural(n, 'topic') + ' with notes';
+    case 'highlights':
+      return plural(n, 'highlight');
     case 'quiz': {
       const all = Object.values(data.quiz);
       const right = all.reduce((s, r) => s + r.right, 0);

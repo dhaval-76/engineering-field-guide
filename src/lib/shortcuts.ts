@@ -27,6 +27,7 @@ export const shortcutGroups: ShortcutGroup[] = [
       { keys: ['g y'], does: 'Go to your reading history' },
       { keys: ['g n'], does: "Go to what's new" },
       { keys: ['g d'], does: 'Go to your data' },
+      { keys: ['g m'], does: 'Go to your notes and highlights' },
       { keys: ['g o'], does: 'Go to the offline page' },
       { keys: ['Esc'], does: 'Close search, the menu, a diagram or this panel' },
     ],
@@ -49,6 +50,8 @@ export const shortcutGroups: ShortcutGroup[] = [
       { keys: ['m'], does: 'Mark complete, or not complete' },
       { keys: ['b'], does: 'Save or unsave the topic' },
       { keys: ['r'], does: 'Reading mode: hide the side panels' },
+      { keys: ['h'], does: 'Highlight the selected text' },
+      { keys: ['n'], does: 'Add a note to the selected text' },
     ],
   },
   {
@@ -84,6 +87,7 @@ export const goTo: Record<string, string> = {
   y: 'history/',
   n: 'whats-new/',
   d: 'data/',
+  m: 'notes/',
   o: 'offline/',
 };
 

@@ -16,6 +16,7 @@ import {
 } from '~/lib/storage';
 import { goTo, languageKeys } from '~/lib/shortcuts';
 import '~/scripts/offline';
+import { highlightSelection } from '~/scripts/highlights';
 import { flash, openShortcuts } from '~/scripts/shortcuts';
 
 const root = document.documentElement;
@@ -314,6 +315,11 @@ document.addEventListener('keydown', (e) => {
     case ']':
     case '[':
       jumpSection(e.key === ']' ? 1 : -1);
+      break;
+    case 'h':
+    case 'n':
+      e.preventDefault(); // otherwise this keypress also types into the note box it opens
+      highlightSelection(e.key === 'n');
       break;
     case 't':
       if (clickFirst('[data-theme-toggle]')) flash(`Theme: ${currentTheme()}`);
