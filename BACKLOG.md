@@ -153,6 +153,11 @@ commit date; CI now fetches full history), recently reviewed (`lastReviewed`), a
 update" from the service worker's record of added, changed and removed files. Shortcuts `g y` and
 `g n`. `test:offline-update` checks that an update's changed topic appears there.
 
+Fixed 2026-11-09: "In your last update" listed nearly every topic, because it compared built pages
+and those change with any layout edit (and glossary popups had random ids, so 141 pages differed
+on every build). Topics are now compared by a fingerprint of their source, and builds are
+reproducible.
+
 Original scope:
 
 **a. Your reading history**

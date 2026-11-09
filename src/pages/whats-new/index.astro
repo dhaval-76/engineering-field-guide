@@ -43,8 +43,7 @@ function byDate<T>(list: T[], key: (t: T) => string) {
   }
   return groups;
 }
-// For the update panel: built page file → topic title.
-const pageTitles = Object.fromEntries(topics.map((t) => [`${t.id}/index.html`, t.title]));
+const topicTitles = Object.fromEntries(topics.map((t) => [t.id, t.title]));
 ---
 
 <BaseLayout title="What's new" noindex>
@@ -55,7 +54,7 @@ const pageTitles = Object.fromEntries(topics.map((t) => [`${t.id}/index.html`, t
       <a href={url('history/')}>your history</a>.
     </p>
 
-    <LastUpdate client:only="react" pageTitles={pageTitles} base={url()} />
+    <LastUpdate client:only="react" topicTitles={topicTitles} base={url()} />
 
     {newest.length > 0 && (
       <section>

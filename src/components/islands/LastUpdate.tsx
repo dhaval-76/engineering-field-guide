@@ -4,13 +4,13 @@ import { read } from '~/lib/storage';
 import { LAST_UPDATE, type UpdateChanges } from '~/lib/update-changes';
 
 interface Props {
-  /** built file (e.g. `dsa/sliding-window/index.html`) → topic title */
-  pageTitles: Record<string, string>;
+  /** topic id → title */
+  topicTitles: Record<string, string>;
   base: string;
 }
 
 /** What the last offline-copy update brought, from efg:last-update (saved by scripts/offline.ts). */
-export default function LastUpdate({ pageTitles, base }: Props) {
+export default function LastUpdate({ topicTitles, base }: Props) {
   const [changes, setChanges] = useState<UpdateChanges | null | undefined>(undefined);
   useEffect(() => {
     const load = () => setChanges(read<UpdateChanges | null>(LAST_UPDATE, null));
@@ -30,22 +30,18 @@ export default function LastUpdate({ pageTitles, base }: Props) {
       </section>
     );
 
-  const topics = (paths: string[]) =>
-    paths.filter((p) => p in pageTitles).map((p) => ({ path: p, title: pageTitles[p]! }));
-  const added = topics(changes.added);
-  const changed = topics(changes.changed);
-  const removed = changes.removed.filter(
-    (p) => p.endsWith('index.html') && p.split('/').length === 3,
-  );
-  const topicFiles = new Set([...added, ...changed].map((t) => t.path));
-  const other = [...changes.added, ...changes.changed].filter((p) => !topicFiles.has(p)).length;
+  const listed = (ids: string[]) =>
+    ids.filter((id) => id in topicTitles).map((id) => ({ id, title: topicTitles[id]! }));
+  const added = listed(changes.topics?.added ?? []);
+  const changed = listed(changes.topics?.changed ?? []);
+  const removed = changes.topics?.removed.length ?? 0;
   const when = new Date(changes.at).toLocaleString(undefined, {
     dateStyle: 'long',
     timeStyle: 'short',
   });
-  const link = (t: { path: string; title: string }) => (
-    <li key={t.path}>
-      <a href={base + t.path.replace(/index\.html$/, '')}>{t.title}</a>
+  const link = (t: { id: string; title: string }) => (
+    <li key={t.id}>
+      <a href={`${base}${t.id}/`}>{t.title}</a>
     </li>
   );
 
@@ -67,16 +63,26 @@ export default function LastUpdate({ pageTitles, base }: Props) {
           <ul>{changed.map(link)}</ul>
         </>
       )}
-      {removed.length > 0 && (
+      {removed > 0 && (
         <p className="lu-muted">
-          {removed.length} page{removed.length === 1 ? ' was' : 's were'} removed or moved.
+          {removed} topic{removed === 1 ? ' was' : 's were'} removed or moved.
         </p>
       )}
-      <p className="lu-muted">
-        {added.length || changed.length ? 'Also ' : ''}
-        {other} other file{other === 1 ? '' : 's'} changed (other pages, styles, scripts and the
-        search index).
-      </p>
+      {!changes.topics && (
+        <p className="lu-muted">
+          This update can't say which topics changed. Changed topics are listed from your next
+          update onwards.
+        </p>
+      )}
+      {changes.topics && !added.length && !changed.length && !removed && (
+        <p className="lu-muted">No topic content changed. This update was to the site itself.</p>
+      )}
+      {changes.files !== undefined && (
+        <p className="lu-muted">
+          {changes.files} file{changes.files === 1 ? '' : 's'} updated in total, including layout,
+          styles, scripts and the search index.
+        </p>
+      )}
     </section>
   );
 }

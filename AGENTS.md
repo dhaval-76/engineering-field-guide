@@ -200,10 +200,14 @@ reported as small; that is expected.
   opts in.
 - **`/offline/` page**: status, size, storage used, persistence, version, last check; actions:
   check for updates, repair missing files, re-download everything, remove the offline copy, install.
-- **What changed**: on install the worker compares its file list with the previous version's and
-  saves `{ version, at, added, changed, removed }` as `__changes__` in its cache. The `status` reply
-  includes it, and `src/scripts/offline.ts` stores it once as `efg:last-update`; the what's new
-  page lists the topics it touched. The first install records nothing.
+- **What changed**: `build-sw.ts` also fingerprints each topic's source folder (`TOPICS`), kept in
+  the cache as `__topics__`. On install the worker compares them with the previous version's and
+  saves `{ version, at, files, topics: { added, changed, removed } }` as `__changes__`. The `status`
+  reply includes it, and `src/scripts/offline.ts` stores it once as `efg:last-update`; the what's
+  new page lists those topics. Don't compare built pages for this: the layout, the footer or a new
+  script name changes all of them. The first install records nothing.
+- **Builds must be reproducible**: the same code has to produce identical files, or every reader
+  downloads pages that didn't change. Never put random values or build times in page output.
 - Worker messages: `status`, `skip-waiting`, `repair` (download only missing files), `resync`
   (download everything again).
 - Icons: `npm run icons` renders `public/icons/` from the header mark. The manifest is

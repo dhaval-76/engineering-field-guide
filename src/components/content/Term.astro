@@ -2,6 +2,8 @@
 import { getEntry } from 'astro:content';
 import { topicUrl, url } from '~/lib/url';
 
+const seenOnPage = new WeakMap<Request, number>();
+
 interface Props {
   /** Glossary entry id (file name in content/glossary). */
   id: string;
@@ -9,7 +11,11 @@ interface Props {
 const { id } = Astro.props;
 const entry = await getEntry('glossary', id);
 if (!entry) throw new Error(`Unknown glossary term "${id}". Add src/content/glossary/${id}.yaml`);
-const pid = `term-${id}-${Math.random().toString(36).slice(2, 7)}`;
+// Numbered per page, not random: a random id would make every page differ on every build, and the
+// offline copy would download them all again.
+const used = (seenOnPage.get(Astro.request) ?? 0) + 1;
+seenOnPage.set(Astro.request, used);
+const pid = `term-${id}-${used}`;
 const more = entry.data.topic ? topicUrl(entry.data.topic.id) : url(`glossary/#${id}`);
 ---
 

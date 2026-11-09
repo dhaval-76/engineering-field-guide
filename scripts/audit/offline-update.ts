@@ -2,11 +2,12 @@
  * End-to-end test of the offline copy's update flow, in a fresh browser profile:
  *  1. an unknown page offline returns the 404 page with status 404;
  *  2. publishing a change to one file shows the update prompt with "1 changed file", and Reload
- *     switches to the new version, leaving one cache;
+ *     switches to the new version, leaving one cache; because only the built page changed, what's
+ *     new says no topic content changed;
  *  3. deleting saved files shows them as missing and Repair restores them;
  *  4. Re-download everything finishes with every file saved;
  *  5. Check for updates with nothing new says so;
- *  6. the what's new page lists the changed topic under "In your last update".
+ *  6. publishing a change to a topic's source lists that topic, and only it, in what's new.
  * It edits one file in dist/ and regenerates dist/sw.js, then puts both back.
  *   npm run build && npm run preview   (in another terminal)
  *   npm run test:offline-update
@@ -23,7 +24,11 @@ const expect = (ok: boolean, what: string) => {
   console.log(`${ok ? 'ok  ' : 'FAIL'} ${what}`);
   if (!ok) failures.push(what);
 };
-const rebuildWorker = () => execSync('npx tsx scripts/pwa/build-sw.ts', { stdio: 'ignore' });
+const rebuildWorker = (changedTopic?: string) =>
+  execSync('npx tsx scripts/pwa/build-sw.ts', {
+    stdio: 'ignore',
+    env: { ...process.env, EFG_TEST_CHANGED_TOPIC: changedTopic ?? '' },
+  });
 
 const changed = 'dist/dsa/sliding-window/index.html';
 const original = readFileSync(changed, 'utf8');
@@ -78,7 +83,36 @@ try {
   expect(!!updated, 'the changed file is saved');
   await page.goto(`${BASE}whats-new/`);
   await page.waitForSelector('.lu');
-  expect((await text('.lu')).includes('Sliding Window'), "what's new lists the changed topic");
+  {
+    const panel = await text('.lu');
+    expect(
+      panel.includes('No topic content changed') && !panel.includes('Sliding Window'),
+      "a change to built pages alone lists no topics in what's new",
+    );
+  }
+
+  writeFileSync(changed, original.replace('</body>', '<!-- update test 2 --></body>'));
+  rebuildWorker('dsa/two-pointers');
+  await page.goto(`${BASE}offline/`);
+  await page.waitForSelector('.update-toast', { timeout: 60_000 });
+  await Promise.all([page.waitForEvent('load'), page.click('.update-toast [data-apply]')]);
+  await ready();
+  await page.goto(`${BASE}whats-new/`);
+  await page.waitForSelector('.lu');
+  await page
+    .waitForFunction(
+      () => document.querySelector('.lu')?.textContent?.includes('Changed topics'),
+      null,
+      { timeout: 10_000 },
+    )
+    .catch(() => {});
+  {
+    const panel = await text('.lu');
+    expect(
+      panel.includes('Two Pointers') && !panel.includes('Sliding Window'),
+      "a changed topic source lists that topic, and only it, in what's new",
+    );
+  }
   await page.goto(`${BASE}offline/`);
   await ready();
 

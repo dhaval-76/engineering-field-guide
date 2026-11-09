@@ -1,4 +1,4 @@
-/* global self, caches, fetch, Response, URL, __FILES__, __VERSION__, __BYTES__ */
+/* global self, caches, fetch, Response, URL, __FILES__, __TOPICS__, __VERSION__, __BYTES__ */
 /**
  * Offline service worker. scripts/pwa/build-sw.ts fills in FILES (every built file with a content
  * hash) and VERSION, then writes this to dist/sw.js after Pagefind has run.
@@ -9,12 +9,14 @@
  * - The page can ask for a status report, a repair (fetch anything missing) or a full re-download.
  */
 const FILES = __FILES__;
+const TOPICS = __TOPICS__; // topic id → fingerprint of its source, to report which topics changed
 const VERSION = __VERSION__;
 const BYTES = __BYTES__; // total size of FILES, shown on the offline page
 
 const PREFIX = 'efg-';
 const CACHE = `${PREFIX}${VERSION}`;
 const HASHES = '__hashes__'; // a cached JSON document: url → hash, for incremental updates
+const TOPIC_HASHES = '__topics__'; // a cached copy of TOPICS, for the next version to compare with
 const CHANGES = '__changes__'; // what this version changed compared with the one it replaced
 const SCOPE = new URL(self.registration.scope);
 const abs = (path) => new URL(path, SCOPE).href;
@@ -59,6 +61,7 @@ async function download(cache, { reuse, force = false, kind }) {
   }
   await Promise.all(Array.from({ length: PARALLEL }, worker));
   await cache.put(abs(HASHES), new Response(JSON.stringify(FILES)));
+  await cache.put(abs(TOPIC_HASHES), new Response(JSON.stringify(TOPICS)));
   report(true);
 }
 
@@ -87,18 +90,26 @@ async function reuseFrom(names) {
   };
 }
 
-/** Compare this version's files with the newest older copy, for the "what's new" page. */
+/** Compare this version with the newest older copy, for the "what's new" page. */
 async function recordChanges(cache, names) {
   for (const name of names) {
-    const r = await (await caches.open(name)).match(abs(HASHES));
+    const older = await caches.open(name);
+    const r = await older.match(abs(HASHES));
     if (!r) continue;
     const before = await r.json();
+    const paths = new Set([...Object.keys(before), ...Object.keys(FILES)]);
+    // Copies saved before topics had fingerprints can't say which topics changed.
+    const t = await older.match(abs(TOPIC_HASHES));
+    const old = t ? await t.json() : null;
     const changes = {
       version: VERSION,
       at: Date.now(),
-      added: Object.keys(FILES).filter((p) => !(p in before)),
-      changed: Object.keys(FILES).filter((p) => p in before && before[p] !== FILES[p]),
-      removed: Object.keys(before).filter((p) => !(p in FILES)),
+      files: [...paths].filter((p) => before[p] !== FILES[p]).length,
+      topics: old && {
+        added: Object.keys(TOPICS).filter((id) => !(id in old)),
+        changed: Object.keys(TOPICS).filter((id) => id in old && old[id] !== TOPICS[id]),
+        removed: Object.keys(old).filter((id) => !(id in TOPICS)),
+      },
     };
     await cache.put(abs(CHANGES), new Response(JSON.stringify(changes)));
     return;
