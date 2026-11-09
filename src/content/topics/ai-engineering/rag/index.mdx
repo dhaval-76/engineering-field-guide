@@ -6,7 +6,7 @@ order: 20
 tags: [ai-engineering, rag, embeddings, vector-database, search]
 aliases: [retrieval augmented generation, rag, embeddings, embedding model, vector database, vector db, vector search, semantic search, cosine similarity, ann, approximate nearest neighbour, hnsw, ivfflat, pgvector, pinecone, weaviate, qdrant, milvus, opensearch knn, chunking, chunk overlap, hybrid search, bm25, reciprocal rank fusion, rrf, reranker, cross encoder, grounding, citations, rag evaluation, faithfulness, recall at k]
 prerequisites: [ai-engineering/llm-fundamentals]
-related: [system-design/search-engine, databases/indexing, ai-engineering/llm-system-design]
+related: [system-design/search-engine, databases/indexing, ai-engineering/llm-system-design, ai-engineering/vector-database-internals, ai-engineering/fine-tuning-vs-rag, ai-engineering/llm-evaluation]
 quickRef:
   points:
     - '**RAG** = retrieve relevant passages from your data, put them in the prompt, and have the model answer only from them, with citations.'
@@ -54,6 +54,8 @@ Prepend the document title and section heading to each chunk before embedding �
 
 ## Vector indexes
 
+For how these work inside, see [vector database internals](../vector-database-internals/).
+
 Exact nearest-neighbour search compares the query with every vector — fine for tens of thousands, too slow for millions. **Approximate** (ANN) indexes trade a little recall for speed:
 
 | Index | Idea | Trade-off |
@@ -91,6 +93,8 @@ Other techniques when basic retrieval falls short: rewrite the query (resolve "i
 - **Cost** — embedding is cheap per document but re-embedding a large corpus after a model change is a project; plan for it.
 
 ## Evaluation and debugging
+
+[Evaluating LLM output](../llm-evaluation/) covers building the eval set and comparing versions.
 
 Evaluate the two halves separately, on a set of real questions with known good sources:
 

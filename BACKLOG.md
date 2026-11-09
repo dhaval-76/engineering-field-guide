@@ -10,8 +10,8 @@ Work top to bottom. The numbers in the headings below are labels, not the order.
 drift from the code.
 
 Every content item follows the usual process: research first (demand, interview reports and
-"asked at" tags, each with a source URL), then write. One commit per topic group. Push only at
-milestones, never after every commit. No AI attribution anywhere.
+"asked at" tags, each with a source URL), then write. One commit per topic group. Push only when
+the owner says to or after a large batch, never per finished item. No AI attribution anywhere.
 
 ## Content
 
@@ -77,7 +77,14 @@ each group, so existing links keep working. Update `related`/`prerequisites` lin
 gRPC, GraphQL and API versioning, compared with REST: when to use which, the trade-offs, and
 streaming.
 
-### 4. More AI Engineering
+### 4. More AI Engineering (done 2026-11-09)
+
+Done: five new topics in `ai-engineering/`: `llm-evaluation`, `vector-database-internals`,
+`fine-tuning-vs-rag`, `prompt-caching-and-cost` and `guardrails-prompt-injection`, linked from the
+four existing pages. Research notes are in `research/README.md`. Provider details (prices, cache
+lifetimes, OpenAI's fine-tuning wind-down) are dated 2026-11-09 and will need re-checking.
+
+Original scope:
 
 - Evaluating LLM output.
 - Prompt caching and cost control.

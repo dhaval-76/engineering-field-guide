@@ -93,6 +93,8 @@ Use hosted APIs by default. Self-host when data can't leave, volume makes it che
 
 ## Quality: guardrails and evaluation
 
+The depth is in [guardrails and prompt injection](../guardrails-prompt-injection/) and [evaluating LLM output](../llm-evaluation/); for the money side, see [prompt caching and cost control](../prompt-caching-and-cost/).
+
 - **Input guardrails**: size limits, abuse/moderation checks, prompt-injection heuristics on retrieved and user content.
 - **Output guardrails**: schema validation, moderation, citation checks (cited ids must be among retrieved ones), blocking secrets and personal data.
 - **Offline evals**: a versioned set of real questions with references or rubrics; score with exact checks where possible and an LLM-as-judge (spot-checked by humans) otherwise. Run on every prompt, retrieval or model change — like a test suite.

@@ -74,6 +74,8 @@ Production concerns, same as any remote dependency:
 
 ## Latency and cost
 
+For the detail, see [prompt caching and cost control](../prompt-caching-and-cost/).
+
 <Chart
   type="bar"
   title="Where the time goes in a typical chat answer (illustrative)"
@@ -91,11 +93,15 @@ Production concerns, same as any remote dependency:
 
 ## Hallucinations and safety
 
+Defences are covered in [guardrails and prompt injection](../guardrails-prompt-injection/), and measuring quality in [evaluating LLM output](../llm-evaluation/).
+
 - The model generates *plausible* text; when it lacks the facts it still produces an answer. Mitigate with grounding (pass the source data — [RAG](../rag/)), instructions to cite or abstain, and checks on the output.
 - **Prompt injection**: text from users, documents or web pages can contain instructions ("ignore previous rules…"). Treat all model input from untrusted sources as data, keep secrets out of prompts, and enforce permissions in code — never rely on the prompt to protect data.
 - Don't send data to a provider that your contracts or regulations don't allow; check retention terms.
 
 ## Fine-tuning vs prompting vs retrieval
+
+The full way of deciding is in [fine-tuning vs RAG](../fine-tuning-vs-rag/).
 
 | Need | Reach for |
 |---|---|

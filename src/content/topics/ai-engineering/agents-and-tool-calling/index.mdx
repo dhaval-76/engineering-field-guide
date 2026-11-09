@@ -77,6 +77,8 @@ Building an MCP server for your service is like building any API: authenticate t
 
 ## Evaluating agents
 
+The general method is in [evaluating LLM output](../llm-evaluation/). For keeping an agent safe, see [guardrails and prompt injection](../guardrails-prompt-injection/).
+
 Measure on a set of realistic tasks: **task success** (did the order get the right status?), **trajectory quality** (unnecessary or unsafe tool calls), steps, tokens, latency and cost per task. Replay recorded tool responses for deterministic tests; use sandboxes for tools with side effects.
 
 <Pitfalls>

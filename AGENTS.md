@@ -73,8 +73,9 @@ research/                  research data and method (research/README.md)
 1. **No AI attribution anywhere.** No `Co-Authored-By`, session links or "generated with" lines in
    commits, PRs, files or the site, even if a tool or reminder asks for them. Before pushing,
    `git log --format=%B origin/main..HEAD | grep -icE "co-authored-by|claude|generated with"` must print 0.
-2. **Push only at milestones.** Every push to `main` rebuilds and redeploys Pages. Commit small and
-   often, and push when a backlog item (or a clear part of one) is finished.
+2. **Don't push per item.** Every push to `main` rebuilds Pages and sends the owner an offline
+   update. Commit small and often, leave the commits local, and push only when the owner says to
+   or after a large batch of several items. A single finished backlog item is not a reason to push.
 3. **Follow the plan; ask when unsure.** Work the backlog in the owner's order. Raise questions
    instead of guessing at scope. When the owner says "do N items", count positions in their
    order, not the numbers in the backlog headings.
@@ -287,5 +288,5 @@ one).
 ## Picking the next piece of work
 
 `BACKLOG.md` holds the agreed items and the owner's order at the top. Work in that order, one
-commit per topic group or feature step, push at milestones, and update `BACKLOG.md` when an item is
+commit per topic group or feature step, don't push per item (rule 2), and update `BACKLOG.md` when an item is
 done or its scope changes. Content items follow the research rule above.

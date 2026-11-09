@@ -3,7 +3,7 @@
 The topic list is driven by data, not guesswork. This folder holds the inputs, the method and the resulting decisions.
 
 - **Data snapshot:** 2026-10-30 (LeetCode Discuss posts up to October 2026, job postings from October 2026).
-- **Last reviewed:** 2026-11-01. Remaining agreed work, including new tracks and topics, is in [`../BACKLOG.md`](../BACKLOG.md).
+- **Last reviewed:** 2026-11-09. Remaining agreed work, including new tracks and topics, is in [`../BACKLOG.md`](../BACKLOG.md).
 
 ## Files
 
@@ -53,6 +53,25 @@ Share of posts mentioning a topic (posts by year: 2024 H2 = 1,133; 2025 = 1,868;
 Job postings (freehire, Oct 2026): API 22k, **Java 15.7k**, cloud 14.7k, AWS 12.8k, Python 12.3k, **AI 12.2k**, CI/CD 12.1k, REST 11.6k, microservices 10.4k, Docker 10.3k, SQL 9.9k, Kubernetes 9.5k, PostgreSQL 9.3k, Spring 8.2k, distributed systems 6.4k, Kafka 6.2k, observability 5.7k, Redis 5.2k, event-driven 4.8k, LLM 3.0k. Fastest 30-day growth: Python, REST, API, microservices, MySQL, Redis, AWS, Docker, AI.
 
 Qualitative 2026 trends: the system-design bar has risen; **AI-aware designs** (LLMs, vector stores, RAG) now appear in general SWE loops; **cost reasoning** is graded explicitly; and coding rounds are moving towards judgement, debugging and AI-assisted formats ([Design Gurus](https://designgurus.substack.com/p/system-design-interviews-changed), [Prepfully](https://prepfully.com/interview-guides/software-engineer-interview-rubric-2026), [Levelop](https://levelop.dev/blog/the-complete-software-engineer-interview-process-in-2026-what-to-expect-at-every)). Modern Java (17/21 LTS: records, sealed types, virtual threads) is now standard in Java interviews ([techinterview.org](https://www.techinterview.org/post/3233474451/java-interview-questions-2025-virtual-threads-records-sealed-classes-stream-api-garbage-collection-concurrency-spring-boot/)).
+
+## Research log: AI Engineering additions (2026-11-09)
+
+Done before writing the five new `ai-engineering/` topics.
+
+**Interview reports.** Searching the 4,431 cached LeetCode Discuss posts for these subjects found few first-hand reports, and only three were usable as `askedAt` tags, all from 2026: [Google, Gemini Applications hiring manager](https://leetcode.com/discuss/post/7936329/google-hiring-manager-round-gemini-appli-mb5k/) (evaluation), [Google Cloud AI engineer](https://leetcode.com/discuss/post/8583957/recent-google-interview-experience-for-g-gkmp/) (prompt injection) and [Amazon SDE I, GenAI round](https://leetcode.com/discuss/post/8542502/software-development-engineer-i-amazon-i-tusz/) (verifying output, securing input, personal data). A post tagged Google titled "LLM Interview Questions I have Been Preparing" was deliberately **not** used: it is a study list, not a report of being asked. No first-hand reports were found for HNSW, fine-tuning vs RAG or prompt caching, so those pages carry no company tags. Web searches showed these are widely listed as interview topics, but only on prep sites of uneven quality.
+
+**Primary sources for facts** (checked 2026-11-09):
+
+| Topic | Source |
+|---|---|
+| Prompt injection | [OWASP LLM01](https://genai.owasp.org/llmrisk/llm01-prompt-injection/), including "it is unclear if there are fool-proof methods of prevention" |
+| Lethal trifecta | [Simon Willison](https://simonwillison.net/2025/Jun/16/the-lethal-trifecta/) |
+| HNSW | [Malkov and Yashunin](https://arxiv.org/abs/1603.09320); [pgvector](https://github.com/pgvector/pgvector) for defaults, filtering and limits |
+| Caching | [OpenAI](https://developers.openai.com/api/docs/guides/prompt-caching), [Gemini](https://aistudio.google.com/docs/caching), Anthropic's prompt caching reference |
+| Fine-tuning | [OpenAI model optimization](https://developers.openai.com/api/docs/guides/model-optimization): the platform is winding down and closed to new users |
+| Evals | [OpenAI evals](https://developers.openai.com/api/docs/guides/evals): the product shuts down on 30 November 2026 |
+
+**Measured, not quoted.** The HNSW recall and distance charts come from running the page's own Java code on 20,000 clustered 64-dimensional vectors with 200 queries. The confidence intervals and cost figures are computed by the code shown on those pages.
 
 ## Decisions (2026-10-30)
 
