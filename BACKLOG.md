@@ -17,6 +17,8 @@ the owner says to or after a large batch, never per finished item. No AI attribu
 
 ### 1. CS Foundations: split Networking and Operating Systems into full pages
 
+**Status (2026-11-09): paused at the research stage at the owner's request; no pages written.** Reports, measurements, sources and what is left to check are in `research/cs-foundations-2026-11.md`. Start there.
+
 Today `cs-foundations/networking` and `cs-foundations/operating-systems` are about 1,000 words each,
 much thinner than the rest of the site. Turn them into 9 fully written pages, each with
 walkthroughs, interview questions (`qa.yaml`) and a quiz. The current URLs become the first page of

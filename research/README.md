@@ -81,6 +81,10 @@ Done before writing the five new `ai-engineering/` topics.
 
 **Measured:** the payload chart on the gRPC page encodes 100 sample orders with the page's own code and gzip. Web comparisons of gRPC and REST disagree widely on speed, so the page quotes no general speed-up figure.
 
+## Research log: CS Foundations (2026-11-09, paused)
+
+Research for the 9-page Networking and Operating Systems split, stopped before any page was written. Interview reports, Linux measurements, sources, rejected posts and the facts still to confirm are in [`cs-foundations-2026-11.md`](cs-foundations-2026-11.md). The measurement programs are in [`probes/cs-foundations/`](probes/cs-foundations/).
+
 ## Decisions (2026-10-30)
 
 **Keep** every migrated legacy topic; all of them show up in the data.
