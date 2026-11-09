@@ -1,0 +1,67 @@
+questions:
+  - q: Your LLM bill has tripled. How do you bring it down?
+    think: Measure first, then free wins, then trade-offs.
+    answer: |
+      First, find where it goes. Break spend down by feature, tenant, model, and input, cached and output tokens, and find the expensive requests. Check whether the rise is traffic, a longer prompt, or a loop bug.
+
+      Then free wins: fix the prompt layout so caching works and confirm the hit rate; cut retrieved chunks and unused tool definitions; limit output length; move work that can wait to a batch API; add an exact response cache where requests truly repeat.
+
+      Then trade-offs, each validated by evals: route easy requests to a smaller model, reduce agent steps. Add per-tenant budgets and alerts so it can't happen silently again. Report cost per completed task, so a cheaper call that needs a retry doesn't count as a saving.
+  - q: We turned on prompt caching but the hit rate is near zero. What do you check?
+    think: What must be byte-identical, and for how long?
+    answer: |
+      Compare two consecutive rendered prompts byte by byte and find the first difference. Usual causes: a timestamp, request id or user name early in the system prompt; tools built in a varying order or varying per user; unstable JSON key order; history being edited instead of appended; or the breakpoint being placed after the part that varies, so every request writes a unique entry.
+
+      Then check the rest: the prefix may be below the model's minimum; requests may be further apart than the cache lifetime; traffic may be split across models or workspaces, and caches aren't shared between those. Finally, add a test that two different users' prompts share a long prefix.
+  - q: Explain the difference between prompt caching and semantic caching. Which would you use for a customer support bot?
+    think: What gets reused, and can it be wrong?
+    answer: |
+      Prompt caching reuses the provider's processing of an identical prefix. The model still generates a fresh answer for the actual question, so the output is unaffected. Semantic caching embeds the question and, if a previous question is similar enough, returns the stored answer without calling the model.
+
+      For a support bot I'd always use prompt caching, on the system prompt and policies. I'd be very cautious with semantic caching, because support questions depend on the customer's account and small wording differences matter. If used at all, it would be for a short list of public FAQ questions, keyed with strict similarity, with no personal data, and measured by an eval of wrong hits.
+  - q: Design the cost controls for a multi-tenant LLM platform.
+    think: Attribute, limit, reduce, alert.
+    answer: |
+      Put a gateway in front of every model call. It records input, cached and output tokens per tenant, feature and model, and it converts them to money using a versioned price table. Limits: a tokens-per-minute budget per tenant for fairness, plus a monthly spend cap with a warning at 80%; a maximum step count and maximum output tokens per agent run.
+
+      Reduction: shared stable prefixes for caching, tenant data placed after the breakpoint, and tiered model routing. When a tenant goes over budget, either degrade to a smaller model or reject with a clear error, depending on the plan. Dashboards show cost per task per tenant, and anomaly alerts catch runaway loops within minutes.
+followUps:
+  - q: Does prompt caching change what the model says?
+    intuition: What exactly is reused?
+    approach: |
+      No. It reuses the processing of the identical prefix, and the output is still generated fresh. Unlike a response cache or a semantic cache, it doesn't return an old answer, so it needs no invalidation logic beyond the prefix having to match.
+  - q: How is the cache kept safe across customers?
+    intuition: Exact matching and scope.
+    approach: |
+      Providers scope caches to an organisation or workspace, and a hit needs an exact prefix match. Your own response and semantic caches are your responsibility: include tenant and permission scope in the key, or one user may get another's data.
+  - q: When is the longer cache lifetime worth it?
+    intuition: Compare the gap between requests with the lifetime.
+    approach: |
+      When requests sharing a prefix arrive further apart than the short lifetime, but often enough to reuse it. A longer lifetime costs more to write (2× vs 1.25× at Anthropic), so with steady traffic the short one is cheaper, since each read renews it.
+  - q: Why does cost shift to output after caching?
+    intuition: Which part got cheaper?
+    approach: |
+      Output tokens are typically several times the price of input and aren't cached. In this page's example, caching takes the input from $3,090 to $562.50, while output stays at $600. Any further saving has to come from shorter answers or a cheaper model.
+practice:
+  - task: Write a cost model for a workload with prompt caching, and find the hit rate at which caching starts paying off.
+    hint: Misses pay the write multiplier on the prefix and hits pay the read multiplier. The suffix and output are unaffected.
+    solution: |
+      For a hit rate h: prefix cost = requests × prefix × ((1 − h) × write + h × read). Add suffix and output at normal prices. Set it equal to the uncached cost and solve: caching pays when h > (write − 1) / (write − read). With write = 1.25 and read = 0.1, that is about 22%.
+    solutionCode: prompt-cache-cost
+quiz:
+  - q: You add the current date as the first line of a long system prompt. What happens?
+    options: ['Nothing, as the date is short', 'The cache misses whenever the date changes, for everything after it', 'Only the date is re-billed', 'The model refuses']
+    correct: 1
+    why: 'Caching is a prefix match, so a change at the start invalidates everything after it.'
+  - q: Which of these can return a wrong answer that the model would not have given?
+    options: ['Provider prompt caching', 'Semantic caching', 'Batching', 'Limiting max output tokens']
+    correct: 1
+    why: 'A semantic cache returns a stored answer for a question that is only similar. Prompt caching still runs the model.'
+  - q: With a 1.25× write and a 0.1× read, how many reads repay one write?
+    options: ['1', '2', '5', '10']
+    correct: 0
+    why: 'Writing once and reading once costs 1.35 units, against 2 units for two uncached calls.'
+  - q: Why can caching raise your bill?
+    options: ['Reads cost more than normal input', 'Writes cost extra, and with a low hit rate you rarely read them back', 'Caching doubles output tokens', 'It cannot raise your bill']
+    correct: 1
+    why: 'In the worked example, below about a 22% hit rate the write premium costs more than the reads save.'

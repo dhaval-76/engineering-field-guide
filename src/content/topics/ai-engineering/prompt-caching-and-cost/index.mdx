@@ -1,0 +1,153 @@
+---
+title: Prompt Caching and LLM Cost Control
+summary: Where LLM money goes and how to cut it without hurting quality — how provider prompt caching works, why byte-identical prefixes matter, exact and semantic caches, model routing, batching and per-tenant budgets.
+track: ai-engineering
+order: 35
+tags: [ai-engineering, llm, cost, caching, performance]
+aliases: [prompt caching, context caching, cache_control, cache breakpoint, llm cost, llm cost optimization, token cost, reduce llm cost, semantic cache, exact match cache, model routing, model cascade, batch api, token budget, cost per task, cached input tokens, cache hit rate llm, kv cache, cache write premium]
+prerequisites: [ai-engineering/llm-fundamentals]
+related: [ai-engineering/llm-system-design, ai-engineering/agents-and-tool-calling, ai-engineering/llm-evaluation, system-design/distributed-cache]
+quickRef:
+  points:
+    - '**Prompt caching** reuses the model''s work on a prompt''s **identical beginning**. The answer doesn''t change; the price and start-up time do.'
+    - 'It is an **exact byte match on the prefix**. A timestamp near the top breaks everything after it.'
+    - 'Order prompts from **most stable to least stable**: tools, instructions, documents, history, then the new question.'
+    - 'Reads cost about **a tenth** of normal input; writes can cost **more** than normal. At low hit rates, caching costs extra.'
+    - '**Semantic caching** is a different thing: it reuses an old *answer*, so it can be wrong or leak data.'
+    - 'Optimise **cost per completed task**, and check quality with evals after every saving.'
+  complexity: 'With the example on this page (10,000-token prefix, 95% hits), input cost falls by about 80%, and output becomes half the bill.'
+  useWhen: 'Long system prompts, chat history, agent loops, repeated documents, or "the LLM bill is too high".'
+lastReviewed: 2026-11-09
+---
+
+## Why it matters
+
+Every call to an LLM is billed by the token, and an API is stateless, so a chat or an agent resends its whole history on every turn. A 20-step agent with a large system prompt pays for those same instructions 20 times. Cost and latency are usually the first production problems after launch, and "how would you reduce inference cost?" is a standard interview follow-up.
+
+Prompt caching is the rare optimisation with no quality trade-off: the model output is the same, you pay less, and the response starts sooner.
+
+<Callout type="analogy">
+A long-form exam where every candidate must first read the same 50-page rule book. Without caching, each one reads it from scratch. With caching, the exam centre keeps a summary of "someone who has read exactly this rule book" ready to go. Change one word on page 1, and the summary is useless: it was built for the old text.
+</Callout>
+
+## How prompt caching works
+
+To answer, a model first processes the prompt from start to end. The intermediate result depends only on the text so far, so the provider can keep it and resume from it. That is why **only a prefix can be reused**: a change at position N invalidates everything after N.
+
+<Walkthrough id="prompt-cache-prefix" />
+
+So layout matters more than any setting:
+
+<Diagram id="prompt-cache-layout" caption="Stable content goes first. The cached prefix covers everything up to the last breakpoint; only the new tail is billed at full price." />
+
+<CodeTabs id="prompt-assembly" title="Assemble prompts stable-first, and test it" />
+
+The test at the end is worth having in CI: render two requests from different users and assert that they share a long prefix.
+
+### Things that silently break the cache
+
+| In the prefix | Fix |
+|---|---|
+| Current date or time, request id, user name | Move it after the cached part |
+| Tools built in a different order each time | Sort them |
+| JSON with unstable key order | Serialise deterministically |
+| Tools that differ per user | Give everyone one tool set; check permissions in code |
+| Editing or trimming old chat messages | Keep history append-only, or accept a miss when you compact |
+| Switching models | Caches are per model |
+
+You get no error when this happens, just a larger bill. So **log the cached-token count from every response** and alert on the hit rate.
+
+### What the main providers do
+
+These change often. The table was checked against each provider's documentation on 9 November 2026.
+
+| | Anthropic | OpenAI | Google Gemini |
+|---|---|---|---|
+| How to turn on | `cache_control` on a block, or top-level automatic | Automatic; explicit breakpoints on GPT-5.6+ | Implicit is automatic on 2.5+ |
+| Minimum prefix | 512–4,096 tokens, by model | 1,024 tokens on GPT-5.6+ | 2,048–4,096 tokens, by model |
+| Default lifetime | 5 minutes, or 1 hour | 30 minutes on GPT-5.6+, or 12 hours | Not stated for implicit caching |
+| Write cost | 1.25× (5 min), 2× (1 hour) | 1.25× (30 min), 2.5× (12 h) on GPT-5.6+; no write charge on earlier models | Managed for you |
+| Read cost | About 0.1× input (0.05× on Opus 5.5) | 0.1× on GPT-5.6+ (0.05× on some) | Discounted |
+| See it in the response | `cache_read_input_tokens` | Cached token count in `usage` | Cached token count in usage metadata |
+
+A prefix shorter than the minimum simply isn't cached, without an error. Here is what a request looks like when you place the breakpoint yourself:
+
+<CodeTabs id="prompt-cache-request" title="A breakpoint at the end of a long system prompt (Anthropic Messages API)" />
+
+## Doing the arithmetic
+
+Take a support assistant with a 10,000-token prefix, 300 new input tokens, 400 output tokens and 100,000 requests. The prices are illustrative: $3 per million input tokens and $15 per million output, writes at 1.25× and reads at 0.1×.
+
+<CodeTabs id="prompt-cache-cost" title="What caching does to a workload" />
+
+<Chart
+  type="line"
+  title="Total cost in dollars against cache hit rate"
+  x={['0%', '25%', '50%', '80%', '95%', '99%']}
+  series={[
+    { name: 'With caching', values: [4440, 3577.5, 2715, 1680, 1162.5, 1024.5], tone: 'accent' },
+    { name: 'No caching', values: [3690, 3690, 3690, 3690, 3690, 3690], tone: 'muted' },
+  ]}
+  caption="Computed with the code above. Below about a 22% hit rate, caching costs more than not caching, because you keep paying the write premium."
+/>
+
+Three things to notice:
+
+- **One read repays a 5-minute write** (1.25 + 0.1 is less than 2). A 1-hour write at 2× needs two reads. Use the longer lifetime only if requests are too far apart for the short one.
+- **Traffic pattern decides the hit rate.** A cache entry that expires between requests never gets read. Low-traffic features may get no benefit at all.
+- **Output is now half the bill.** It was $600 of $3,690 before, and it is $600 of $1,162.50 after. Once input is cached, cutting output length matters most.
+
+## Three different caches
+
+People use "cache" for all of these, and an interviewer will check that you can tell them apart.
+
+| | Provider prompt cache | Exact response cache | Semantic cache |
+|---|---|---|---|
+| Stores | The model's processed prefix | The final answer | The final answer |
+| Key | Exact prompt bytes | Hash of the whole prompt | Embedding of the question |
+| Model still runs? | Yes | No | No |
+| Can the answer be wrong? | No | Only if stale | **Yes**, a near match may need a different answer |
+| Savings | Input tokens | Whole call | Whole call |
+| Main risk | Low hit rate | Staleness | Wrong answers, and data leaking between users |
+
+Semantic caching looks attractive and is often a mistake. "Can I cancel my order?" and "Can I cancel my subscription?" are close together in embedding space. It suits a narrow set of public, frequently asked questions with no personal data, a strict similarity threshold, and an eval that measures how often it returns the wrong thing. Scope any cache key by tenant and permissions.
+
+## The other cost levers
+
+Work down this list. The first group costs you nothing in quality.
+
+| Lever | Effect | Trade-off |
+|---|---|---|
+| Prompt caching | Large on repeated prefixes | None, once the layout is right |
+| Shorter prompts, fewer retrieved chunks | Directly fewer tokens | Check retrieval quality |
+| Limit output length, ask for concise answers | Output is the expensive side | Check answers aren't cut off |
+| Batch API for work that can wait | Usually half price | Results take up to hours |
+| Exact response cache | Removes the call | Staleness; needs real repeats |
+| Route easy requests to a smaller model | Often the largest saving | Needs evals per route, and caches are per model |
+| Fewer agent steps, step limits | Cuts repeated full-context calls | May reduce completion rate |
+| Self-hosted models | Pays off only at high steady volume | Large operational cost |
+
+**Measure cost per completed task, not cost per call.** A cheaper model that needs a retry, or an extra agent loop, or a human escalation, may cost more overall.
+
+**Budgets stop accidents.** Enforce per-user and per-tenant token limits in the [LLM gateway](../llm-system-design/), set a maximum step count on agents, and alert on spend per feature. A loop bug with no limit can burn through a month's budget overnight.
+
+<Pitfalls>
+
+- **Putting a timestamp or user name at the top of the system prompt.**
+- **Assuming caching is working.** Check the cached-token count in responses.
+- **Caching prompts that have no stable prefix.** You pay the write premium and never read it.
+- **Prefixes below the minimum size.** Nothing happens, and no error says so.
+- **Routing to a cheap model without an eval.** You save money and lose quality, and only find out from users.
+- **Semantic cache keys that ignore tenant or permissions.**
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- Prompt caching reuses an exact prefix: it never changes the answer.
+- Lay out prompts from most to least stable and test that the prefix holds.
+- Monitor the hit rate; a low one costs more than no cache.
+- Prompt cache, response cache and semantic cache are different tools with very different risks.
+- Judge savings by cost per completed task, verified with evals.
+
+</KeyTakeaways>

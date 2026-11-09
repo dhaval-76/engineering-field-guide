@@ -1,0 +1,14 @@
+{
+  "model": "claude-opus-5-5",
+  "max_tokens": 1024,
+  "system": [
+    {
+      "type": "text",
+      "text": "You are the support assistant for Acme. <several thousand tokens of policy>",
+      "cache_control": { "type": "ephemeral" }
+    }
+  ],
+  "messages": [
+    { "role": "user", "content": "Can I return an opened item?" }
+  ]
+}

@@ -1,0 +1,7 @@
+flowchart LR
+  A[Tools<br/>sorted, frozen] --> B[System prompt<br/>frozen]
+  B --> C[Reference documents<br/>and examples]
+  C --> D[Conversation history<br/>append only]
+  D --> E[Date, retrieved text,<br/>new question]
+  A -. cached prefix .-> D
+  E -. new every request .-> F[Billed at full price]
