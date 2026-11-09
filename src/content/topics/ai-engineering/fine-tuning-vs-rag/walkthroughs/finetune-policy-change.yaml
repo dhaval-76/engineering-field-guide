@@ -1,0 +1,26 @@
+title: The refund window changes on Monday
+legend:
+  ok: 'current and correct'
+  bad: 'out of date'
+  info: 'behaviour, not a fact'
+frames:
+  - caption: 'Two assistants, both correct on Friday. One was **fine-tuned** on your support tickets. The other uses **RAG** over the policy documents.'
+    panels:
+      - kind: kv
+        label: '"How long do I have to return an item?"'
+        pairs: [[Fine-tuned, { v: '30 days', tone: ok }], [RAG, { v: '30 days (policy §4)', tone: ok }]]
+  - caption: 'On Monday the policy changes to **14 days**. For RAG, someone updates one document and it is re-indexed in minutes.'
+    panels:
+      - kind: kv
+        label: Update needed
+        pairs: [[Fine-tuned, 'new data, then training, evals and a deploy'], [RAG, { v: 're-index one document', tone: ok }]]
+  - caption: 'Tuesday. The fine-tuned model still says 30 days, **confidently and with no source**, because that fact lives in its weights. RAG gives the new answer and cites it.'
+    panels:
+      - kind: kv
+        label: '"How long do I have to return an item?"'
+        pairs: [[Fine-tuned, { v: '30 days', tone: bad }], [RAG, { v: '14 days (policy §4, v2)', tone: ok }]]
+  - caption: 'Fine-tuning still has a job: **how** the assistant answers. It learned the tone and the exact reply format, and those do not change on Monday. So use each for what it is good at.'
+    panels:
+      - kind: rows
+        label: Combined
+        items: [{ v: 'Fine-tune or prompt: tone, format, how to handle angry customers', tone: info }, { v: 'RAG: refund window, prices, order status', tone: ok }]

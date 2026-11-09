@@ -1,0 +1,126 @@
+---
+title: Fine-Tuning vs RAG
+summary: A practical way to choose between better prompts, retrieval and fine-tuning — what each can and can't change, data and cost, LoRA and distillation, why hosted fine-tuning is shrinking, and how to combine them.
+track: ai-engineering
+order: 28
+tags: [ai-engineering, llm, fine-tuning, rag, trade-offs]
+aliases: [fine tuning, finetuning, fine tuning vs rag, rag vs fine tuning, when to fine tune, lora, qlora, peft, distillation, model distillation, custom model, open weight model, training data for llm, instruction tuning, embedding fine tuning, prompt engineering vs fine tuning]
+prerequisites: [ai-engineering/llm-fundamentals, ai-engineering/rag]
+related: [ai-engineering/llm-evaluation, ai-engineering/llm-system-design, ai-engineering/prompt-caching-and-cost]
+quickRef:
+  points:
+    - '**RAG gives a model facts at question time. Fine-tuning changes how it behaves.** Most "should we fine-tune?" questions are really about one or the other.'
+    - 'Order of work: **evals, then prompts, then RAG, and fine-tune last** if a measured gap remains.'
+    - 'RAG wins for changing facts, citations and per-user permissions. Fine-tuning can''t do any of those.'
+    - 'Fine-tuning suits stable format, style or classification tasks, or a small model trained to do one narrow job cheaply.'
+    - 'They **combine**: tuned behaviour with retrieved facts.'
+    - 'Check availability first. **OpenAI is winding down its fine-tuning platform**, so a plan may mean open-weight models.'
+  useWhen: '"RAG or fine-tuning?", or when someone proposes training a model on company data.'
+lastReviewed: 2026-11-09
+---
+
+## Why it matters
+
+"We should train a model on our data" comes up in every company that adopts LLMs. Usually it's the wrong first move: a training pipeline is expensive, and it doesn't solve the problem people have in mind, which is getting the model to know their documents. This is also one of the most common interview questions on LLMs, and interviewers want a way of deciding, not a definition.
+
+<Callout type="analogy">
+Hiring a lawyer. **RAG** is giving them the case file and letting them look things up, so they're always working from the current facts and can point to the page. **Fine-tuning** is sending them on a two-year training course, so they think and write in a certain way. The course can't teach them next week's case file. And you wouldn't send someone on a course just because they forgot to read the file.
+</Callout>
+
+## Three tools, three kinds of problem
+
+| | Better prompt | RAG | Fine-tuning |
+|---|---|---|---|
+| Changes | The request | What the model can see | The model's weights |
+| Best for | Most things, first | Private and changing facts | Stable behaviour: format, style, judgement on a narrow task |
+| Update speed | Seconds | Minutes (re-index) | Hours to days (retrain and re-evaluate) |
+| Can cite sources | Only if given them | **Yes** | **No** |
+| Per-user permissions | Only if given them | **Yes**, in the retrieval filter | **No**, everyone shares the same weights |
+| Up-front cost | Almost none | Pipeline and index | Labelled data, training, evals |
+| Per-call effect | Longer prompts cost more | Adds retrieval and tokens | Can shorten prompts, or allow a smaller model |
+| Main failure | Instructions ignored | Wrong chunks retrieved | Stale facts stated confidently; regressions |
+
+<Walkthrough id="finetune-policy-change" />
+
+## How to decide
+
+<Diagram id="finetune-decide" caption="Measure first. Add retrieval for missing facts. Fine-tune only for a behaviour gap that survives good prompting, on a stable task that justifies the work." />
+
+<DecisionGuide
+  title="What should I do next?"
+  steps={[
+    ['No evals yet?', 'Write them. Otherwise you cannot tell whether anything helped.'],
+    ['Are the answers wrong because the model lacks facts?', 'RAG.'],
+    ['Do facts change often, need citing, or vary by user?', 'RAG. Fine-tuning cannot do these.'],
+    ['Still using a basic prompt, with no clear instructions or examples?', 'Improve the prompt first; it usually closes the gap.'],
+    ['Is structured output the only problem?', 'Use schema-constrained output, not training.'],
+    ['Stable task, enough good examples, and a saving that repays the work?', 'Fine-tune.'],
+  ]}
+  otherwise="Stay with prompting and RAG, and keep measuring."
+/>
+
+## What fine-tuning is really good for
+
+- **Consistent format or style** that prompting can't reach reliably.
+- **A narrow classification** or extraction task with a clear right answer.
+- **Moving a task to a smaller model.** Called distillation when you use a big model's outputs as training data: the small one learns to do one job cheaply and fast. This is often the best financial case.
+- **Shorter prompts at high volume**, since examples no longer need to be in every request. Check this against prompt caching first, as a cached prompt may already be cheap.
+- **Domain language**, such as clinical shorthand that the base model handles badly.
+
+And what it's bad for: teaching facts. A tuned model doesn't store a fact like a database. It may blend it, misquote it, or state it with confidence after it has gone stale. Personal data in training examples can also come back out.
+
+## How it's done
+
+| Method | What is trained | Notes |
+|---|---|---|
+| Full fine-tuning | All the weights | Most compute; rarely needed |
+| **LoRA** | A small add-on layer; the base weights are frozen | The usual choice for open-weight models; cheap, and adapters can be swapped |
+| **QLoRA** | LoRA on a base model loaded in 4-bit form | Fits on smaller GPUs |
+| Distillation | A small model, on a large model's outputs | Check the licence terms on using outputs for training |
+| Embedding fine-tuning | The embedding model | Improves retrieval on specialised vocabulary, so it helps RAG |
+
+**Where can you do it?** This shifted recently. OpenAI's documentation now says it is "winding down the fine-tuning platform": it is closed to new users, and existing fine-tuned models work only until their base models are retired. That shows a wider risk: a fine-tune is tied to a specific base model, and when that retires you start again. Open-weight models give you control of that lifecycle, along with the job of serving them. Check current options before committing to a plan.
+
+## The data matters most
+
+Bad data trains the wrong behaviour, and that's expensive to find out later.
+
+- Use **real inputs with outputs an expert approves of**, covering the hard cases.
+- Check every example is well formed. A long training run on broken data is a waste.
+- **Remove duplicates and split carefully.** If near-identical examples are on both sides of the split, validation scores look great and mean nothing.
+- Strip personal data, because models can repeat what they were trained on.
+- Hold back a test set the training never touches, and compare against your best prompted baseline, not against the untuned model with no prompt.
+
+<CodeTabs id="finetune-dataset" title="Validate examples and split without leakage" />
+
+## Using them together
+
+The strongest setups keep each tool in its own lane:
+
+- **Retrieval supplies the facts**, so they're current, cited and filtered by permission.
+- **The prompt or a fine-tune supplies the behaviour**: tone, format, when to refuse, when to escalate.
+- If you tune a model that will use RAG, **include retrieved context in the training examples**, so it learns to answer from the sources and to say so when they don't contain the answer.
+
+Every fine-tune adds a release to manage: retraining when the base model changes, re-running evals, and rolling back when needed. Count that when working out whether it pays off. Compare total cost against the alternatives: per-call savings × volume, set against labelling, training runs, serving and upkeep.
+
+<Pitfalls>
+
+- **Fine-tuning to add knowledge.** It goes stale and can't cite anything.
+- **Skipping the prompt step.** Most gaps close with clearer instructions and a few examples.
+- **Comparing against a weak baseline.** Beat your best prompt, not a bare model.
+- **Leaking duplicates into validation.**
+- **Training on personal data.** It can resurface, and removing it is very hard.
+- **Forgetting the base model will be retired.** You inherit that migration.
+- **Expecting a fine-tune to fix prompt injection.** It doesn't.
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- RAG for what the model should know; prompts and fine-tuning for how it should behave.
+- Work in order: evals, prompts, RAG, then fine-tune for a measured gap.
+- Fine-tuning can't provide freshness, citations or per-user access.
+- Distilling a narrow task to a small model is often the best reason to fine-tune.
+- Check that the option exists, and plan for retraining when the base model retires.
+
+</KeyTakeaways>

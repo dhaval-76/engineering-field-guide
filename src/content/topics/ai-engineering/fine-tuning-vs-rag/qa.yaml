@@ -1,0 +1,59 @@
+questions:
+  - q: Your company wants a chatbot that answers from internal documents. A colleague proposes fine-tuning a model on them. What do you recommend?
+    think: Is this a knowledge problem or a behaviour problem?
+    answer: |
+      This is a knowledge problem, so I'd recommend RAG. Internal documents change, and with RAG an update is a re-index, whereas a fine-tune needs a new training run and a full re-evaluation. RAG can cite the source, so users can verify answers, which fine-tuning can't. It can also apply each user's access rights in the retrieval filter; with a fine-tune, everyone shares the weights, so anything in the training data could reach anyone.
+
+      I'd start with an eval set from real questions, build RAG with hybrid search and a clear prompt, and measure. If there's then a measured gap in behaviour, such as format, tone or escalation, I'd try prompting and only then consider fine-tuning for that specific gap, with retrieval still providing the facts.
+  - q: When is fine-tuning the right choice?
+    think: Stable, narrow, measurable, worth it.
+    answer: |
+      When all of these hold: the gap is about behaviour, not facts; good prompting has been tried and measured and doesn't close it; the task is stable, so the result won't go stale soon; there are enough good, expert-approved examples; and the volume or quality gain pays for the data work, training and upkeep.
+
+      A typical good case is moving a narrow, high-volume classification from a large model to a small one. Another is a strict house style on a task where prompting is inconsistent. I'd also check that the option exists: hosted fine-tuning is shrinking, and it may mean running an open-weight model with LoRA.
+  - q: You fine-tuned a model and validation accuracy is 98%, but it does poorly in production. What might be wrong?
+    think: Is the validation set honest?
+    answer: |
+      Most likely the validation number is inflated. Check for leakage first: near-duplicates of training examples in validation, or splitting by row when the same customer or template appears on both sides. Split by a hash of the normalised input, or by customer or time.
+
+      Then check representativeness: the training data may be cleaner than real traffic, or lack whole categories. Compare per-category results against production samples. Then check serving differences: a different prompt format at inference than in training is a common bug. And check whether the world moved on, since facts learned during training may be stale. Finally, compare with the best prompted baseline to confirm the fine-tune adds anything at all.
+followUps:
+  - q: Can RAG and fine-tuning be used together?
+    intuition: Facts and behaviour are separate jobs.
+    approach: |
+      Yes, and it's often the best design. Retrieval supplies current, cited, permission-filtered facts. A fine-tune or prompt supplies tone and format. Train with retrieved context in the examples, so the model learns to use the sources and to say when they don't contain the answer.
+  - q: What is LoRA and why is it popular?
+    intuition: What if you only trained a small part?
+    approach: |
+      LoRA freezes the base model and trains small low-rank matrices added to it. That needs far less memory and compute than training all the weights, and the result is a small adapter that you can swap, so several tasks can share one base model. QLoRA goes further by loading the base model in 4-bit form, so it fits on smaller GPUs.
+  - q: Doesn't fine-tuning lower inference cost?
+    intuition: Which cost, exactly?
+    approach: |
+      It depends. A fine-tune can shorten prompts by removing examples, or allow a much cheaper small model, and that's a real saving. But shorter prompts may save little if prompt caching already makes them cheap, and self-hosted models have GPU costs whatever the traffic. Compare total cost including training, evals and upkeep.
+  - q: Would you use structured-output features or fine-tune for JSON output?
+    intuition: Is there a guarantee available for free?
+    approach: |
+      Structured outputs. Schema-constrained generation guarantees the shape with no training. Fine-tuning only makes the right shape more likely, so it isn't worth it for that alone. It might still help with the quality of what goes inside the fields.
+practice:
+  - task: Write a dataset checker for chat-format fine-tuning examples, and a train/validation split that prevents duplicates from leaking across.
+    hint: Remove duplicates by a normalised form of the question, then choose the side by hashing that same form.
+    solution: |
+      Reject examples with no user message or that don't end in a non-empty assistant reply. Normalise the first user message (trim, lowercase, collapse spaces) and keep one example per normalised key. Hash the key with SHA-256 and take the first byte modulo 100 to choose the side, so the split is stable across runs and identical questions can't land on both sides.
+    solutionCode: finetune-dataset
+quiz:
+  - q: A policy changes weekly and answers must cite the policy. Which fits?
+    options: ['Fine-tuning', 'RAG', 'A higher temperature', 'A larger model']
+    correct: 1
+    why: 'RAG stays current by re-indexing and can cite sources. A fine-tune can do neither.'
+  - q: What should you do first when an LLM feature is not good enough?
+    options: ['Fine-tune it', 'Switch provider', 'Build evals so you can measure the gap', 'Add more GPUs']
+    correct: 2
+    why: 'Without a baseline you cannot tell whether any change helped.'
+  - q: Why might random splitting of a fine-tuning dataset inflate validation scores?
+    options: ['Random numbers are biased', 'Near-duplicates land on both sides, so the model is tested on what it has seen', 'Validation sets must be larger', 'Models cannot be validated']
+    correct: 1
+    why: 'Splitting on a hash of the normalised input keeps duplicates together.'
+  - q: Which is a strong reason to fine-tune?
+    options: ['Teach the model this week''s prices', 'Move a narrow, high-volume task to a smaller, cheaper model', 'Give each user different permissions', 'Add citations']
+    correct: 1
+    why: 'The other three are things fine-tuning cannot do well; retrieval handles them.'

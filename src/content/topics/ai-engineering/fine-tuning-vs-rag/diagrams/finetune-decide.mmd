@@ -1,0 +1,11 @@
+flowchart TD
+  E[Write evals: measure the baseline] --> P[Improve the prompt<br/>and add examples]
+  P --> K{Still wrong because<br/>the model lacks facts?}
+  K -->|yes| R[Add retrieval: RAG]
+  K -->|no| B{Wrong behaviour:<br/>format, style, judgement?}
+  R --> B
+  B -->|no| S[Ship it and keep measuring]
+  B -->|yes| C{Stable task, hundreds of good<br/>examples, volume that pays back?}
+  C -->|no| P
+  C -->|yes| F[Fine-tune, on top of RAG if needed]
+  F --> E
