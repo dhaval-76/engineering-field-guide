@@ -1,0 +1,84 @@
+questions:
+  - q: Why would you choose gRPC over REST for service-to-service communication?
+    think: Contract, generated code, streaming, cost. Then say when you wouldn't.
+    answer: |
+      Four main reasons. The `.proto` file is an enforced contract, so both sides are generated from one definition and mismatches show up at build time. You get typed clients in every major language for free. HTTP/2 multiplexing and built-in streaming suit chatty internal traffic. Deadlines, status codes and cancellation are part of the protocol, which suits long call chains.
+
+      Payload size is often quoted, but with gzip the difference against JSON can nearly vanish; the CPU saved on parsing is the more solid gain. The costs are harder debugging, no browser support without a proxy, no CDN caching, and load balancing that needs care. So I'd use gRPC inside, and REST for public APIs.
+    askedAt:
+      - company: Microsoft
+        year: 2026
+        round: Technical
+        source: https://leetcode.com/discuss/post/7636712/selected-microsoft-sde2l61-interview-exp-qekl/
+      - company: ServiceNow
+        year: 2025
+        round: Hiring manager
+        source: https://leetcode.com/discuss/post/6667179/servicenow-no-response-after-last-round-u7hs1/
+  - q: Why use Protobuf for serialization rather than JSON?
+    think: What is on the wire, and what happens as it evolves?
+    answer: |
+      Protobuf sends field numbers and compact binary values rather than repeated text keys, so messages are small and much cheaper to parse. The schema is required, so code is generated and types are checked. It also has clear rules for evolution: add new numbers, reserve removed ones, and old readers skip unknown fields.
+
+      The trade-offs: you can't read it without the schema, it is awkward in browsers, and a schema step enters the build. JSON is still better for public APIs and debugging. If the only goal is smaller payloads, gzip on JSON gets most of the way there.
+    askedAt:
+      - company: Oracle
+        year: 2025
+        round: Project discussion
+        source: https://leetcode.com/discuss/post/6555411/oracle-oci-ic2-interview-experience-by-a-v1lf/
+  - q: 'Requests through a three-service gRPC chain occasionally hang, then the whole system runs out of threads. What is happening and how do you fix it?'
+    think: What ends a call nobody is waiting for?
+    answer: |
+      Most likely there are no deadlines, or each hop sets a fresh one. gRPC sets no default deadline, so if the bottom service stalls, each upstream call waits forever, holding a thread or stream, until the pools are exhausted.
+
+      Fix: set a realistic deadline at the edge and propagate what's left to every downstream call; fail fast if too little remains. Make handlers check for cancellation so they stop working once nobody is waiting. Add a circuit breaker and bulkheads for the slow dependency, and limit concurrency. Alert on `DEADLINE_EXCEEDED` per method, and use tracing to find which hop is slow.
+  - q: You scaled a gRPC service from 3 pods to 10, but traffic on the new pods stays near zero. Why?
+    think: When does the load-balancing decision happen?
+    answer: |
+      The clients hold long-lived HTTP/2 connections and all their calls run over them. A connection-level load balancer decided once, when each connection opened, so existing connections stay on the old pods and the new ones get almost nothing.
+
+      Balance per call instead: use a client-side `round_robin` policy against a headless service's addresses, or an L7 proxy or service mesh (Envoy) that sees each call. Also set a maximum connection age on servers so clients reconnect periodically and find new pods, and make sure long-lived streams end or reconnect.
+followUps:
+  - q: A call returned DEADLINE_EXCEEDED. Did it fail?
+    intuition: Who decides how a call ended?
+    approach: |
+      You don't know. Client and server decide independently, so the server may have finished just as the client gave up. Treat it as an unknown outcome: for a write, either make it idempotent and retry with the same key, or read the state to find out what happened.
+  - q: Why can't browsers call gRPC directly?
+    intuition: Where does the status go?
+    approach: |
+      gRPC relies on HTTP/2 framing and on trailers for status, and browser APIs don't expose those to JavaScript. gRPC-Web changes the format so a proxy can translate. Alternatively, use ConnectRPC, or transcode REST/JSON at a gateway.
+  - q: What's the difference between proto3 "0" and "not set"?
+    intuition: What is on the wire for a zero?
+    approach: |
+      A plain proto3 scalar with value zero isn't serialised at all, so the receiver sees the default and can't distinguish it from "absent". For a real distinction use `optional`, which tracks presence. It matters for partial updates: "set the discount to 0" and "don't change the discount" need to be different.
+  - q: When would you pick streaming over repeated unary calls?
+    intuition: What does streaming cost you?
+    approach: |
+      When the data is naturally continuous, such as live events, or too large for a message, or when the per-call overhead truly matters. Otherwise use unary: it is load-balanced per call and easier to retry and debug. Streams need reconnect and resume logic, because connections do break.
+practice:
+  - task: Encode a message in the Protobuf wire format by hand, and frame it the way gRPC does. Field 1 is the integer 150.
+    hint: A tag is (field number << 3) | wire type. Varints use 7 bits per byte, low bits first.
+    solution: |
+      Tag: (1 << 3) | 0 = 0x08. Varint of 150: the low 7 bits are 0010110, with the continuation bit set, giving 0x96; the remaining bits give 0x01. Result: `08 96 01`. For gRPC, prefix one zero byte for "not compressed" and the 4-byte big-endian length.
+    solutionCode: protobuf-wire
+  - task: 'Write the function that decides whether to retry a failed call: transient code, idempotent method, attempts left and enough deadline remaining.'
+    hint: Every condition must hold. A retry that can't finish before the deadline only adds load.
+    solution: |
+      Retry only if the code is in a small transient set (`UNAVAILABLE`, `RESOURCE_EXHAUSTED`, and `DEADLINE_EXCEEDED` for a per-attempt timeout), the method is idempotent, attempts remain, and the remaining budget is more than the backoff. Use full jitter, so clients don't retry together.
+    solutionCode: grpc-call-policy
+quiz:
+  - q: You delete a Protobuf field numbered 6. What should you do?
+    options: ['Reuse 6 for the next new field', 'Add `reserved 6` and reserve its name', 'Renumber the later fields', 'Nothing']
+    correct: 1
+    why: 'A reused number makes old data decode as the wrong field. Reserving it stops anyone from doing that.'
+  - q: What is gRPC's default deadline?
+    options: ['1 second', '30 seconds', 'There is none', 'The TCP timeout']
+    correct: 2
+    why: 'gRPC sets no deadline by default, so a client can wait effectively forever.'
+  - q: Why does status arrive in trailers?
+    options: ['For compression', 'The outcome is only known after the body has been sent', 'For browsers', 'It is cheaper']
+    correct: 1
+    why: 'A streaming response can fail halfway through, so the final result has to come at the end. That reliance on trailers is also why browsers need a proxy.'
+  - q: A write call returned DEADLINE_EXCEEDED. Which statement is right?
+    options: ['It definitely failed', 'It definitely succeeded', 'The outcome is unknown', 'gRPC rolled it back']
+    correct: 2
+    why: 'Each side decides independently, and work done before a cancel is not rolled back.'

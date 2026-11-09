@@ -1,0 +1,31 @@
+title: One deadline shared by three services
+legend:
+  info: 'time still left'
+  warn: 'running out'
+  bad: 'too late, so it is cancelled'
+  ok: 'work saved by failing early'
+frames:
+  - caption: 'The gateway gives the request a **2-second** deadline. It spends 500 ms on its own work and calls Orders. gRPC sends the time remaining, not a clock time, so the two machines'' clocks do not need to agree.'
+    panels:
+      - kind: kv
+        label: Gateway to Orders
+        pairs: [[budget, 2000 ms], [spent, 500 ms], [sent as grpc-timeout, { v: 1500 ms, tone: info }]]
+  - caption: 'Orders spends 900 ms on a slow database query and calls Payments with what is left. Payments now has 600 ms, not a fresh timeout of its own.'
+    panels:
+      - kind: kv
+        label: Orders to Payments
+        pairs: [[received, 1500 ms], [spent, 900 ms], [sent as grpc-timeout, { v: 600 ms, tone: warn }]]
+  - caption: 'Payments is slow today and needs 2 seconds. At 600 ms the deadline passes. The client sees `DEADLINE_EXCEEDED`, and the server''s call is cancelled.'
+    panels:
+      - kind: kv
+        label: Payments
+        pairs: [[needs, 2000 ms], [allowed, 600 ms], [result, { v: DEADLINE_EXCEEDED, tone: bad }]]
+  - caption: 'Cancelling only helps if your code checks for it. A handler that ignores cancellation keeps working on an answer nobody will read. And **work done before the cancel is not rolled back**, which is why payments need idempotency keys.'
+    panels:
+      - kind: rows
+        label: Server handler
+        items: [{ v: 'checks cancellation and stops', tone: ok }, { v: 'ignores it and keeps the thread busy', tone: bad }]
+  - caption: 'With no deadline, gRPC waits effectively forever, and threads pile up across every service in the chain. **gRPC sets no deadline by default**, so a missing one is the most common outage in the making.'
+    panels:
+      - kind: note
+        text: 'Set a deadline on every client call, and pass the remainder downstream.'

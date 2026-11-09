@@ -1,0 +1,7 @@
+flowchart TD
+  A[Your code calls<br/>a generated stub] --> B[Protobuf turns the<br/>message into bytes]
+  B --> C[gRPC adds a 5-byte header:<br/>compressed flag and length]
+  C --> D[HTTP/2 DATA frames<br/>on one shared connection]
+  D --> E[Server stub decodes it<br/>and calls your method]
+  E --> F[Reply in DATA frames]
+  F --> G[grpc-status in HTTP trailers,<br/>even when the call succeeded]

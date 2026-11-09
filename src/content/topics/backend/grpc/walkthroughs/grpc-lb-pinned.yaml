@@ -1,0 +1,25 @@
+title: Why adding servers did not help
+legend:
+  bad: 'overloaded'
+  muted: 'idle'
+  ok: 'sharing the load'
+frames:
+  - caption: 'REST on HTTP/1.1 opens many connections, so an ordinary connection-level (L4) load balancer spreads them around. gRPC puts **every call on one long-lived HTTP/2 connection**.'
+    panels:
+      - kind: kv
+        label: L4 load balancer, one client
+        pairs: [[pod-1, { v: 'all 5,000 calls/s', tone: bad }], [pod-2, { v: 0, tone: muted }], [pod-3, { v: 0, tone: muted }]]
+  - caption: 'The balancer decided once, when the connection opened. Scaling out does nothing: new pods get no calls from clients that are already connected.'
+    panels:
+      - kind: kv
+        label: After adding two pods
+        pairs: [[pod-1, { v: 'all 5,000 calls/s', tone: bad }], [pod-2, { v: 0, tone: muted }], [pod-3, { v: 0, tone: muted }], [pod-4, { v: 0, tone: muted }], [pod-5, { v: 0, tone: muted }]]
+  - caption: 'Balance **each call**, not each connection. Either the client connects to every pod and rotates (`round_robin`), or an L7 proxy such as Envoy opens the HTTP/2 frames and distributes them.'
+    panels:
+      - kind: kv
+        label: Client-side or L7 balancing
+        pairs: [[pod-1, { v: 1000, tone: ok }], [pod-2, { v: 1000, tone: ok }], [pod-3, { v: 1000, tone: ok }], [pod-4, { v: 1000, tone: ok }], [pod-5, { v: 1000, tone: ok }]]
+  - caption: 'Streams are different: once started, **a stream cannot be rebalanced**. Limit how long it lives and have clients reconnect, or a few old streams will stay on old pods. Set a maximum connection age so clients discover new pods too.'
+    panels:
+      - kind: note
+        text: 'A single RPC goes to one pod for its whole life, however long that is.'

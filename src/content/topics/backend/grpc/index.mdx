@@ -1,0 +1,175 @@
+---
+title: gRPC in Depth
+summary: How gRPC works on the wire, how Protobuf encodes data and evolves safely, the four streaming modes, deadlines and cancellation, status codes and retries, load balancing, and when gRPC is the wrong choice.
+track: backend
+order: 17
+tags: [backend, api, grpc, protobuf, streaming, http2]
+aliases: [grpc, grpc streaming, protobuf encoding, protocol buffers, varint, wire format, field numbers, reserved fields, grpc deadline, deadline propagation, grpc-timeout, grpc status codes, grpc retry, grpc load balancing, round robin grpc, keepalive, max connection age, grpc web, connect rpc, grpc gateway, envoy transcoding, unary rpc, bidirectional streaming, client streaming, server streaming, grpc vs rest, trailers]
+prerequisites: [backend/api-styles, cs-foundations/networking]
+related: [backend/api-versioning, backend/realtime-communication, distributed-systems/load-balancing, distributed-systems/resilience-patterns, backend/idempotency, distributed-systems/microservices]
+quickRef:
+  points:
+    - '**gRPC** = a `.proto` contract, generated typed clients, compact Protobuf messages, over HTTP/2.'
+    - 'Protobuf sends **field numbers, not names**. Never change or reuse a number; `reserved` removed ones.'
+    - '**gRPC sets no deadline by default.** Set one on every call and pass the remaining time downstream.'
+    - 'Four modes: unary, server streaming, client streaming, bidirectional. Streams can''t be rebalanced once started, so use them only when they are worth it.'
+    - 'One long-lived connection defeats L4 load balancers. Balance **per call** on the client or in an L7 proxy.'
+    - 'Retry only transient codes on idempotent calls. Work done before a cancel is **not rolled back**.'
+  useWhen: 'Internal service-to-service APIs, polyglot systems, streaming between services, or "why gRPC over REST?".'
+askedAt:
+  - company: Microsoft
+    year: 2026
+    round: Technical
+    source: https://leetcode.com/discuss/post/7636712/selected-microsoft-sde2l61-interview-exp-qekl/
+  - company: ServiceNow
+    year: 2025
+    round: Hiring manager
+    source: https://leetcode.com/discuss/post/6667179/servicenow-no-response-after-last-round-u7hs1/
+  - company: Oracle
+    year: 2025
+    round: Project discussion
+    source: https://leetcode.com/discuss/post/6555411/oracle-oci-ic2-interview-experience-by-a-v1lf/
+lastReviewed: 2026-11-09
+---
+
+## Why it matters
+
+[API styles](../api-styles/) covers when to choose gRPC. This page covers what happens after you do. Most gRPC incidents aren't about Protobuf syntax. They come from a missing deadline, a load balancer that sends everything to one pod, a retry that charges a customer twice, or a field number somebody reused. All of them make sense once you can see what's on the wire.
+
+<Callout type="analogy">
+A warehouse that runs on printed forms. Both sides hold the same numbered form template (the `.proto` file), so a note only has to say "box 3: 2". Nobody writes out "quantity". It is fast and compact, and anyone without the template can't read it. If someone reprints the form with box 3 meaning "price", old notes are silently misread.
+</Callout>
+
+## What happens on the wire
+
+<Diagram id="grpc-stack" caption="A call is a Protobuf message with a 5-byte header, carried in HTTP/2 frames. The outcome arrives in trailers, after the body." />
+
+Two details explain a lot of gRPC's behaviour:
+
+- **Status comes in HTTP trailers, sent after the body**, and is required even on success. Browsers don't let JavaScript read trailers, so a browser can't call gRPC directly and needs gRPC-Web or a translating proxy.
+- **HTTP/2 multiplexes many calls on one connection.** That removes the cost of opening connections, and it's what upsets load balancers later on.
+
+## Protobuf encoding
+
+<Walkthrough id="grpc-protobuf-bytes" />
+
+<CodeTabs id="protobuf-wire" title="The wire format, by hand" />
+
+Because numbers replace names, **field numbers 1 to 15 take one byte** for the tag, and 16 to 2047 take two. Give the small numbers to fields sent most often.
+
+How much does this really save? These are measured with the code above and gzip:
+
+<Chart
+  type="bar"
+  title="100 orders, bytes on the wire (measured)"
+  bars={[
+    ['JSON', 7722, 'bad'],
+    ['Protobuf', 2383, 'info'],
+    ['JSON + gzip', 1224, 'ok'],
+    ['Protobuf + gzip', 1109, 'ok'],
+  ]}
+  caption="Uncompressed, Protobuf is about 3 times smaller. With compression the gap nearly closes, because repeated JSON keys compress well. Protobuf's clearer gain is less CPU spent parsing."
+/>
+
+So don't justify gRPC by message size alone. The stronger reasons are the enforced contract, generated clients in every language, streaming, and cheaper parsing. Measure with your own payloads if performance is the deciding factor.
+
+### Changing a message safely
+
+| Change | Safe? | Why |
+|---|---|---|
+| Add a field with a new number | Yes | Old readers keep it as an unknown field |
+| Remove a field and `reserved` its number and name | Yes | Nobody can reuse the number by accident |
+| Reuse a field number | **No** | Old data gets decoded as the wrong field |
+| Change a field's number | **No** | Same as deleting it and adding another |
+| Rename a field | Wire-safe | Breaks generated code and JSON |
+| Change `int32` to `int64` | Wire-compatible | Values can be truncated by old readers |
+| Change `string` to `int32` | **No** | Different wire types |
+| Move a field into a `oneof` | **No** | Can lose data |
+| Add an enum value | Wire-safe | Old code may hit an unhandled value |
+
+Enums need a zero value that means "unspecified". In proto3, a plain scalar that equals zero isn't sent, so a receiver can't tell "0" from "not set". Use `optional` when that difference matters. See [API versioning](../api-versioning/) for how to manage bigger changes.
+
+## Four kinds of call
+
+| Mode | Shape | Good for | Watch out for |
+|---|---|---|---|
+| Unary | One request, one response | Most calls: start here | |
+| Server streaming | One request, many responses | Live updates, large result sets | Can't be rebalanced once started |
+| Client streaming | Many requests, one response | Uploads, batching sensor data | The response comes only at the end |
+| Bidirectional | Both sides send independently | Chat, collaborative protocols | Hardest to reason about and debug |
+
+The official guidance is to use streaming only when it brings a real benefit. It avoids per-call setup, but streams can't be load-balanced after they start, are harder to debug, and may scale worse. In Python, streaming RPCs are much slower than unary ones. HTTP/2 flow control gives you backpressure: a slow reader eventually slows the sender.
+
+[Compare streaming across styles](../api-styles/#streaming-across-styles) to see how this looks in REST and GraphQL.
+
+## Deadlines and cancellation
+
+<Walkthrough id="grpc-deadline-chain" />
+
+- The deadline goes over the wire as a `grpc-timeout` header: time remaining, so clock differences don't matter.
+- Propagation to downstream calls is on by default in Java and Go, and must be turned on in C++.
+- **The client and server each decide independently how a call ended.** The server can succeed while the client reports `DEADLINE_EXCEEDED`. Treat a timeout as "unknown outcome", not "failed".
+- Size deadlines from real measurements, then confirm them with load tests.
+
+<CodeTabs id="grpc-call-policy" title="Deadline budgets and retry decisions" />
+
+## Status codes and retries
+
+| Code | Meaning | Retry? |
+|---|---|---|
+| `UNAVAILABLE` | Usually a transient failure | Yes, with backoff, if the call is idempotent |
+| `RESOURCE_EXHAUSTED` | Overloaded or quota used up | Yes, after a longer backoff |
+| `DEADLINE_EXCEEDED` | Ran out of time; outcome unknown | Only if idempotent and the overall budget remains |
+| `ABORTED` | Conflict, such as a concurrency failure | Retry the whole transaction, at a higher level |
+| `FAILED_PRECONDITION` | The system isn't in the required state | No: fix the state first |
+| `INVALID_ARGUMENT`, `NOT_FOUND`, `ALREADY_EXISTS` | The request itself is wrong | No |
+| `UNAUTHENTICATED`, `PERMISSION_DENIED` | Credentials or access | No |
+
+`UNKNOWN` and `INTERNAL` usually mean a bug. gRPC doesn't assume calls are idempotent, so retrying writes safely is your job: mark idempotent methods and use [idempotency keys](../idempotency/). Cap total retries, as covered in [resilience patterns](../../distributed-systems/resilience-patterns/), so they can't multiply an outage.
+
+## Load balancing and connections
+
+<Walkthrough id="grpc-lb-pinned" />
+
+Operating rules from the gRPC performance guide and common practice:
+
+- **Reuse channels and stubs.** Creating a channel per call throws away the main benefit of HTTP/2.
+- An HTTP/2 connection has a limit on concurrent streams, and extra calls queue on the client. If that becomes a bottleneck, use separate channels or a small pool.
+- **Use keepalive pings** so idle connections are not silently dropped by firewalls and NAT.
+- **Set a maximum connection age** on servers so clients spread out after a deploy.
+- Default maximum message size is commonly 4 MB. For large data, stream it in chunks or send a link to object storage.
+
+## When not to use gRPC
+
+| Situation | Better choice |
+|---|---|
+| Public API for unknown developers | [REST](../rest-api-design/) with OpenAPI |
+| Browser clients as the main consumer | REST or GraphQL; or gRPC-Web, or ConnectRPC |
+| Responses that benefit from CDN caching | REST |
+| One small team and one language | A plain HTTP API is simpler |
+| Older infrastructure that doesn't pass HTTP/2 end to end | REST, until it does |
+
+Debugging takes more effort, as the payloads are binary: use `grpcurl`, server reflection and logging interceptors. A common compromise is **gRPC inside, REST at the edge**, translated by an API gateway.
+
+<Pitfalls>
+
+- **No deadline.** There is no default, so calls can wait forever.
+- **A fresh timeout at each hop** instead of passing on what's left.
+- **Retrying non-idempotent calls** after `DEADLINE_EXCEEDED`. The first attempt may have worked.
+- **An L4 load balancer** in front of long-lived connections.
+- **A new channel for each request.**
+- **Reusing a field number** after deleting a field.
+- **Ignoring cancellation** in server handlers, leaving work running for nobody.
+- **Justifying gRPC by payload size** without measuring against gzipped JSON.
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- Protobuf sends field numbers; the numbers are the contract, and they never change.
+- Set a deadline on every call, and pass the remaining time downstream.
+- Treat a timeout as an unknown outcome, and retry only idempotent work.
+- Balance per call, with client-side balancing or an L7 proxy.
+- Use unary until streaming earns its added complexity.
+
+</KeyTakeaways>
