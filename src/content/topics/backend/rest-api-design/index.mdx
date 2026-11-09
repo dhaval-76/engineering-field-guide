@@ -6,7 +6,7 @@ order: 10
 tags: [backend, rest, http, api-design, versioning]
 aliases: [rest best practices, http status codes, put vs patch, api versioning, problem details, rfc 9457, breaking changes, 401 vs 403]
 prerequisites: []
-related: [backend/pagination, backend/idempotency]
+related: [backend/pagination, backend/idempotency, backend/api-versioning, backend/api-styles]
 quickRef:
   points:
     - '**URLs name resources (nouns); methods are the verbs.** `GET` is safe; `GET`, `PUT`, `DELETE` are idempotent; `POST` isn''t.'
@@ -77,6 +77,8 @@ Spring Boot supports this out of the box (`ProblemDetail`, `spring.mvc.problemde
 - Sparse responses: `fields=id,status,total` when payloads are large; or expand related resources on request (`expand=customer`).
 
 ## Versioning and evolution
+
+This is the short version. For the full lifecycle, see [API versioning](../api-versioning/).
 
 <CodeTabs id="api-deprecation" title="Breaking vs non-breaking changes and deprecation headers" />
 

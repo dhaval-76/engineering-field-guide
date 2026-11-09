@@ -72,7 +72,14 @@ each group, so existing links keep working. Update `related`/`prerequisites` lin
 - Encryption at rest and in transit, and key management.
 - Signing and verifying webhooks (HMAC, timestamps, replay protection).
 
-### 3. API styles
+### 3. API styles (done 2026-11-09)
+
+Done: `backend/api-styles` already had the basic comparison, so this added depth rather than
+repeating it: new topics `backend/grpc`, `backend/graphql` and `backend/api-versioning`, plus a
+"Streaming across styles" comparison and links on `api-styles` and `rest-api-design`. Research
+notes are in `research/README.md`.
+
+Original scope:
 
 gRPC, GraphQL and API versioning, compared with REST: when to use which, the trade-offs, and
 streaming.

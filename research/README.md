@@ -73,6 +73,14 @@ Done before writing the five new `ai-engineering/` topics.
 
 **Measured, not quoted.** The HNSW recall and distance charts come from running the page's own Java code on 20,000 clustered 64-dimensional vectors with 200 queries. The confidence intervals and cost figures are computed by the code shown on those pages.
 
+## Research log: API styles (2026-11-09)
+
+**Interview reports used as `askedAt` tags**, each read in context: [Microsoft 2026](https://leetcode.com/discuss/post/7636712/selected-microsoft-sde2l61-interview-exp-qekl/), [ServiceNow 2025](https://leetcode.com/discuss/post/6667179/servicenow-no-response-after-last-round-u7hs1/) and [Oracle 2025](https://leetcode.com/discuss/post/6555411/oracle-oci-ic2-interview-experience-by-a-v1lf/) for gRPC and Protobuf; [Walmart 2024](https://leetcode.com/discuss/post/6146111/walmart-sde-3-interview-experience-by-ur-uels/) and [Uber 2025](https://leetcode.com/discuss/post/6820731/uber-sde-2-frontend-by-anonymous_user-rvuq/) for GraphQL; [Goldman Sachs 2025](https://leetcode.com/discuss/post/6891139/goldman-sachs-analyst-interview-experien-3cm8/) for versioning. Not used: a Google-tagged post that is an article about gRPC, and a Shopify post where the candidate raised versioning unprompted.
+
+**Primary sources:** grpc.io guides ([performance](https://grpc.io/docs/guides/performance/), [deadlines](https://grpc.io/docs/guides/deadlines/), [status codes](https://grpc.io/docs/guides/status-codes/), [core concepts](https://grpc.io/docs/what-is-grpc/core-concepts/)), the [gRPC HTTP/2 protocol](https://github.com/grpc/grpc/blob/master/doc/PROTOCOL-HTTP2.md), Protobuf [encoding](https://protobuf.dev/programming-guides/encoding/) and [proto3](https://protobuf.dev/programming-guides/proto3/), graphql.org ([security](https://graphql.org/learn/security/), [performance](https://graphql.org/learn/performance/), [serving over HTTP](https://graphql.org/learn/serving-over-http/)), the [Relay connection spec](https://relay.dev/graphql/connections.htm), [RFC 8594](https://www.rfc-editor.org/rfc/rfc8594) (Sunset), [RFC 9745](https://www.rfc-editor.org/rfc/rfc9745) (Deprecation), [Google AIP-180](https://google.aip.dev/180) and [Stripe's versioning design](https://stripe.com/blog/api-versioning) (2017).
+
+**Measured:** the payload chart on the gRPC page encodes 100 sample orders with the page's own code and gzip. Web comparisons of gRPC and REST disagree widely on speed, so the page quotes no general speed-up figure.
+
 ## Decisions (2026-10-30)
 
 **Keep** every migrated legacy topic; all of them show up in the data.

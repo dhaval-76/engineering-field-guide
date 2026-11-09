@@ -65,6 +65,8 @@ const termIds = new Set(glossaryFiles.map(stem));
 
 const used = { code: new Set<string>(), diagram: new Set<string>(), walk: new Set<string>() };
 const banned = /\bSDE[- ]?(1|2|3|I{1,3})\b|\bweek\s+\d\b|\bW[1-8]\b(?!\w)/i;
+// Source links quote other sites' URLs, which may contain these words; only our own text counts.
+const withoutUrls = (text: string) => text.replace(/https?:\/\/[^\s"')]+/g, '');
 
 const topicKey = (f: string) => f.match(/topics\/([^/]+\/[^/]+)\/index\.mdx$/)?.[1];
 const topicKeys = new Set(mdxFiles.map(topicKey).filter(Boolean));
@@ -106,7 +108,7 @@ for (const f of mdxFiles) {
   for (const m of src.matchAll(/<Term\s+id="([^"]+)"/g)) {
     if (!termIds.has(m[1]!)) errors.push(`${f}: <Term id="${m[1]}"> has no glossary entry`);
   }
-  const b = src.match(banned);
+  const b = withoutUrls(src).match(banned);
   if (b) errors.push(`${f}: contains level/schedule framing "${b[0]}"`);
 }
 
@@ -123,7 +125,7 @@ for (const f of qaFiles) {
     for (const q of data[group] ?? []) {
       for (const a of q.askedAt ?? [])
         if (!a.source) errors.push(`${f}: askedAt ${a.company} has no source`);
-      const b = JSON.stringify(q).match(banned);
+      const b = withoutUrls(JSON.stringify(q)).match(banned);
       if (b) errors.push(`${f}: contains level/schedule framing "${b[0]}"`);
     }
   }

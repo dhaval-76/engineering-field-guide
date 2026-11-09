@@ -6,7 +6,7 @@ order: 15
 tags: [backend, api, graphql, grpc, rest, protobuf]
 aliases: [rest vs graphql, graphql vs rest, grpc vs rest, grpc, protobuf, protocol buffers, graphql, graphql schema, resolver, dataloader, n plus one, batch mapping, persisted queries, query complexity, http2, grpc streaming, deadline, grpc web, grpc gateway, openapi, webhooks, async api, event driven api, bff, backend for frontend, trpc, soap, api evolution, backward compatibility]
 prerequisites: [backend/rest-api-design]
-related: [backend/realtime-communication, system-design/api-gateway, backend/pagination, cs-foundations/networking]
+related: [backend/grpc, backend/graphql, backend/api-versioning, backend/realtime-communication, system-design/api-gateway, backend/pagination, cs-foundations/networking]
 quickRef:
   points:
     - '**REST**: resources over HTTP + JSON; cacheable, universal — the default for public and partner APIs.'
@@ -15,7 +15,7 @@ quickRef:
     - '**Async** (events, queues, webhooks): when the caller shouldn''t wait or many consumers care.'
     - 'Evolve additively: new optional fields; never reuse Protobuf field numbers or change meanings.'
   useWhen: Designing a new API, picking a protocol for internal calls, or answering "REST vs GraphQL vs gRPC".
-lastReviewed: 2026-10-31
+lastReviewed: 2026-11-09
 ---
 
 ## Why it matters
@@ -46,7 +46,7 @@ Covered in depth in [REST API design](../rest-api-design/). Its strengths are th
 
 ## GraphQL
 
-A typed schema describes the graph; clients send queries selecting exactly the fields they need; each field has a **resolver**.
+Security, caching and pagination are covered in [GraphQL in depth](../graphql/). A typed schema describes the graph; clients send queries selecting exactly the fields they need; each field has a **resolver**.
 
 <CodeTabs id="api-schema" title="A GraphQL schema: queries, a mutation with user errors, cursor pagination" />
 
@@ -77,6 +77,26 @@ Production concerns:
 - **Load balancing** — HTTP/2 keeps one long-lived connection, so an L4 <Term id="load-balancer">load balancer</Term> pins a client to one pod. Use client-side balancing (`round_robin` over <Term id="dns">DNS</Term>), an L7 proxy (Envoy) or a service mesh.
 - **Browsers** need grpc-web or a REST/JSON gateway (gRPC-Gateway, Envoy transcoding).
 - **Compatibility** — add fields with new numbers; never change a field's type or reuse a number (`reserved`); unknown fields are ignored by old clients.
+
+For the wire format, deadlines, retries and load balancing, see [gRPC in depth](../grpc/).
+
+## Streaming across styles
+
+| | REST / HTTP | GraphQL | gRPC |
+|---|---|---|---|
+| Server pushes updates | Server-Sent Events | Subscriptions, usually over WebSocket | Server streaming |
+| Client uploads a stream | Chunked request or multipart | Rarely used | Client streaming |
+| Both ways at once | WebSocket (a separate protocol) | Subscriptions plus mutations | Bidirectional streaming |
+| Browser support | Native | Native | Needs gRPC-Web, and full bidirectional streaming is not available |
+| Backpressure | TCP only, unless you build it | Up to the library | HTTP/2 flow control |
+| Reconnect and resume | SSE has `Last-Event-ID` built in | Up to you | Up to you |
+| Load balancing | Pinned for the life of the connection | Pinned for the life of the socket | Pinned for the life of the stream |
+
+Every streaming connection ends up tied to one server, so plan for reconnects, limit how long connections live, and give deploys time to drain. [Real-time communication](../realtime-communication/) covers polling, SSE and WebSockets in detail. If updates are infrequent, polling is often enough.
+
+## Versioning across styles
+
+REST often uses `/v2` or a date header, GraphQL evolves one schema with `@deprecated`, and gRPC puts the major version in the package name (`shop.orders.v1`). See [API versioning](../api-versioning/).
 
 ## Asynchronous APIs
 
