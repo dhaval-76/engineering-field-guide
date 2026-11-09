@@ -1,0 +1,81 @@
+questions:
+  - q: How would you evaluate an LLM feature before releasing it?
+    think: Dataset, graders, baseline, comparison, staged rollout.
+    answer: |
+      Start with the decision: "can we replace the current flow without hurting resolution rate or safety?" Then:
+
+      **Data.** Take a sample of real requests, past failures, and hand-written edge and attack cases, tagged by type, with expected results written by someone who knows the domain.
+
+      **Graders.** Use code wherever possible: schema, required facts, valid citations. Add a narrow LLM judge for what code can't check, such as faithfulness, and validate it against human labels with kappa.
+
+      **Comparison.** Run the baseline and the candidate on the same cases. Look at per-tag results and every newly failing case, and use a paired test on the cases that changed. Must-pass tags such as payments and security block release.
+
+      **Rollout.** Shadow on real traffic, canary with automatic rollback, then continue to sample production through the same graders and watch feedback, escalation, refusals, cost and latency.
+    askedAt:
+      - company: Google
+        year: 2026
+        round: Hiring manager, Gemini Applications
+        source: https://leetcode.com/discuss/post/7936329/google-hiring-manager-round-gemini-appli-mb5k/
+  - q: How do you verify that the output of an LLM is correct?
+    think: What can you check exactly, and what needs judgement?
+    answer: |
+      It depends on what "correct" means for the task. Split it into layers. Checks in code come first: does the output match the schema, are the amounts and dates the same as the source records, and does every citation refer to a source that was really retrieved? For grounded answers, a judge checks that each claim is supported by the retrieved text. For high-stakes actions, don't rely on the model at all: the application re-checks against the system of record, and a person approves it.
+
+      Offline, a labelled eval set measures how often each layer catches errors. In production, sampled grading and user feedback find what the eval set missed.
+    askedAt:
+      - company: Amazon
+        year: 2026
+        round: GenAI round
+        source: https://leetcode.com/discuss/post/8542502/software-development-engineer-i-amazon-i-tusz/
+  - q: A new prompt scores 93% against the old prompt's 91% on 100 cases. Do you ship it?
+    think: Is the difference real, and what got worse?
+    answer: |
+      Not on that number alone. With 100 cases each rate has an uncertainty of about 5 to 6 points, so comparing the two averages proves nothing.
+
+      Since both ran on the same cases, I'd look only at what changed. If it fixed 2 and broke none, that's still weak statistically, but it is safe and I'd probably ship. If it fixed 8 and broke 6, then the net is the same but the risk is very different, and I'd read those 6. If any are in a must-pass category, the answer is no. For a decision that matters, I'd add cases in the affected category or use a shadow test on real traffic.
+  - q: Your LLM judge says quality is up after a model upgrade, but users are complaining. What could be wrong?
+    think: Which part of the measurement could be broken?
+    answer: |
+      Check the instrument first. The judge may have changed along with the model, or it may have a bias, such as preferring longer answers if the new model is wordier. So re-validate it: hand-label a sample of new outputs and compute kappa.
+
+      Then check coverage. The eval set may not include what users complain about, so cluster the complaints and compare with the tags. Compare per-tag rather than overall. Also look at things the judge doesn't measure at all: latency, tone, format changes that break the UI, or refusals going up. Then add the complaint cases to the eval set so it can't happen silently again.
+followUps:
+  - q: Why not use accuracy against human labels to validate a judge?
+    intuition: What does a useless judge score on imbalanced data?
+    approach: |
+      If 90% of outputs are good, a judge that always says "pass" scores 90% agreement and catches no failures. Cohen's kappa subtracts the agreement you'd expect by chance, and that judge scores 0. Also look at how many real failures it catches (recall on the failing class), because that is its job.
+  - q: How large should an eval set be?
+    intuition: What size of change are you trying to detect?
+    approach: |
+      It depends on the smallest change that matters. At a 90% pass rate, 50 cases give about ±8.5 points, 500 about ±2.6. Start with 30 to 50 to catch big regressions, since that's already far better than nothing. Grow by adding every production failure. For a small difference, use paired comparisons or a larger sample.
+  - q: Isn't it risky to rely on a hosted eval tool?
+    intuition: Who owns the most valuable asset?
+    approach: |
+      The eval set is the asset, and it should live in your repository as plain data, with graders in code. Tools come and go: OpenAI announced the shutdown of its Evals platform for 30 November 2026. If your data is portable, changing tools is only a small migration.
+  - q: How do you evaluate something with no single right answer, such as a summary?
+    intuition: Break "good" into checkable properties.
+    approach: |
+      Replace "is it good?" with several narrow criteria: does it include the required points, does it state anything not in the source, is it within the length limit, and does it use the requested format? Each has its own check or judge, and you can track each one separately.
+practice:
+  - task: 'Build a small eval gate: run cases against two versions of a model function, report new failures and fixes, and compute a confidence interval and a paired significance test.'
+    hint: Store the set of failed ids per run. Only the cases in exactly one failed set matter for the comparison.
+    solution: |
+      Run each case and collect the ids that fail. New failures are candidate minus baseline; fixes are baseline minus candidate. The Wilson interval gives the uncertainty in one pass rate. For the comparison, apply a two-sided sign test to (new failures, fixes), because cases with the same result in both runs say nothing about the change. Block the release on any new failure in a must-pass tag.
+    solutionCode: eval-gate
+quiz:
+  - q: A new version passes 47/50 and the old passed 46/50. Four cases were fixed and three broke. What is the right conclusion?
+    options: ['Ship: the score went up', 'The difference is within noise, so read the three new failures', 'The eval set is too large', 'Roll back immediately, without reading them']
+    correct: 1
+    why: 'A net gain of one out of seven changed cases is well within chance, and the three broken cases may matter more than the gain.'
+  - q: Which grader should you prefer for checking that a reply is valid JSON containing an order id?
+    options: ['An LLM judge', 'Embedding similarity to a reference', 'A code check', 'Human review of every case']
+    correct: 2
+    why: 'Code is free, exact and repeatable. Keep LLM judges for what code can''t check.'
+  - q: 90% of your labelled outputs are good. A judge always says "pass". What are its agreement and kappa?
+    options: ['90% and 0', '90% and 0.9', '50% and 0', '100% and 1']
+    correct: 0
+    why: 'It agrees 90% of the time by always saying yes, which is exactly what chance predicts, so kappa is 0.'
+  - q: Why grade retrieval and generation separately in RAG?
+    options: ['It is cheaper', 'So you can tell which half failed', 'Generation cannot be graded', 'Retrieval is non-deterministic']
+    correct: 1
+    why: 'A wrong answer has very different fixes depending on whether the right chunk was retrieved at all.'

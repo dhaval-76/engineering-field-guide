@@ -1,0 +1,147 @@
+---
+title: Evaluating LLM Output
+summary: How to tell whether an LLM feature is good and whether a change made it better — eval sets, code checks and LLM judges, comparing versions case by case, sample sizes, and monitoring in production.
+track: ai-engineering
+order: 15
+tags: [ai-engineering, llm, evaluation, testing, quality]
+aliases: [llm evaluation, evals, eval set, golden dataset, golden set, llm as judge, llm judge, grader, regression testing prompts, prompt regression, faithfulness, groundedness, answer relevance, ragas, promptfoo, hallucination rate, offline evaluation, online evaluation, cohens kappa, judge calibration, ai testing, model upgrade testing, shadow testing llm]
+prerequisites: [ai-engineering/llm-fundamentals]
+related: [ai-engineering/rag, ai-engineering/llm-system-design, backend/testing, ai-engineering/guardrails-prompt-injection, ai-engineering/agents-and-tool-calling]
+quickRef:
+  points:
+    - 'An **eval** runs a fixed set of real cases through your system and grades the output. It is the unit test suite for non-deterministic code.'
+    - 'Build the set from **production traffic and past failures**, tagged by type. Keep it in your repository, versioned.'
+    - 'Grade with **code first** (schema, required facts, citations). Use an **LLM judge** only for what code can''t check, and calibrate it against human labels.'
+    - 'Compare versions **on the same cases, case by case**. A higher average can hide new failures.'
+    - '50 cases at 90% pass could really be anywhere from about 79% to 96%. Small sets can only detect large changes.'
+    - 'Offline evals don''t end the job: **shadow, canary, and sample real traffic** to catch drift.'
+  useWhen: 'Before changing a prompt, model, retrieval setting or chunking. Whenever someone says "it seems better".'
+askedAt:
+  - company: Google
+    year: 2026
+    round: Hiring manager, Gemini Applications
+    source: https://leetcode.com/discuss/post/7936329/google-hiring-manager-round-gemini-appli-mb5k/
+  - company: Amazon
+    year: 2026
+    round: GenAI round
+    source: https://leetcode.com/discuss/post/8542502/software-development-engineer-i-amazon-i-tusz/
+lastReviewed: 2026-11-09
+---
+
+## Why it matters
+
+Normal tests compare output to an exact expected value. An LLM can phrase a correct answer a thousand ways, and the same input may give a different answer next time. So teams fall back on trying a few examples by hand. That is how a prompt change that fixes one complaint quietly breaks refunds.
+
+Evaluation replaces "it seems better" with a number you can compare. It is also what makes everything else safe to change: prompts, models, retrieval, even cost cutting. Interviewers now treat it as the mark of someone who has run LLM systems for real. They care less about metric names and more about whether you can say what you measured, how you trust it, and what decision it drove.
+
+<Callout type="analogy">
+A restaurant changing a recipe. The chef tasting one spoonful and saying "better" is not evidence. A panel tasting the same fixed menu before and after, each dish scored on written criteria, is. And you still read the comment cards after launch, because customers order things the panel never tried.
+</Callout>
+
+## The loop
+
+<Diagram id="eval-loop" caption="Real traffic feeds the eval set. Every change is run against it and compared with the baseline before it reaches users, and production results feed new cases back in." />
+
+Evals come first. Write them before optimising, so you have a baseline to measure every later change against.
+
+## Building the eval set
+
+| Source | Why |
+|---|---|
+| Sampled production requests | Matches what users really ask |
+| Thumbs-down, escalations, bug reports | Each real failure becomes a permanent regression test |
+| Hand-written edge cases | Empty input, very long input, other languages, ambiguous questions |
+| Adversarial cases | Prompt injection, requests for other users' data |
+| Questions that should be declined | The right behaviour is "I don't know" |
+
+Practical rules:
+
+- **Start small and start now.** 30 to 50 good cases beat 5,000 synthetic ones you never read.
+- **Tag every case** (`refund`, `multi-step`, `non-English`). An overall average hides a category that collapsed.
+- **Store it as data in the repository**, versioned with the prompt. A hosted eval product can go away: OpenAI's Evals platform became read-only on 31 October 2026 and shuts down on 30 November 2026.
+- **Hold some back.** If you keep tuning against the same cases, the prompt ends up fitted to them. Keep a set you only run before release.
+- **Have someone who knows the domain write the expected results.** Engineers are often wrong about what a good answer is.
+
+## Grading: start with the cheapest thing that works
+
+| Grader | Checks | Cost and trust |
+|---|---|---|
+| **Code checks** | Valid JSON, required field, cites a real source id, contains the order number, under the length limit | Free, exact, repeatable: use as many as you can |
+| **Structured facts** | Extract the claimed amount or date and compare it to the known value | Cheap and exact |
+| **Embedding similarity** | Is it close to the reference answer? | Cheap but blunt: "refund allowed" and "refund not allowed" look very similar |
+| **LLM judge** | Faithful to the sources? Polite? Answered the question? | Flexible, but it is another model that can be wrong |
+| **Human review** | Anything high stakes; judge calibration | Most trusted, slowest |
+
+For [RAG](../rag/), grade retrieval and generation separately, or you can't tell which one failed:
+
+- **Context recall**: was the right chunk retrieved?
+- **Faithfulness (groundedness)**: is every claim supported by the retrieved text?
+- **Answer relevance**: did it answer what was asked?
+
+For [agents](../agents-and-tool-calling/), grade the outcome and the path: did it finish, which tools did it call, how many steps did it take, and did it do anything it shouldn't have?
+
+### Making an LLM judge trustworthy
+
+An LLM judge is a classifier, and a classifier needs validating.
+
+1. **Ask one narrow question** per judge, with a written rubric. "Is every number in the answer present in the context? yes or no" beats "rate this answer from 1 to 10".
+2. **Label 100 to 200 outputs by hand**, then measure how often the judge agrees.
+3. **Use kappa, not raw agreement.** If 90% of answers are good, a judge that always says "pass" agrees 90% of the time and has learned nothing. Its kappa is 0.
+4. **Re-check whenever anything changes**: the judge's model, its prompt, the rubric, or the kind of traffic.
+5. **Watch for known biases.** Judges tend to favour longer answers and whichever answer comes first, so randomise the order in comparisons.
+
+<CodeTabs id="eval-judge-agreement" title="Is the judge better than chance?" />
+
+## Comparing two versions
+
+The most common mistake is comparing two averages.
+
+<Walkthrough id="eval-regression" />
+
+<CodeTabs id="eval-gate" title="Run, compare case by case, and test whether the difference is real" />
+
+Because the same cases run under both versions, the only ones that carry signal are those that **changed**. A paired test on those can detect differences that comparing two averages can't. In CI, block the release when a must-pass tag has any new failure, and otherwise show the diff for a person to read.
+
+### How many cases do you need?
+
+<Chart
+  type="line"
+  title="Uncertainty in a 90% pass rate (95% interval, ± points)"
+  x={[25, 50, 100, 200, 500, 1000, 2000]}
+  series={[{ name: '± percentage points', values: [11.4, 8.5, 6.0, 4.2, 2.6, 1.9, 1.3], tone: 'accent' }]}
+  caption="Computed with the Wilson interval. Halving the uncertainty takes about four times the cases."
+/>
+
+Models are also non-deterministic. If results swing between runs, run each case 3 to 5 times and record the pass fraction, particularly for agents.
+
+## In production
+
+Offline sets go stale because real usage shifts. Roll changes out in stages:
+
+1. **Shadow**: run the new version on real requests, show users the old one, and compare.
+2. **Canary**: send a few percent of traffic to it, with automatic rollback on a metric.
+3. **Monitor**: sample live traffic through your graders. Track thumbs-down rate, how often users retry or edit the answer, escalation to humans, refusals, latency and cost.
+
+Pin exact model versions where the provider allows it, so a silent upgrade doesn't look like drift. Log the prompt version, model and retrieved ids with every request, so a bad answer can be replayed and turned into a test case.
+
+<Pitfalls>
+
+- **Testing exact strings.** Test properties and facts instead.
+- **Only testing the happy path.** Include cases where the correct behaviour is to refuse.
+- **Trusting an uncalibrated judge.** It might agree with whatever sounds confident.
+- **Comparing averages.** New failures can hide behind a better score.
+- **Reporting 92% vs 91% from 50 cases** as an improvement.
+- **Using the same model as both author and judge** without checking. It tends to share its own blind spots.
+- **Stopping at launch.** Traffic changes, and so do provider models.
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- Evals are the test suite that makes LLM systems safe to change. Build them first, from real traffic and failures.
+- Use code checks wherever you can; calibrate LLM judges against human labels with kappa.
+- Compare versions case by case on the same set, and read the new failures.
+- Know how little a small sample can prove.
+- Shadow, canary and keep sampling production.
+
+</KeyTakeaways>

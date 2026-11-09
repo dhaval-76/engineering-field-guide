@@ -1,0 +1,11 @@
+flowchart LR
+  P[Production traces<br/>and user complaints] --> D[(Versioned eval set<br/>real cases, tagged)]
+  S[Hand-written edge cases<br/>and attacks] --> D
+  D --> R[Run candidate<br/>prompt or model]
+  R --> G[Graders<br/>code checks, then LLM judge]
+  G --> C{Compare with<br/>baseline, same cases}
+  C -->|regressions| F[Fix and rerun]
+  F --> R
+  C -->|better, no new failures| O[Shadow, then canary]
+  O --> M[Monitor: feedback,<br/>sampled grading, drift]
+  M --> P

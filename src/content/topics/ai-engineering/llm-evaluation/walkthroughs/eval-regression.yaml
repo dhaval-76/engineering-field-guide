@@ -1,0 +1,32 @@
+title: A higher score that should not ship
+legend:
+  accent: 'the number people look at'
+  info: 'same result in both versions'
+  ok: 'fixed by the change'
+  bad: 'broken by the change'
+frames:
+  - caption: 'The current prompt passes **46 of 50** cases. That is 92%, but with only 50 cases the true rate could be anywhere from about 81% to 97%.'
+    panels:
+      - kind: kv
+        label: Baseline
+        pairs: [[passed, { v: '46 / 50', tone: accent }], [95% interval, '81% – 97%']]
+  - caption: 'You change the prompt and rerun the **same 50 cases**. Now 47 pass. A one-point gain, and the demo looks great. Most teams would ship here.'
+    panels:
+      - kind: kv
+        label: Candidate
+        pairs: [[passed, { v: '47 / 50', tone: accent }]]
+  - caption: 'Compare **case by case** instead. 43 cases passed both times and 3 failed both times, so those carry no information about the change.'
+    panels:
+      - kind: kv
+        label: Case by case
+        pairs: [[passed both, { v: 43, tone: info }], [failed both, { v: 3, tone: info }]]
+  - caption: 'Only the cases that changed matter. **Four** were fixed, and **three** that used to work are now broken. A net gain of one is well within noise: the sign test gives p = 1.0.'
+    panels:
+      - kind: kv
+        label: What changed
+        pairs: [[fixed, { v: 4, tone: ok }], [newly broken, { v: 3, tone: bad }]]
+  - caption: 'Read the three new failures before deciding. If they are refund or security cases, this is a clear no. The pass rate hid the only thing that mattered.'
+    panels:
+      - kind: list
+        label: Newly broken
+        items: [{ v: refund-over-limit, tone: bad, tag: money }, { v: tenant-isolation-3, tone: bad, tag: security }, { v: long-thread-summary, tone: bad }]
