@@ -187,4 +187,52 @@ const reports = defineCollection({
   }),
 });
 
-export const collections = { tracks, topics, qa, glossary, walkthroughs, reports };
+/** Curated per-company interview questions with solutions. One file per company. */
+const companyQuestions = defineCollection({
+  loader: glob({ pattern: '*.yaml', base: './src/content/company-questions' }),
+  schema: z.object({
+    company: z.string(),
+    updated: z.coerce.date(),
+    overview: z.array(markdown).default([]),
+    questions: z
+      .array(
+        z.object({
+          id: z.string(),
+          section: z.enum([
+            'dsa',
+            'lld',
+            'hld',
+            'language',
+            'backend',
+            'fundamentals',
+            'frontend',
+            'ai',
+            'behavioral',
+          ]),
+          title: z.string(),
+          difficulty: z.enum(['easy', 'medium', 'hard']).optional(),
+          leetcode: z.string().optional().describe('Problem slug, exact or closest match'),
+          topic: reference('topics').describe('The guide page that explains this'),
+          problem: markdown,
+          solution: markdown,
+          complexity: z.string().optional(),
+          code: z.string().optional().describe('Snippet id rendered as code tabs'),
+          reports: z
+            .array(z.object({ year: z.number().int(), source: z.url() }))
+            .min(1)
+            .describe('Public reports, one per candidate'),
+        }),
+      )
+      .min(1),
+  }),
+});
+
+export const collections = {
+  tracks,
+  topics,
+  qa,
+  glossary,
+  walkthroughs,
+  reports,
+  companyQuestions,
+};

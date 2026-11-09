@@ -24,7 +24,11 @@ async function list(pattern: string) {
   return out.sort();
 }
 
-const codeFiles = await list('src/content/topics/**/code/*');
+const codeFiles = [
+  ...(await list('src/content/topics/**/code/*')),
+  ...(await list('src/content/company-questions/code/*')),
+];
+const companyFiles = await list('src/content/company-questions/*.yaml');
 const diagramFiles = await list('src/content/topics/**/diagrams/*.{svg,mmd}');
 const walkFiles = await list('src/content/topics/**/walkthroughs/*.yaml');
 const glossaryFiles = await list('src/content/glossary/*.yaml');
@@ -129,6 +133,23 @@ for (const f of qaFiles) {
       if (b) errors.push(`${f}: contains level/schedule framing "${b[0]}"`);
     }
   }
+}
+
+for (const f of companyFiles) {
+  const data = parse(await readFile(join(root, f), 'utf8')) ?? {};
+  const seen = new Set<string>();
+  for (const q of data.questions ?? []) {
+    if (seen.has(q.id)) errors.push(`${f}: duplicate question id "${q.id}"`);
+    seen.add(q.id);
+    if (q.code) {
+      used.code.add(q.code);
+      if (!snippetIds.has(q.code)) errors.push(`${f}: code "${q.code}" has no code files`);
+    }
+    const urls = (q.reports ?? []).map((r: { source: string }) => r.source);
+    if (new Set(urls).size !== urls.length) errors.push(`${f}: "${q.id}" cites a report twice`);
+  }
+  const b = withoutUrls(JSON.stringify(data)).match(banned);
+  if (b) errors.push(`${f}: contains level/schedule framing "${b[0]}"`);
 }
 
 for (const id of snippetIds.keys())

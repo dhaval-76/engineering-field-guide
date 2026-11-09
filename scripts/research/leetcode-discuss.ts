@@ -95,6 +95,7 @@ export const COMPANIES: Record<string, string> = {
   ola: 'Ola',
   dream11: 'Dream11',
   juspay: 'Juspay',
+  cashfree: 'Cashfree',
 };
 
 interface ListNode {

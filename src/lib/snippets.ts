@@ -1,11 +1,14 @@
 import { codeLanguages, type CodeLanguageId } from '~/site.config';
 
-/** Every code file under a topic's `code/` folder, keyed by path. Loaded as raw text at build. */
-const files = import.meta.glob('/src/content/topics/**/code/*', {
-  query: '?raw',
-  import: 'default',
-  eager: true,
-}) as Record<string, string>;
+/** Every code file under a topic's or the company questions' `code/` folder, keyed by path. Loaded as raw text at build. */
+const files = import.meta.glob(
+  ['/src/content/topics/**/code/*', '/src/content/company-questions/code/*'],
+  {
+    query: '?raw',
+    import: 'default',
+    eager: true,
+  },
+) as Record<string, string>;
 
 export interface SnippetVariant {
   /** Language used for highlighting. */

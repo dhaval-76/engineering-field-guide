@@ -1,0 +1,1076 @@
+company: Amazon
+updated: 2026-11-09
+overview:
+  - 'Reported loops usually have **four rounds**: two on DSA, plus low-level and system design. A DSA round is one or two problems in about an hour.'
+  - '**Leadership Principle questions come with almost every round**, so plan for less coding time than the hour suggests.'
+  - 'Many reports describe an **online assessment** first, with a DSA problem and a code repository task where an AI assistant is available.'
+  - 'Candidates report being judged on explanation as well as the answer, so say your approach before you code.'
+questions:
+  - id: rotated-search
+    section: dsa
+    title: 'Search in Rotated Sorted Array'
+    difficulty: medium
+    leetcode: search-in-rotated-sorted-array
+    topic: dsa/binary-search
+    problem: 'A sorted array of distinct values was rotated at an unknown point. Return the index of a target, or -1, in O(log n).'
+    solution: 'At every step one half of the range is still sorted. Check whether the target falls inside that sorted half; if so search there, otherwise search the other half.'
+    complexity: 'O(log n) time, O(1) space'
+    code: dsa-rotated-search
+    reports:
+      - year: 2026
+        source: https://leetcode.com/discuss/post/7878487/amazon-sde2-selected-by-anonymous_user-c0zq/
+      - year: 2026
+        source: https://leetcode.com/discuss/post/8014509/amazon-sde-1-interview-experience-by-pra-azvd/
+      - year: 2026
+        source: https://leetcode.com/discuss/post/8471051/amazon-sde-1-interview-experience-offer-6msy0/
+      - year: 2026
+        source: https://leetcode.com/discuss/post/8575909/amazon-sde-2-india-oct-2026-dsa-lld-roun-vk9s/
+  - id: course-order
+    section: dsa
+    title: 'Course Schedule II / Package Dependencies'
+    difficulty: medium
+    leetcode: course-schedule-ii
+    topic: dsa/topological-sort
+    problem: 'Given items and "a needs b" pairs, return a valid build order, or nothing if there is a cycle. Amazon has also asked this with software packages.'
+    solution: 'Kahn''s algorithm: count incoming edges, start from nodes with none, and remove them one by one. If fewer than n nodes come out, the rest form a cycle.'
+    complexity: 'O(V + E) time and space'
+    code: dsa-course-schedule
+    reports:
+      - year: 2026
+        source: https://leetcode.com/discuss/post/8286346/amazon-sde-2-l5-bangalore-interview-expe-24nl/
+      - year: 2026
+        source: https://leetcode.com/discuss/post/8370355/amazon-package-dependencies-interview-qu-keic/
+      - year: 2026
+        source: https://leetcode.com/discuss/post/8581249/amazon-sde-ii-interview-by-anonymous_use-r2qd/
+      - year: 2026
+        source: https://leetcode.com/discuss/post/8501304/amazon-interview-experience-by-ronak_aga-tjfx/
+  - id: merge-intervals
+    section: dsa
+    title: 'Merge Intervals'
+    difficulty: medium
+    leetcode: merge-intervals
+    topic: dsa/intervals
+    problem: 'Merge every overlapping interval in a list.'
+    solution: 'Sort by start. Extend the last merged interval when the next one overlaps it; otherwise start a new one.'
+    complexity: 'O(n log n) time, O(n) space'
+    code: dsa-merge-intervals
+    reports:
+      - year: 2026
+        source: https://leetcode.com/discuss/post/8286346/amazon-sde-2-l5-bangalore-interview-expe-24nl/
+      - year: 2026
+        source: https://leetcode.com/discuss/post/8520348/amazon-sde-1-newgrad-sde-interview-exper-picx/
+      - year: 2026
+        source: https://leetcode.com/discuss/post/8564500/amazon-l5-sde-2-phone-interview-by-anony-v0o8/
+  - id: house-robber
+    section: dsa
+    title: 'House Robber'
+    difficulty: medium
+    leetcode: house-robber
+    topic: dsa/dynamic-programming
+    problem: 'Pick values from a line of houses to maximise the total, never taking two neighbours.'
+    solution: 'For each house, keep the best total with and without robbing the previous one. One report added a circular street (House Robber II): solve twice, once without the first house and once without the last.'
+    complexity: 'O(n) time, O(1) space'
+    code: cq-house-robber
+    reports:
+      - year: 2026
+        source: https://leetcode.com/discuss/post/8029194/amazon-interview-sde-1-selected-by-anony-qatd/
+      - year: 2026
+        source: https://leetcode.com/discuss/post/8098488/amazon-interview-sde-1-intern-dsa-round-srof2/
+      - year: 2026
+        source: https://leetcode.com/discuss/post/8312943/amazon-sde-2-india-interview-experience-a2s2q/
+  - id: rotting-oranges
+    section: dsa
+    title: 'Rotting Oranges'
+    difficulty: medium
+    leetcode: rotting-oranges
+    topic: dsa/graphs-bfs-dfs
+    problem: 'Rotten oranges infect fresh neighbours each minute. Return the minutes until none are fresh, or -1. Reports describe this as a variation, so expect a changed story.'
+    solution: 'Multi-source BFS: put every rotten orange in the queue at the start and count levels.'
+    complexity: 'O(rows x columns) time and space'
+    code: dsa-rotting-oranges
+    reports:
+      - year: 2026
+        source: https://leetcode.com/discuss/post/8471051/amazon-sde-1-interview-experience-offer-6msy0/
+      - year: 2026
+        source: https://leetcode.com/discuss/post/8585902/amazon-sde2-interview-experience-by-anon-o9t8/
+      - year: 2026
+        source: https://leetcode.com/discuss/post/8533435/amazon-by-anonymous_user-r7vc/
+  - id: first-unique
+    section: dsa
+    title: 'First Unique Element in a Stream'
+    difficulty: medium
+    leetcode: first-unique-number
+    topic: dsa/design-data-structures
+    problem: 'Values arrive one at a time. At any moment, return the first value seen exactly once so far. One report began with the plain string version.'
+    solution: 'Keep unique values in insertion order and a set of those seen twice. `LinkedHashSet` is a hash map plus a doubly linked list, which is the structure one interviewer wanted named.'
+    complexity: 'O(1) per operation, O(n) space'
+    code: cq-first-unique-stream
+    reports:
+      - year: 2026
+        source: https://leetcode.com/discuss/post/8584003/amazon-sde-ii-interview-experience-by-an-1617/
+      - year: 2026
+        source: https://leetcode.com/discuss/post/7670163/amazon-sde-2-selected-by-anonymous_user-7rq8/
+      - year: 2026
+        source: https://leetcode.com/discuss/post/8591208/amazon-sde2-interview-onsite-experience-n8bnl/
+  - id: lca
+    section: dsa
+    title: 'Lowest Common Ancestor of a Binary Tree'
+    difficulty: medium
+    leetcode: lowest-common-ancestor-of-a-binary-tree
+    topic: dsa/trees-and-bst
+    problem: 'Find the deepest node with both targets below it. Reports include a version where a target may be missing (LeetCode 1644) and one phrased as two employees in an org chart.'
+    solution: 'Recurse. A node where the two targets come back from different sides is the answer. If a target may be missing, count how many you actually found before trusting the result.'
+    complexity: 'O(n) time, O(h) space'
+    code: dsa-lca
+    reports:
+      - year: 2026
+        source: https://leetcode.com/discuss/post/8014509/amazon-sde-1-interview-experience-by-pra-azvd/
+      - year: 2026
+        source: https://leetcode.com/discuss/post/7646418/amazon-sde-2-blr-interview-experience-re-c2kl/
+      - year: 2026
+        source: https://leetcode.com/discuss/post/7701734/amazon-sde-2-interview-experience-by-ano-x6lv/
+  - id: reorganize-string
+    section: dsa
+    title: 'Reorganize String'
+    difficulty: medium
+    leetcode: reorganize-string
+    topic: dsa/heaps-and-top-k
+    problem: 'Rearrange a string so no two neighbours match, or return an empty string.'
+    solution: 'It is impossible only if one letter fills more than half (rounded up). Place the most frequent letter on even slots, then fill the rest, moving to odd slots once even ones run out. A max-heap also works.'
+    complexity: 'O(n) time, O(1) extra space'
+    code: cq-reorganize-string
+    reports:
+      - year: 2026
+        source: https://leetcode.com/discuss/post/8286346/amazon-sde-2-l5-bangalore-interview-expe-24nl/
+      - year: 2026
+        source: https://leetcode.com/discuss/post/8513742/amazon-sde-2-l5-spain-by-anonymous_user-vs2p/
+  - id: word-break
+    section: dsa
+    title: 'Word Break'
+    difficulty: medium
+    leetcode: word-break
+    topic: dsa/dynamic-programming
+    problem: 'Can a string be split into dictionary words? The same report followed up with returning every split (Word Break II).'
+    solution: '`ok[i]` is true if some earlier `ok[j]` is true and `s[j..i]` is a word. For every split, use backtracking with memoisation.'
+    complexity: 'O(n squared) lookups, O(n) space'
+    code: dsa-word-break
+    reports:
+      - year: 2026
+        source: https://leetcode.com/discuss/post/7643535/amazon-fullstack-2-interview-experience-yepps/
+  - id: islands
+    section: dsa
+    title: 'Number of Islands'
+    difficulty: medium
+    leetcode: number-of-islands
+    topic: dsa/graphs-bfs-dfs
+    problem: 'Count connected groups of land in a grid.'
+    solution: 'Scan the grid. Each unvisited land cell starts a new island; flood fill it with DFS or BFS.'
+    complexity: 'O(rows x columns) time and space'
+    code: dsa-number-of-islands
+    reports:
+      - year: 2026
+        source: https://leetcode.com/discuss/post/8014509/amazon-sde-1-interview-experience-by-pra-azvd/
+      - year: 2026
+        source: https://leetcode.com/discuss/post/8029194/amazon-interview-sde-1-selected-by-anony-qatd/
+  - id: trapping-rain
+    section: dsa
+    title: 'Trapping Rain Water'
+    difficulty: hard
+    leetcode: trapping-rain-water
+    topic: dsa/two-pointers
+    problem: 'Given bar heights, return how much water is trapped.'
+    solution: 'Two pointers. The side with the lower wall is decided by that wall alone, so add its trapped water and move inward.'
+    complexity: 'O(n) time, O(1) space'
+    code: dsa-trapping-rain-water
+    reports:
+      - year: 2026
+        source: https://leetcode.com/discuss/post/8512004/amazon-sde2-interview-experience-oa-phon-jhvj/
+      - year: 2026
+        source: https://leetcode.com/discuss/post/8533435/amazon-by-anonymous_user-r7vc/
+  - id: top-k-frequent
+    section: dsa
+    title: 'Top K Frequent Elements'
+    difficulty: medium
+    leetcode: top-k-frequent-elements
+    topic: dsa/arrays-and-hashing
+    problem: 'Return the k most frequent values. One interviewer asked for an in-place heap built bottom-up, so be ready to write the heap yourself.'
+    solution: 'Count with a hash map, then use a min-heap of size k, or bucket by frequency for O(n).'
+    complexity: 'O(n log k) time, O(n) space'
+    code: dsa-top-k-frequent
+    reports:
+      - year: 2026
+        source: https://leetcode.com/discuss/post/8575075/amazon-sde-2-sept-2026-rejected-by-anony-uy75/
+      - year: 2026
+        source: https://leetcode.com/discuss/post/8481152/amazon-sde-2-screening-round-spain-by-an-xgot/
+  - id: obstacle-path
+    section: dsa
+    title: 'Shortest Path with Obstacle Elimination'
+    difficulty: hard
+    leetcode: shortest-path-in-a-grid-with-obstacles-elimination
+    topic: dsa/graphs-bfs-dfs
+    problem: 'Find the fewest steps across a grid when you may remove up to k obstacles. One report built up to this from the plain grid path.'
+    solution: 'BFS where the state includes removals left. Revisit a cell only if you arrive with more removals left than before.'
+    complexity: 'O(rows x columns x k) time at worst'
+    code: cq-shortest-path-obstacles
+    reports:
+      - year: 2026
+        source: https://leetcode.com/discuss/post/7878487/amazon-sde2-selected-by-anonymous_user-c0zq/
+      - year: 2026
+        source: https://leetcode.com/discuss/post/8584198/amazon-l5-interview-experience-offer-by-thbff/
+  - id: aggressive-cows
+    section: dsa
+    title: 'Aggressive Cows (Binary Search on the Answer)'
+    topic: dsa/binary-search
+    problem: 'Place c cows in stalls so the smallest gap between any two is as large as possible.'
+    solution: 'Binary search the gap. For a candidate, place cows greedily from the left; if they all fit, try larger.'
+    complexity: 'O(n log n + n log range) time'
+    code: cq-aggressive-cows
+    reports:
+      - year: 2026
+        source: https://leetcode.com/discuss/post/8315111/amazon-l5-sde-2-interview-experience-off-yi2x/
+      - year: 2026
+        source: https://leetcode.com/discuss/post/8581249/amazon-sde-ii-interview-by-anonymous_use-r2qd/
+  - id: capacity-ship
+    section: dsa
+    title: 'Capacity To Ship Packages Within D Days'
+    difficulty: medium
+    leetcode: capacity-to-ship-packages-within-d-days
+    topic: dsa/binary-search
+    problem: 'Packages must ship in order within D days. Find the smallest ship capacity that works.'
+    solution: 'Binary search capacity between the heaviest package and the total weight. Check each candidate by simulating the days.'
+    complexity: 'O(n log sum) time, O(1) space'
+    code: dsa-ship-capacity
+    reports:
+      - year: 2026
+        source: https://leetcode.com/discuss/post/8512004/amazon-sde2-interview-experience-oa-phon-jhvj/
+  - id: container-water
+    section: dsa
+    title: 'Container With Most Water'
+    difficulty: medium
+    leetcode: container-with-most-water
+    topic: dsa/two-pointers
+    problem: 'Choose two lines that hold the most water.'
+    solution: 'Two pointers from the ends. Move the shorter line, because moving the taller one can never help.'
+    complexity: 'O(n) time, O(1) space'
+    code: dsa-container-water
+    reports:
+      - year: 2026
+        source: https://leetcode.com/discuss/post/8512004/amazon-sde2-interview-experience-oa-phon-jhvj/
+  - id: cheapest-flights
+    section: dsa
+    title: 'Cheapest Flights Within K Stops'
+    difficulty: medium
+    leetcode: cheapest-flights-within-k-stops
+    topic: dsa/shortest-paths
+    problem: 'Find the cheapest route with at most k stops.'
+    solution: 'Bellman-Ford limited to k + 1 rounds, copying the distances each round so one round can''t use two flights.'
+    complexity: 'O(k x E) time, O(V) space'
+    code: dsa-cheapest-flights
+    reports:
+      - year: 2026
+        source: https://leetcode.com/discuss/post/8512004/amazon-sde2-interview-experience-oa-phon-jhvj/
+  - id: largest-rectangle
+    section: dsa
+    title: 'Largest Rectangle in Histogram'
+    difficulty: hard
+    leetcode: largest-rectangle-in-histogram
+    topic: dsa/stacks-and-monotonic-stacks
+    problem: 'Find the largest rectangle formed by consecutive bars.'
+    solution: 'Keep a stack of increasing heights. When a lower bar arrives, each popped bar has found its right limit, and the new stack top is its left limit.'
+    complexity: 'O(n) time and space'
+    code: dsa-largest-rectangle
+    reports:
+      - year: 2026
+        source: https://leetcode.com/discuss/post/8522985/amazon-sde-2-interview-experience-select-e2d9/
+  - id: dungeon
+    section: dsa
+    title: 'Minimum Starting Power Across a Grid'
+    difficulty: hard
+    leetcode: dungeon-game
+    topic: dsa/dynamic-programming
+    problem: 'Moving right or down through cells that add or subtract power, find the least starting power that never drops below 1. This is LeetCode''s Dungeon Game.'
+    solution: 'Work backward from the goal. `need = max(1, min(need of right, need of down) - cell)`. Working forward fails because a good total early can hide a dangerous low point.'
+    complexity: 'O(rows x columns) time, O(columns) space'
+    code: cq-dungeon
+    reports:
+      - year: 2026
+        source: https://leetcode.com/discuss/post/8522985/amazon-sde-2-interview-experience-select-e2d9/
+  - id: median-stream
+    section: dsa
+    title: 'Find Median from Data Stream'
+    difficulty: hard
+    leetcode: find-median-from-data-stream
+    topic: dsa/heaps-and-top-k
+    problem: 'Support adding numbers and reading the current median.'
+    solution: 'Two heaps: a max-heap for the lower half and a min-heap for the upper half, kept within one element of each other.'
+    complexity: 'O(log n) per add, O(1) to read'
+    code: dsa-median-stream
+    reports:
+      - year: 2026
+        source: https://leetcode.com/discuss/post/8315111/amazon-l5-sde-2-interview-experience-off-yi2x/
+      - year: 2026
+        source: https://leetcode.com/discuss/post/8312943/amazon-sde-2-india-interview-experience-a2s2q/
+  - id: max-sum-bst
+    section: dsa
+    title: 'Maximum Sum BST in Binary Tree'
+    difficulty: hard
+    leetcode: maximum-sum-bst-in-binary-tree
+    topic: dsa/trees-and-bst
+    problem: 'Find the largest key sum of any subtree that is a valid BST.'
+    solution: 'Post-order. Each node returns whether it is a BST, its min, max and sum, so a parent decides in O(1).'
+    complexity: 'O(n) time, O(h) space'
+    code: cq-max-sum-bst
+    reports:
+      - year: 2026
+        source: https://leetcode.com/discuss/post/8286346/amazon-sde-2-l5-bangalore-interview-expe-24nl/
+  - id: product-except
+    section: dsa
+    title: 'Product of Array Except Self'
+    difficulty: medium
+    leetcode: product-of-array-except-self
+    topic: dsa/arrays-and-hashing
+    problem: 'Return, for each index, the product of every other value, without division.'
+    solution: 'Make one pass for the product of everything on the left and another for everything on the right.'
+    complexity: 'O(n) time, O(1) extra space'
+    code: dsa-product-except-self
+    reports:
+      - year: 2026
+        source: https://leetcode.com/discuss/post/8286346/amazon-sde-2-l5-bangalore-interview-expe-24nl/
+  - id: task-scheduler
+    section: dsa
+    title: 'Task Scheduler'
+    difficulty: medium
+    leetcode: task-scheduler
+    topic: dsa/greedy
+    problem: 'Tasks need a cooldown of n between identical ones. Find the fewest time slots.'
+    solution: 'The most frequent task sets the frame: `(maxCount - 1) x (n + 1) + tasksWithMaxCount`. The answer is the larger of that and the number of tasks.'
+    complexity: 'O(n) time, O(1) space'
+    code: dsa-task-scheduler
+    reports:
+      - year: 2026
+        source: https://leetcode.com/discuss/post/8454618/swe-ii-amazon-phone-screen-by-anonymous_-41gp/
+  - id: binary-tree-cameras
+    section: dsa
+    title: 'Binary Tree Cameras'
+    difficulty: hard
+    leetcode: binary-tree-cameras
+    topic: dsa/trees-and-bst
+    problem: 'Place the fewest cameras so each node is watched by itself, its parent or a child.'
+    solution: 'Greedy from the leaves up: each node reports whether it needs covering, has a camera, or is covered. Put a camera on the parent of any uncovered child.'
+    complexity: 'O(n) time, O(h) space'
+    code: cq-binary-tree-cameras
+    reports:
+      - year: 2026
+        source: https://leetcode.com/discuss/post/8283668/amazon-sde-2-interview-experience-india-avtvf/
+  - id: remove-duplicate-letters
+    section: dsa
+    title: 'Remove Duplicate Letters'
+    difficulty: medium
+    leetcode: remove-duplicate-letters
+    topic: dsa/stacks-and-monotonic-stacks
+    problem: 'Keep one copy of each letter and return the smallest possible result. The reported version asked for the **largest**.'
+    solution: 'Monotonic stack: pop a letter that can be improved on and appears again later. For the largest result, change `top < c` to `top > c`.'
+    complexity: 'O(n) time, O(1) extra space'
+    code: cq-remove-duplicate-letters
+    reports:
+      - year: 2026
+        source: https://leetcode.com/discuss/post/8283668/amazon-sde-2-interview-experience-india-avtvf/
+  - id: three-sum-closest
+    section: dsa
+    title: '3Sum Closest'
+    difficulty: medium
+    leetcode: 3sum-closest
+    topic: dsa/two-pointers
+    problem: 'Find the three numbers whose sum is closest to a target.'
+    solution: 'Sort, fix one number, and move two pointers inward, keeping the closest sum.'
+    complexity: 'O(n squared) time, O(1) extra space'
+    code: cq-three-sum-closest
+    reports:
+      - year: 2026
+        source: https://leetcode.com/discuss/post/8283939/amazon-interview-experience-sde-2-by-agr-k2mo/
+  - id: lis-bounded
+    section: dsa
+    title: 'Longest Increasing Subsequence with a Maximum Gap'
+    difficulty: hard
+    leetcode: longest-increasing-subsequence-ii
+    topic: dsa/dynamic-programming
+    problem: 'Find the longest strictly increasing subsequence where neighbouring values differ by at most k.'
+    solution: 'The usual patience trick no longer works. Keep the best length ending at each value in a segment tree, and for each number query the range `[value - k, value)`.'
+    complexity: 'O(n log maxValue) time, O(maxValue) space'
+    code: cq-lis-bounded
+    reports:
+      - year: 2026
+        source: https://leetcode.com/discuss/post/8420230/amazon-sde-2-interview-experience-2026-e-t1g8/
+  - id: ones-and-zeroes
+    section: dsa
+    title: 'Ones and Zeroes'
+    difficulty: medium
+    leetcode: ones-and-zeroes
+    topic: dsa/dynamic-programming
+    problem: 'Pick the most binary strings using at most m zeros and n ones.'
+    solution: '0/1 knapsack with two capacities. Loop capacities downward so each string is used once.'
+    complexity: 'O(strings x m x n) time, O(m x n) space'
+    code: cq-ones-and-zeroes
+    reports:
+      - year: 2026
+        source: https://leetcode.com/discuss/post/8420230/amazon-sde-2-interview-experience-2026-e-t1g8/
+  - id: basic-calculator
+    section: dsa
+    title: 'Basic Calculator'
+    difficulty: hard
+    leetcode: basic-calculator
+    topic: dsa/stacks-and-monotonic-stacks
+    problem: 'Evaluate a string with `+`, `-` and brackets.'
+    solution: 'Keep a running total and a stack holding the sign that applies to each open bracket.'
+    complexity: 'O(n) time and space'
+    code: cq-basic-calculator
+    reports:
+      - year: 2026
+        source: https://leetcode.com/discuss/post/8409230/interview-experience-amazon-sde-2-3-yoe-xkxue/
+  - id: tree-distance
+    section: dsa
+    title: 'Distance Between Two Nodes in a Tree'
+    topic: dsa/trees-and-bst
+    problem: 'With only the root and two values, return how many edges separate them.'
+    solution: 'Find their lowest common ancestor, then add the depth of each value below it.'
+    complexity: 'O(n) time, O(h) space'
+    code: cq-tree-distance
+    reports:
+      - year: 2026
+        source: https://leetcode.com/discuss/post/8409230/interview-experience-amazon-sde-2-3-yoe-xkxue/
+  - id: stack-middle
+    section: dsa
+    title: 'Stack with Get Middle in O(1)'
+    topic: dsa/design-data-structures
+    problem: 'Design a stack with push, pop, top and get middle, all in O(1).'
+    solution: 'Use a doubly linked list and a pointer to the middle. The pointer moves up on a push that makes the size odd, and down on a pop from an odd size.'
+    complexity: 'O(1) per operation, O(n) space'
+    code: cq-stack-middle
+    reports:
+      - year: 2026
+        source: https://leetcode.com/discuss/post/8409230/interview-experience-amazon-sde-2-3-yoe-xkxue/
+  - id: next-greater
+    section: dsa
+    title: 'Next Greater Element'
+    difficulty: easy
+    leetcode: next-greater-element-i
+    topic: dsa/stacks-and-monotonic-stacks
+    problem: 'For each query value, find the next larger value to its right.'
+    solution: 'Scan with a stack of values still waiting. A bigger value answers everything smaller on the stack.'
+    complexity: 'O(n) time and space'
+    code: cq-next-greater
+    reports:
+      - year: 2026
+        source: https://leetcode.com/discuss/post/8575909/amazon-sde-2-india-oct-2026-dsa-lld-roun-vk9s/
+  - id: search-2d
+    section: dsa
+    title: 'Search a Row and Column Sorted Matrix'
+    difficulty: medium
+    leetcode: search-a-2d-matrix-ii
+    topic: dsa/binary-search
+    problem: 'Find a value in a matrix sorted along rows and columns.'
+    solution: 'Start at the top-right. Larger means move left, smaller means move down, so each step discards a row or column.'
+    complexity: 'O(rows + columns) time, O(1) space'
+    code: cq-search-2d-matrix
+    reports:
+      - year: 2026
+        source: https://leetcode.com/discuss/post/8584003/amazon-sde-ii-interview-experience-by-an-1617/
+  - id: reachable
+    section: dsa
+    title: 'Can B Be Reached from A?'
+    topic: dsa/graphs-bfs-dfs
+    problem: 'Given directed pairs (URLs in one report, flights in another), decide whether a destination is reachable.'
+    solution: 'Build an adjacency list and run BFS or DFS with a visited set. The visited set is what stops cycles from hanging it.'
+    complexity: 'O(V + E) time and space'
+    code: cq-reachable
+    reports:
+      - year: 2026
+        source: https://leetcode.com/discuss/post/8591208/amazon-sde2-interview-onsite-experience-n8bnl/
+      - year: 2026
+        source: https://leetcode.com/discuss/post/7638107/amazon-sde-2-4th-time-rejected-jan-2026-b5b72/
+  - id: find-k-pairs
+    section: dsa
+    title: 'Find K Pairs with Smallest Sums'
+    difficulty: medium
+    leetcode: find-k-pairs-with-smallest-sums
+    topic: dsa/heaps-and-top-k
+    problem: 'From two sorted arrays, return the k pairs with the smallest sums.'
+    solution: 'Min-heap. Start with each `a[i]` paired with `b[0]`; popping a pair adds its next `b` partner.'
+    complexity: 'O(k log k) time, O(k) space'
+    code: cq-k-smallest-pairs
+    reports:
+      - year: 2026
+        source: https://leetcode.com/discuss/post/8561331/amazon-india-sde-2-phone-screen-by-anony-bqkr/
+  - id: k-closest
+    section: dsa
+    title: 'Find K Closest Elements'
+    difficulty: medium
+    leetcode: find-k-closest-elements
+    topic: dsa/binary-search
+    problem: 'In a sorted array, return the k values closest to x.'
+    solution: 'Binary search the left edge of a window of size k, comparing the elements just outside it.'
+    complexity: 'O(log(n - k) + k) time'
+    code: cq-k-closest-elements
+    reports:
+      - year: 2026
+        source: https://leetcode.com/discuss/post/8501304/amazon-interview-experience-by-ronak_aga-tjfx/
+  - id: longest-consecutive
+    section: dsa
+    title: 'Longest Consecutive Sequence'
+    difficulty: medium
+    leetcode: longest-consecutive-sequence
+    topic: dsa/arrays-and-hashing
+    problem: 'Find the longest run of consecutive integers in an unsorted array, in O(n).'
+    solution: 'Put values in a set and only start counting from numbers with no predecessor.'
+    complexity: 'O(n) time and space'
+    code: dsa-longest-consecutive
+    reports:
+      - year: 2026
+        source: https://leetcode.com/discuss/post/8523912/amazon-sde-2-interview-experience-by-ano-2sxp/
+  - id: remove-duplicates-ii
+    section: dsa
+    title: 'Remove Duplicates from Sorted Array II'
+    difficulty: medium
+    leetcode: remove-duplicates-from-sorted-array-ii
+    topic: dsa/two-pointers
+    problem: 'In place, allow each value at most twice.'
+    solution: 'Keep a write index. Accept a value unless it matches the element two places before the write position.'
+    complexity: 'O(n) time, O(1) space'
+    code: cq-remove-duplicates-ii
+    reports:
+      - year: 2026
+        source: https://leetcode.com/discuss/post/8523912/amazon-sde-2-interview-experience-by-ano-2sxp/
+  - id: randomized-set
+    section: dsa
+    title: 'Insert Delete GetRandom O(1)'
+    difficulty: medium
+    leetcode: insert-delete-getrandom-o1
+    topic: dsa/design-data-structures
+    problem: 'Support insert, remove and random pick in O(1).'
+    solution: 'An array plus a map from value to index. To remove, swap the element with the last one and pop.'
+    complexity: 'O(1) average per operation'
+    code: dsa-randomized-set
+    reports:
+      - year: 2026
+        source: https://leetcode.com/discuss/post/8523912/amazon-sde-2-interview-experience-by-ano-2sxp/
+  - id: remove-invalid
+    section: dsa
+    title: 'Remove Invalid Parentheses'
+    difficulty: hard
+    leetcode: remove-invalid-parentheses
+    topic: dsa/stacks-and-monotonic-stacks
+    problem: 'Check whether brackets balance, then find the fewest removals that make a string valid. The report mentioned BFS for the follow-up.'
+    solution: 'BFS over strings, removing one bracket per level. The first level containing a valid string has the fewest removals.'
+    complexity: 'Exponential at worst, O(2^n) strings'
+    code: cq-remove-invalid-parens
+    reports:
+      - year: 2026
+        source: https://leetcode.com/discuss/post/8096099/amazon-sde2-l5-interview-experience-by-a-665g/
+  - id: copy-random-list
+    section: dsa
+    title: 'Copy List with Random Pointer'
+    difficulty: medium
+    leetcode: copy-list-with-random-pointer
+    topic: dsa/linked-lists
+    problem: 'Deep copy a list whose nodes also point at a random node.'
+    solution: 'Map every original node to its copy, then wire `next` and `random` in a second pass.'
+    complexity: 'O(n) time and space'
+    code: cq-copy-random-list
+    reports:
+      - year: 2026
+        source: https://leetcode.com/discuss/post/7670163/amazon-sde-2-selected-by-anonymous_user-7rq8/
+  - id: meeting-rooms-iii
+    section: dsa
+    title: 'Meeting Rooms III'
+    difficulty: hard
+    leetcode: meeting-rooms-iii
+    topic: dsa/intervals
+    problem: 'Meetings take the lowest free room or wait for the first to free up. Which room hosts the most? The report changed the wording.'
+    solution: 'Two heaps: free rooms by number, and busy rooms by end time then number. A delayed meeting keeps its duration.'
+    complexity: 'O(m log n) time'
+    code: cq-meeting-rooms-iii
+    reports:
+      - year: 2026
+        source: https://leetcode.com/discuss/post/7646418/amazon-sde-2-blr-interview-experience-re-c2kl/
+  - id: pattern-132
+    section: dsa
+    title: '132 Pattern'
+    difficulty: medium
+    leetcode: 132-pattern
+    topic: dsa/stacks-and-monotonic-stacks
+    problem: 'Find i < j < k with `nums[i] < nums[k] < nums[j]`.'
+    solution: 'Scan from the right with a decreasing stack. Popped values are the best "2"; any smaller number completes the pattern.'
+    complexity: 'O(n) time and space'
+    code: cq-132-pattern
+    reports:
+      - year: 2026
+        source: https://leetcode.com/discuss/post/7638107/amazon-sde-2-4th-time-rejected-jan-2026-b5b72/
+  - id: min-rotated
+    section: dsa
+    title: 'Find Minimum in Rotated Sorted Array'
+    difficulty: medium
+    leetcode: find-minimum-in-rotated-sorted-array
+    topic: dsa/binary-search
+    problem: 'Find the smallest value in a rotated sorted array.'
+    solution: 'Compare the middle with the right end to tell which side holds the drop.'
+    complexity: 'O(log n) time, O(1) space'
+    code: dsa-rotated-min
+    reports:
+      - year: 2026
+        source: https://leetcode.com/discuss/post/7638107/amazon-sde-2-4th-time-rejected-jan-2026-b5b72/
+  - id: k-partition
+    section: dsa
+    title: 'Partition to K Equal Sum Subsets'
+    difficulty: medium
+    leetcode: partition-to-k-equal-sum-subsets
+    topic: dsa/backtracking
+    problem: 'Can the numbers be split into k groups of equal sum?'
+    solution: 'Backtrack, placing the largest numbers first. Skip buckets with a load you have already tried at this step.'
+    complexity: 'Exponential at worst'
+    code: cq-k-equal-partition
+    reports:
+      - year: 2026
+        source: https://leetcode.com/discuss/post/7638107/amazon-sde-2-4th-time-rejected-jan-2026-b5b72/
+  - id: cracking-safe
+    section: dsa
+    title: 'Cracking the Safe'
+    difficulty: hard
+    leetcode: cracking-the-safe
+    topic: dsa/graphs-bfs-dfs
+    problem: 'Find the shortest string containing every password of length n over k digits.'
+    solution: 'Treat n-1 digits as nodes and each password as an edge, then walk an Euler circuit.'
+    complexity: 'O(k^n) time and space'
+    code: cq-cracking-the-safe
+    reports:
+      - year: 2026
+        source: https://leetcode.com/discuss/post/7607428/amazon-sde-2-l5-bengaluru-reject-by-anon-gc4x/
+  - id: most-stones
+    section: dsa
+    title: 'Most Stones Removed'
+    difficulty: medium
+    leetcode: most-stones-removed-with-same-row-or-column
+    topic: dsa/union-find
+    problem: 'Remove stones that share a row or column with another. How many can go?'
+    solution: 'Union rows with columns. Each connected group can shrink to one stone, so the answer is stones minus groups.'
+    complexity: 'O(n) near-linear time'
+    code: cq-most-stones
+    reports:
+      - year: 2026
+        source: https://leetcode.com/discuss/post/7607428/amazon-sde-2-l5-bengaluru-reject-by-anon-gc4x/
+  - id: boundary-tree
+    section: dsa
+    title: 'Boundary of Binary Tree'
+    difficulty: medium
+    leetcode: boundary-of-binary-tree
+    topic: dsa/trees-and-bst
+    problem: 'List the root, left edge, leaves, then right edge reversed.'
+    solution: 'Handle the three parts separately and leave leaves out of the two edges so nothing is counted twice.'
+    complexity: 'O(n) time and space'
+    code: cq-boundary-tree
+    reports:
+      - year: 2026
+        source: https://leetcode.com/discuss/post/7796848/amazon-sde-2-interview-experience-onsite-e6cs/
+  - id: number-of-atoms
+    section: dsa
+    title: 'Number of Atoms'
+    difficulty: hard
+    leetcode: number-of-atoms
+    topic: dsa/stacks-and-monotonic-stacks
+    problem: 'Count atoms in a chemical formula with nested brackets.'
+    solution: 'A stack of count maps. On `)`, multiply the top map and merge it down.'
+    complexity: 'O(n squared) time at worst'
+    code: cq-number-of-atoms
+    reports:
+      - year: 2026
+        source: https://leetcode.com/discuss/post/8355124/amazon-sde-ii-rejected-4-yoe-tier-1-by-a-uvq1/
+  - id: ipo
+    section: dsa
+    title: 'IPO'
+    difficulty: hard
+    leetcode: ipo
+    topic: dsa/heaps-and-top-k
+    problem: 'Do at most k projects, each needing capital, to maximise final capital.'
+    solution: 'Sort by capital needed. At each step, add newly affordable projects to a max-heap and take the most profitable.'
+    complexity: 'O(n log n) time, O(n) space'
+    code: cq-ipo
+    reports:
+      - year: 2026
+        source: https://leetcode.com/discuss/post/7878487/amazon-sde2-selected-by-anonymous_user-c0zq/
+  - id: seat-distance
+    section: dsa
+    title: 'Seat Furthest from Everyone'
+    difficulty: medium
+    leetcode: maximize-distance-to-closest-person
+    topic: dsa/two-pointers
+    problem: 'Given taken and free seats, find the free seat furthest from anyone.'
+    solution: 'Check each gap between taken seats, using the midpoint for inner gaps and the seat itself at the two ends.'
+    complexity: 'O(n) time, O(1) space'
+    code: cq-seat-distance
+    reports:
+      - year: 2026
+        source: https://leetcode.com/discuss/post/8443351/amazon-sde-2-interview-experience-onsite-k126/
+  - id: lcs
+    section: dsa
+    title: 'Longest Common Subsequence'
+    difficulty: medium
+    leetcode: longest-common-subsequence
+    topic: dsa/dynamic-programming
+    problem: 'Find the longest subsequence shared by two strings.'
+    solution: 'If the current letters match, take the diagonal plus one; otherwise take the better of dropping a letter from either side.'
+    complexity: 'O(n x m) time and space'
+    code: cq-lcs
+    reports:
+      - year: 2026
+        source: https://leetcode.com/discuss/post/8443351/amazon-sde-2-interview-experience-onsite-k126/
+  - id: safest-path
+    section: dsa
+    title: 'Find the Safest Path in a Grid'
+    difficulty: medium
+    leetcode: find-the-safest-path-in-a-grid
+    topic: dsa/shortest-paths
+    problem: 'Maximise the smallest distance to any thief along a path. The report started from a plain BFS and added complexity.'
+    solution: 'Multi-source BFS gives each cell''s distance to a thief. Then run a widest-path search with a max-heap.'
+    complexity: 'O(n squared log n) time'
+    code: cq-safest-path
+    reports:
+      - year: 2026
+        source: https://leetcode.com/discuss/post/8499681/amazon-sde-2-selected-blr-aug-2026-by-dh-61y7/
+  - id: first-missing
+    section: dsa
+    title: 'First Missing Positive'
+    difficulty: hard
+    leetcode: first-missing-positive
+    topic: dsa/arrays-and-hashing
+    problem: 'Find the smallest missing positive integer in O(n) time and O(1) space.'
+    solution: 'Cyclic placement: swap each value v in 1..n to index v - 1, then scan for the first mismatch.'
+    complexity: 'O(n) time, O(1) space'
+    code: cq-first-missing-positive
+    reports:
+      - year: 2026
+        source: https://leetcode.com/discuss/post/8014269/amazon-interview-experience-sde-1-dsa-fo-fvz2/
+  - id: edit-distance
+    section: dsa
+    title: 'Edit Distance'
+    difficulty: medium
+    leetcode: edit-distance
+    topic: dsa/dynamic-programming
+    problem: 'Find the fewest inserts, deletes and replacements turning one word into another.'
+    solution: '`dp[i][j]` is the cost for the two prefixes. Matching letters copy the diagonal; otherwise take one plus the best of the three edits.'
+    complexity: 'O(n x m) time and space'
+    code: dsa-edit-distance
+    reports:
+      - year: 2026
+        source: https://leetcode.com/discuss/post/8533435/amazon-by-anonymous_user-r7vc/
+  - id: word-ladder
+    section: dsa
+    title: 'Word Ladder'
+    difficulty: hard
+    leetcode: word-ladder
+    topic: dsa/graphs-bfs-dfs
+    problem: 'Change one letter at a time through dictionary words. Find the shortest chain. The report only asked for an explanation.'
+    solution: 'BFS over words. Group neighbours by wildcard patterns such as `h*t`.'
+    complexity: 'O(n x L squared) time'
+    code: dsa-word-ladder
+    reports:
+      - year: 2026
+        source: https://leetcode.com/discuss/post/8533435/amazon-by-anonymous_user-r7vc/
+  - id: decode-string
+    section: dsa
+    title: 'Decode String'
+    difficulty: medium
+    leetcode: decode-string
+    topic: dsa/stacks-and-monotonic-stacks
+    problem: 'Expand strings such as `3[a2[c]]`.'
+    solution: 'Two stacks, for counts and partial strings. On `]`, repeat the current string and append it to the saved one.'
+    complexity: 'O(output length) time'
+    code: dsa-decode-string
+    reports:
+      - year: 2026
+        source: https://leetcode.com/discuss/post/8471051/amazon-sde-1-interview-experience-offer-6msy0/
+  - id: jump-game
+    section: dsa
+    title: 'Jump Game'
+    difficulty: medium
+    leetcode: jump-game
+    topic: dsa/greedy
+    problem: 'Can you reach the last index? The interviewer asked for the DP version in this report.'
+    solution: 'The greedy answer tracks the furthest reachable index. The DP version marks each index reachable from an earlier one in O(n squared).'
+    complexity: 'O(n) time, O(1) space (greedy)'
+    code: dsa-jump-game
+    reports:
+      - year: 2026
+        source: https://leetcode.com/discuss/post/7701734/amazon-sde-2-interview-experience-by-ano-x6lv/
+  - id: longest-unique
+    section: dsa
+    title: 'Longest Substring Without Repeating Characters'
+    difficulty: medium
+    leetcode: longest-substring-without-repeating-characters
+    topic: dsa/sliding-window
+    problem: 'Find the longest substring with no repeated character.'
+    solution: 'Sliding window that stores each character''s last index, jumping the left edge past a repeat.'
+    complexity: 'O(n) time, O(alphabet) space'
+    code: dsa-longest-unique-substring
+    reports:
+      - year: 2026
+        source: https://leetcode.com/discuss/post/8536167/amazon-hackon-sde-intern-10490515-by-nik-gq8o/
+  - id: currency-rates
+    section: dsa
+    title: 'Currency Conversion Queries'
+    difficulty: medium
+    leetcode: evaluate-division
+    topic: dsa/union-find
+    problem: 'Given rates such as `C = 10B` and `B = 110Z`, answer many "A to B" queries. Taken from a public compilation of recent questions.'
+    solution: 'Weighted union-find: store each currency''s value relative to its parent, and multiply along the path as you compress it. BFS per query also works if queries are few.'
+    complexity: 'Near O(1) per query after setup'
+    code: cq-currency-rates
+    reports:
+      - year: 2026
+        source: https://leetcode.com/discuss/post/8519174/questions-asked-by-amazon-in-past-6-mont-zxfk/
+  - id: lld-file-search
+    section: lld
+    title: 'File Search Utility (Unix find)'
+    topic: low-level-design/file-system
+    problem: 'Search files by name, size or extension, and combine filters. Expect to be asked how to add new filters.'
+    solution: 'Model filters as a Specification interface with `And`, `Or` and `Not` composites, and walk the tree separately from matching. New filters then need no change to the walker.'
+    reports:
+      - year: 2026
+        source: https://leetcode.com/discuss/post/8591208/amazon-sde2-interview-onsite-experience-n8bnl/
+      - year: 2026
+        source: https://leetcode.com/discuss/post/8522985/amazon-sde-2-interview-experience-select-e2d9/
+  - id: lld-logging
+    section: lld
+    title: 'Logging Framework'
+    topic: low-level-design/logging-framework
+    problem: 'Design a logger such as log4j.'
+    solution: 'Loggers, levels, appenders and formatters behind interfaces. Discuss chain of responsibility for levels, and asynchronous writes with a bounded queue.'
+    reports:
+      - year: 2026
+        source: https://leetcode.com/discuss/post/8523912/amazon-sde-2-interview-experience-by-ano-2sxp/
+      - year: 2026
+        source: https://leetcode.com/discuss/post/7815146/rant-on-amazon-sde-ii-interview-process-xl98c/
+  - id: lld-pubsub
+    section: lld
+    title: 'Publisher-Subscriber System'
+    topic: low-level-design/pub-sub
+    problem: 'Publishers send events by type; subscribers join and leave each type.'
+    solution: 'Observer pattern with a map from topic to subscribers. Use a concurrent collection and decide what a slow subscriber does to delivery.'
+    reports:
+      - year: 2026
+        source: https://leetcode.com/discuss/post/8513742/amazon-sde-2-l5-spain-by-anonymous_user-vs2p/
+  - id: lld-notification
+    section: lld
+    title: 'Notification System'
+    topic: system-design/notification-system
+    problem: 'Several channels such as SMS and email, and users with configured channels.'
+    solution: 'Factory to build a channel, Strategy for delivery, and clear retry and error handling. The report named these patterns specifically.'
+    reports:
+      - year: 2026
+        source: https://leetcode.com/discuss/post/8584198/amazon-l5-interview-experience-offer-by-thbff/
+  - id: lld-elevator
+    section: lld
+    title: 'Elevator System'
+    topic: low-level-design/elevator
+    problem: 'Design elevators, requests and dispatching.'
+    solution: 'Separate state (Elevator) from the scheduling policy so policies can be swapped. Use the State pattern for moving, stopped and idle.'
+    reports:
+      - year: 2026
+        source: https://leetcode.com/discuss/post/8110671/amazon-sde-2-interview-by-anonymous_user-eu5j/
+  - id: lld-ecommerce
+    section: lld
+    title: 'E-commerce Platform'
+    topic: low-level-design/shopping-cart
+    problem: 'Class design for a store, with scenarios.'
+    solution: 'Separate Cart, Order, Inventory and Payment, and handle the last-unit race when placing an order.'
+    reports:
+      - year: 2026
+        source: https://leetcode.com/discuss/post/8074897/amazon-sde-2-interview-exp-blr-by-anonym-wddt/
+  - id: lld-pizza
+    section: lld
+    title: 'Pizza Ordering System'
+    topic: oop-patterns/decorator-adapter-facade-proxy
+    problem: 'Design ordering with toppings, using a decorator-style approach.'
+    solution: 'Each topping wraps a pizza and adds to its cost and description, so new toppings need no new classes.'
+    reports:
+      - year: 2026
+        source: https://leetcode.com/discuss/post/8096099/amazon-sde2-l5-interview-experience-by-a-665g/
+  - id: lld-inventory
+    section: lld
+    title: 'Inventory Management'
+    topic: low-level-design/inventory-management
+    problem: 'One unit is left and two users order at once. How do you stop both succeeding? Taken from a public compilation of recent questions.'
+    solution: 'Reserve stock atomically: a conditional update (`stock > 0`), or row locks in a transaction. Then cover reservation expiry.'
+    reports:
+      - year: 2026
+        source: https://leetcode.com/discuss/post/8519174/questions-asked-by-amazon-in-past-6-mont-zxfk/
+  - id: lld-rate-limiter
+    section: lld
+    title: 'Rate Limiter'
+    topic: low-level-design/rate-limiter
+    problem: 'Compare fixed window, sliding window and token bucket, then make it distributed. Taken from a public compilation of recent questions.'
+    solution: 'Token bucket per key behind a strategy interface. Go distributed with an atomic Redis script.'
+    reports:
+      - year: 2026
+        source: https://leetcode.com/discuss/post/8519174/questions-asked-by-amazon-in-past-6-mont-zxfk/
+  - id: lld-delivery
+    section: lld
+    title: 'Package Delivery, Lockers and Delivery Estimates'
+    topic: low-level-design/lld-method
+    problem: 'Several reports use Amazon''s own logistics: package delivery, a reversed locker where customers book a drop-off slot, and a delivery estimate service.'
+    solution: 'No single page covers these. Use the method: list requirements, find the entities and their states, then isolate the parts that will change behind interfaces. Slot booking has the same race as seat booking.'
+    reports:
+      - year: 2026
+        source: https://leetcode.com/discuss/post/8575909/amazon-sde-2-india-oct-2026-dsa-lld-roun-vk9s/
+      - year: 2026
+        source: https://leetcode.com/discuss/post/8499681/amazon-sde-2-selected-blr-aug-2026-by-dh-61y7/
+      - year: 2026
+        source: https://leetcode.com/discuss/post/8554896/amazon-sde-2-banaglore-alexa-devices-28-x49pi/
+  - id: lld-playlist
+    section: lld
+    title: 'Playlist Mixing Two Song Sources'
+    topic: low-level-design/lld-method
+    problem: 'Mix songs from a DJ service and a recommendation service in a chosen proportion, with user filters, written as production-ready classes on paper.'
+    solution: 'An iterator that merges two source iterators by a ratio Strategy, with filters as a chain of predicates.'
+    reports:
+      - year: 2026
+        source: https://leetcode.com/discuss/post/8443351/amazon-sde-2-interview-experience-onsite-k126/
+  - id: lld-agentic-chatbot
+    section: lld
+    title: 'Agentic Chatbot'
+    topic: ai-engineering/agents-and-tool-calling
+    problem: 'Design a chatbot that accepts queries and generates responses.'
+    solution: 'An agent loop around a model client, with tools behind one interface, conversation memory, and limits on iterations and cost.'
+    reports:
+      - year: 2026
+        source: https://leetcode.com/discuss/post/8585902/amazon-sde2-interview-experience-by-anon-o9t8/
+  - id: hld-bookmyshow
+    section: hld
+    title: 'BookMyShow'
+    topic: system-design/ticket-booking
+    problem: 'Search movies and theatres, and handle seat concurrency.'
+    solution: 'Hold a seat with a short expiry, then confirm with a conditional update tied to payment. Serve search from a read store.'
+    reports:
+      - year: 2026
+        source: https://leetcode.com/discuss/post/7878487/amazon-sde2-selected-by-anonymous_user-c0zq/
+  - id: hld-job-scheduler
+    section: hld
+    title: 'Job Scheduler'
+    topic: system-design/job-scheduler
+    problem: 'One-off and periodic jobs, schema and database choice.'
+    solution: 'Partition due jobs by time bucket, lease them to workers, and make execution idempotent because delivery is at-least-once.'
+    reports:
+      - year: 2026
+        source: https://leetcode.com/discuss/post/8584198/amazon-l5-interview-experience-offer-by-thbff/
+  - id: hld-twitter
+    section: hld
+    title: 'Twitter / News Feed'
+    topic: system-design/news-feed
+    problem: 'Design a timeline.'
+    solution: 'Fan out on write for normal accounts and on read for accounts with huge followings, then merge at read time.'
+    reports:
+      - year: 2026
+        source: https://leetcode.com/discuss/post/8536211/amazon-full-loop-sde-2-reject-by-anonymo-19vv/
+  - id: hld-chatgpt
+    section: hld
+    title: 'Design ChatGPT'
+    topic: ai-engineering/llm-system-design
+    problem: 'Asked with no explicit requirements.'
+    solution: 'Clarify first. Cover streaming responses, conversation storage, GPU capacity and queueing, rate limits and safety checks.'
+    reports:
+      - year: 2026
+        source: https://leetcode.com/discuss/post/8523912/amazon-sde-2-interview-experience-by-ano-2sxp/
+  - id: hld-google-photos
+    section: hld
+    title: 'Google Photos'
+    topic: system-design/file-storage
+    problem: 'Upload, store and browse photos.'
+    solution: 'Upload directly to object storage with signed URLs, generate thumbnails asynchronously, and serve through a CDN.'
+    reports:
+      - year: 2026
+        source: https://leetcode.com/discuss/post/8110671/amazon-sde-2-interview-by-anonymous_user-eu5j/
+  - id: hld-autosuggest
+    section: hld
+    title: 'Personalised Auto-suggest'
+    topic: low-level-design/autocomplete
+    problem: 'Suggestions with trending top-k and more than one language.'
+    solution: 'Precompute top-k per prefix, update trending through a stream with decay, and blend in personal history at read time.'
+    reports:
+      - year: 2026
+        source: https://leetcode.com/discuss/post/7646418/amazon-sde-2-blr-interview-experience-re-c2kl/
+  - id: hld-heatmap
+    section: hld
+    title: 'Live Temperature Heatmap'
+    topic: system-design/realtime-analytics
+    problem: 'Sensors across a continent report temperature; show the latest as a heatmap.'
+    solution: 'Aggregate by geo-cell in a stream processor, keep the latest value per cell, and push tiles to clients.'
+    reports:
+      - year: 2026
+        source: https://leetcode.com/discuss/post/8524405/amazon-sde-2-l5-spain-9-yoe-by-anonymous-tyrg/
+  - id: hld-payment
+    section: hld
+    title: 'Payment System'
+    topic: system-design/payment-system
+    problem: 'The report remembered only that it was payment related.'
+    solution: 'Idempotency keys, a double-entry ledger, a state machine for each payment, and reconciliation with the provider.'
+    reports:
+      - year: 2026
+        source: https://leetcode.com/discuss/post/7701734/amazon-sde-2-interview-experience-by-ano-x6lv/
+  - id: hld-custom
+    section: hld
+    title: 'Examination, Attendance, Reviews, Notes'
+    topic: system-design/approach-and-estimation
+    problem: 'Several reports use everyday products with little guidance: an examination system, hourly attendance, Amazon reviews and a Google Keep style notes app.'
+    solution: 'The interviewer expects you to drive. Set requirements and scale, sketch the API and data model, then go deep on the hardest part.'
+    reports:
+      - year: 2026
+        source: https://leetcode.com/discuss/post/8584003/amazon-sde-ii-interview-experience-by-an-1617/
+      - year: 2026
+        source: https://leetcode.com/discuss/post/8522985/amazon-sde-2-interview-experience-select-e2d9/
+      - year: 2026
+        source: https://leetcode.com/discuss/post/8591208/amazon-sde2-interview-onsite-experience-n8bnl/
+      - year: 2026
+        source: https://leetcode.com/discuss/post/7629323/amazon-sdet-ii-interview-experience-chen-8w7b/
+  - id: behavioural-lp
+    section: behavioral
+    title: 'Leadership Principles, in Nearly Every Round'
+    topic: interviews/behavioral
+    problem: 'Expect about two questions per round, and up to half the hour in some. Named in reports: Ownership, Customer Obsession, Deliver Results, Dive Deep, Learn and Be Curious, Invent and Simplify. One question was "when did you solve a complex problem with a simple solution?"'
+    solution: 'Prepare specific STAR stories with numbers, and expect follow-ups on your own part in them. One candidate reports strong technical feedback but a weak Bar Raiser result on these alone.'
+    reports:
+      - year: 2026
+        source: https://leetcode.com/discuss/post/8585902/amazon-sde2-interview-experience-by-anon-o9t8/
+      - year: 2026
+        source: https://leetcode.com/discuss/post/8523912/amazon-sde-2-interview-experience-by-ano-2sxp/
+      - year: 2026
+        source: https://leetcode.com/discuss/post/8355124/amazon-sde-ii-rejected-4-yoe-tier-1-by-a-uvq1/
+      - year: 2026
+        source: https://leetcode.com/discuss/post/8499681/amazon-sde-2-selected-blr-aug-2026-by-dh-61y7/
+      - year: 2026
+        source: https://leetcode.com/discuss/post/7638107/amazon-sde-2-4th-time-rejected-jan-2026-b5b72/
+      - year: 2026
+        source: https://leetcode.com/discuss/post/8110671/amazon-sde-2-interview-by-anonymous_user-eu5j/
+  - id: ai-repo-round
+    section: ai
+    title: 'AI-assisted Code Repository Round'
+    topic: interviews/ai-assisted-coding
+    problem: 'A real project with an AI assistant: find and fix bugs, or fill in missing code, often against test cases.'
+    solution: 'Read the failing test first and reproduce the bug before asking the assistant. Check each suggestion yourself. One report found the assistant was designed not to reveal the bug.'
+    reports:
+      - year: 2026
+        source: https://leetcode.com/discuss/post/8575075/amazon-sde-2-sept-2026-rejected-by-anony-uy75/
+      - year: 2026
+        source: https://leetcode.com/discuss/post/8512004/amazon-sde2-interview-experience-oa-phon-jhvj/
+      - year: 2026
+        source: https://leetcode.com/discuss/post/8283939/amazon-interview-experience-sde-2-by-agr-k2mo/
+      - year: 2026
+        source: https://leetcode.com/discuss/post/8315111/amazon-l5-sde-2-interview-experience-off-yi2x/
+  - id: ai-questions
+    section: ai
+    title: 'Questions on Using LLMs'
+    topic: interviews/ai-assisted-coding
+    problem: 'How do you use LLMs while developing? How do you verify AI-generated code? When do you not trust it?'
+    solution: 'Give a concrete workflow: tests first, review each change, and treat output as an untrusted draft, especially around security and concurrency.'
+    reports:
+      - year: 2026
+        source: https://leetcode.com/discuss/post/8014509/amazon-sde-1-interview-experience-by-pra-azvd/
+      - year: 2026
+        source: https://leetcode.com/discuss/post/8519174/questions-asked-by-amazon-in-past-6-mont-zxfk/

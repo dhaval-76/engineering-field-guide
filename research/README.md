@@ -85,6 +85,12 @@ Done before writing the five new `ai-engineering/` topics.
 
 Research for the 9-page Networking and Operating Systems split, stopped before any page was written. Interview reports, Linux measurements, sources, rejected posts and the facts still to confirm are in [`cs-foundations-2026-11.md`](cs-foundations-2026-11.md). The measurement programs are in [`probes/cs-foundations/`](probes/cs-foundations/).
 
+## Research log: company question banks (2026-11-10)
+
+**Amazon.** Read the 2026 posts in the LeetCode Discuss cache (316 posts). LeetCode's public problem list (4,109 titles) was matched against the text and links to find named problems, then each citation was read in context. That removed problems listed only as practice links, and one candidate who posted the same story three times counts once. Online assessment posts are not used as question sources. [A public compilation](https://leetcode.com/discuss/post/8519174/) is cited only for the few questions with no first-hand report, and those entries say so.
+
+**Cashfree** wasn't in the cache, so 56 posts mentioning it were fetched from LeetCode Discuss on 2026-11-09 (Cashfree is now in the fetch list). 13 contain real questions, from 2021 to 2026, so older ones are included and dated. The other posts are offers or requests for help. Not used: `interviewexperiences.in` (mirrors the same LeetCode posts), a generic scaleengineer.com guide (not tied to any candidate), Glassdoor (blocked), and a search snippet claiming LeetCode 84 and 410 that couldn't be traced to any report.
+
 ## Decisions (2026-10-30)
 
 **Keep** every migrated legacy topic; all of them show up in the data.

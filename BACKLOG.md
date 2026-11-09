@@ -247,6 +247,19 @@ Original scope:
 Select text on a topic to highlight it or attach a note. Collect them all on one page, and include
 them in export and import. This extends 9c.
 
+### 12. Company question banks (done 2026-11-10, added by the owner ahead of the order)
+
+Done: `/companies/<company>/` now lists questions by section, each with a solution, a link to its
+explanation and the original reports. Amazon has 84 questions and Cashfree 31; every other company
+shows its tagged questions and report topics in the same sections.
+
+Follow-ups, not done:
+
+- 50 new DSA solutions are Java only, so they need JavaScript and Python versions.
+- Low-level and system design entries are short outlines that link to full pages. Several Amazon
+  ones have no dedicated page (package delivery, lockers, playlist mixing, reviews, attendance).
+- Other companies need the same treatment, one at a time, from their reports.
+
 ## Repo housekeeping
 
 ### 11. Update all documentation and add AGENTS.md (done 2026-11-01)

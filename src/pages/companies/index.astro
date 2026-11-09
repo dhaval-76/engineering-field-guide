@@ -5,7 +5,10 @@ import { url } from '~/lib/url';
 
 const companies = (await getCompanyIndex())
   .map((c) => ({ ...c, total: c.items.reduce((n, i) => n + (i.reports ?? 1), 0) }))
-  .sort((a, b) => b.total - a.total || a.name.localeCompare(b.name));
+  .sort(
+    (a, b) =>
+      b.questions.length - a.questions.length || b.total - a.total || a.name.localeCompare(b.name),
+  );
 ---
 
 <BaseLayout
@@ -17,14 +20,19 @@ const companies = (await getCompanyIndex())
     <p class="lede">
       Which topics come up at which companies, counted from public interview write-ups (2024–2026)
       and linked to the original posts. Reports show what some candidates were asked — useful for
-      prioritising, not a guarantee.
+      prioritising, not a guarantee. Companies listed first also have their questions collected with
+      solutions.
     </p>
     {companies.length === 0 && <p class="lede">No company data yet.</p>}
     <ul>
       {companies.map((c) => (
         <li>
           <a href={url(`companies/${c.slug}/`)}>{c.name}</a>
-          <span>{c.items.length} topics</span>
+          <span>
+            {c.questions.length > 0
+              ? `${c.questions.length} questions`
+              : `${c.items.length} topics`}
+          </span>
         </li>
       ))}
     </ul>

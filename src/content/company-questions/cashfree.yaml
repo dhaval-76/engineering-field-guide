@@ -1,0 +1,365 @@
+company: Cashfree
+updated: 2026-11-09
+overview:
+  - 'Reports describe a **first coding round of about an hour on HackerRank**, then low-level design, then a hiring manager round, with each one eliminating candidates.'
+  - 'Coding rounds are mostly one or two easy to medium problems, and one 2026 report names 2D DP and binary search.'
+  - 'Design rounds **dig into concurrency**: be ready to write the locking for seat booking, not only describe it.'
+  - 'Some reports add a **code review** task to the coding round, or a separate machine coding round.'
+questions:
+  - id: roman-to-int
+    section: dsa
+    title: 'Roman to Integer'
+    difficulty: easy
+    leetcode: roman-to-integer
+    topic: dsa/arrays-and-hashing
+    problem: 'Convert a Roman numeral to an integer.'
+    solution: 'Add each value, but subtract it when the next symbol is larger (the I in IV).'
+    complexity: 'O(n) time, O(1) space'
+    code: cq-roman-to-int
+    reports:
+      - year: 2024
+        source: https://leetcode.com/discuss/post/4942593/cashfree-payments-sde-2-4-yoe-reject-by-3ncw0/
+      - year: 2025
+        source: https://leetcode.com/discuss/post/7144760/cashfree-interview-experience-sde2-3-yoe-4gff/
+  - id: capacity-ship
+    section: dsa
+    title: 'Capacity To Ship Packages Within D Days'
+    difficulty: medium
+    leetcode: capacity-to-ship-packages-within-d-days
+    topic: dsa/binary-search
+    problem: 'Packages must ship in order within D days. Find the smallest ship capacity that works.'
+    solution: 'Binary search capacity between the heaviest package and the total weight. Check each candidate by simulating the days.'
+    complexity: 'O(n log sum) time, O(1) space'
+    code: dsa-ship-capacity
+    reports:
+      - year: 2025
+        source: https://leetcode.com/discuss/post/6830186/cashfree-payments-interview-experience-s-xb1c/
+  - id: best-time-stock
+    section: dsa
+    title: 'Best Time to Buy and Sell Stock'
+    difficulty: easy
+    leetcode: best-time-to-buy-and-sell-stock
+    topic: dsa/arrays-and-hashing
+    problem: 'One buy and one later sell: find the maximum profit. The candidate who solved this in O(n squared) was rejected, so give the O(n) version.'
+    solution: 'Track the cheapest price so far and the best profit from selling today.'
+    complexity: 'O(n) time, O(1) space'
+    code: cq-best-time-stock
+    reports:
+      - year: 2025
+        source: https://leetcode.com/discuss/post/6830186/cashfree-payments-interview-experience-s-xb1c/
+  - id: common-slots
+    section: dsa
+    title: 'Common Free Time for Everyone'
+    difficulty: medium
+    leetcode: interval-list-intersections
+    topic: dsa/intervals
+    problem: 'Several celebrities each give their available slots. Find when all of them can meet.'
+    solution: 'Intersect the lists two at a time with two pointers, advancing whichever slot ends first. If input may overlap or be unsorted, sort and merge each list first.'
+    complexity: 'O(total slots x people) time'
+    code: cq-common-slots
+    reports:
+      - year: 2025
+        source: https://leetcode.com/discuss/post/7316892/cashfree-payments-sde-2-rejected-by-piyu-2ver/
+  - id: free-slots
+    section: dsa
+    title: 'Free Slots in a Working Day'
+    difficulty: medium
+    leetcode: merge-intervals
+    topic: dsa/intervals
+    problem: 'Given working hours and possibly overlapping meetings, list the free slots. The report links it to Merge Intervals.'
+    solution: 'Sort by start and sweep a cursor, recording a gap whenever the next meeting starts after it.'
+    complexity: 'O(n log n) time'
+    code: cq-free-slots
+    reports:
+      - year: 2021
+        source: https://leetcode.com/discuss/post/1532098/cashfree-sde-2-interview-by-anonymous_us-6v80/
+  - id: pair-divisible
+    section: dsa
+    title: 'Pair of Songs Divisible by 120'
+    difficulty: medium
+    leetcode: pairs-of-songs-with-total-durations-divisible-by-60
+    topic: dsa/arrays-and-hashing
+    problem: 'Given song durations, return a pair whose total is divisible by 120.'
+    solution: 'Store remainders in a map. For a duration with remainder r, look for `(120 - r) % 120`; the outer `% 120` handles r = 0.'
+    complexity: 'O(n) time, O(120) space'
+    code: cq-pair-divisible
+    reports:
+      - year: 2025
+        source: https://leetcode.com/discuss/post/7157080/cashfree-payments-sde-2-by-anonymous_use-gcvv/
+  - id: delayed-flights
+    section: dsa
+    title: 'Flights Affected by Delays'
+    topic: dsa/graphs-bfs-dfs
+    problem: 'Given flight dependencies and the flights already delayed, return all others that will be delayed. The candidate could not recall the exact wording.'
+    solution: 'Multi-source BFS from the delayed flights along dependency edges, with a visited set.'
+    complexity: 'O(V + E) time and space'
+    code: cq-delayed-flights
+    reports:
+      - year: 2025
+        source: https://leetcode.com/discuss/post/7157080/cashfree-payments-sde-2-by-anonymous_use-gcvv/
+  - id: k-closest
+    section: dsa
+    title: 'Find K Closest Elements'
+    difficulty: medium
+    leetcode: find-k-closest-elements
+    topic: dsa/binary-search
+    problem: 'In a sorted array, return the k values closest to x, in order.'
+    solution: 'Binary search the left edge of a window of size k, comparing the elements just outside it.'
+    complexity: 'O(log(n - k) + k) time'
+    code: cq-k-closest-elements
+    reports:
+      - year: 2025
+        source: https://leetcode.com/discuss/post/6858233/cashfree-interview-experience-by-codedom-7p01/
+  - id: trains-between
+    section: dsa
+    title: 'Trains Between Two Stations'
+    topic: dsa/arrays-and-hashing
+    problem: 'Given each train''s stops and times, list trains going from one station to another, shortest journey first. The sample in the report lists T1 before T4, but T4 is 3 minutes quicker on the data given, so confirm the ordering with your interviewer.'
+    solution: 'Record each train''s departure from the first station and arrival at the second. Keep trains that visit both in the right order, and sort by duration.'
+    complexity: 'O(n log n) time, O(n) space'
+    code: cq-trains-between
+    reports:
+      - year: 2024
+        source: https://leetcode.com/discuss/post/4795525/cashfree-sde2-by-anonymous_user-wyou/
+  - id: four-sum
+    section: dsa
+    title: '4Sum'
+    difficulty: medium
+    leetcode: 4sum
+    topic: dsa/two-pointers
+    problem: 'Find every unique set of four numbers adding to a target. The report calls out duplicates and integer overflow.'
+    solution: 'Sort, fix two numbers, and use two pointers for the rest, skipping repeats at every level. Add as `long`.'
+    complexity: 'O(n cubed) time, O(1) extra space'
+    code: cq-four-sum
+    reports:
+      - year: 2021
+        source: https://leetcode.com/discuss/post/1532098/cashfree-sde-2-interview-by-anonymous_us-6v80/
+  - id: next-palindrome
+    section: dsa
+    title: 'Next Palindrome'
+    topic: dsa/two-pointers
+    problem: 'Print the next palindrome strictly greater than a number: 12301 gives 12321, and 12321 gives 12421.'
+    solution: 'Mirror the left half. If that is not bigger, add one to the left half (with the middle digit) and mirror again. All nines become 10...01.'
+    complexity: 'O(digits) time'
+    code: cq-next-palindrome
+    reports:
+      - year: 2022
+        source: https://leetcode.com/discuss/post/2748580/cashfree-sde-3-bangalore-india-aug-2022-g0f8b/
+  - id: base-convert
+    section: dsa
+    title: 'Convert a Number Between Bases'
+    topic: dsa/bit-manipulation
+    problem: 'Convert a number from base A to base B, in Java only in that round.'
+    solution: 'Parse to a value by repeated multiply and add, then repeatedly take the remainder by the new base and reverse the digits.'
+    complexity: 'O(digits) time'
+    code: cq-base-convert
+    reports:
+      - year: 2023
+        source: https://leetcode.com/discuss/post/3892914/ps-interview-2-cashfree-experience-by-an-25di/
+  - id: timezone
+    section: dsa
+    title: 'Convert a Time Between Time Zones'
+    topic: dsa/approaching-problems
+    problem: 'Convert a time from one time zone to another. The report gave no more detail.'
+    solution: 'Prefer library types: parse to `ZonedDateTime` and call `withZoneSameInstant`. By hand, convert to minutes since midnight, apply the offset difference, and wrap with modulo 1440. Ask about daylight saving.'
+    reports:
+      - year: 2023
+        source: https://leetcode.com/discuss/post/3892914/ps-interview-2-cashfree-experience-by-an-25di/
+  - id: priority-queue
+    section: dsa
+    title: 'Implement a Priority Queue'
+    topic: dsa/heaps-and-top-k
+    problem: 'Build a working priority queue in a coding and code review round that also looks at thread safety and error handling.'
+    solution: 'An array-backed binary heap with sift up and sift down. Then discuss a lock around it, or a concurrent alternative.'
+    complexity: 'O(log n) push and pop, O(1) peek'
+    code: dsa-heap-impl
+    reports:
+      - year: 2022
+        source: https://leetcode.com/discuss/post/1695288/cashfree-sde3-coding-and-code-review-imp-h3mc/
+  - id: palindromic-substrings
+    section: dsa
+    title: 'Palindromic Substrings'
+    difficulty: medium
+    leetcode: palindromic-substrings
+    topic: dsa/dynamic-programming
+    problem: 'Count every palindromic substring.'
+    solution: 'Expand around each of the 2n - 1 centres.'
+    complexity: 'O(n squared) time, O(1) space'
+    code: cq-count-palindromes
+    reports:
+      - year: 2022
+        source: https://leetcode.com/discuss/post/2514357/cashfree-sdet-role-by-anonymous_user-2u67/
+  - id: rotated-search
+    section: dsa
+    title: 'Search in Rotated Sorted Array'
+    difficulty: medium
+    leetcode: search-in-rotated-sorted-array
+    topic: dsa/binary-search
+    problem: 'Find a target in a rotated sorted array in O(log n).'
+    solution: 'At every step one half is still sorted. Search it if the target falls inside, otherwise search the other half.'
+    complexity: 'O(log n) time, O(1) space'
+    code: dsa-rotated-search
+    reports:
+      - year: 2022
+        source: https://leetcode.com/discuss/post/2514357/cashfree-sdet-role-by-anonymous_user-2u67/
+  - id: cheapest-flights
+    section: dsa
+    title: 'Cheapest Flights Within K Stops'
+    difficulty: medium
+    leetcode: cheapest-flights-within-k-stops
+    topic: dsa/shortest-paths
+    problem: 'Find the cheapest route with at most k stops.'
+    solution: 'Bellman-Ford limited to k + 1 rounds, copying distances each round.'
+    complexity: 'O(k x E) time, O(V) space'
+    code: dsa-cheapest-flights
+    reports:
+      - year: 2022
+        source: https://leetcode.com/discuss/post/2514357/cashfree-sdet-role-by-anonymous_user-2u67/
+  - id: edit-distance
+    section: dsa
+    title: 'Edit Distance'
+    difficulty: medium
+    leetcode: edit-distance
+    topic: dsa/dynamic-programming
+    problem: 'Find the fewest edits turning one word into another.'
+    solution: '`dp[i][j]` is the cost for the two prefixes. Matching letters copy the diagonal; otherwise take one plus the best of three edits.'
+    complexity: 'O(n x m) time and space'
+    code: dsa-edit-distance
+    reports:
+      - year: 2022
+        source: https://leetcode.com/discuss/post/2514357/cashfree-sdet-role-by-anonymous_user-2u67/
+  - id: complementary-pairs
+    section: dsa
+    title: 'Complementary Pairs'
+    topic: dsa/bit-manipulation
+    problem: 'Count pairs of strings whose concatenation can be rearranged into a palindrome. The interviewer wanted about O(n).'
+    solution: 'A palindrome allows at most one letter with an odd count. Reduce each string to a 26-bit odd-count mask, and count earlier masks that are equal or differ by one bit.'
+    complexity: 'O(26 x n) time, O(n) space'
+    code: cq-complementary-pairs
+    reports:
+      - year: 2022
+        source: https://leetcode.com/discuss/post/2867998/cashfree-interview-experience-by-anonymo-tdx5/
+  - id: longest-task
+    section: dsa
+    title: 'Employee with the Longest Task'
+    difficulty: easy
+    leetcode: the-employee-that-worked-on-the-longest-task
+    topic: dsa/arrays-and-hashing
+    problem: 'Tasks run back to back. Find who worked the longest task, with ties going to the smaller id. From an online assessment.'
+    solution: 'Track the previous finish time; each duration is the difference.'
+    complexity: 'O(n) time, O(1) space'
+    code: cq-longest-task
+    reports:
+      - year: 2025
+        source: https://leetcode.com/discuss/post/6857716/cashfree-frontend-intern-online-assessme-satn/
+  - id: distinct-ones-flip
+    section: dsa
+    title: 'Distinct One Counts After One Flip'
+    topic: dsa/greedy
+    problem: 'Flip exactly one subarray (possibly empty) of a binary array. How many different totals of ones are possible? From an online assessment.'
+    solution: 'Score each 0 as +1 and each 1 as -1. Subarray sums cover every value between the minimum and maximum, so Kadane gives both ends.'
+    complexity: 'O(n) time, O(1) space'
+    code: cq-distinct-ones-flip
+    reports:
+      - year: 2025
+        source: https://leetcode.com/discuss/post/6857716/cashfree-frontend-intern-online-assessme-satn/
+  - id: lld-bookmyshow
+    section: lld
+    title: 'BookMyShow'
+    topic: low-level-design/movie-booking
+    problem: 'Classes, database design and booking flow. Reports push hard on concurrent bookings, and one asked for code handling them with multithreading.'
+    solution: 'Practise writing the locking, not just describing it: a per-show seat map with a held state and expiry, or a conditional database update. One report extended it into a library other apps can call.'
+    reports:
+      - year: 2025
+        source: https://leetcode.com/discuss/post/6830186/cashfree-payments-interview-experience-s-xb1c/
+      - year: 2024
+        source: https://leetcode.com/discuss/post/4942593/cashfree-payments-sde-2-4-yoe-reject-by-3ncw0/
+      - year: 2024
+        source: https://leetcode.com/discuss/post/4795525/cashfree-sde2-by-anonymous_user-wyou/
+  - id: lld-parking
+    section: lld
+    title: 'Online Parking Lot'
+    topic: low-level-design/parking-lot
+    problem: 'Search available slots and reserve one. One candidate was told search needed a more refined approach.'
+    solution: 'Index free slots by type rather than scanning, and make reservation atomic.'
+    reports:
+      - year: 2025
+        source: https://leetcode.com/discuss/post/7316892/cashfree-payments-sde-2-rejected-by-piyu-2ver/
+      - year: 2023
+        source: https://leetcode.com/discuss/post/3892914/ps-interview-2-cashfree-experience-by-an-25di/
+  - id: lld-calendar
+    section: lld
+    title: 'Google Calendar'
+    topic: low-level-design/meeting-room
+    problem: 'Schedule meetings for users, recurring meetings, reminders, and day, week and month views.'
+    solution: 'Store a recurrence rule and expand it when viewing, rather than saving every occurrence. Check overlaps per user.'
+    reports:
+      - year: 2025
+        source: https://leetcode.com/discuss/post/7157080/cashfree-payments-sde-2-by-anonymous_use-gcvv/
+  - id: lld-tic-tac-toe
+    section: lld
+    title: 'Tic-Tac-Toe (Machine Coding)'
+    topic: low-level-design/lld-method
+    problem: 'Write the game logic, then discuss improvements.'
+    solution: 'Keep row, column and diagonal counters so each move checks a win in O(1), and separate Board, Player and Game.'
+    reports:
+      - year: 2025
+        source: https://leetcode.com/discuss/post/6724223/cashfree-payments-sde-3-interview-experi-3b3s/
+  - id: hld-notification
+    section: hld
+    title: 'Notification Service'
+    topic: system-design/notification-system
+    problem: 'Design a notification service.'
+    solution: 'Queue per channel, per-user preferences and rate limits, retries with a dead-letter queue, and idempotent sends.'
+    reports:
+      - year: 2025
+        source: https://leetcode.com/discuss/post/6724223/cashfree-payments-sde-3-interview-experi-3b3s/
+      - year: 2022
+        source: https://leetcode.com/discuss/post/2748580/cashfree-sde-3-bangalore-india-aug-2022-g0f8b/
+  - id: hld-hotel
+    section: hld
+    title: 'Hotel Booking'
+    topic: system-design/ticket-booking
+    problem: 'Design hotel booking, asked in a techno-managerial round.'
+    solution: 'Inventory per room type per date, with a reservation hold and a conditional update. Search reads from a separate store.'
+    reports:
+      - year: 2022
+        source: https://leetcode.com/discuss/post/2748580/cashfree-sde-3-bangalore-india-aug-2022-g0f8b/
+  - id: frontend-debounce
+    section: frontend
+    title: 'Debounce and Throttle in JavaScript'
+    topic: concurrency/event-loop-and-async
+    problem: 'Write debounce and throttle, explain `apply`, and write a wrapper that errors when a function exceeds a timeout.'
+    solution: 'Debounce resets a timer on each call; throttle ignores calls until the interval has passed. Use `Promise.race` against a timer for the timeout.'
+    reports:
+      - year: 2025
+        source: https://leetcode.com/discuss/post/6296015/cashfree-payments-frontend-interview-exp-a505/
+  - id: fund-websocket
+    section: fundamentals
+    title: 'HTTP vs WebSocket'
+    topic: backend/realtime-communication
+    problem: 'Why use HTTP? How does a WebSocket differ?'
+    solution: 'HTTP is client-initiated request and response. A WebSocket upgrades one connection into a two-way channel for server push.'
+    reports:
+      - year: 2022
+        source: https://leetcode.com/discuss/post/2514357/cashfree-sdet-role-by-anonymous_user-2u67/
+  - id: fund-paging
+    section: fundamentals
+    title: 'Paging Algorithms'
+    topic: cs-foundations/operating-systems
+    problem: 'Describe the page replacement algorithms.'
+    solution: 'FIFO, LRU, Clock and the theoretical Optimal. LRU approximates Optimal but is costly to track exactly, so real systems use Clock.'
+    reports:
+      - year: 2022
+        source: https://leetcode.com/discuss/post/2514357/cashfree-sdet-role-by-anonymous_user-2u67/
+  - id: behavioural-hm
+    section: behavioral
+    title: 'Hiring Manager Round'
+    topic: interviews/project-deep-dive
+    problem: 'Reports describe culture fit and a heavy focus on your current work and past systems.'
+    solution: 'Prepare one project end to end: your part, the trade-offs and what you would change.'
+    reports:
+      - year: 2025
+        source: https://leetcode.com/discuss/post/6830186/cashfree-payments-interview-experience-s-xb1c/
+      - year: 2025
+        source: https://leetcode.com/discuss/post/6799897/interview-experience-sde-role-at-cashfre-qtxl/
