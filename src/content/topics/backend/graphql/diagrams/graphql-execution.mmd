@@ -1,0 +1,9 @@
+flowchart TD
+  Q[One request:<br/>query and variables] --> P[Parse and validate<br/>against the schema]
+  P --> C[Cost and depth check<br/>before any work starts]
+  C --> R[Resolve the root field]
+  R --> O[orders resolver<br/>one database query]
+  O --> A[customer resolver<br/>batched by DataLoader]
+  O --> B[items resolver<br/>batched by DataLoader]
+  A --> S[Build a response in<br/>the shape of the query]
+  B --> S

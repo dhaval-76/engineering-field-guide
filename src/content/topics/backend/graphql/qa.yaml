@@ -1,0 +1,75 @@
+questions:
+  - q: Why use GraphQL? Explain queries, mutations and resolvers, and the trade-offs.
+    think: Problem first, then the parts, then the costs.
+    answer: |
+      It addresses over-fetching and under-fetching: different clients need different data, and a mobile screen shouldn't need many round trips. A typed schema describes the graph. **Queries** read and may run fields in parallel. **Mutations** write and run top-level fields in order. **Subscriptions** push events. A **resolver** is a function that returns one field.
+
+      The trade-offs: the client controls request cost, so you need limits. HTTP caching doesn't work by default. N+1 needs batching. Monitoring and authorization must work per field, and errors come back with status 200. It suits varied clients over shared data, and it's overkill for simple CRUD or service-to-service calls.
+    askedAt:
+      - company: Walmart
+        year: 2024
+        round: Technical
+        source: https://leetcode.com/discuss/post/6146111/walmart-sde-3-interview-experience-by-ur-uels/
+  - q: Design the GraphQL API for a calendar's week and month views. How does paging and caching work?
+    think: Date windows, not page numbers. Then think about what the client cache stores.
+    answer: |
+      The natural query takes a date range: `events(calendarId, from, to, first, after)`. The range selects the window, and a connection handles paging inside it, with a server-enforced maximum so a busy month can't return everything. Expand recurring events on the server within the requested window.
+
+      On the client, a normalised cache stores each event by `__typename` and `id`, and each list by its arguments, so the week and month views can point to the same event. An edit that returns the event's `id` updates both views at once. Creating or deleting changes list membership, so refetch the affected windows or update them explicitly. To avoid many separate cache entries as the user moves around, fetch fixed windows, such as whole weeks, and reuse them. HTTP caching rarely applies here, because calendars are per user.
+    askedAt:
+      - company: Uber
+        year: 2025
+        round: Frontend system design
+        source: https://leetcode.com/discuss/post/6820731/uber-sde-2-frontend-by-anonymous_user-rvuq/
+  - q: How do you stop a client from running a query that takes down your database?
+    think: Layers, starting before execution.
+    answer: |
+      First, make the worst case bounded: every list has a server-enforced maximum page size. Before executing, parse the query and calculate depth and estimated cost, with list sizes multiplying nested costs, and reject anything over the limit. Limit aliases and batched operations too, since they multiply work within one HTTP request. Rate limit by cost rather than by request count, and use timeouts that really stop the resolvers.
+
+      For our own web and mobile apps, I'd use trusted documents: operations are registered at build time and only their hashes are accepted. Then arbitrary queries aren't possible at all. A public API can't do that, so cost analysis carries the load there.
+  - q: A customer could see another customer's order through GraphQL, even though the `order` query checks ownership. How?
+    think: How many paths lead to that object?
+    answer: |
+      Probably another path reached it: something like `product → recentOrders` or `user → orders` that didn't apply the check, because the authorization was on one top-level field. Each path is a separate resolver. A shared DataLoader across requests is another classic cause, where a batch result is cached and served to another user.
+
+      Fix by moving the check to where the object is loaded in the service layer, so every path goes through it, and scope DataLoader to one request. Add tests that walk the schema trying to reach other tenants' objects through each path.
+followUps:
+  - q: Why is the HTTP status 200 when a query had errors?
+    intuition: Can HTTP say "partly worked"?
+    approach: |
+      A GraphQL response can have some fields succeed and others fail. HTTP has no status for that, so when `data` is present the server responds with 2xx and lists the problems in `errors`. So don't alert on HTTP status alone: track `errors` by path and code.
+  - q: Why can aliases be an attack?
+    intuition: How many times can one request call a field?
+    approach: |
+      Aliases let one query call a field many times under different names, such as login attempts `a1: login(...)`, `a2: login(...)`. A rate limiter that counts HTTP requests sees just one. Limit top-level fields and aliases, and rate limit by the operations actually performed.
+  - q: Do you need API versions with GraphQL?
+    intuition: Who sees an added field?
+    approach: |
+      Usually not. Clients only get the fields they ask for, so added fields affect nobody. Mark old ones `@deprecated`, and use field-level usage metrics to find who still needs them. A genuine change of meaning is better introduced as a new field with a new name.
+  - q: What goes wrong if every field is non-null?
+    intuition: Where does a null go if it isn't allowed?
+    approach: |
+      A resolver error on a non-null field propagates to the nearest nullable parent, setting it to null. If everything is non-null, one bad field can null the entire response. Make fields that can fail independently, especially ones from other services, nullable.
+practice:
+  - task: 'Write a query cost analyzer: from a tree of selected fields with list sizes, compute total fields, depth and nested-list count, and reject a query over the limits.'
+    hint: A list multiplies the cost of everything under it. Compute it bottom up.
+    solution: |
+      Recursively analyse each selection's children. A field costs 1 + multiplier × children's cost, where the multiplier is its list size, or 1 for a single value. Depth is 1 + the deepest child. Count a nested list when a field is a list. Three nested lists of 100 ending in one scalar cost 1,010,101 fields. Guard against overflow on hostile queries.
+    solutionCode: graphql-cost
+quiz:
+  - q: Which is the best way to rate limit a GraphQL API?
+    options: ['Requests per minute', 'By estimated query cost', 'By IP only', 'By response size after running']
+    correct: 1
+    why: 'One request can be trivial or enormous, so count what it would cost, and do it before running it.'
+  - q: Where should authorization happen?
+    options: ['By hiding fields from the schema', 'In the client', 'On each object, in the service layer', 'At the top-level field only']
+    correct: 2
+    why: 'Many paths can reach one object, so the check has to sit where every path passes through.'
+  - q: A mutation updates an event and returns its id and new title. What happens in a normalised client cache?
+    options: ['Nothing, until a refetch', 'Every view showing that event updates', 'The whole cache is cleared', 'Only the current page updates']
+    correct: 1
+    why: 'Each object is stored once under its type and id, and lists hold references to it.'
+  - q: Why can't a public API use trusted documents?
+    options: ['Hashes are too slow', 'You can''t know third parties'' queries in advance', 'They need WebSockets', 'They are not secure']
+    correct: 1
+    why: 'The allowlist comes from your own client builds, so it only works when you control the clients.'

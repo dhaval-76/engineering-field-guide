@@ -1,0 +1,31 @@
+title: One short query, a million fields
+legend:
+  info: 'what the query looks like'
+  warn: 'cost growing'
+  bad: 'dangerous'
+  ok: 'stopped before any work'
+frames:
+  - caption: 'A social graph has `friends` on every user, and a page size of 100. This query fits in one line. Rate limiting by request count sees **one request**.'
+    panels:
+      - kind: note
+        text: '{ user { friends(first: 100) { friends(first: 100) { friends(first: 100) { name } } } } }'
+  - caption: 'The first level returns up to 100 users.'
+    panels:
+      - kind: kv
+        label: Fields to resolve
+        pairs: [[level 1, { v: '100 users', tone: info }]]
+  - caption: 'Each of those has 100 friends. Each list nested in a list **multiplies** the work.'
+    panels:
+      - kind: kv
+        label: Fields to resolve
+        pairs: [[level 1, 100], [level 2, { v: '10,000', tone: warn }]]
+  - caption: 'One more level, and one small query asks for over **a million** fields. No bug is needed: this is simply the API working as designed, and a few of these can take a database down.'
+    panels:
+      - kind: kv
+        label: Fields to resolve
+        pairs: [[level 1, 100], [level 2, '10,000'], [level 3, { v: '1,000,000', tone: bad }], [names, { v: '1,000,000', tone: bad }]]
+  - caption: 'Work out the cost from the parsed query **before running any resolver**: 1,010,101 fields against a limit of, say, 10,000. It is rejected in microseconds, and nothing touches the database.'
+    panels:
+      - kind: kv
+        label: Cost check
+        pairs: [[computed, '1,010,101 fields'], [limit, '10,000'], [decision, { v: rejected, tone: ok }]]

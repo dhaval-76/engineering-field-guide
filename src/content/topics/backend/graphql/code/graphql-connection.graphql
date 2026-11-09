@@ -1,0 +1,43 @@
+type Query {
+  # `first` has a server-enforced maximum, so no client can ask for everything.
+  events(
+    calendarId: ID!
+    from: DateTime!
+    to: DateTime!
+    first: Int = 50
+    after: String
+  ): EventConnection!
+}
+
+type EventConnection {
+  edges: [EventEdge!]!
+  pageInfo: PageInfo!
+}
+
+type EventEdge {
+  cursor: String! # opaque: clients must not parse it
+  node: Event!
+}
+
+type PageInfo {
+  hasNextPage: Boolean!
+  hasPreviousPage: Boolean!
+  startCursor: String
+  endCursor: String
+}
+
+type Event {
+  id: ID! # with __typename, this is the client cache's key
+  title: String!
+  startsAt: DateTime!
+  # Evolve in place: no /v2. Remove it once usage reaches zero.
+  location: String @deprecated(reason: "Use `place`, which has an address and a map link.")
+  place: Place
+}
+
+type Place {
+  name: String!
+  address: String
+}
+
+scalar DateTime

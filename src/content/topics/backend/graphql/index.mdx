@@ -1,0 +1,155 @@
+---
+title: GraphQL in Depth
+summary: How GraphQL executes a query, what its responses and status codes mean, caching and cursor pagination, protecting the API from expensive queries, field-level authorization, schema evolution, and when not to use it.
+track: backend
+order: 18
+tags: [backend, api, graphql, security, caching]
+aliases: [graphql, graphql resolver, graphql query, graphql mutation, graphql subscription, graphql caching, normalized cache, apollo client, relay, persisted queries, trusted documents, query complexity, depth limit, alias attack, graphql security, graphql pagination, connections, edges, pageinfo, graphql errors, partial response, dataloader, federation, supergraph, schema stitching, graphql vs rest, deprecated directive, introspection]
+prerequisites: [backend/api-styles]
+related: [backend/grpc, backend/api-versioning, backend/pagination, backend/authn-authz, system-design/api-gateway, backend/realtime-communication]
+quickRef:
+  points:
+    - 'One endpoint and a typed schema. The **client chooses the fields**, and each field has a resolver.'
+    - 'A short query can do enormous work. **Check cost before running anything**, cap list sizes, and allow only known queries for your own apps.'
+    - 'Batch every relation (**DataLoader**) or lists become N+1 queries.'
+    - 'HTTP caches key on URLs, and a POST has none to use. Use a normalised client cache, and GET with persisted queries for CDNs.'
+    - '**Authorize in resolvers or the service layer**, per object. Hiding a field from the schema is not access control.'
+    - 'Partial success is normal: `data` and `errors` can come back together.'
+  useWhen: 'Several client types need different shapes from the same data, or a mobile screen needs many REST calls.'
+askedAt:
+  - company: Walmart
+    year: 2024
+    round: Technical
+    source: https://leetcode.com/discuss/post/6146111/walmart-sde-3-interview-experience-by-ur-uels/
+  - company: Uber
+    year: 2025
+    round: Frontend system design
+    source: https://leetcode.com/discuss/post/6820731/uber-sde-2-frontend-by-anonymous_user-rvuq/
+lastReviewed: 2026-11-09
+---
+
+## Why it matters
+
+GraphQL solves a real problem: a phone on a poor connection shouldn't need seven requests to draw one screen, or download fields it never shows. But the flexibility moves work and risk to the server. The client now decides how expensive a request is, the usual HTTP caching stops working, and a single endpoint hides what your traffic really does. The interesting questions are all about managing those costs.
+
+The basics and the N+1 problem are in [API styles](../api-styles/). This page covers running it in production.
+
+<Callout type="analogy">
+A buffet instead of a set menu. Diners take exactly what they want in one trip, which is lovely. But now the kitchen can't predict demand, someone may pile up the entire table, and you need rules: plate size, one trip per person, and a guard on the private dining room.
+</Callout>
+
+## How a query runs
+
+<Diagram id="graphql-execution" caption="Everything before the first resolver is cheap, so that is where to reject bad queries. Each object in the result is built by resolvers, which is where batching and authorization belong." />
+
+A resolver is just a function for one field. That simplicity is also the trap: each resolver runs once per parent object, so without [batching](../api-styles/) a list of 50 orders calls the customer resolver 50 times. One request can touch many services, so use tracing per resolver: a plain request log only shows `POST /graphql`.
+
+### What comes back
+
+| Situation | HTTP status | Body |
+|---|---|---|
+| Worked | 200 | `data` |
+| Some fields failed | 200, because `data` is present | `data` with nulls, and `errors` with paths |
+| Query invalid | 400 | `errors` only, no `data` |
+| Not authenticated | 401, handled before GraphQL | Varies |
+
+Since HTTP has no status for partial success, **monitoring on HTTP status alone misses most GraphQL failures**. Count entries in `errors` by path and code.
+
+Expected business failures, such as "card declined", are better as typed fields in the mutation's payload than as `errors`, so clients handle them with the type system. Nullability matters too: an error in a non-null field bubbles up and nulls its parent, so one failing field marked `!` can wipe out a whole list.
+
+## Pagination
+
+Every list must be paginated with a server-enforced maximum. The standard is the **connection** pattern, which is [cursor pagination](../pagination/) with agreed names.
+
+<CodeTabs id="graphql-connection" title="A connection, a date filter and a deprecated field" />
+
+`first` and `after` go forwards, `last` and `before` go backwards, and cursors are opaque to clients. A calendar is a good example of when to use both tools: the date range picks the window (the week or month), and the connection handles paging inside it if a window can be large.
+
+## Caching
+
+| Layer | How | Good for |
+|---|---|---|
+| **Client normalised cache** | Store objects by type and id | Apps: avoids refetching, keeps views in sync |
+| **CDN or HTTP** | GET plus persisted query hashes | Public, identical responses |
+| **Per-request** | DataLoader | Removes duplicates within one query |
+| **Resolver or entity** | Redis keyed by entity | Expensive shared objects |
+| **Full response** | Keyed by query, variables and user | Rarely worth it: the hit rate is low |
+
+<Walkthrough id="graphql-client-cache" />
+
+GraphQL allows `GET` for queries only, never mutations. A full query in a URL can exceed size limits, which is why clients send a short hash of it instead.
+
+## Protecting the API
+
+<Walkthrough id="graphql-cost-attack" />
+
+<CodeTabs id="graphql-cost" title="Reject expensive queries before running them" />
+
+The GraphQL project's own security guidance says no single measure is enough. Layer them:
+
+| Defence | Stops | Note |
+|---|---|---|
+| Paginated lists with a maximum | Unbounded results | Non-negotiable |
+| Depth limit | Deep nesting | Use a tighter limit for nested lists |
+| Breadth limit | Hundreds of aliases of one field | Aliases let one request call a field many times |
+| Batch limit | Many operations in one HTTP request | Otherwise it bypasses rate limits |
+| Cost analysis | Everything else | Give fields weights, and spend from a budget |
+| Rate limit by cost | Sustained abuse | Count cost, not requests |
+| Timeouts | Whatever got through | Stop resolvers too, not only the response |
+| **Trusted documents** | Arbitrary queries | Strongest, for your own apps only |
+
+For an API only your own apps use, the best protection is to not accept arbitrary queries at all.
+
+<CodeTabs id="graphql-trusted-documents" title="Trusted documents: only known queries can run" />
+
+Trusted documents can't be used for a public API, because you can't know its queries in advance. There, cost analysis does the work. Disabling introspection in production reduces exposure, but on its own it's security through obscurity.
+
+## Authorization
+
+The schema says what exists, not who may see it. A user can reach the same object by many paths: `order → customer`, `product → reviews → author → orders`. So:
+
+- Authenticate before GraphQL runs, and put the identity in the request context.
+- **Check permissions on the object, in the service layer**, so every path to it hits the same rule.
+- Check row-level access for each object in a batch, because DataLoader must not return another tenant's rows. Scope its cache to the request.
+
+## Evolving and scaling a schema
+
+GraphQL's usual answer to versioning is **not to version**: add new fields, mark old ones `@deprecated`, and remove them once field-level metrics show nobody uses them. You can see exactly which clients use which field, which REST can't tell you. See [API versioning](../api-versioning/).
+
+When several teams share a graph, **federation** lets each team own part of the schema, with a router combining them. It removes a central bottleneck, but adds a router and query-planning problems of its own.
+
+**Subscriptions** deliver server-pushed events, usually over WebSocket, with all the [connection problems](../realtime-communication/) that brings. If updates are infrequent, polling a query is simpler.
+
+## When not to use GraphQL
+
+| Situation | Better choice |
+|---|---|
+| One client, simple CRUD | [REST](../rest-api-design/) |
+| Heavily cached public content | REST with a CDN |
+| Service-to-service | [gRPC](../grpc/) |
+| File uploads and downloads | Plain HTTP with signed URLs |
+| Small team without capacity to run it | REST, until the pain is real |
+
+A common setup is a thin GraphQL **backend-for-frontend** that calls internal REST or gRPC services.
+
+<Pitfalls>
+
+- **Exposing the database as the schema.** Design around what clients need.
+- **Unlimited list sizes.**
+- **Rate limiting by request count.** One query can cost a million fields.
+- **Authorizing only at the top-level field**, so another path reaches the same data.
+- **A shared DataLoader across requests**, which leaks data between users.
+- **Monitoring only HTTP status codes.** Failures come back as 200.
+- **Non-null on everything**, so one failing field erases a whole response.
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- GraphQL gives clients flexibility, and the server must control what that costs.
+- Reject expensive queries before execution; prefer trusted documents for your own apps.
+- Batch relations and authorize per object.
+- Use normalised client caches and persisted queries, since URL-based caching doesn't apply.
+- Evolve with `@deprecated` and usage metrics rather than new versions.
+
+</KeyTakeaways>

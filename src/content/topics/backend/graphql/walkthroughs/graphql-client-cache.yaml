@@ -1,0 +1,30 @@
+title: How a GraphQL client cache stays consistent
+legend:
+  info: 'stored in the cache'
+  accent: 'fetched just now'
+  ok: 'updated everywhere, with no refetch'
+frames:
+  - caption: 'HTTP caches key on a URL, and every GraphQL request is a `POST` to `/graphql`, so they can''t help by default. Clients keep their own **normalised cache** instead. The first query returns an event inside a list.'
+    panels:
+      - kind: kv
+        label: 'Query: week view'
+        pairs: [[Event:7, { v: 'title: Standup', tone: accent }]]
+  - caption: 'The client flattens the response. Each object is stored once under `__typename` and `id`, and the list only stores references. That is why every object type should expose an `id`.'
+    panels:
+      - kind: kv
+        label: Normalised store
+        pairs: [['Event:7', { v: 'title: Standup', tone: info }], ['events(week 45)', { v: '[→ Event:7]', tone: info }]]
+  - caption: 'Lists are cached **per set of arguments**. The month view is a separate entry, but it can point at the same `Event:7`.'
+    panels:
+      - kind: kv
+        label: Normalised store
+        pairs: [['Event:7', { v: 'title: Standup', tone: info }], ['events(week 45)', { v: '[→ Event:7]', tone: info }], ['events(November)', { v: '[→ Event:7, → Event:9]', tone: info }]]
+  - caption: 'A mutation renames the event and returns it with its `id`. The client updates one record, and **both views change at once** without refetching.'
+    panels:
+      - kind: kv
+        label: After the mutation
+        pairs: [['Event:7', { v: 'title: Daily sync', tone: ok }], ['events(week 45)', '[→ Event:7]'], ['events(November)', '[→ Event:7, → Event:9]']]
+  - caption: 'What it can''t work out alone: **adding or deleting** an event changes which items belong in each list. For that, refetch the affected lists or update them in code. Cache invalidation is still the hard part.'
+    panels:
+      - kind: note
+        text: 'A created event may belong in the week view, the month view, both, or neither.'
