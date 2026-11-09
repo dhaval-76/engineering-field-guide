@@ -169,7 +169,19 @@ Original scope:
 - With the offline app, also show "what changed in the update you just got": the service worker
   already knows which files changed.
 
-### 9. "Your data" page: view, export, import
+### 9. "Your data" page: view, export, import (done 2026-11-09)
+
+Done: `/data/` with view (plain words and raw JSON), export of all or chosen sections, import with
+preview (merge or replace, section by section), validation with clear rejections, delete per
+section or everything. Also 9a (sync code and QR link), 9b (30-day reminder on the home and progress
+pages), 9c (a private note box on every topic) and 9d (quiz results overall and by topic). The old
+"Export as JSON" button on the progress page is replaced by a link here.
+
+Limits: a QR code carries about 60 completed topics; past that the page points to the sync code.
+Device-only settings aren't exported. Not yet tried with a real phone camera; decoding was
+verified with a QR reader library against screenshots.
+
+Original scope:
 
 What the browser stores today:
 

@@ -1,6 +1,7 @@
 ---
 import BaseLayout from '~/layouts/BaseLayout.astro';
 import Icon from '~/components/Icon.astro';
+import BackupReminder from '~/components/islands/BackupReminder';
 import PersonalPanel from '~/components/islands/PersonalPanel';
 import { getNav } from '~/lib/nav';
 import { getTopicIndex } from '~/lib/topic-index';
@@ -31,6 +32,7 @@ const index = await getTopicIndex();
     </p>
   </section>
 
+  <BackupReminder client:only="react" dataUrl={url('data/')} />
   <PersonalPanel
     client:only="react"
     mode="home"

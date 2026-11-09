@@ -11,6 +11,7 @@ import InterviewSection from '~/components/qa/InterviewSection.astro';
 import { mdxComponents } from '~/components/content/mdx';
 import { getNeighbours, resolveTopics, type Topic } from '~/lib/nav';
 import { interviewHeadings } from '~/lib/qa';
+import { NOTE_MAX_CHARS } from '~/lib/storage';
 import { topicUrl, trackUrl } from '~/lib/url';
 
 interface Props {
@@ -119,6 +120,17 @@ const reviewed = data.lastReviewed.toLocaleDateString('en-GB', { month: 'short',
 
       {qa && <InterviewSection qa={qa.data} topicId={topic.id} />}
 
+      <section class="note-box" aria-labelledby="your-notes" data-note data-pagefind-ignore hidden>
+        <h2 id="your-notes">Your notes</h2>
+        <textarea
+          aria-labelledby="your-notes"
+          aria-describedby="your-notes-status"
+          maxlength={NOTE_MAX_CHARS}
+          rows="4"
+          placeholder="Private to this browser. Saved as you type."></textarea>
+        <p id="your-notes-status" data-note-status role="status"></p>
+      </section>
+
       {related.length > 0 && (
         <section class="related" aria-labelledby="related" data-pagefind-ignore>
           <h2 id="related">Related topics</h2>
@@ -144,6 +156,36 @@ const reviewed = data.lastReviewed.toLocaleDateString('en-GB', { month: 'short',
 </BaseLayout>
 
 <style>
+  .note-box {
+    margin-top: 40px;
+  }
+  .note-box[hidden] {
+    display: none;
+  }
+  .note-box h2 {
+    margin: 0 0 8px;
+    font-family: var(--font-serif);
+    font-weight: 560;
+    font-size: var(--step-2);
+  }
+  .note-box textarea {
+    display: block;
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid var(--rule-strong);
+    border-radius: var(--radius);
+    background: var(--bg-raised);
+    color: var(--ink);
+    /* 16px or more: iOS zooms the page when a smaller field gets focus */
+    font: inherit;
+    resize: vertical;
+  }
+  .note-box p {
+    min-height: 1.4em;
+    margin: 4px 0 0;
+    color: var(--ink-3);
+    font-size: 0.875rem;
+  }
   .topic {
     display: grid;
     grid-template-columns: minmax(0, 1fr);

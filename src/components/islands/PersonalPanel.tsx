@@ -18,6 +18,8 @@ interface Props {
   mode: 'home' | 'progress';
   /** link under "Continue reading" to the full reading history */
   historyUrl?: string | undefined;
+  /** link on the progress page to backup and restore */
+  dataUrl?: string | undefined;
 }
 
 const PREFIX = 'efg:';
@@ -31,7 +33,7 @@ function read<T>(key: string, fallback: T): T {
 }
 
 /** Client-only view of what this browser has stored: recent topics, bookmarks, completion. */
-export default function PersonalPanel({ topics, tracks, mode, historyUrl }: Props) {
+export default function PersonalPanel({ topics, tracks, mode, historyUrl, dataUrl }: Props) {
   const [state, setState] = useState<{
     progress: Record<string, number>;
     bookmarks: string[];
@@ -96,15 +98,6 @@ export default function PersonalPanel({ topics, tracks, mode, historyUrl }: Prop
     );
   }
 
-  const exportData = () => {
-    const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = 'field-guide-progress.json';
-    a.click();
-    URL.revokeObjectURL(a.href);
-  };
-
   return (
     <div className="pp-progress">
       <p className="pp-total">
@@ -141,9 +134,7 @@ export default function PersonalPanel({ topics, tracks, mode, historyUrl }: Prop
       )}
       <p className="pp-muted">
         Progress is stored only in this browser.{' '}
-        <button type="button" className="btn" onClick={exportData}>
-          Export as JSON
-        </button>
+        {dataUrl && <a href={dataUrl}>Back it up or move it</a>}
       </p>
     </div>
   );

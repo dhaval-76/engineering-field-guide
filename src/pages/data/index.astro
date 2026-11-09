@@ -1,0 +1,46 @@
+---
+import BaseLayout from '~/layouts/BaseLayout.astro';
+import YourData from '~/components/islands/YourData';
+import { site } from '~/site.config';
+import { getTopicIndex } from '~/lib/topic-index';
+import { url } from '~/lib/url';
+
+const { topics } = await getTopicIndex();
+---
+
+<BaseLayout title="Your data" noindex>
+  <div class="wrap">
+    <h1>Your data</h1>
+    <p class="lede">
+      Your progress, saved topics, history, quiz answers and notes live only in this browser. There
+      is no account and nothing is sent to a server. This page shows what is stored and lets you
+      back it up, move it to another device or delete it.
+    </p>
+    <YourData
+      client:only="react"
+      topics={topics.map(({ id, title, url }) => ({ id, title, url }))}
+      pageUrl={`${site.origin}${url('data/')}`}
+    />
+  </div>
+</BaseLayout>
+
+<style>
+  .wrap {
+    max-width: 760px;
+  }
+  h1 {
+    font-family: var(--font-serif);
+    font-weight: 560;
+    font-size: var(--step-4);
+    margin: 0;
+  }
+  .lede {
+    color: var(--ink-2);
+  }
+  .wrap :global(h2) {
+    font-family: var(--font-serif);
+    font-weight: 560;
+    font-size: var(--step-2);
+    margin: 32px 0 4px;
+  }
+</style>

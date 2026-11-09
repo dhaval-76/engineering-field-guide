@@ -9,6 +9,8 @@ import {
   keys,
   read,
   write,
+  writeStrict,
+  type NotesMap,
   type ProgressMap,
   type RecentList,
 } from '~/lib/storage';
@@ -181,6 +183,38 @@ if (topicMeta) {
     (r) => r.id !== id || new Date(r.at).toDateString() !== today,
   );
   write(keys.recent, [{ id, title, at: Date.now() }, ...recent].slice(0, HISTORY_LIMIT));
+}
+
+/* ── Private note on each topic ────────────────────────── */
+const noteBox = document.querySelector<HTMLElement>('[data-note]');
+if (noteBox && topicMeta) {
+  const id = topicMeta.dataset.topicId!;
+  const text = noteBox.querySelector<HTMLTextAreaElement>('textarea')!;
+  const status = noteBox.querySelector<HTMLElement>('[data-note-status]')!;
+  text.value = read<NotesMap>(keys.notes, {})[id]?.text ?? '';
+  noteBox.hidden = false;
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const save = () => {
+    if (timer === undefined) return;
+    clearTimeout(timer);
+    timer = undefined;
+    const notes = read<NotesMap>(keys.notes, {});
+    if (text.value.trim()) notes[id] = { text: text.value, at: Date.now() };
+    else delete notes[id];
+    try {
+      writeStrict(keys.notes, notes);
+      broadcast(keys.notes);
+      status.textContent = 'Saved on this device.';
+    } catch {
+      status.textContent = 'Could not save: this browser is blocking storage or is out of space.';
+    }
+  };
+  text.addEventListener('input', () => {
+    clearTimeout(timer);
+    timer = setTimeout(save, 400);
+  });
+  text.addEventListener('blur', save);
+  addEventListener('pagehide', save);
 }
 
 /* ── Reading mode ──────────────────────────────────────── */

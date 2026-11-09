@@ -44,13 +44,13 @@ src/
 ├─ components/
 │  ├─ content/   MDX components (registered in mdx.ts, no imports needed in MDX)
 │  ├─ islands/   React: CommandPalette, WalkthroughPlayer, Quiz, Review, History, LastUpdate,
-│  │             PersonalPanel
+│  │             PersonalPanel, YourData, BackupReminder
 │  ├─ layout/    Header, Sidebar, Toc, PrevNext, Footer
 │  └─ qa/        interview section, company tags
 ├─ layouts/      BaseLayout (head, theme script, manifest), TopicLayout
 ├─ lib/          nav, snippets, highlight, storage (localStorage), url, companies, …
 ├─ pages/        home, [track], [...topic], cheatsheets, companies, glossary, progress, review,
-│                history, whats-new, shortcuts, offline, 404
+│                history, whats-new, data, shortcuts, offline, 404
 ├─ scripts/      site.ts (keyboard, code tabs, diagram viewer, …), shortcuts.ts (? panel),
 │                offline.ts (service worker client)
 └─ styles/       tokens.css (light + dark), base.css, prose.css, code.css
@@ -60,7 +60,7 @@ scripts/
 ├─ render-diagrams.ts      Mermaid → SVG (--check in CI)
 ├─ og-images.ts            Open Graph cards per track into public/og/
 ├─ pwa/                    build-sw.ts, sw.template.js, icons.ts
-├─ audit/                  browser audits: mobile.ts, offline.ts, offline-update.ts
+├─ audit/                  browser audits: mobile.ts, offline.ts, offline-update.ts, data.ts
 └─ research/               LeetCode Discuss fetch, analysis, apply reports
 research/                  research data and method (research/README.md)
 ```
@@ -170,6 +170,7 @@ preview (`npm run preview` in another terminal; set `PREVIEW_URL` if it isn't on
 npm run audit:mobile          # every page at 360px: no horizontal scroll (fails), small targets/text (reported)
 npm run audit:offline         # every page loads from the service worker with no failed requests
 npm run test:offline-update   # update prompt, reload, repair, re-download, check for updates
+npm run test:data             # notes, backup, restore, rejected files, rollback, sync codes, delete, reminder
 ```
 
 `scripts/verify.sh` runs the content checks and the build in one go.
@@ -224,13 +225,17 @@ with code tabs (the review page uses them to answer).
 ## Personal data in the browser
 
 All keys live under the `efg:` prefix via `src/lib/storage.ts`: `progress`, `bookmarks`, `recent`,
-`lang`, `theme`, `focus`, `wrap`, `quiz`, `last-update`, `offline-optin`, `offline-checked` (and
-any added by later features; list them here when you add one).
+`lang`, `theme`, `focus`, `wrap`, `quiz`, `notes`, `last-update`, `last-export`, `backup-snooze`,
+`offline-optin`, `offline-checked` (and any added by later features; list them here when you add
+one).
 
 - `recent`: reading history, `[{ id, title, at }]`, newest first, one entry per topic per day, at
   most `HISTORY_LIMIT` (200). Written by `src/scripts/site.ts` on every topic page; shown on
   `/history/` and (deduplicated) as "Continue reading" on the home page.
 - `last-update`: what the last offline update changed (`src/lib/update-changes.ts`).
+- `notes`: `{ [topicId]: { text, at } }`, the private note box on each topic (`src/scripts/site.ts`).
+- `last-export`, `backup-snooze`: when progress was last exported and until when the reminder is
+  snoozed (`src/lib/backup-reminder.ts`).
 
 - `quiz`: `{ [questionId]: { box, due, last, right, wrong } }`, written by the topic self-check and
   `/review/` through `src/lib/review.ts`. A question id is `<topicId>#<hash of the question text>`,
@@ -238,6 +243,26 @@ any added by later features; list them here when you add one).
   0, 1, 3, 7, 16 and 35 days; a wrong answer goes back to box 0.
 - `/review/questions.json` is a static endpoint (`src/pages/review/questions.json.ts`) listing every
   quiz question; the review island fetches it, and the offline copy saves it like any file.
+
+### Backup format (`src/lib/user-data.ts`)
+
+- A backup is `{ app, schemaVersion, exportedAt, data }`; `data` holds any of `progress`,
+  `bookmarks`, `recent`, `quiz`, `notes`, `preferences`. Device-only keys (`offline-*`,
+  `last-update`, `last-export`, `backup-snooze`) are never exported.
+- **When you add stored data that should travel between devices:** add it to `UserData`, `SECTIONS`
+  and `STORAGE_KEYS`, and give it a validator, a merge rule in `combine` and a summary line in
+  `YourData.tsx`. Change `schemaVersion` only for a format older copies can't read, and keep
+  reading the old format.
+- Every import is validated field by field and rebuilt from known fields only. Treat a backup as
+  untrusted input. Nothing is written until the reader confirms the preview, and a write the
+  browser refuses rolls everything back.
+- Merge: the newest record wins by its timestamp, and bookmarks combine. Preferences have no
+  timestamps, so this device's values stay and only unset ones are filled. Merge can't carry a
+  deletion across devices; use Replace for that.
+- A sync code is the backup, compressed (`deflate-raw`) and base64url-encoded, prefixed `EFG1.`. A
+  QR code holds a link to `/data/#sync=<code>`, so any phone camera can open it with no scanner in
+  the page. The `#` part is never sent to a server, and the page removes it on arrival. Links over
+  1,800 characters (roughly 60 completed topics) aren't shown as a QR code.
 
 ## Picking the next piece of work
 
