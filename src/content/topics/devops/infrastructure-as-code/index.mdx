@@ -1,0 +1,111 @@
+---
+title: Infrastructure as Code
+summary: 'Declaring infrastructure in reviewed, versioned files and letting a tool make reality match: Terraform''s plan, apply and state, why state holds secrets and must be locked, drift, and where Terraform, Helm and GitOps fit.'
+track: devops
+order: 50
+tags: [devops, terraform, iac, cloud, gitops]
+aliases: [infrastructure as code, iac, terraform, opentofu, terraform state, tfstate, remote state, state locking, terraform plan, terraform apply, drift, drift detection, terraform modules, workspaces, environments, cloudformation, pulumi, crossplane, helm, terraform vs helm, gitops, argo cd, flux, declarative vs imperative, immutable infrastructure, idempotent]
+prerequisites: [devops/ci-cd-and-cloud]
+related: [devops/docker-kubernetes, devops/progressive-delivery, security/secrets-management, devops/git-workflow]
+quickRef:
+  points:
+    - '**Declarative**: you describe what should exist; the tool computes the create, update and delete steps. Running it twice changes nothing the second time.'
+    - '**plan** shows the difference between code and reality; **apply** makes it. Review the plan like code.'
+    - '**State** maps your code to real resource ids. Keep it **remote, encrypted, locked and access-controlled**: it holds secrets in plain text.'
+    - '**Drift** is reality changed outside the code. Detect it with scheduled plans and stop it by removing console write access.'
+    - 'Terraform builds **cloud infrastructure**; Helm packages **apps for Kubernetes**; GitOps tools (Argo CD, Flux) keep a cluster **synced with git**.'
+  useWhen: Setting up environments, reviewing infrastructure changes, or answering "how do you manage infrastructure" and "Terraform vs Helm".
+askedAt:
+  - company: NVIDIA
+    year: 2026
+    round: Technical
+    source: https://leetcode.com/discuss/post/8560520/nvidia-platform-engineer-interview-exper-kae0/
+  - company: JPMorgan Chase
+    year: 2026
+    round: Technical
+    source: https://leetcode.com/discuss/post/8518755/senior-data-engineer-software-engineer-i-inc1/
+  - company: Salesforce
+    year: 2025
+    round: Technical
+    source: https://leetcode.com/discuss/post/6732405/salesforce-public-cloud-gcp-interview-fo-o4cu/
+  - company: American Express
+    year: 2024
+    round: Hiring manager
+    source: https://leetcode.com/discuss/post/5501520/american-express-amex-engineer-1-bengalu-5kkq/
+lastReviewed: 2026-11-10
+---
+
+## Why it matters
+
+Infrastructure created by clicking in a console can't be reviewed, repeated or rebuilt. Nobody knows why a firewall rule exists, the staging environment quietly differs from production, and recreating a region after a disaster becomes archaeology. Infrastructure as code puts every network, database and permission in files that go through the same review, history and automation as application code.
+
+<Callout type="analogy">
+An architect's drawings versus building by memory. The drawings say what the house should be; the builder compares them with what's on site and does only the missing work. Change the drawing, review it, and the builder updates the house. Someone knocking down a wall without updating the drawings is drift.
+</Callout>
+
+## Declarative: describe the end state
+
+<Walkthrough id="terraform-plan-apply" />
+
+Tools such as Terraform (and its open-source fork OpenTofu), CloudFormation, Pulumi and Crossplane are **declarative**: you write what should exist, and the tool compares it with what does exist and produces the steps. Kubernetes works the same way: controllers keep comparing desired and actual state.
+
+<CodeTabs id="iac-plan" title="The core of plan: compare desired with actual, list only the differences" />
+
+That gives **idempotence**: applying the same code again finds no differences and does nothing. Imperative scripts ("create a bucket") fail or duplicate on a second run.
+
+<CodeTabs id="iac-bucket" title="Terraform: remote locked state, pinned providers, references between resources (checked with terraform fmt)" />
+
+References between resources (`aws_s3_bucket.invoices.id`) let Terraform work out the order: it builds a dependency graph and creates the bucket before its versioning settings.
+
+## State
+
+Terraform records which real resource each block created in a **state file**. Without it, Terraform couldn't tell "this bucket is the one I made" from "an unrelated bucket with the same name".
+
+- **Keep it remote**, in a backend such as S3, GCS or Terraform Cloud, so the whole team and CI share one copy.
+- **Lock it.** Two applies at once can corrupt state or race each other. Backends that support locking take a lock for every write automatically; never disable it except to recover your own stuck lock.
+- **Treat it as secret.** If a configuration contains a database password, Terraform stores it in state and in saved plan files in plain text. Marking a value `sensitive` only hides it in output. Encrypt the backend, restrict access, or keep secrets out entirely: generate them in a secret manager and use ephemeral or write-only arguments where the provider supports them. See [secrets management](../../security/secrets-management/).
+- **Split state** by system and environment, so one apply can't touch everything and plans stay fast.
+
+## Drift
+
+Drift is any difference between code and reality caused outside the pipeline: a console change during an incident, another tool, a resource deleted by hand.
+
+- `terraform plan -detailed-exitcode` exits **0** when there are no changes, **1** on error and **2** when changes are pending. A scheduled job that alerts on exit code 2 detects drift.
+- Then either bring the change into code or let apply revert it. Don't let drift sit: the next unrelated apply will undo it unexpectedly.
+- Prevent it: remove write access in the console for everyone except a break-glass role, and apply only from CI.
+
+## Modules, environments and the workflow
+
+- **Modules** package a reviewed pattern ("a private bucket with versioning and logging") so teams don't copy and diverge. Pin module and provider versions like any dependency.
+- **One configuration per environment**, sharing modules, with different variables and separate state. Promote changes through dev and staging to production.
+- **The workflow:** a pull request runs `fmt`, `validate`, security checks and `plan`, and posts the plan for review; merging runs `apply` with that plan.
+
+## Terraform, Helm and GitOps
+
+| Tool | Manages | Typical use |
+|---|---|---|
+| **Terraform** (or Pulumi, CloudFormation) | Cloud resources: networks, clusters, databases, IAM | The platform underneath |
+| **Helm** | Packaged Kubernetes manifests with values | Installing and configuring an application in a cluster |
+| **Argo CD, Flux** (GitOps) | Continuously syncs a cluster to manifests in git, and reports or reverts drift | Deploying applications to clusters |
+
+A common split: Terraform creates the cluster and cloud services; GitOps deploys applications and their Helm charts into it; git is the single place every change is reviewed.
+
+<Pitfalls>
+
+- **State on a laptop or in git**, without locking or encryption.
+- **Secrets in variables** that end up in state in plain text.
+- **Applying from laptops** instead of CI, so nobody knows what ran.
+- **Ignoring drift**, then losing an emergency fix on the next apply.
+- **One giant state** for everything: slow plans and a huge blast radius.
+- **Unpinned providers and modules** that change behaviour under you.
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- Declare the end state; let plan compute the differences and review them like code.
+- State maps code to reality: remote, locked, encrypted, and treated as secret.
+- Detect drift with scheduled plans and stop it by applying only from CI.
+- Terraform builds the platform, Helm packages apps, GitOps keeps clusters in sync with git.
+
+</KeyTakeaways>

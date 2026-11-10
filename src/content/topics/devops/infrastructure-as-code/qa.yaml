@@ -1,0 +1,61 @@
+questions:
+  - q: 'What is Terraform state, why does it matter, and how do you manage it in a team?'
+    think: What does Terraform need to remember, and what is risky about it?
+    answer: |
+      State maps each resource in the code to the real object it created, with its ids and attributes. Terraform uses it to work out what to create, change or destroy, and refreshes it against reality before planning.
+
+      In a team, keep it in a remote backend (S3, GCS, Terraform Cloud) so everyone and CI share it; rely on the backend's locking so two applies can't run at once; encrypt it and restrict access, because secrets in the configuration are stored in state in plain text; split it by system and environment to limit blast radius; and only modify it through Terraform commands, never by hand.
+    askedAt:
+      - company: NVIDIA
+        year: 2026
+        round: Technical
+        source: https://leetcode.com/discuss/post/8560520/nvidia-platform-engineer-interview-exper-kae0/
+      - company: JPMorgan Chase
+        year: 2026
+        round: Technical
+        source: https://leetcode.com/discuss/post/8518755/senior-data-engineer-software-engineer-i-inc1/
+  - q: 'Terraform or Helm? How do they relate to GitOps?'
+    think: What does each one manage?
+    answer: |
+      Terraform provisions infrastructure through cloud APIs: networks, Kubernetes clusters, databases, IAM. Helm packages Kubernetes manifests into charts with configurable values and installs or upgrades applications in a cluster. They work at different layers and are often used together.
+
+      GitOps tools such as Argo CD or Flux watch a git repository of manifests (often Helm charts) and continuously make the cluster match, reporting or reverting drift. A common setup: Terraform creates the cluster and cloud services; GitOps deploys applications into it; every change goes through a pull request.
+    askedAt:
+      - company: NVIDIA
+        year: 2026
+        round: Technical
+        source: https://leetcode.com/discuss/post/8560520/nvidia-platform-engineer-interview-exper-kae0/
+  - q: 'Someone changed a security group in the AWS console during an incident. How do you detect and handle drift like this?'
+    think: What compares code with reality, and who is allowed to change reality?
+    answer: |
+      Run `terraform plan -detailed-exitcode` on a schedule; exit code 2 means differences exist, so alert on it. Then decide: if the console change was right, put it in code and apply; if not, apply the code to revert it. Don't leave it, because the next unrelated apply will silently undo it.
+
+      Prevent it by removing console write access except for an audited break-glass role, applying only from CI, and adding a step to the incident process to bring any emergency change back into code.
+followUps:
+  - q: Why is declarative infrastructure idempotent?
+    intuition: What happens the second time you apply the same code?
+    approach: |
+      The tool compares the declared end state with reality and only acts on differences. After the first apply there are none, so applying again does nothing. An imperative script that says "create a bucket" would fail or create a duplicate the second time.
+  - q: Does marking a Terraform variable sensitive keep it out of state?
+    intuition: Output versus storage.
+    approach: |
+      No. `sensitive` only hides the value in plan and apply output; it is still written to state and saved plan files in plain text. Keep secrets out of Terraform where possible, use ephemeral or write-only values where providers support them, and encrypt and restrict the state backend.
+practice:
+  - task: Implement the core of a plan step for declarative infrastructure.
+    hint: Compare two maps of resource name to settings. Missing means create, different means update, extra means delete.
+    solution: |
+      For each declared resource, emit create if it doesn't exist and update if its settings differ; for each existing resource that isn't declared, emit delete. Sort the names so the output is stable and reviewable. Applying the result and planning again must produce an empty list.
+    solutionCode: iac-plan
+quiz:
+  - q: What does terraform plan -detailed-exitcode return when changes are pending?
+    options: ['0', '1', '2', '3']
+    correct: 2
+    why: 0 means no changes, 1 an error, 2 that the plan has changes.
+  - q: Why must Terraform state be locked?
+    options: [To encrypt it, So two applies can't run at the same time, To make plans faster, To hide secrets]
+    correct: 1
+    why: Concurrent writes can corrupt state or race each other.
+  - q: Which tool continuously syncs a Kubernetes cluster with manifests in git?
+    options: [Terraform, Helm, Argo CD, kubectl]
+    correct: 2
+    why: GitOps controllers such as Argo CD and Flux watch git and reconcile the cluster.

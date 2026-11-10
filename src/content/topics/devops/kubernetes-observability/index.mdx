@@ -1,0 +1,104 @@
+---
+title: Observability on Kubernetes
+summary: 'Where metrics, logs and traces come from in a Kubernetes cluster, the failures your own metrics can''t show (restarts, OOM kills, throttling, pending pods), correct percentile aggregation, and burn-rate paging.'
+track: devops
+order: 60
+tags: [devops, kubernetes, observability, prometheus, monitoring]
+aliases: [kubernetes monitoring, kubernetes observability, prometheus kubernetes, servicemonitor, kube-state-metrics, cadvisor, metrics-server, node exporter, kubectl logs, container logs, logging agent daemonset, fluent bit, opentelemetry collector, otel collector, daemonset sidecar gateway, histogram_quantile, percentile aggregation, cardinality, crashloopbackoff, oomkilled alert, cpu throttling alert, pending pods, hpa, burn rate alert, multiwindow alert, slo alerting]
+prerequisites: [distributed-systems/observability, devops/docker-kubernetes]
+related: [cs-foundations/containers-in-os-terms, devops/progressive-delivery, system-design/logging-monitoring, backend/debugging-slow-api]
+quickRef:
+  points:
+    - 'Three sources of metrics: **your app''s /metrics** (requests, errors, latency), **cAdvisor via the kubelet** (container CPU, memory, throttling) and **kube-state-metrics** (what Kubernetes thinks: restarts, phases, replicas).'
+    - 'Apps log to **stdout**; the node keeps rotated files; a **DaemonSet agent** ships them. `kubectl logs` only sees recent files.'
+    - 'Traces go to an **OpenTelemetry Collector**, usually an agent per node plus a central gateway, and carry the trace id into logs.'
+    - 'Some failures are **invisible from inside the app**: OOM kills, CPU throttling, crash loops, pods stuck Pending. Alert on them from platform metrics.'
+    - 'Aggregate percentiles from **histogram buckets** (`sum by (le)`), never by averaging per-pod p99s.'
+    - '**Page on SLO burn rate** (14.4× over 1 hour and 5 minutes); everything else is a ticket.'
+  useWhen: Setting up monitoring for services on Kubernetes, designing alerts, or debugging a pod that "looks fine" from its own metrics.
+askedAt:
+  - company: NVIDIA
+    year: 2026
+    round: Platform design
+    source: https://leetcode.com/discuss/post/8560520/nvidia-platform-engineer-interview-exper-kae0/
+lastReviewed: 2026-11-10
+---
+
+## Why it matters
+
+[Observability](../../distributed-systems/observability/) explains logs, metrics, traces and SLOs for any service. On Kubernetes, two things change. Collection is the platform's job: pods come and go, so nothing can be configured by hand per instance. And a new class of failures appears that the application can't see from inside: it was OOM-killed and restarted, it was paused by the CPU quota, it never got scheduled. This page covers where each signal comes from in a cluster and what to alert on.
+
+<Callout type="analogy">
+A hospital ward. Each patient reports how they feel (application metrics). The monitors on the wall measure what the patient can't (pulse, oxygen: container metrics). The ward's records say who was admitted, moved or discharged (kube-state-metrics). A nurse who only asks patients how they feel misses the one who stopped breathing.
+</Callout>
+
+## Where the signals come from
+
+<Diagram id="k8s-observability-pipeline" caption="Metrics are scraped, logs are collected from each node, traces are pushed to a collector. Everything is labelled with namespace, pod and container." />
+
+| Source | What it tells you | Collected by |
+|---|---|---|
+| **Your app's `/metrics`** | Requests, errors, latency histograms, queue depth, business events | Prometheus scrapes pods it discovers (ServiceMonitor or annotations) |
+| **cAdvisor** (inside the kubelet) | Container CPU, memory, CPU throttling, network, file system | Prometheus scrapes each node's kubelet |
+| **kube-state-metrics** | Kubernetes' view: restarts, pod phase, last termination reason, desired and available replicas, HPA state | One deployment that watches the API server |
+| **metrics-server** | Latest CPU and memory only, for `kubectl top` and autoscaling | Not a monitoring system: it keeps no history |
+| **node exporter** | Node-level CPU, memory, disk, network | A DaemonSet |
+
+**Logs:** applications write to stdout and stderr. The container runtime writes them to files on the node, and the kubelet rotates them (by default 10 MiB per file, 5 files), which is why `kubectl logs` only reaches recent output and nothing after the pod is gone. A **logging agent as a DaemonSet** (Fluent Bit, Vector, the OpenTelemetry Collector) tails those files on every node, adds pod labels and ships them to storage. Write structured JSON with the trace id in every line.
+
+**Traces:** services send spans to an **OpenTelemetry Collector**, typically running as an agent on each node (cheap local hop, adds Kubernetes metadata) and forwarding to a central gateway that samples, batches and exports. Propagate trace context across every hop, including message queues.
+
+## What only the platform can see
+
+<Walkthrough id="oom-restart-loop" />
+
+<CodeTabs id="k8s-alerts" title="Alert rules for the failures your app can't report (validated with promtool)" />
+
+- **Restarts and CrashLoopBackOff**: a pod that keeps restarting may look healthy between restarts.
+- **OOMKilled**: the kernel kills the container at its memory limit with no log line from the app. Only `last_terminated_reason` shows it. See [containers](../../cs-foundations/containers-in-os-terms/).
+- **CPU throttling**: the quota pauses the container; your latency rises with no error. `container_cpu_cfs_throttled_periods_total` shows it.
+- **Pending pods**: nothing runs, so nothing reports. Usually no node has room, or a volume can't attach.
+- **HPA at its maximum**: autoscaling has stopped helping.
+- **Readiness flapping**: pods removed from and added back to load balancing.
+
+## Percentiles: aggregate buckets, not results
+
+Each pod reports a latency histogram: counts per bucket, such as "requests under 100 ms". The service-wide p99 comes from **adding the buckets across pods first**, `histogram_quantile(0.99, sum by (le) (rate(http_request_duration_seconds_bucket[5m])))`, then computing the percentile. Averaging each pod's p99 gives a number that is simply wrong. The result is interpolated inside one bucket, so its error is up to that bucket's width: put bucket boundaries around your SLO threshold.
+
+<CodeTabs id="slo-burn" title="Burn-rate paging and histogram_quantile's interpolation, checked against the SRE Workbook table" />
+
+## Alerting: page on burn rate
+
+Page a person only when users are hurt and it is urgent; everything else becomes a ticket.
+
+| Severity | Burn rate | Long window | Short window | Budget used when it fires |
+|---|---|---|---|---|
+| Page | 14.4 | 1 hour | 5 minutes | 2% |
+| Page | 6 | 6 hours | 30 minutes | 5% |
+| Ticket | 1 | 3 days | 6 hours | 10% |
+
+For a 99.9% SLO over 30 days, from Google's SRE Workbook. Budget used = burn rate × window ÷ 30 days. Requiring the short window too means the alert stops soon after the problem does. Platform alerts such as OOM kills and throttling are usually tickets, because the SLO alert pages if they actually hurt users.
+
+## Cardinality and cost
+
+Every unique combination of label values is a separate time series. Labels such as user id, request id or full URL path create millions of series and take down the monitoring system. Keep labels to bounded sets (route template, status class, namespace), and put high-cardinality detail in logs and traces instead. Set retention and sampling deliberately; logs are usually the largest bill.
+
+<Pitfalls>
+
+- **Only application metrics**, so OOM kills, throttling and pending pods go unnoticed.
+- **Relying on `kubectl logs`** for anything older than the last few files, or for deleted pods.
+- **Averaging per-pod percentiles.**
+- **High-cardinality labels** such as user ids or raw paths.
+- **Paging on CPU or memory** rather than on user-facing SLOs.
+- **Missing trace ids in logs**, so signals can't be joined.
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- Metrics come from your app, cAdvisor and kube-state-metrics; logs from node agents; traces through a collector.
+- Alert on platform failures the app can't see: restarts, OOM kills, throttling, pending pods.
+- Sum histogram buckets before computing percentiles.
+- Page on multiwindow SLO burn rate; route the rest to tickets.
+
+</KeyTakeaways>

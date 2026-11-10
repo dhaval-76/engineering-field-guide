@@ -1,0 +1,27 @@
+title: An automated canary that rolls itself back
+legend:
+  info: 'stable version'
+  accent: 'canary in this step'
+  bad: 'worse than stable'
+  ok: 'healthy'
+frames:
+  - caption: 'Version 2.4 starts as a canary taking **5%** of traffic. The analysis waits: after 2 minutes the canary has served only 180 requests, too few to judge.'
+    panels:
+      - kind: kv
+        label: After 2 minutes
+        pairs: [[stable 2.3, { v: '3,420 requests, 0.3% errors, p99 120 ms', tone: info }], [canary 2.4, { v: '180 requests: wait', tone: accent }]]
+  - caption: 'After 10 minutes the canary has 1,000 requests: 0.4% errors and a p99 of 125 ms, against stable''s 0.3% and 120 ms. Within the margins, so the weight moves to **25%**.'
+    panels:
+      - kind: kv
+        label: After 10 minutes
+        pairs: [[stable, { v: '0.3% errors, p99 120 ms', tone: info }], [canary, { v: '0.4% errors, p99 125 ms: promote', tone: ok }]]
+  - caption: 'At 25%, a code path that only some customers use starts to run. Canary errors climb to 1.6% while stable stays at 0.3%: worse by far more than the 0.5-point margin.'
+    panels:
+      - kind: kv
+        label: At 25%
+        pairs: [[stable, { v: '0.3% errors', tone: info }], [canary, { v: '1.6% errors', tone: bad }]]
+  - caption: 'The analysis fails, so the rollout **aborts**: the canary weight goes back to zero and all traffic returns to 2.3, without anyone being paged. Only 25% of users ever saw the bug, for a few minutes.'
+    panels:
+      - kind: rows
+        label: Result
+        items: [{ v: 'canary weight: 0%', tone: ok }, { v: 'stable 2.3: 100% of traffic', tone: info }, 'rollout marked degraded; team notified to investigate']

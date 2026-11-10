@@ -29,6 +29,7 @@ export const codeLanguages = [
   { id: 'proto', label: 'Protobuf', ext: 'proto' },
   { id: 'graphql', label: 'GraphQL', ext: 'graphql' },
   { id: 'nginx', label: 'nginx', ext: 'conf' },
+  { id: 'terraform', label: 'Terraform', ext: 'tf' },
   { id: 'text', label: 'Text', ext: 'txt' },
 ] as const;
 

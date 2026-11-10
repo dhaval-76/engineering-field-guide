@@ -125,7 +125,19 @@ Original scope:
 - Vector database internals (HNSW).
 - Fine-tuning vs RAG.
 
-### 5. More DevOps
+### 5. More DevOps (done 2026-11-10)
+
+Done: three pages that add depth to what `devops/ci-cd-and-cloud` and
+`distributed-systems/observability` already covered: `progressive-delivery` (traffic splitting,
+automated canary analysis against stable, Kubernetes rolling-update settings, Argo Rollouts, what
+makes rollback safe), `infrastructure-as-code` (declarative plan and apply, state, locking, secrets
+in state, drift, Terraform vs Helm vs GitOps) and `kubernetes-observability` (where each signal
+comes from in a cluster, platform-only failures, bucket aggregation, burn-rate paging). Code runs
+in Java, JavaScript and Python; the Terraform passes `terraform fmt` and the alert rules pass
+`promtool check rules`.
+
+Original scope:
+
 
 - Blue/green and canary deployments.
 - Infrastructure-as-code basics.

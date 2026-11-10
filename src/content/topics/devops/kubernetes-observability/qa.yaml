@@ -1,0 +1,44 @@
+questions:
+  - q: 'How would you set up monitoring and alerting for services running on Kubernetes?'
+    think: Sources of each signal, collection, what pages a human.
+    answer: |
+      Metrics: each service exposes `/metrics` with request counts, errors and latency histograms, scraped by Prometheus through service discovery (ServiceMonitors). Add cAdvisor metrics from the kubelet for container CPU, memory and throttling, kube-state-metrics for restarts, pod phases, termination reasons and HPA state, and node exporter for nodes. Logs: services write structured JSON to stdout with trace ids; a DaemonSet agent ships the node's log files to storage. Traces: OpenTelemetry SDKs send spans to a collector agent per node, then a gateway that samples and exports.
+
+      Alerting: define SLOs per user-facing service and page only on multiwindow burn rate; route platform problems such as OOM kills, CPU throttling, crash loops, pending pods and HPA at maximum to tickets. Keep label cardinality bounded and link dashboards, logs and traces by trace id.
+    askedAt:
+      - company: NVIDIA
+        year: 2026
+        round: Platform design
+        source: https://leetcode.com/discuss/post/8560520/nvidia-platform-engineer-interview-exper-kae0/
+  - q: 'A service''s p99 latency looks fine on every pod''s dashboard, but users complain. Where could the measurement be wrong?'
+    think: How are percentiles combined, and what don't app metrics see?
+    answer: |
+      First, aggregation: averaging per-pod p99s isn't a p99 for the service; sum the histogram buckets across pods, then compute the percentile. Bucket boundaries far from the threshold also hide detail. Second, where it is measured: server-side histograms start when the request reaches the app, so time queued in the load balancer, spent in TLS, or lost while the container was paused by CPU throttling or restarting after an OOM kill isn't counted. Check throttling and restart metrics, measure at the ingress or load balancer too, and compare with client-side timings.
+followUps:
+  - q: What is the difference between kube-state-metrics and metrics-server?
+    intuition: History versus the latest value.
+    approach: |
+      metrics-server keeps only the latest CPU and memory readings, for `kubectl top` and autoscalers, and doesn't forward them anywhere. kube-state-metrics turns the state of Kubernetes objects (restarts, phases, replicas, termination reasons) into metrics for Prometheus to store and alert on.
+  - q: Why is a burn-rate alert better than an alert on error rate above 1%?
+    intuition: How urgent is it, and does it stop?
+    approach: |
+      A burn rate relates errors to the SLO's budget, so it pages in proportion to how fast the budget is going: 14.4× uses 2% of a month's budget in an hour. A fixed threshold either pages on harmless blips or misses slow burns. Requiring both a long and a short window makes it fire for real problems and stop soon after recovery.
+practice:
+  - task: Implement multiwindow burn-rate paging and Prometheus's histogram_quantile.
+    hint: Burn rate is error rate divided by (1 - SLO). For quantiles, find the bucket containing rank q × total and interpolate linearly.
+    solution: |
+      Page when both the 1-hour and the 5-minute error rates divided by `1 - slo` are at least 14.4; budget used is burn rate × window ÷ 30 days, which reproduces the SRE Workbook's 2%, 5% and 10%. For a quantile, compute rank = q × total count, find the first bucket whose cumulative count reaches it, and interpolate between that bucket's lower and upper bounds. The error is at most the bucket width.
+    solutionCode: slo-burn
+quiz:
+  - q: Which component tells you a container was OOM-killed?
+    options: [The application's logs, kube-state-metrics, metrics-server, DNS]
+    correct: 1
+    why: The app is killed without warning; Kubernetes records the termination reason.
+  - q: How should p99 latency be computed across 20 pods?
+    options: [Average each pod's p99, Take the highest pod's p99, Sum histogram buckets across pods, then compute the quantile, Use the median]
+    correct: 2
+    why: Percentiles don't average; aggregate the buckets first.
+  - q: Where should most applications on Kubernetes write logs?
+    options: [To a file inside the container, To stdout and stderr, Directly to a database, Nowhere]
+    correct: 1
+    why: The runtime captures stdout and stderr, and a node agent ships them.

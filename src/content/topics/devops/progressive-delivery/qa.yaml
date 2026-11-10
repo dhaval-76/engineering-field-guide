@@ -1,0 +1,55 @@
+questions:
+  - q: 'What is a canary deployment, and how would you implement one?'
+    think: Who gets the new version, how is it judged, and how does it go back?
+    answer: |
+      A canary sends a small share of real traffic, say 1 to 5%, to the new version, compares it with the stable version, and then either increases the share in steps or rolls back. The split happens in a load balancer or service mesh by weight (or by replica count, more coarsely); sticky routing by user keeps each user on one version where that matters.
+
+      To judge it, compare the canary's error rate and latency percentiles, and ideally a business metric, with stable's over the same window, once it has enough traffic to be meaningful. Automate it with Argo Rollouts or Flagger, which run that analysis between steps and abort to 0% on failure. Rollback also depends on data: schema and message changes must stay compatible with the old version, using expand-and-contract migrations.
+    askedAt:
+      - company: Walmart
+        year: 2025
+        round: Technical
+        source: https://leetcode.com/discuss/post/7039649/walmart-software-engineer-iii-interview-b6bqt/
+  - q: 'Compare rolling, blue-green and canary deployments. When would you choose each?'
+    think: Speed of rollback, extra capacity, and how much risk each exposes.
+    answer: |
+      Rolling replaces instances gradually; it needs little extra capacity and is the default in Kubernetes, but old and new run together and rollback is another rolling update, taking minutes. Blue-green runs a full copy of the new version and switches all traffic at once; rollback is an instant switch back, at the cost of double capacity during the switch and no gradual exposure. Canary exposes a small share first and compares it with stable, limiting the blast radius, but needs traffic splitting, good metrics and automation.
+
+      I'd use rolling for low-risk internal services, blue-green when an instant rollback matters and capacity is cheap, and canary for high-traffic user-facing services where catching a regression on 5% of users saves the other 95%. All three need backward-compatible data changes.
+    askedAt:
+      - company: Salesforce
+        year: 2025
+        round: System design
+        source: https://leetcode.com/discuss/post/6297389/salesforce-smts-hyderabad-jan-2025-offer-5aq1/
+      - company: Bloomberg
+        year: 2025
+        round: System design
+        source: https://leetcode.com/discuss/post/7347254/bloomberg-interview-experience-senior-so-n2uw/
+followUps:
+  - q: Why compare a canary with the stable version instead of with fixed thresholds?
+    intuition: What if the whole system is having a bad hour?
+    approach: |
+      Fixed thresholds blame the canary for system-wide problems, such as a slow database, and can miss a canary that is clearly worse than its neighbours but still under the threshold. Comparing both versions over the same window, with the same traffic mix, isolates the effect of the change.
+  - q: Why might a rollback fail even though the old image is still available?
+    intuition: What did the new version change besides code?
+    approach: |
+      The new version may have changed shared state: dropped or renamed a column, written messages or cache entries in a new format, or migrated data. The old code can't read them, so rolling back breaks it. Expand-and-contract migrations and versioned formats keep rollback possible.
+practice:
+  - task: Write the decision function for automated canary analysis.
+    hint: Require a minimum number of canary requests, then compare error rate and p99 latency with stable, with margins.
+    solution: |
+      Return WAIT until the canary has served enough requests. Then return ROLLBACK if its error rate exceeds stable's by more than a small absolute margin (0.5 points here), or its p99 is more than 20% above stable's; otherwise PROMOTE. Comparing with stable means a system-wide error spike doesn't fail the canary on its own.
+    solutionCode: canary-analysis
+quiz:
+  - q: What are Kubernetes' default maxSurge and maxUnavailable for a rolling update?
+    options: ['0% and 100%', '25% and 25%', '50% and 0%', '100% and 0%']
+    correct: 1
+    why: Both default to 25%.
+  - q: Why is splitting canary traffic by replica count imprecise?
+    options: [It needs a service mesh, With few pods one pod is a large share of traffic, It ignores readiness, It can't roll back]
+    correct: 1
+    why: One canary pod out of three is a third of the traffic, not 5%.
+  - q: What makes a deployment hard to roll back?
+    options: [A new container image, A schema change that removes a column the old version uses, More replicas, A new log line]
+    correct: 1
+    why: The old code can't work with data the new code changed destructively.

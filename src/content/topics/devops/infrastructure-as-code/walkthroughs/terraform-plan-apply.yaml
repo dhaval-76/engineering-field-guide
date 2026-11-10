@@ -1,0 +1,26 @@
+title: A pull request that changes infrastructure
+legend:
+  ok: 'create or no change'
+  warn: 'update'
+  bad: 'delete'
+frames:
+  - caption: 'An engineer adds an invoices bucket with versioning to the Terraform code and opens a pull request. Someone also, during last week''s incident, turned off versioning on the logs bucket in the console: drift.'
+    panels:
+      - kind: kv
+        label: Code vs reality
+        pairs: [[bucket invoices, 'in code, not in the cloud'], [bucket logs, 'code: versioning on; cloud: off'], [bucket tmp-test, 'in the cloud, not in code']]
+  - caption: 'CI takes the **state lock**, refreshes what really exists, and runs **plan**. Plan lists only the differences.'
+    panels:
+      - kind: rows
+        label: Plan
+        items: [{ v: '+ create bucket invoices', tone: ok }, { v: '~ update bucket logs: versioning off → on', tone: warn }, { v: '- destroy bucket tmp-test', tone: bad }]
+  - caption: 'The plan is posted on the pull request. A reviewer spots the destroy: `tmp-test` holds test data someone needs. They ask for it to be added to the code (imported) instead. The plan is re-run.'
+    panels:
+      - kind: rows
+        label: Revised plan
+        items: [{ v: '+ create bucket invoices', tone: ok }, { v: '~ update bucket logs: versioning off → on', tone: warn }, { v: 'bucket tmp-test: now in code, no change', tone: ok }]
+  - caption: 'After merge, CI runs **apply** with exactly that plan, updates the state and releases the lock. Running plan again now shows **no changes**: code and reality match.'
+    panels:
+      - kind: kv
+        label: After apply
+        pairs: [[plan, { v: 'No changes (exit code 0)', tone: ok }], [state, 'updated with the new bucket id'], [lock, 'released']]

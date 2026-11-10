@@ -19,6 +19,7 @@ const langs = [
   'proto',
   'graphql',
   'nginx',
+  'terraform',
 ];
 let highlighter: Promise<Highlighter> | undefined;
 

@@ -1,0 +1,104 @@
+---
+title: Blue-Green and Canary Deployments in Depth
+summary: How traffic is actually shifted between versions, how a canary is judged automatically against the stable version, what makes rollback safe or impossible, and how Kubernetes rolling updates and Argo Rollouts implement it.
+track: devops
+order: 40
+tags: [devops, deployment, kubernetes, release]
+aliases: [blue green deployment, blue-green, canary deployment, canary release, progressive delivery, rolling update, maxsurge, maxunavailable, kubectl rollout undo, argo rollouts, flagger, traffic splitting, weighted routing, service mesh canary, automated canary analysis, rollback, zero downtime deployment, expand and contract, sticky sessions during deploy, shadow traffic, a/b testing vs canary]
+prerequisites: [devops/ci-cd-and-cloud, devops/docker-kubernetes]
+related: [devops/kubernetes-observability, system-design/feature-flags, backend/api-versioning, distributed-systems/load-balancing]
+quickRef:
+  points:
+    - '**Blue-green**: run the new version beside the old and switch all traffic at once. Rollback is a switch back, in seconds, at double the capacity.'
+    - '**Canary**: send a small share of traffic to the new version, **compare it with the stable version**, then grow the share or roll back.'
+    - 'Traffic can be split by **replica count** (coarse), a **load balancer or service mesh by weight** (precise), or by **user** (consistent experience).'
+    - 'Judge a canary **against stable over the same window**, with a minimum amount of traffic, not against fixed thresholds.'
+    - 'Rollback only works if **data stays compatible**: change schemas with expand-and-contract.'
+    - 'Kubernetes rolling updates default to **25% surge, 25% unavailable**; `kubectl rollout undo` returns to the previous ReplicaSet.'
+  useWhen: Choosing a release strategy, setting up automated rollbacks, or answering "what is a canary deployment and how would you do it".
+askedAt:
+  - company: Walmart
+    year: 2025
+    round: Technical
+    source: https://leetcode.com/discuss/post/7039649/walmart-software-engineer-iii-interview-b6bqt/
+  - company: Salesforce
+    year: 2025
+    round: System design
+    source: https://leetcode.com/discuss/post/6297389/salesforce-smts-hyderabad-jan-2025-offer-5aq1/
+  - company: Bloomberg
+    year: 2025
+    round: System design
+    source: https://leetcode.com/discuss/post/7347254/bloomberg-interview-experience-senior-so-n2uw/
+lastReviewed: 2026-11-10
+---
+
+## Why it matters
+
+[CI/CD](../ci-cd-and-cloud/) introduces rolling, blue-green and canary deployments. This page is about making them work: where the traffic split happens, how the system decides a canary is healthy without a person staring at dashboards, and why some deploys can't be rolled back at all. Most bad releases are caught by these mechanisms or not at all; most "rollback made it worse" incidents come from the data layer, not the code.
+
+<Callout type="analogy">
+A restaurant changing its recipe. Blue-green is cooking the new dish in a second kitchen and switching all orders over at once, keeping the old kitchen ready. A canary is serving the new dish to one table in twenty and comparing their plates with everyone else's before changing the menu.
+</Callout>
+
+## Where the traffic split happens
+
+| Mechanism | Precision | Notes |
+|---|---|---|
+| **Replica count** (Kubernetes Service across both versions) | Coarse: 1 of 10 pods is about 10% | No extra tools; 1% needs 100 pods. Argo Rollouts' default without a router |
+| **Load balancer weights** (weighted target groups or backends) | Precise percentages | Per request; each request may hit either version |
+| **Service mesh or ingress** (Istio, Linkerd, NGINX, Gateway API) | Precise, plus header- or cookie-based rules | Can route internal users or a beta group first |
+| **DNS weights** | Coarse and slow | Caches ignore your changes for the TTL; avoid for quick rollback |
+| **Feature flags** | Per user or attribute | Splits behaviour inside one deployment; see [feature flags](../../system-design/feature-flags/) |
+
+**Per-request splits mix versions for one user**: page one from v2, the next request from v1. That's fine for stateless APIs, confusing for UIs. Sticky routing by user id or cookie keeps each user on one version.
+
+## Judging a canary automatically
+
+<Walkthrough id="canary-analysis-run" />
+
+Automated canary analysis compares the canary with the **stable version over the same window**, because a bad hour for the whole system (a slow database, a partner outage) shouldn't be blamed on the canary, and a canary that is worse than its neighbours should be caught even if absolute numbers look acceptable.
+
+<CodeTabs id="canary-analysis" title="Promote, wait or roll back, comparing canary with stable" />
+
+- **Wait for enough traffic.** At 1% of 100 requests a minute, one error is a 1% error rate: noise. Set a minimum request count before judging.
+- **Use the signals users feel**: error rate and latency percentiles, plus a business metric where you can (checkouts per minute).
+- **Allow a margin**, not zero tolerance, and compare like with like: the same regions, the same request mix.
+- **Automate the rollback.** Argo Rollouts and Flagger run analysis between steps and, on failure, abort and send all traffic back to stable.
+
+<CodeTabs id="rollout-canary" title="An Argo Rollouts canary: weights, pauses and a background analysis" />
+
+## Kubernetes rolling updates
+
+A plain Deployment rolls out by replacing pods gradually:
+
+- **maxSurge** (default 25%) is how many extra pods may exist during the update; **maxUnavailable** (default 25%) is how many may be missing. `maxUnavailable: 0` keeps full capacity at the cost of needing room for extra pods.
+- New pods only receive traffic once their **readiness probe** passes, so a broken version stalls instead of taking traffic, as long as the probe checks something real.
+- If progress stops for **progressDeadlineSeconds** (default 600), the rollout is marked failed. Kubernetes reports it but doesn't roll back by itself: your pipeline must.
+- Old ReplicaSets are kept (**revisionHistoryLimit**, default 10), so `kubectl rollout undo` returns to the previous pod template quickly.
+
+## What makes rollback safe
+
+- **The database.** During any rollout, old and new code run against the same data, and a rollback brings old code back to whatever the new code wrote. Use **expand-and-contract**: add new columns and write both, deploy, backfill, switch reads, and only drop the old column in a later release. A migration that renames or drops a column makes rollback impossible.
+- **Messages and caches.** New message formats or cache entries must be readable by the old version, or the old version crashes after rollback. Version them.
+- **APIs.** New fields only; see [API versioning](../../backend/api-versioning/).
+- **Long-lived connections and sessions** stay on the old version until they reconnect; drain them rather than cutting them.
+
+<Pitfalls>
+
+- **Canary percentages by replica count** with few pods, so "5%" is really 33%.
+- **Judging a canary against fixed thresholds** instead of against stable.
+- **Too little traffic** to tell a real regression from noise.
+- **Readiness probes that always succeed**, so broken pods take traffic.
+- **Destructive schema changes** in the same release as the code that needs them.
+- **DNS-based switching** when you need a fast rollback.
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- Blue-green switches everything at once with an instant way back; canary shifts gradually and compares.
+- Split traffic with load balancer or mesh weights for precision, and keep users sticky when it matters.
+- Judge the canary against stable, with enough traffic, and automate the rollback.
+- Rollback is only as safe as your data: expand, migrate, then contract.
+
+</KeyTakeaways>

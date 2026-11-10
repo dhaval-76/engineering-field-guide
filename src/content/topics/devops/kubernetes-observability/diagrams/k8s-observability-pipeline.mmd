@@ -1,0 +1,12 @@
+flowchart TB
+  app[App pod<br/>/metrics, stdout, spans]
+  plat[cAdvisor in kubelet<br/>+ kube-state-metrics]
+  agent[Node agent<br/>logs + OTel collector]
+  prom[Prometheus<br/>scrapes metrics]
+  store[(Logs and traces)]
+  alert[Alertmanager<br/>page or ticket]
+  app -- logs, spans --> agent
+  app -- /metrics --> prom
+  plat --> prom
+  agent --> store
+  prom --> alert

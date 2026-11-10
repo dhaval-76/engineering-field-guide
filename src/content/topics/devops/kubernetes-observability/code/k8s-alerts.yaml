@@ -1,0 +1,31 @@
+# Prometheus alert rules for the failures Kubernetes hides from your own metrics.
+groups:
+  - name: kubernetes-workloads
+    rules:
+      - alert: PodRestartingOften # crash loops, failed probes, OOM kills
+        expr: increase(kube_pod_container_status_restarts_total[30m]) > 3
+        for: 5m
+        labels: { severity: ticket }
+      - alert: ContainerOOMKilled # exit 137 from the memory limit, invisible to the app
+        expr: kube_pod_container_status_last_terminated_reason{reason="OOMKilled"} == 1
+        labels: { severity: ticket }
+      - alert: CPUThrottledHeavily # paused by the CPU quota: latency spikes
+        expr: |
+          sum by (namespace, pod) (rate(container_cpu_cfs_throttled_periods_total[5m]))
+            / sum by (namespace, pod) (rate(container_cpu_cfs_periods_total[5m])) > 0.25
+        for: 15m
+        labels: { severity: ticket }
+      - alert: PodsPending # no node has room, or a volume can't attach
+        expr: sum by (namespace) (kube_pod_status_phase{phase="Pending"}) > 0
+        for: 10m
+        labels: { severity: ticket }
+      - alert: HPAAtMaximum # autoscaling can't add capacity any more
+        expr: kube_horizontalpodautoscaler_status_current_replicas >= kube_horizontalpodautoscaler_spec_max_replicas
+        for: 15m
+        labels: { severity: ticket }
+      - alert: OrdersErrorBudgetBurn # user pain: page only on this
+        expr: |
+          (sum(rate(http_requests_total{job="orders",code=~"5.."}[1h])) / sum(rate(http_requests_total{job="orders"}[1h]))) > 14.4 * 0.001
+          and
+          (sum(rate(http_requests_total{job="orders",code=~"5.."}[5m])) / sum(rate(http_requests_total{job="orders"}[5m]))) > 14.4 * 0.001
+        labels: { severity: page }

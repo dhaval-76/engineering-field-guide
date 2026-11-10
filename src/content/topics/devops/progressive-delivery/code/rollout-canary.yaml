@@ -1,0 +1,30 @@
+# Argo Rollouts: replaces a Deployment and moves traffic in steps, judging each one.
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
+metadata:
+  name: orders
+spec:
+  replicas: 10
+  selector:
+    matchLabels: { app: orders }
+  template:
+    metadata:
+      labels: { app: orders }
+    spec:
+      containers:
+        - name: orders
+          image: registry.example.com/orders:2.4.0 # the new version
+  strategy:
+    canary:
+      # Runs for the whole rollout; a failure aborts and sends all traffic back to stable.
+      analysis:
+        templates:
+          - templateName: error-rate-vs-stable
+      steps:
+        - setWeight: 5 # 5% of traffic (without a traffic router: about 5% of pods)
+        - pause: { duration: 10m }
+        - setWeight: 25
+        - pause: { duration: 10m }
+        - setWeight: 50
+        - pause: {} # no duration: wait for a person to promote
+        - setWeight: 100

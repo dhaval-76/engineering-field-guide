@@ -99,6 +99,12 @@ Research for the 9-page Networking and Operating Systems split, written on 2026-
 
 **Testing.** Node's `BlockList` matches IPv4-mapped IPv6 addresses with IPv4 rules; an extra `::ffff:0:0/96` rule wrongly blocked every IPv4 address, so it was removed. Python's `cryptography` package and the SQLite JDBC driver were installed only in throwaway locations for testing.
 
+## Research log: More DevOps (2026-11-10)
+
+**Interview reports** used as tags, each read in context: canary and blue-green at [Walmart 2025](https://leetcode.com/discuss/post/7039649/walmart-software-engineer-iii-interview-b6bqt/), [Salesforce 2025](https://leetcode.com/discuss/post/6297389/salesforce-smts-hyderabad-jan-2025-offer-5aq1/) and [Bloomberg 2025](https://leetcode.com/discuss/post/7347254/bloomberg-interview-experience-senior-so-n2uw/); Terraform at [NVIDIA 2026](https://leetcode.com/discuss/post/8560520/nvidia-platform-engineer-interview-exper-kae0/) (also Terraform vs Helm, drift, observability), [JPMorgan Chase 2026](https://leetcode.com/discuss/post/8518755/senior-data-engineer-software-engineer-i-inc1/), [Salesforce 2025](https://leetcode.com/discuss/post/6732405/salesforce-public-cloud-gcp-interview-fo-o4cu/) and [American Express 2024](https://leetcode.com/discuss/post/5501520/american-express-amex-engineer-1-bengalu-5kkq/). Not used: posts where the candidate raised canary or Terraform themselves.
+
+**Primary sources read:** Kubernetes Deployment docs (25% surge and unavailable, progressDeadlineSeconds 600, revisionHistoryLimit 10), Argo Rollouts canary and analysis docs (abort sets the canary weight to zero), Terraform state, sensitive data (secrets stored in plain text; `sensitive` only hides output), locking and `plan -detailed-exitcode`, the Google SRE Workbook's burn-rate table, Prometheus histogram and naming practices, Kubernetes logging docs (summarised by the fetch tool, not verbatim) and the kube-state-metrics README. The OpenTelemetry collector deployment page returned 404, so the page describes agent and gateway only in general terms.
+
 ## Decisions (2026-10-30)
 
 **Keep** every migrated legacy topic; all of them show up in the data.

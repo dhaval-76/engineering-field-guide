@@ -1,0 +1,26 @@
+title: A pod that dies without saying a word
+legend:
+  info: 'what the app''s own metrics show'
+  bad: 'what really happened'
+  ok: 'caught by platform metrics'
+frames:
+  - caption: 'The orders service handles a large report request. Memory climbs towards the container''s 1 GiB limit. The app''s own metrics look normal: it is busy, not failing.'
+    panels:
+      - kind: kv
+        label: Orders pod
+        pairs: [[app error rate, { v: '0.2%', tone: info }], [memory, '980 MiB of 1 GiB']]
+  - caption: 'Memory crosses the limit. The kernel''s OOM killer sends SIGKILL. The process gets no chance to log, flush metrics or finish requests: in-flight requests fail at the load balancer.'
+    panels:
+      - kind: kv
+        label: Orders pod
+        pairs: [[process, { v: 'killed, exit code 137', tone: bad }], [app logs, 'nothing: the last line is an ordinary request']]
+  - caption: 'Kubernetes restarts the container. A minute later the app''s metrics are back and healthy, from a fresh process with zero counters. A dashboard of app metrics shows a short gap, if anyone notices.'
+    panels:
+      - kind: kv
+        label: Orders pod
+        pairs: [[app metrics, { v: 'healthy again', tone: info }], [restarts, { v: '1 → 2 → 3 over the hour', tone: bad }]]
+  - caption: 'kube-state-metrics records what the app can''t: the restart count and `last_terminated_reason = OOMKilled`. The alert rules catch both, and the fix (a higher limit, or streaming the report instead of building it in memory) gets a ticket.'
+    panels:
+      - kind: rows
+        label: Platform alerts
+        items: [{ v: 'ContainerOOMKilled: orders', tone: ok }, { v: 'PodRestartingOften: 3 in 30 min', tone: ok }]
