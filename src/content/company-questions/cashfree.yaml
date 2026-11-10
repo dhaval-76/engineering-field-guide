@@ -12,8 +12,16 @@ questions:
     difficulty: easy
     leetcode: roman-to-integer
     topic: dsa/arrays-and-hashing
-    problem: 'Convert a Roman numeral to an integer.'
-    solution: 'Add each value, but subtract it when the next symbol is larger (the I in IV).'
+    problem: 'Convert a Roman numeral to an integer. The symbols are I = 1, V = 5, X = 10, L = 50, C = 100, D = 500 and M = 1000. A smaller symbol before a larger one is subtracted, as in IV = 4 and CM = 900.'
+    examples:
+      - input: 's = "XLIV"'
+        output: '44'
+      - input: 's = "MMXXVI"'
+        output: '2026'
+    constraints:
+      - '1 ≤ s.length ≤ 15'
+      - 's is a valid numeral between 1 and 3999'
+    solution: 'Add each symbol''s value, but subtract it when the next symbol is larger. One pass, no special cases for each pair.'
     complexity: 'O(n) time, O(1) space'
     code: cq-roman-to-int
     reports:
@@ -27,8 +35,18 @@ questions:
     difficulty: medium
     leetcode: capacity-to-ship-packages-within-d-days
     topic: dsa/binary-search
-    problem: 'Packages must ship in order within D days. Find the smallest ship capacity that works.'
-    solution: 'Binary search capacity between the heaviest package and the total weight. Check each candidate by simulating the days.'
+    problem: 'Packages on a conveyor belt must ship in the given order within `days` days. `weights[i]` is the weight of package `i`. Each day you load packages in order until the next one would exceed the ship''s capacity. Return the smallest capacity that ships everything in time.'
+    examples:
+      - input: 'weights = [3, 2, 2, 4, 1, 4], days = 3'
+        output: '6'
+        explanation: 'Days: [3,2] [2,4] [1,4].'
+      - input: 'weights = [5, 1, 1, 1, 5], days = 2'
+        output: '7'
+        explanation: 'Days: [5,1,1] [1,5].'
+    constraints:
+      - '1 ≤ days ≤ weights.length ≤ 5 × 10⁴'
+      - '1 ≤ weights[i] ≤ 500'
+    solution: 'Binary search on the capacity between the heaviest package and the total weight. For each candidate, simulate the days greedily; if it fits, try smaller.'
     complexity: 'O(n log sum) time, O(1) space'
     code: dsa-ship-capacity
     reports:
@@ -40,8 +58,16 @@ questions:
     difficulty: easy
     leetcode: best-time-to-buy-and-sell-stock
     topic: dsa/arrays-and-hashing
-    problem: 'One buy and one later sell: find the maximum profit. The candidate who solved this in O(n squared) was rejected, so give the O(n) version.'
-    solution: 'Track the cheapest price so far and the best profit from selling today.'
+    problem: '`prices[i]` is a stock''s price on day `i`. Choose one day to buy and a later day to sell. Return the largest profit, or 0 if no profit is possible.'
+    examples:
+      - input: 'prices = [9, 2, 6, 1, 4]'
+        output: '4'
+        explanation: 'Buy at 2, sell at 6.'
+      - input: 'prices = [8, 5, 3]'
+        output: '0'
+    constraints:
+      - '1 ≤ prices.length ≤ 10⁵'
+    solution: 'Track the cheapest price so far and the best profit from selling today. One pass. The candidate who answered with O(n²) was rejected, so lead with this.'
     complexity: 'O(n) time, O(1) space'
     code: cq-best-time-stock
     reports:
@@ -53,8 +79,14 @@ questions:
     difficulty: medium
     leetcode: interval-list-intersections
     topic: dsa/intervals
-    problem: 'Several celebrities each give their available slots. Find when all of them can meet.'
-    solution: 'Intersect the lists two at a time with two pointers, advancing whichever slot ends first. If input may overlap or be unsorted, sort and merge each list first.'
+    problem: 'Several celebrities each give a list of time slots `[start, end)` when they are available, sorted and not overlapping. Return every interval when all of them are available at the same time.'
+    examples:
+      - input: 'slots = [[[1,5], [8,12]], [[3,9]], [[4,10]]]'
+        output: '[[4,5], [8,9]]'
+    constraints:
+      - '1 ≤ number of people ≤ 100'
+      - 'Up to 10⁴ slots in total'
+    solution: 'Intersect the lists two at a time. With two pointers, the overlap of two slots is `[max(starts), min(ends))`; then advance whichever slot ends first, because it cannot overlap anything later. If slots might overlap or be unsorted, sort and merge each list first.'
     complexity: 'O(total slots x people) time'
     code: cq-common-slots
     reports:
@@ -66,8 +98,13 @@ questions:
     difficulty: medium
     leetcode: merge-intervals
     topic: dsa/intervals
-    problem: 'Given working hours and possibly overlapping meetings, list the free slots. The report links it to Merge Intervals.'
-    solution: 'Sort by start and sweep a cursor, recording a gap whenever the next meeting starts after it.'
+    problem: 'A working day runs from `dayStart` to `dayEnd`. Given the day''s meetings, which may overlap and are unsorted, return the free slots. If meetings overlap, the employee attends both.'
+    examples:
+      - input: 'dayStart = 8, dayEnd = 17, meetings = [[10,11], [9,10], [10,12], [16,18]]'
+        output: '[[8,9], [12,16]]'
+    constraints:
+      - '0 ≤ meetings.length ≤ 10⁴'
+    solution: 'This is merge intervals in disguise, as the report noted. Sort by start and sweep a cursor from the start of the day: a meeting that starts after the cursor leaves a gap, and every meeting pushes the cursor to its end. Clip to the end of the day.'
     complexity: 'O(n log n) time'
     code: cq-free-slots
     reports:
@@ -79,8 +116,17 @@ questions:
     difficulty: medium
     leetcode: pairs-of-songs-with-total-durations-divisible-by-60
     topic: dsa/arrays-and-hashing
-    problem: 'Given song durations, return a pair whose total is divisible by 120.'
-    solution: 'Store remainders in a map. For a duration with remainder r, look for `(120 - r) % 120`; the outer `% 120` handles r = 0.'
+    problem: 'Given song durations in seconds, return the indices of any two songs whose total duration is divisible by 120, or an empty array if there are none.'
+    examples:
+      - input: 'durations = [50, 70, 10]'
+        output: '[0, 1]'
+        explanation: '50 + 70 = 120.'
+      - input: 'durations = [1, 2]'
+        output: '[]'
+    constraints:
+      - '2 ≤ durations.length ≤ 6 × 10⁴'
+      - '1 ≤ durations[i] ≤ 500'
+    solution: 'Only the remainder mod 120 matters. For a duration with remainder `r`, look for an earlier one with remainder `(120 - r) % 120`; the extra `% 120` pairs 0 with 0. A map from remainder to index makes it one pass. To count all pairs instead, store counts.'
     complexity: 'O(n) time, O(120) space'
     code: cq-pair-divisible
     reports:
@@ -90,8 +136,15 @@ questions:
     section: dsa
     title: 'Flights Affected by Delays'
     topic: dsa/graphs-bfs-dfs
-    problem: 'Given flight dependencies and the flights already delayed, return all others that will be delayed. The candidate could not recall the exact wording.'
-    solution: 'Multi-source BFS from the delayed flights along dependency edges, with a visited set.'
+    problem: 'Some flights can only leave after another flight arrives, given as pairs `[a, b]` meaning `b` waits for `a`. Given the flights already delayed, return every other flight that will be delayed as a result.'
+    examples:
+      - input: 'dependencies = [["A","B"], ["B","C"], ["D","E"], ["C","A"]], delayed = ["A"]'
+        output: '["B", "C"]'
+        explanation: 'D and E are unaffected; the cycle back to A adds nothing new.'
+    constraints:
+      - 'Up to 10⁴ flights'
+      - 'Dependencies can form cycles'
+    solution: 'Multi-source BFS from the delayed flights along the dependency edges, with a visited set so cycles end. Everything reached, other than the starting flights, is affected.'
     complexity: 'O(V + E) time and space'
     code: cq-delayed-flights
     reports:
@@ -103,8 +156,16 @@ questions:
     difficulty: medium
     leetcode: find-k-closest-elements
     topic: dsa/binary-search
-    problem: 'In a sorted array, return the k values closest to x, in order.'
-    solution: 'Binary search the left edge of a window of size k, comparing the elements just outside it.'
+    problem: 'Given a sorted array `arr`, return the `k` values closest to `x`, sorted ascending. If two values are equally close, prefer the smaller one.'
+    examples:
+      - input: 'arr = [1, 3, 7, 8, 10], k = 2, x = 6'
+        output: '[7, 8]'
+      - input: 'arr = [23, 45, 67, 98], k = 2, x = 75'
+        output: '[67, 98]'
+    constraints:
+      - '1 ≤ k ≤ arr.length ≤ 10⁴'
+      - 'arr is sorted ascending'
+    solution: 'The answer is a window of `k` consecutive elements. Binary search its left edge `lo` in `[0, n - k]`: if `x - arr[mid]` is greater than `arr[mid + k] - x`, the window should move right.'
     complexity: 'O(log(n - k) + k) time'
     code: cq-k-closest-elements
     reports:
@@ -114,8 +175,15 @@ questions:
     section: dsa
     title: 'Trains Between Two Stations'
     topic: dsa/arrays-and-hashing
-    problem: 'Given each train''s stops and times, list trains going from one station to another, shortest journey first. The sample in the report lists T1 before T4, but T4 is 3 minutes quicker on the data given, so confirm the ordering with your interviewer.'
-    solution: 'Record each train''s departure from the first station and arrival at the second. Keep trains that visit both in the right order, and sort by duration.'
+    problem: 'You are given the stops of every train: `{train, station, arrival, departure}`, with times as HHMM. Given two stations, return the trains that go from the first to the second, ordered by journey time from shortest to longest.'
+    examples:
+      - input: 'stops for T1 to T4 as in the report, from = S1, to = S3'
+        output: '[T4, T1]'
+        explanation: 'T4 takes 2 h 55 m and T1 takes 2 h 58 m. T2 never stops at S3, and T3 never stops at S1.'
+    constraints:
+      - 'Up to 10⁴ stops'
+      - 'A train visits a station at most once'
+    solution: 'For each train, record its departure from the first station and its arrival at the second. Keep trains that have both, with the departure first, and sort by the difference in minutes (convert HHMM first). The report''s own sample listed T1 before T4, so confirm the ordering with your interviewer.'
     complexity: 'O(n log n) time, O(n) space'
     code: cq-trains-between
     reports:
@@ -127,8 +195,16 @@ questions:
     difficulty: medium
     leetcode: 4sum
     topic: dsa/two-pointers
-    problem: 'Find every unique set of four numbers adding to a target. The report calls out duplicates and integer overflow.'
-    solution: 'Sort, fix two numbers, and use two pointers for the rest, skipping repeats at every level. Add as `long`.'
+    problem: 'Return every unique set of four numbers from `nums` that adds up to `target`. The answer must not contain duplicate sets.'
+    examples:
+      - input: 'nums = [2, -1, 0, 1, -2, 0], target = 0'
+        output: '[[-2,-1,1,2], [-2,0,0,2], [-1,0,0,1]]'
+      - input: 'nums = [3, 3, 3, 3, 3], target = 12'
+        output: '[[3,3,3,3]]'
+    constraints:
+      - '1 ≤ nums.length ≤ 200'
+      - '-10⁹ ≤ nums[i], target ≤ 10⁹'
+    solution: 'Sort, fix two numbers with nested loops, and find the other two with two pointers. Skip equal values at every level to avoid duplicate sets. Add as `long`, because four values near 10⁹ overflow an `int`. The report called out both points.'
     complexity: 'O(n cubed) time, O(1) extra space'
     code: cq-four-sum
     reports:
@@ -138,8 +214,18 @@ questions:
     section: dsa
     title: 'Next Palindrome'
     topic: dsa/two-pointers
-    problem: 'Print the next palindrome strictly greater than a number: 12301 gives 12321, and 12321 gives 12421.'
-    solution: 'Mirror the left half. If that is not bigger, add one to the left half (with the middle digit) and mirror again. All nines become 10...01.'
+    problem: 'Given a positive number as a string, return the smallest palindrome strictly greater than it.'
+    examples:
+      - input: 'n = "12301"'
+        output: '"12321"'
+      - input: 'n = "12321"'
+        output: '"12421"'
+      - input: 'n = "999"'
+        output: '"1001"'
+    constraints:
+      - '1 ≤ n.length ≤ 18'
+      - 'n has no leading zeros'
+    solution: 'Mirror the left half (including the middle digit) onto the right. If that is bigger than `n`, it is the answer. Otherwise add one to the left half and mirror again. If the left half was all nines, the answer has one more digit: `10…01`.'
     complexity: 'O(digits) time'
     code: cq-next-palindrome
     reports:
@@ -149,8 +235,18 @@ questions:
     section: dsa
     title: 'Convert a Number Between Bases'
     topic: dsa/bit-manipulation
-    problem: 'Convert a number from base A to base B, in Java only in that round.'
-    solution: 'Parse to a value by repeated multiply and add, then repeatedly take the remainder by the new base and reverse the digits.'
+    problem: |-
+      Convert a number written in base `from` to base `to`. Bases are between 2 and 36, and digits above 9 are letters.
+
+      This round was in Java only.
+    examples:
+      - input: 'number = "ff", from = 16, to = 2'
+        output: '"11111111"'
+      - input: 'number = "255", from = 10, to = 16'
+        output: '"ff"'
+    constraints:
+      - 'The value fits in a 64-bit integer'
+    solution: 'Parse to a value with `value = value × from + digit`. Then repeatedly take `value % to` as the next digit from the right and divide by `to`, and reverse at the end. Handle zero separately. In Java, `Long.parseLong` and `Long.toString(value, radix)` do both steps, but write it by hand first.'
     complexity: 'O(digits) time'
     code: cq-base-convert
     reports:
@@ -160,8 +256,8 @@ questions:
     section: dsa
     title: 'Convert a Time Between Time Zones'
     topic: dsa/approaching-problems
-    problem: 'Convert a time from one time zone to another. The report gave no more detail.'
-    solution: 'Prefer library types: parse to `ZonedDateTime` and call `withZoneSameInstant`. By hand, convert to minutes since midnight, apply the offset difference, and wrap with modulo 1440. Ask about daylight saving.'
+    problem: 'Convert a time from one time zone to another. The report gives no more detail, so expect to set the input format yourself.'
+    solution: 'Ask: is a date included, and does daylight saving matter? With a library: parse to `ZonedDateTime` and call `withZoneSameInstant(targetZone)`. By hand with fixed offsets: convert to minutes since midnight, add the offset difference, wrap with `((m % 1440) + 1440) % 1440`, and report a day change.'
     reports:
       - year: 2023
         source: https://leetcode.com/discuss/post/3892914/ps-interview-2-cashfree-experience-by-an-25di/
@@ -169,8 +265,8 @@ questions:
     section: dsa
     title: 'Implement a Priority Queue'
     topic: dsa/heaps-and-top-k
-    problem: 'Build a working priority queue in a coding and code review round that also looks at thread safety and error handling.'
-    solution: 'An array-backed binary heap with sift up and sift down. Then discuss a lock around it, or a concurrent alternative.'
+    problem: 'Implement a priority queue that works: `push`, `pop` (smallest first), `peek` and `size`. This was a coding and code review round that also looks at error handling, thread safety and readable code.'
+    solution: 'An array-backed binary heap. `push` adds at the end and sifts up; `pop` moves the last element to the root and sifts down. Grow the array when full, and throw on popping an empty queue. For thread safety, discuss a lock around each operation or `PriorityBlockingQueue`.'
     complexity: 'O(log n) push and pop, O(1) peek'
     code: dsa-heap-impl
     reports:
@@ -182,8 +278,16 @@ questions:
     difficulty: medium
     leetcode: palindromic-substrings
     topic: dsa/dynamic-programming
-    problem: 'Count every palindromic substring.'
-    solution: 'Expand around each of the 2n - 1 centres.'
+    problem: 'Return the number of substrings of `s` that are palindromes. Substrings at different positions count separately.'
+    examples:
+      - input: 's = "abba"'
+        output: '6'
+        explanation: 'a, b, b, a, bb, abba.'
+      - input: 's = "xyz"'
+        output: '3'
+    constraints:
+      - '1 ≤ s.length ≤ 1000'
+    solution: 'Expand around each of the `2n - 1` centres (each character, and each gap between two characters), counting one palindrome per successful step outward. O(n²) time and O(1) space.'
     complexity: 'O(n squared) time, O(1) space'
     code: cq-count-palindromes
     reports:
@@ -195,8 +299,22 @@ questions:
     difficulty: medium
     leetcode: search-in-rotated-sorted-array
     topic: dsa/binary-search
-    problem: 'Find a target in a rotated sorted array in O(log n).'
-    solution: 'At every step one half is still sorted. Search it if the target falls inside, otherwise search the other half.'
+    problem: |-
+      You are given an array of distinct integers that was sorted in ascending order and then rotated at some unknown index, so `[1,2,3,4,5]` might become `[4,5,1,2,3]`. Given a `target`, return its index, or `-1` if it is not present.
+
+      Your solution must run in O(log n) time.
+    examples:
+      - input: 'nums = [15, 18, 22, 3, 6, 9], target = 6'
+        output: '4'
+      - input: 'nums = [15, 18, 22, 3, 6, 9], target = 20'
+        output: '-1'
+      - input: 'nums = [8], target = 8'
+        output: '0'
+    constraints:
+      - '1 ≤ nums.length ≤ 5000'
+      - 'All values are distinct'
+      - 'nums is sorted ascending, then possibly rotated'
+    solution: 'At every step at least one half of the range `[lo, hi]` is still sorted: compare `nums[lo]` with `nums[mid]` to see which. If the target lies inside the sorted half''s range, search there; otherwise search the other half.'
     complexity: 'O(log n) time, O(1) space'
     code: dsa-rotated-search
     reports:
@@ -208,8 +326,16 @@ questions:
     difficulty: medium
     leetcode: cheapest-flights-within-k-stops
     topic: dsa/shortest-paths
-    problem: 'Find the cheapest route with at most k stops.'
-    solution: 'Bellman-Ford limited to k + 1 rounds, copying distances each round.'
+    problem: 'There are `n` cities and a list of flights `[from, to, price]`. Find the cheapest price from `src` to `dst` using at most `k` stops in between, or `-1` if there is no such route.'
+    examples:
+      - input: 'n = 4, flights = [[0,1,50], [1,2,50], [2,0,50], [1,3,500], [2,3,150]], src = 0, dst = 3, k = 1'
+        output: '550'
+        explanation: '0 → 1 → 3. The cheaper route 0 → 1 → 2 → 3 needs two stops.'
+    constraints:
+      - '1 ≤ n ≤ 100'
+      - '0 ≤ k < n'
+      - 'No duplicate flights'
+    solution: 'Bellman-Ford limited to `k + 1` rounds. Each round relaxes every flight using a copy of the previous round''s prices, so a single round can never chain two flights. Dijkstra on (city, stops) also works.'
     complexity: 'O(k x E) time, O(V) space'
     code: dsa-cheapest-flights
     reports:
@@ -221,8 +347,16 @@ questions:
     difficulty: medium
     leetcode: edit-distance
     topic: dsa/dynamic-programming
-    problem: 'Find the fewest edits turning one word into another.'
-    solution: '`dp[i][j]` is the cost for the two prefixes. Matching letters copy the diagonal; otherwise take one plus the best of three edits.'
+    problem: 'Return the fewest operations that turn `word1` into `word2`, where an operation inserts, deletes or replaces one character.'
+    examples:
+      - input: 'word1 = "kitten", word2 = "sitting"'
+        output: '3'
+      - input: 'word1 = "abc", word2 = "yabd"'
+        output: '2'
+        explanation: 'Insert y, then replace c with d.'
+    constraints:
+      - '0 ≤ word1.length, word2.length ≤ 500'
+    solution: '`dp[i][j]` is the cost for the first `i` and `j` characters. If the characters match, copy `dp[i-1][j-1]`; otherwise take one plus the smallest of delete `dp[i-1][j]`, insert `dp[i][j-1]` and replace `dp[i-1][j-1]`.'
     complexity: 'O(n x m) time and space'
     code: dsa-edit-distance
     reports:
@@ -232,8 +366,14 @@ questions:
     section: dsa
     title: 'Complementary Pairs'
     topic: dsa/bit-manipulation
-    problem: 'Count pairs of strings whose concatenation can be rearranged into a palindrome. The interviewer wanted about O(n).'
-    solution: 'A palindrome allows at most one letter with an odd count. Reduce each string to a 26-bit odd-count mask, and count earlier masks that are equal or differ by one bit.'
+    problem: 'Two strings form a complementary pair if some rearrangement of their concatenation is a palindrome. Given a list of lowercase strings, count the pairs `(i, j)` with `i < j` that are complementary. The interviewer wanted about O(n).'
+    examples:
+      - input: 'words = ["aba", "abc", "d", "aa"]'
+        output: '2'
+        explanation: '"aba" + "aa" and "d" + "aa".'
+    constraints:
+      - '1 ≤ words.length ≤ 10⁵'
+    solution: 'A rearrangement is a palindrome when at most one letter has an odd count. Reduce each word to a 26-bit mask of odd counts. A pair works if the masks are equal or differ in exactly one bit, so for each word look up its mask and the 26 one-bit variants in a map of earlier masks.'
     complexity: 'O(26 x n) time, O(n) space'
     code: cq-complementary-pairs
     reports:
@@ -245,8 +385,15 @@ questions:
     difficulty: easy
     leetcode: the-employee-that-worked-on-the-longest-task
     topic: dsa/arrays-and-hashing
-    problem: 'Tasks run back to back. Find who worked the longest task, with ties going to the smaller id. From an online assessment.'
-    solution: 'Track the previous finish time; each duration is the difference.'
+    problem: 'Tasks run back to back starting at time 0. `logs[i] = [employee, leaveTime]` says the employee finished task `i` at `leaveTime`. Return the employee who worked the single longest task; if there is a tie, the smallest employee id.'
+    examples:
+      - input: 'logs = [[3,4], [1,6], [2,10]]'
+        output: '2'
+        explanation: 'Employees 3 and 2 both worked 4 units; 2 is the smaller id.'
+    constraints:
+      - '2 ≤ logs.length ≤ 500'
+      - 'leaveTime values are strictly increasing'
+    solution: 'Keep the previous finish time. Each task''s length is its finish time minus that. Track the best length and break ties by id.'
     complexity: 'O(n) time, O(1) space'
     code: cq-longest-task
     reports:
@@ -256,8 +403,14 @@ questions:
     section: dsa
     title: 'Distinct One Counts After One Flip'
     topic: dsa/greedy
-    problem: 'Flip exactly one subarray (possibly empty) of a binary array. How many different totals of ones are possible? From an online assessment.'
-    solution: 'Score each 0 as +1 and each 1 as -1. Subarray sums cover every value between the minimum and maximum, so Kadane gives both ends.'
+    problem: 'You are given a binary array. You must flip exactly one subarray, which may be empty, turning 0s into 1s and 1s into 0s. Return how many different totals of 1s are possible after the flip.'
+    examples:
+      - input: 'arr = [1, 0, 1]'
+        output: '3'
+        explanation: 'The total can be 1, 2 or 3.'
+    constraints:
+      - '1 ≤ arr.length ≤ 2 × 10⁵'
+    solution: 'Flipping a subarray changes the count by (zeros − ones) inside it. Score each 0 as +1 and each 1 as −1. The empty flip gives 0, and subarray sums cover every integer between the smallest and largest, so the answer is `maxSum − minSum + 1`. Kadane''s algorithm finds both.'
     complexity: 'O(n) time, O(1) space'
     code: cq-distinct-ones-flip
     reports:
@@ -267,7 +420,14 @@ questions:
     section: lld
     title: 'BookMyShow'
     topic: low-level-design/movie-booking
-    problem: 'Classes, database design and booking flow. Reports push hard on concurrent bookings, and one asked for code handling them with multithreading.'
+    problem: |-
+      Design BookMyShow: movies, theatres, shows, seats and bookings.
+
+      **Requirements**
+      - Classes and the database design.
+      - Handle many users trying to book the same seats at once.
+
+      **Asked in the reports:** concurrent bookings with multithreading, written as real code; a distributed version using Redis or Kafka; and turning it into a library that other apps (BookMyShow, Paytm) call, with its validation code.
     solution: 'Practise writing the locking, not just describing it: a per-show seat map with a held state and expiry, or a conditional database update. One report extended it into a library other apps can call.'
     reports:
       - year: 2025
@@ -280,7 +440,14 @@ questions:
     section: lld
     title: 'Online Parking Lot'
     topic: low-level-design/parking-lot
-    problem: 'Search available slots and reserve one. One candidate was told search needed a more refined approach.'
+    problem: |-
+      Design an online parking lot system.
+
+      **Requirements**
+      - Search for available slots.
+      - Book or reserve a slot.
+
+      One candidate was told their search design needed a better approach.
     solution: 'Index free slots by type rather than scanning, and make reservation atomic.'
     reports:
       - year: 2025
@@ -291,7 +458,14 @@ questions:
     section: lld
     title: 'Google Calendar'
     topic: low-level-design/meeting-room
-    problem: 'Schedule meetings for users, recurring meetings, reminders, and day, week and month views.'
+    problem: |-
+      Design Google Calendar's classes and helper functions.
+
+      **Requirements**
+      1. Schedule a meeting for a list of users with a start and end time.
+      2. Schedule recurring meetings with a frequency.
+      3. Set reminders for users.
+      4. Show day, week and month views for a user.
     solution: 'Store a recurrence rule and expand it when viewing, rather than saving every occurrence. Check overlaps per user.'
     reports:
       - year: 2025
@@ -300,7 +474,7 @@ questions:
     section: lld
     title: 'Tic-Tac-Toe (Machine Coding)'
     topic: low-level-design/lld-method
-    problem: 'Write the game logic, then discuss improvements.'
+    problem: 'Write the logic for a tic-tac-toe game, then discuss improvements and why you made each choice.'
     solution: 'Keep row, column and diagonal counters so each move checks a win in O(1), and separate Board, Player and Game.'
     reports:
       - year: 2025
@@ -309,7 +483,10 @@ questions:
     section: hld
     title: 'Notification Service'
     topic: system-design/notification-system
-    problem: 'Design a notification service.'
+    problem: |-
+      Design a notification service that sends messages through several channels.
+
+      **Expect follow-ups on:** user preferences, retries and failures, rate limits, and not sending duplicates.
     solution: 'Queue per channel, per-user preferences and rate limits, retries with a dead-letter queue, and idempotent sends.'
     reports:
       - year: 2025
@@ -320,7 +497,10 @@ questions:
     section: hld
     title: 'Hotel Booking'
     topic: system-design/ticket-booking
-    problem: 'Design hotel booking, asked in a techno-managerial round.'
+    problem: |-
+      Design a hotel booking system, asked in a techno-managerial round.
+
+      **Expect follow-ups on:** availability across dates, and two guests booking the last room.
     solution: 'Inventory per room type per date, with a reservation hold and a conditional update. Search reads from a separate store.'
     reports:
       - year: 2022
@@ -329,7 +509,13 @@ questions:
     section: frontend
     title: 'Debounce and Throttle in JavaScript'
     topic: concurrency/event-loop-and-async
-    problem: 'Write debounce and throttle, explain `apply`, and write a wrapper that errors when a function exceeds a timeout.'
+    problem: |-
+      From a frontend round:
+
+      1. Write `debounce` and demonstrate it.
+      2. Write `throttle`.
+      3. Explain `Function.prototype.apply`.
+      4. Write a wrapper that takes a function and a delay, and throws an error if the function takes longer than the delay.
     solution: 'Debounce resets a timer on each call; throttle ignores calls until the interval has passed. Use `Promise.race` against a timer for the timeout.'
     reports:
       - year: 2025
@@ -338,7 +524,7 @@ questions:
     section: fundamentals
     title: 'HTTP vs WebSocket'
     topic: backend/realtime-communication
-    problem: 'Why use HTTP? How does a WebSocket differ?'
+    problem: 'Why do we use HTTP? What is the difference between a WebSocket and HTTP?'
     solution: 'HTTP is client-initiated request and response. A WebSocket upgrades one connection into a two-way channel for server push.'
     reports:
       - year: 2022
@@ -347,7 +533,7 @@ questions:
     section: fundamentals
     title: 'Paging Algorithms'
     topic: cs-foundations/operating-systems
-    problem: 'Describe the page replacement algorithms.'
+    problem: 'Describe the different page replacement algorithms.'
     solution: 'FIFO, LRU, Clock and the theoretical Optimal. LRU approximates Optimal but is costly to track exactly, so real systems use Clock.'
     reports:
       - year: 2022
@@ -356,7 +542,7 @@ questions:
     section: behavioral
     title: 'Hiring Manager Round'
     topic: interviews/project-deep-dive
-    problem: 'Reports describe culture fit and a heavy focus on your current work and past systems.'
+    problem: 'The hiring manager round. Reports describe culture-fit questions and a heavy focus on your current work: projects, systems you designed and the tech stacks you used.'
     solution: 'Prepare one project end to end: your part, the trade-offs and what you would change.'
     reports:
       - year: 2025

@@ -213,7 +213,17 @@ const companyQuestions = defineCollection({
           difficulty: z.enum(['easy', 'medium', 'hard']).optional(),
           leetcode: z.string().optional().describe('Problem slug, exact or closest match'),
           topic: reference('topics').describe('The guide page that explains this'),
-          problem: markdown,
+          problem: markdown.describe('Written as the interviewer would give it'),
+          examples: z
+            .array(
+              z.object({
+                input: z.string(),
+                output: z.string(),
+                explanation: z.string().optional(),
+              }),
+            )
+            .default([]),
+          constraints: z.array(z.string()).default([]),
           solution: markdown,
           complexity: z.string().optional(),
           code: z.string().optional().describe('Snippet id rendered as code tabs'),

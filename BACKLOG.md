@@ -250,7 +250,9 @@ them in export and import. This extends 9c.
 ### 12. Company question banks (done 2026-11-10, added by the owner ahead of the order)
 
 Done: `/companies/<company>/` now lists questions by section, each with a solution, a link to its
-explanation and the original reports. Amazon has 84 questions and Cashfree 31; every other company
+explanation and the original reports. Updated the same day: sections and solutions fold separately, and every
+question is written as an interview problem with examples (checked by running the code) and
+constraints. Amazon has 84 questions and Cashfree 31; every other company
 shows its tagged questions and report topics in the same sections.
 
 Follow-ups, not done:

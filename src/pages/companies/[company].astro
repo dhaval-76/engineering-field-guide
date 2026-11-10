@@ -48,11 +48,17 @@ const sections = SECTIONS.map((s) => ({
   (s) => s.questions.length + s.tagged.length + s.taggedTopics.length + s.reported.length > 0,
 );
 const count = (s: (typeof sections)[number]) => s.questions.length + s.tagged.length;
+const summaryOf = (s: (typeof sections)[number]) => {
+  const n = count(s);
+  if (n > 0) return `${n} question${n === 1 ? '' : 's'}`;
+  const t = s.taggedTopics.length + s.reported.length;
+  return `${t} topic${t === 1 ? '' : 's'}`;
+};
 ---
 
 <BaseLayout
   title={`${company.name} interview questions`}
-  description={`Questions reported in ${company.name} interviews by section, with solutions, links to explanations and the original reports.`}
+  description={`Questions reported in ${company.name} interviews by section, written as interview problems, with solutions, links to explanations and the original reports.`}
 >
   <div class="wrap">
     <p class="eyebrow">
@@ -61,7 +67,7 @@ const count = (s: (typeof sections)[number]) => s.questions.length + s.tagged.le
     <h1>{company.name}</h1>
     <p class="lede">
       {questions.length > 0
-        ? 'Questions candidates reported from public interview write-ups, with a solution for each. The most reported come first in every section.'
+        ? 'Questions candidates reported in public interview write-ups, written the way an interviewer would ask them. Try each one before you open its solution. The most reported come first in every section.'
         : 'Topics and questions candidates mentioned in public interview write-ups.'}{' '}
       Reports show what came up for some candidates, not a fixed question list.
     </p>
@@ -87,8 +93,11 @@ const count = (s: (typeof sections)[number]) => s.questions.length + s.tagged.le
     </nav>
 
     {sections.map((s) => (
-      <section class="sec" aria-labelledby={s.id}>
-        <h2 id={s.id}>{s.label}</h2>
+      <details class="sec" id={s.id}>
+        <summary>
+          <h2>{s.label}</h2>
+          <span class="sec-n">{summaryOf(s)}</span>
+        </summary>
 
         {s.questions.map((q, i) => (
           <details class="cq" id={`q-${q.id}`}>
@@ -102,16 +111,35 @@ const count = (s: (typeof sections)[number]) => s.questions.length + s.tagged.le
             </summary>
             <div class="body">
               <div class="prose" set:html={q.problemHtml} />
-              <p class="tag">Solution</p>
-              <div class="prose" set:html={q.solutionHtml} />
-              {q.complexity && (
-                <p class="cx">
-                  <strong>Cost:</strong> {q.complexity}
-                </p>
+              {q.examples.map((e, n) => (
+                <div class="ex">
+                  <p class="tag">Example{q.examples.length > 1 ? ` ${n + 1}` : ''}</p>
+                  <div class="io">
+                    <p>
+                      <b>Input:</b> <code>{e.input}</code>
+                    </p>
+                    <p>
+                      <b>Output:</b> <code>{e.output}</code>
+                    </p>
+                    {e.explanation && (
+                      <p class="why">
+                        <b>Why:</b> {e.explanation}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              ))}
+              {q.constraints.length > 0 && (
+                <>
+                  <p class="tag">Constraints</p>
+                  <ul class="cons">
+                    {q.constraints.map((c) => (
+                      <li>{c}</li>
+                    ))}
+                  </ul>
+                </>
               )}
-              {q.code && <CodeTabs id={q.code} title={q.title} />}
               <p class="links">
-                <a href={topicUrl(q.topicId)}>Explained in {titles.get(q.topicId)}</a>
                 {q.leetcode && (
                   <a
                     href={`https://leetcode.com/problems/${q.leetcode}/`}
@@ -127,6 +155,22 @@ const count = (s: (typeof sections)[number]) => s.questions.length + s.tagged.le
                   </a>
                 ))}
               </p>
+
+              <details class="sol">
+                <summary>Show solution</summary>
+                <div class="sol-body">
+                  <div class="prose" set:html={q.solutionHtml} />
+                  {q.complexity && (
+                    <p class="cx">
+                      <strong>Cost:</strong> {q.complexity}
+                    </p>
+                  )}
+                  {q.code && <CodeTabs id={q.code} title={q.title} />}
+                  <p class="links">
+                    <a href={topicUrl(q.topicId)}>Explained in {titles.get(q.topicId)}</a>
+                  </p>
+                </div>
+              </details>
             </div>
           </details>
         ))}
@@ -137,13 +181,20 @@ const count = (s: (typeof sections)[number]) => s.questions.length + s.tagged.le
               <span class="t">{it.text}</span>
             </summary>
             <div class="body">
-              <div class="prose" set:html={it.answerHtml} />
               <p class="links">
-                <a href={it.url}>Explained in {it.topicTitle}</a>
                 <a href={it.source} rel="nofollow noopener" target="_blank">
                   Report{it.year ? ` (${it.year})` : ''} ↗
                 </a>
               </p>
+              <details class="sol">
+                <summary>Show answer</summary>
+                <div class="sol-body">
+                  <div class="prose" set:html={it.answerHtml} />
+                  <p class="links">
+                    <a href={it.url}>Explained in {it.topicTitle}</a>
+                  </p>
+                </div>
+              </details>
             </div>
           </details>
         ))}
@@ -199,16 +250,19 @@ const count = (s: (typeof sections)[number]) => s.questions.length + s.tagged.le
             </div>
           </>
         )}
-      </section>
+      </details>
     ))}
   </div>
 </BaseLayout>
 
 <script>
-  // A link to one question opens it.
+  // A link to a section or a question opens it, along with the section around it.
   const open = () => {
-    const el = location.hash && document.getElementById(location.hash.slice(1));
-    if (el instanceof HTMLDetailsElement) el.open = true;
+    const el = location.hash && document.getElementById(decodeURIComponent(location.hash.slice(1)));
+    if (!el) return;
+    for (let d: Element | null = el; d; d = d.parentElement?.closest('details') ?? null)
+      if (d instanceof HTMLDetailsElement) d.open = true;
+    el.scrollIntoView();
   };
   open();
   addEventListener('hashchange', open);
@@ -236,10 +290,13 @@ const count = (s: (typeof sections)[number]) => s.questions.length + s.tagged.le
     font-family: var(--font-serif);
     font-weight: 560;
     font-size: var(--step-2);
-    margin: 0 0 8px;
+    margin: 0;
   }
   .overview {
     margin-top: 16px;
+  }
+  .overview h2 {
+    margin-bottom: 8px;
   }
   .overview ul {
     margin: 0;
@@ -259,24 +316,60 @@ const count = (s: (typeof sections)[number]) => s.questions.length + s.tagged.le
     gap: 5px;
     min-height: 24px;
   }
-  .jump .n {
+  .jump .n,
+  .sec-n {
     color: var(--ink-3);
     font-size: 0.8125rem;
     font-variant-numeric: tabular-nums;
   }
   .sec {
-    margin-top: 28px;
+    border-bottom: 1px solid var(--rule);
     scroll-margin-top: 72px;
   }
-  .sec h2 {
-    scroll-margin-top: 72px;
+  .sec > summary {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    padding: 14px 0;
+    cursor: pointer;
+    list-style: none;
+  }
+  .sec > summary::-webkit-details-marker,
+  .cq > summary::-webkit-details-marker,
+  .sol > summary::-webkit-details-marker {
+    display: none;
+  }
+  .sec > summary::before,
+  .sol > summary::before {
+    content: '';
+    flex: none;
+    width: 0.45em;
+    height: 0.45em;
+    border-right: 1.5px solid currentColor;
+    border-bottom: 1.5px solid currentColor;
+    transform: translateY(-0.15em) rotate(-45deg);
+    transition: transform 0.15s;
+    color: var(--ink-3);
+  }
+  .sec[open] > summary::before,
+  .sol[open] > summary::before {
+    transform: translateY(-0.25em) rotate(45deg);
+  }
+  .sec[open] > summary {
+    padding-bottom: 6px;
+  }
+  .sec > summary:hover h2 {
+    color: var(--accent);
   }
   .sec h3 {
     font-size: 0.9375rem;
     margin: 20px 0 0;
   }
+  .sec > :last-child {
+    margin-bottom: 16px;
+  }
   .cq {
-    border-bottom: 1px solid var(--rule);
+    border-top: 1px solid var(--rule);
     scroll-margin-top: 72px;
   }
   .cq > summary {
@@ -286,9 +379,6 @@ const count = (s: (typeof sections)[number]) => s.questions.length + s.tagged.le
     padding: 10px 2px;
     cursor: pointer;
     list-style: none;
-  }
-  .cq > summary::-webkit-details-marker {
-    display: none;
   }
   .cq > summary:hover .t {
     color: var(--accent);
@@ -319,10 +409,63 @@ const count = (s: (typeof sections)[number]) => s.questions.length + s.tagged.le
     padding: 2px 2px 16px;
   }
   .tag {
-    margin: 12px 0 2px;
+    margin: 14px 0 4px;
     font-size: 0.8125rem;
     font-weight: 600;
     color: var(--ink-3);
+  }
+  .io {
+    padding: 10px 12px;
+    background: var(--code-bg);
+    border-radius: 6px;
+    font-size: 0.875rem;
+    line-height: 1.55;
+  }
+  .io p {
+    margin: 0;
+  }
+  .io p + p {
+    margin-top: 4px;
+  }
+  .io code {
+    font-family: var(--font-mono);
+    font-size: 0.8125rem;
+    background: none;
+    padding: 0;
+    overflow-wrap: anywhere;
+  }
+  .io b {
+    font-weight: 600;
+  }
+  .why {
+    color: var(--ink-2);
+  }
+  .cons {
+    margin: 0;
+    padding-left: 1.2em;
+    font-family: var(--font-mono);
+    font-size: 0.8125rem;
+    line-height: 1.7;
+  }
+  .sol {
+    margin-top: 14px;
+    border: 1px solid var(--rule);
+    border-radius: 8px;
+  }
+  .sol > summary {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 40px;
+    padding: 0 12px;
+    cursor: pointer;
+    list-style: none;
+    font-weight: 600;
+    font-size: 0.9375rem;
+    color: var(--accent);
+  }
+  .sol-body {
+    padding: 0 12px 12px;
   }
   .cx {
     font-size: 0.9375rem;

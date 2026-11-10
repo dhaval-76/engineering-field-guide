@@ -231,9 +231,10 @@ best. If the text is gone, the highlight stays on `/notes/` and the topic says s
 ## Company question banks
 
 `src/content/company-questions/<company>.yaml` holds one company's questions: `section`, `title`,
-`topic` (checked), `problem`, `solution`, optional `difficulty`, `leetcode`, `complexity` and `code`,
-and `reports`. `/companies/<company>/` shows them by section, sorted by number of reports; questions
-tagged with `askedAt` on topic pages and generated report topics appear in the same sections.
+`topic` (checked), `problem`, `examples`, `constraints`, `solution`, optional `difficulty`, `leetcode`,
+`complexity` and `code`, and `reports`. `/companies/<company>/` shows them in collapsible sections,
+sorted by number of reports; questions tagged with `askedAt` on topic pages and generated report
+topics appear in the same sections. The solution sits in its own fold so readers can try first.
 
 - **Each entry in `reports` is one candidate who was really asked it.** Read the post first. A name
   or link in a post is often a practice suggestion. People repost the same story, so cite it once.
@@ -241,7 +242,13 @@ tagged with `askedAt` on topic pages and generated report topics appear in the s
 - Don't use study lists, prep sheets, articles or "you should know" advice as reports. A public
   compilation is allowed only when no first-hand report exists, and the question must say so.
 - Say so in the question when a report describes a variation.
-- Write problem statements in your own words and link to LeetCode, rather than copying its text.
+- Write `problem` the way an interviewer would give it, in your own words: the task, then any
+  follow-up the reports mention. DSA questions get `examples` and `constraints`; design questions
+  list requirements and likely follow-ups instead.
+- Keep hints out of everything shown before the solution: no pattern names in the title or
+  statement, and no "this is like X" notes. Those go in `solution`.
+- Use your own example inputs, not LeetCode's, and get every expected output by running the
+  solution code. Link to LeetCode rather than copying its text.
 - Reuse an existing snippet id for `code` when it solves the same problem. New solutions go in
   `company-questions/code/`, with the same global id rules, and must be run before committing.
 - Every question needs an honest `topic`. If no page fits, link `lld-method` or

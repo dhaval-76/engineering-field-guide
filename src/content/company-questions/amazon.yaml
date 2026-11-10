@@ -12,8 +12,22 @@ questions:
     difficulty: medium
     leetcode: search-in-rotated-sorted-array
     topic: dsa/binary-search
-    problem: 'A sorted array of distinct values was rotated at an unknown point. Return the index of a target, or -1, in O(log n).'
-    solution: 'At every step one half of the range is still sorted. Check whether the target falls inside that sorted half; if so search there, otherwise search the other half.'
+    problem: |-
+      You are given an array of distinct integers that was sorted in ascending order and then rotated at some unknown index, so `[1,2,3,4,5]` might become `[4,5,1,2,3]`. Given a `target`, return its index, or `-1` if it is not present.
+
+      Your solution must run in O(log n) time.
+    examples:
+      - input: 'nums = [15, 18, 22, 3, 6, 9], target = 6'
+        output: '4'
+      - input: 'nums = [15, 18, 22, 3, 6, 9], target = 20'
+        output: '-1'
+      - input: 'nums = [8], target = 8'
+        output: '0'
+    constraints:
+      - '1 ≤ nums.length ≤ 5000'
+      - 'All values are distinct'
+      - 'nums is sorted ascending, then possibly rotated'
+    solution: 'At every step at least one half of the range `[lo, hi]` is still sorted: compare `nums[lo]` with `nums[mid]` to see which. If the target lies inside the sorted half''s range, search there; otherwise search the other half.'
     complexity: 'O(log n) time, O(1) space'
     code: dsa-rotated-search
     reports:
@@ -27,12 +41,26 @@ questions:
         source: https://leetcode.com/discuss/post/8575909/amazon-sde-2-india-oct-2026-dsa-lld-roun-vk9s/
   - id: course-order
     section: dsa
-    title: 'Course Schedule II / Package Dependencies'
+    title: 'Course Schedule II (Package Dependencies)'
     difficulty: medium
     leetcode: course-schedule-ii
     topic: dsa/topological-sort
-    problem: 'Given items and "a needs b" pairs, return a valid build order, or nothing if there is a cycle. Amazon has also asked this with software packages.'
-    solution: 'Kahn''s algorithm: count incoming edges, start from nodes with none, and remove them one by one. If fewer than n nodes come out, the rest form a cycle.'
+    problem: |-
+      There are `n` courses labelled `0` to `n - 1`. Each pair `[a, b]` in `prerequisites` means you must finish course `b` before course `a`. Return any order in which you can finish every course. If it is impossible, return an empty array.
+
+      Amazon has also asked this as installing software packages, where a package must be installed after everything it depends on. Be ready to detect and report the cycle.
+    examples:
+      - input: 'n = 3, prerequisites = [[2,0], [2,1], [1,0]]'
+        output: '[0, 1, 2]'
+        explanation: 'Course 1 needs 0, and course 2 needs both.'
+      - input: 'n = 3, prerequisites = [[0,1], [1,2], [2,1]]'
+        output: '[]'
+        explanation: 'Courses 1 and 2 need each other, so there is a cycle.'
+    constraints:
+      - '1 ≤ n ≤ 2000'
+      - '0 ≤ prerequisites.length ≤ n × (n − 1)'
+      - 'All pairs are distinct'
+    solution: 'This is a topological sort. With Kahn''s algorithm, count each course''s incoming edges, start a queue with the courses that have none, and remove courses one at a time, decreasing their dependants'' counts. If fewer than `n` courses come out, the rest are in a cycle.'
     complexity: 'O(V + E) time and space'
     code: dsa-course-schedule
     reports:
@@ -50,8 +78,17 @@ questions:
     difficulty: medium
     leetcode: merge-intervals
     topic: dsa/intervals
-    problem: 'Merge every overlapping interval in a list.'
-    solution: 'Sort by start. Extend the last merged interval when the next one overlaps it; otherwise start a new one.'
+    problem: 'Given a list of intervals `[start, end]`, merge every group of overlapping intervals and return the result. Intervals that touch, such as `[1,4]` and `[4,6]`, count as overlapping.'
+    examples:
+      - input: 'intervals = [[5,7], [1,2], [2,4], [6,9]]'
+        output: '[[1,4], [5,9]]'
+      - input: 'intervals = [[1,4], [4,6]]'
+        output: '[[1,6]]'
+        explanation: 'Touching intervals merge.'
+    constraints:
+      - '1 ≤ intervals.length ≤ 10⁴'
+      - '0 ≤ start ≤ end ≤ 10⁴'
+    solution: 'Sort by start. Walk the list keeping the last merged interval: if the next one starts at or before its end, extend the end; otherwise start a new interval.'
     complexity: 'O(n log n) time, O(n) space'
     code: dsa-merge-intervals
     reports:
@@ -67,8 +104,21 @@ questions:
     difficulty: medium
     leetcode: house-robber
     topic: dsa/dynamic-programming
-    problem: 'Pick values from a line of houses to maximise the total, never taking two neighbours.'
-    solution: 'For each house, keep the best total with and without robbing the previous one. One report added a circular street (House Robber II): solve twice, once without the first house and once without the last.'
+    problem: |-
+      Houses stand in a row, and `nums[i]` is the money in house `i`. You cannot take from two adjacent houses. Return the most money you can collect.
+
+      Follow-up from one report: the houses stand in a circle, so the first and last are neighbours.
+    examples:
+      - input: 'nums = [3, 10, 3, 1, 2]'
+        output: '12'
+        explanation: 'Take 10 and 2.'
+      - input: 'nums = [2, 1, 1, 2]'
+        output: '4'
+        explanation: 'Take the first and last.'
+    constraints:
+      - '1 ≤ nums.length ≤ 100'
+      - '0 ≤ nums[i] ≤ 400'
+    solution: 'For each house keep two numbers: the best total if you skip it and if you take it. Taking it adds its money to the previous "skip". For the circle, solve the line twice, once without the first house and once without the last, and take the larger.'
     complexity: 'O(n) time, O(1) space'
     code: cq-house-robber
     reports:
@@ -84,8 +134,21 @@ questions:
     difficulty: medium
     leetcode: rotting-oranges
     topic: dsa/graphs-bfs-dfs
-    problem: 'Rotten oranges infect fresh neighbours each minute. Return the minutes until none are fresh, or -1. Reports describe this as a variation, so expect a changed story.'
-    solution: 'Multi-source BFS: put every rotten orange in the queue at the start and count levels.'
+    problem: |-
+      A grid holds `0` (empty), `1` (fresh orange) or `2` (rotten orange). Every minute, each fresh orange next to a rotten one (up, down, left or right) becomes rotten. Return the number of minutes until no fresh orange is left, or `-1` if that never happens.
+
+      Reports describe a variation of this, so listen for a changed story with the same mechanics.
+    examples:
+      - input: 'grid = [[2,1,1], [0,0,1], [1,1,1]]'
+        output: '6'
+        explanation: 'The rot travels down the right side and back along the bottom row.'
+      - input: 'grid = [[2,1,0], [0,1,1], [1,0,1]]'
+        output: '-1'
+        explanation: 'The orange at the bottom left can never be reached.'
+    constraints:
+      - '1 ≤ rows, columns ≤ 10'
+      - 'grid[i][j] is 0, 1 or 2'
+    solution: 'Multi-source BFS. Put every rotten orange in the queue at the start, then process the queue level by level; each level is one minute. Count fresh oranges first, and if any remain at the end, return -1.'
     complexity: 'O(rows x columns) time and space'
     code: dsa-rotting-oranges
     reports:
@@ -101,8 +164,21 @@ questions:
     difficulty: medium
     leetcode: first-unique-number
     topic: dsa/design-data-structures
-    problem: 'Values arrive one at a time. At any moment, return the first value seen exactly once so far. One report began with the plain string version.'
-    solution: 'Keep unique values in insertion order and a set of those seen twice. `LinkedHashSet` is a hash map plus a doubly linked list, which is the structure one interviewer wanted named.'
+    problem: |-
+      Design a class that receives integers one at a time. At any moment it must return the first value that has been seen exactly once so far, or `-1` if there is none.
+
+      - `add(value)` records a value.
+      - `first()` returns the first unique value.
+
+      One report started with the simpler version, the first non-repeating character in a string, before turning it into a stream.
+    examples:
+      - input: 'add(2), add(3), add(5), first(), add(2), first(), add(3), add(5), first()'
+        output: '2, 3, -1'
+        explanation: 'After the second 2, the first unique value is 3. After 3 and 5 repeat, there is none.'
+    constraints:
+      - 'Up to 10⁵ calls in total'
+      - 'Each call should be O(1)'
+    solution: 'Keep the values seen once in insertion order, and a set of values seen more than once. In Java, `LinkedHashSet` is a hash map with a doubly linked list through it, which is exactly the structure one interviewer wanted named: O(1) add, remove and "first".'
     complexity: 'O(1) per operation, O(n) space'
     code: cq-first-unique-stream
     reports:
@@ -118,8 +194,20 @@ questions:
     difficulty: medium
     leetcode: lowest-common-ancestor-of-a-binary-tree
     topic: dsa/trees-and-bst
-    problem: 'Find the deepest node with both targets below it. Reports include a version where a target may be missing (LeetCode 1644) and one phrased as two employees in an org chart.'
-    solution: 'Recurse. A node where the two targets come back from different sides is the answer. If a target may be missing, count how many you actually found before trusting the result.'
+    problem: |-
+      Given the root of a binary tree and two nodes `p` and `q` that are both in the tree, return their lowest common ancestor: the deepest node that has both of them as descendants. A node counts as a descendant of itself.
+
+      Follow-ups from the reports: one of the nodes might not be in the tree, and a version phrased as finding the common manager of two employees in an org chart.
+    examples:
+      - input: 'root = [5,3,8,1,4,7,9], p = 1, q = 4'
+        output: '3'
+      - input: 'root = [5,3,8,1,4,7,9], p = 3, q = 4'
+        output: '3'
+        explanation: 'A node can be its own ancestor.'
+    constraints:
+      - '2 ≤ number of nodes ≤ 10⁵'
+      - 'All values are unique'
+    solution: 'Recurse. A node returns itself if it is `p` or `q`; otherwise it returns whatever its children found. The first node that receives a result from both sides is the answer. If a node might be missing, count how many targets you actually found before trusting the result.'
     complexity: 'O(n) time, O(h) space'
     code: dsa-lca
     reports:
@@ -135,8 +223,17 @@ questions:
     difficulty: medium
     leetcode: reorganize-string
     topic: dsa/heaps-and-top-k
-    problem: 'Rearrange a string so no two neighbours match, or return an empty string.'
-    solution: 'It is impossible only if one letter fills more than half (rounded up). Place the most frequent letter on even slots, then fill the rest, moving to odd slots once even ones run out. A max-heap also works.'
+    problem: 'Rearrange the letters of `s` so that no two neighbouring characters are the same. Return any valid arrangement, or an empty string if none exists.'
+    examples:
+      - input: 's = "aabbc"'
+        output: '"abacb"'
+        explanation: 'Any arrangement with no equal neighbours is accepted.'
+      - input: 's = "aaab"'
+        output: '""'
+    constraints:
+      - '1 ≤ s.length ≤ 500'
+      - 's contains lowercase English letters'
+    solution: 'It is impossible exactly when one letter appears more than `(n + 1) / 2` times. Otherwise place the most frequent letter on the even positions 0, 2, 4…, then fill the remaining letters into the rest of the even positions and then the odd ones. A max-heap that always takes the two most frequent letters also works, in O(n log 26).'
     complexity: 'O(n) time, O(1) extra space'
     code: cq-reorganize-string
     reports:
@@ -150,8 +247,20 @@ questions:
     difficulty: medium
     leetcode: word-break
     topic: dsa/dynamic-programming
-    problem: 'Can a string be split into dictionary words? The same report followed up with returning every split (Word Break II).'
-    solution: '`ok[i]` is true if some earlier `ok[j]` is true and `s[j..i]` is a word. For every split, use backtracking with memoisation.'
+    problem: |-
+      Given a string `s` and a list of words `dictionary`, return `true` if `s` can be split into a sequence of one or more dictionary words. A word may be used more than once.
+
+      Follow-up: return every possible sentence.
+    examples:
+      - input: 's = "sunflowerpot", dictionary = ["sun", "flower", "sunflower", "pot"]'
+        output: 'true'
+        explanation: '"sun flower pot" or "sunflower pot".'
+      - input: 's = "sunflowers", dictionary = ["sun", "flower", "sunflower", "pot"]'
+        output: 'false'
+    constraints:
+      - '1 ≤ s.length ≤ 300'
+      - '1 ≤ dictionary.length ≤ 1000'
+    solution: '`ok[i]` is true when the first `i` characters can be split. It is true if some `ok[j]` is true and `s[j..i)` is a word. For every sentence, use backtracking with memoisation on the start index.'
     complexity: 'O(n squared) lookups, O(n) space'
     code: dsa-word-break
     reports:
@@ -163,8 +272,13 @@ questions:
     difficulty: medium
     leetcode: number-of-islands
     topic: dsa/graphs-bfs-dfs
-    problem: 'Count connected groups of land in a grid.'
-    solution: 'Scan the grid. Each unvisited land cell starts a new island; flood fill it with DFS or BFS.'
+    problem: 'A grid contains `''1''` for land and `''0''` for water. An island is a group of land cells connected up, down, left or right. Return the number of islands.'
+    examples:
+      - input: 'grid = ["1100", "0010", "1011"]'
+        output: '3'
+    constraints:
+      - '1 ≤ rows, columns ≤ 300'
+    solution: 'Scan every cell. Each unvisited land cell starts a new island: count it and flood fill its whole island (DFS or BFS) so it is not counted again.'
     complexity: 'O(rows x columns) time and space'
     code: dsa-number-of-islands
     reports:
@@ -178,8 +292,17 @@ questions:
     difficulty: hard
     leetcode: trapping-rain-water
     topic: dsa/two-pointers
-    problem: 'Given bar heights, return how much water is trapped.'
-    solution: 'Two pointers. The side with the lower wall is decided by that wall alone, so add its trapped water and move inward.'
+    problem: '`height[i]` is the height of a bar of width 1. After it rains, how much water is trapped between the bars?'
+    examples:
+      - input: 'height = [3, 0, 2, 0, 4]'
+        output: '7'
+        explanation: 'Water stands 3 high over positions 1 to 3: 3 + 1 + 3.'
+      - input: 'height = [4, 2, 3]'
+        output: '1'
+    constraints:
+      - '1 ≤ height.length ≤ 2 × 10⁴'
+      - '0 ≤ height[i] ≤ 10⁵'
+    solution: 'Water above a bar is `min(highest on the left, highest on the right) - height`. With two pointers from the ends, the side with the lower maximum so far is already decided by that maximum, so add its water and move that pointer inward.'
     complexity: 'O(n) time, O(1) space'
     code: dsa-trapping-rain-water
     reports:
@@ -193,8 +316,17 @@ questions:
     difficulty: medium
     leetcode: top-k-frequent-elements
     topic: dsa/arrays-and-hashing
-    problem: 'Return the k most frequent values. One interviewer asked for an in-place heap built bottom-up, so be ready to write the heap yourself.'
-    solution: 'Count with a hash map, then use a min-heap of size k, or bucket by frequency for O(n).'
+    problem: |-
+      Return the `k` most frequent values in `nums`, in any order. The answer is guaranteed to be unique.
+
+      One interviewer then asked for the heap to be built in place, bottom-up, without a library priority queue.
+    examples:
+      - input: 'nums = [4, 4, 4, 6, 6, 9], k = 2'
+        output: '[4, 6]'
+    constraints:
+      - '1 ≤ nums.length ≤ 10⁵'
+      - '1 ≤ k ≤ number of distinct values'
+    solution: 'Count frequencies with a hash map. Then keep a min-heap of size `k` ordered by count, or put values into buckets indexed by count and read from the highest bucket for O(n). For the in-place heap, heapify the array of (value, count) pairs from the last parent down to index 0.'
     complexity: 'O(n log k) time, O(n) space'
     code: dsa-top-k-frequent
     reports:
@@ -204,12 +336,25 @@ questions:
         source: https://leetcode.com/discuss/post/8481152/amazon-sde-2-screening-round-spain-by-an-xgot/
   - id: obstacle-path
     section: dsa
-    title: 'Shortest Path with Obstacle Elimination'
+    title: 'Shortest Path with Obstacle Removal'
     difficulty: hard
     leetcode: shortest-path-in-a-grid-with-obstacles-elimination
     topic: dsa/graphs-bfs-dfs
-    problem: 'Find the fewest steps across a grid when you may remove up to k obstacles. One report built up to this from the plain grid path.'
-    solution: 'BFS where the state includes removals left. Revisit a cell only if you arrive with more removals left than before.'
+    problem: |-
+      You are in the top-left cell of a grid where `0` is open and `1` is an obstacle. Each step moves up, down, left or right. Return the fewest steps to reach the bottom-right cell if you may remove at most `k` obstacles, or `-1` if it cannot be done.
+
+      One report built up to this in stages: first the shortest path with no removals, then with obstacles you can remove.
+    examples:
+      - input: 'grid = [[0,1,0,0], [0,1,1,0], [0,0,1,0]], k = 0'
+        output: '-1'
+      - input: 'grid = [[0,1,0,0], [0,1,1,0], [0,0,1,0]], k = 1'
+        output: '5'
+        explanation: 'Remove the obstacle at row 2, column 2.'
+    constraints:
+      - '1 ≤ rows, columns ≤ 40'
+      - '0 ≤ k ≤ rows × columns'
+      - 'The start and end cells are 0'
+    solution: 'BFS, but a state is `(row, column, removals left)`, because reaching a cell with more removals left is genuinely better. Keep the best "removals left" seen at each cell and only revisit it with more.'
     complexity: 'O(rows x columns x k) time at worst'
     code: cq-shortest-path-obstacles
     reports:
@@ -219,10 +364,17 @@ questions:
         source: https://leetcode.com/discuss/post/8584198/amazon-l5-interview-experience-offer-by-thbff/
   - id: aggressive-cows
     section: dsa
-    title: 'Aggressive Cows (Binary Search on the Answer)'
+    title: 'Aggressive Cows'
     topic: dsa/binary-search
-    problem: 'Place c cows in stalls so the smallest gap between any two is as large as possible.'
-    solution: 'Binary search the gap. For a candidate, place cows greedily from the left; if they all fit, try larger.'
+    problem: 'Stalls stand along a line at the given positions. Place `cows` cows in different stalls so that the smallest distance between any two cows is as large as possible. Return that distance.'
+    examples:
+      - input: 'stalls = [1, 2, 8, 4, 9], cows = 3'
+        output: '3'
+        explanation: 'Use stalls 1, 4 and 8 (or 9).'
+    constraints:
+      - '2 ≤ cows ≤ stalls.length ≤ 10⁵'
+      - '0 ≤ stalls[i] ≤ 10⁹'
+    solution: 'Binary search on the answer. For a candidate distance, sort the stalls and place cows greedily from the left whenever the gap allows; if all fit, try a larger distance. Fitting is monotonic, which is what makes the search valid.'
     complexity: 'O(n log n + n log range) time'
     code: cq-aggressive-cows
     reports:
@@ -236,8 +388,18 @@ questions:
     difficulty: medium
     leetcode: capacity-to-ship-packages-within-d-days
     topic: dsa/binary-search
-    problem: 'Packages must ship in order within D days. Find the smallest ship capacity that works.'
-    solution: 'Binary search capacity between the heaviest package and the total weight. Check each candidate by simulating the days.'
+    problem: 'Packages on a conveyor belt must ship in the given order within `days` days. `weights[i]` is the weight of package `i`. Each day you load packages in order until the next one would exceed the ship''s capacity. Return the smallest capacity that ships everything in time.'
+    examples:
+      - input: 'weights = [3, 2, 2, 4, 1, 4], days = 3'
+        output: '6'
+        explanation: 'Days: [3,2] [2,4] [1,4].'
+      - input: 'weights = [5, 1, 1, 1, 5], days = 2'
+        output: '7'
+        explanation: 'Days: [5,1,1] [1,5].'
+    constraints:
+      - '1 ≤ days ≤ weights.length ≤ 5 × 10⁴'
+      - '1 ≤ weights[i] ≤ 500'
+    solution: 'Binary search on the capacity between the heaviest package and the total weight. For each candidate, simulate the days greedily; if it fits, try smaller.'
     complexity: 'O(n log sum) time, O(1) space'
     code: dsa-ship-capacity
     reports:
@@ -249,8 +411,15 @@ questions:
     difficulty: medium
     leetcode: container-with-most-water
     topic: dsa/two-pointers
-    problem: 'Choose two lines that hold the most water.'
-    solution: 'Two pointers from the ends. Move the shorter line, because moving the taller one can never help.'
+    problem: '`height[i]` is the height of a vertical line at position `i`. Pick two lines that, with the x-axis, form a container holding the most water. Return that amount.'
+    examples:
+      - input: 'height = [2, 7, 3, 1, 6, 4]'
+        output: '18'
+        explanation: 'Lines at positions 1 and 4: width 3, height 6.'
+    constraints:
+      - '2 ≤ height.length ≤ 10⁵'
+      - '0 ≤ height[i] ≤ 10⁴'
+    solution: 'Two pointers at the ends. The area is limited by the shorter line, and moving the taller one inward can only shrink the width without raising that limit, so always move the shorter one.'
     complexity: 'O(n) time, O(1) space'
     code: dsa-container-water
     reports:
@@ -262,8 +431,16 @@ questions:
     difficulty: medium
     leetcode: cheapest-flights-within-k-stops
     topic: dsa/shortest-paths
-    problem: 'Find the cheapest route with at most k stops.'
-    solution: 'Bellman-Ford limited to k + 1 rounds, copying the distances each round so one round can''t use two flights.'
+    problem: 'There are `n` cities and a list of flights `[from, to, price]`. Find the cheapest price from `src` to `dst` using at most `k` stops in between, or `-1` if there is no such route.'
+    examples:
+      - input: 'n = 4, flights = [[0,1,50], [1,2,50], [2,0,50], [1,3,500], [2,3,150]], src = 0, dst = 3, k = 1'
+        output: '550'
+        explanation: '0 → 1 → 3. The cheaper route 0 → 1 → 2 → 3 needs two stops.'
+    constraints:
+      - '1 ≤ n ≤ 100'
+      - '0 ≤ k < n'
+      - 'No duplicate flights'
+    solution: 'Bellman-Ford limited to `k + 1` rounds. Each round relaxes every flight using a copy of the previous round''s prices, so a single round can never chain two flights. Dijkstra on (city, stops) also works.'
     complexity: 'O(k x E) time, O(V) space'
     code: dsa-cheapest-flights
     reports:
@@ -275,8 +452,17 @@ questions:
     difficulty: hard
     leetcode: largest-rectangle-in-histogram
     topic: dsa/stacks-and-monotonic-stacks
-    problem: 'Find the largest rectangle formed by consecutive bars.'
-    solution: 'Keep a stack of increasing heights. When a lower bar arrives, each popped bar has found its right limit, and the new stack top is its left limit.'
+    problem: '`heights[i]` is the height of a histogram bar of width 1. Return the area of the largest rectangle that fits inside the histogram.'
+    examples:
+      - input: 'heights = [3, 1, 4, 4, 2]'
+        output: '8'
+        explanation: 'The two bars of height 4.'
+      - input: 'heights = [1, 3]'
+        output: '3'
+    constraints:
+      - '1 ≤ heights.length ≤ 10⁵'
+      - '0 ≤ heights[i] ≤ 10⁴'
+    solution: 'Keep a stack of bar indices with increasing heights. When a lower bar arrives, pop: each popped bar has found its right limit (the new bar) and its left limit (the new stack top), so its widest rectangle is known. A sentinel bar of height 0 at the end flushes the stack.'
     complexity: 'O(n) time and space'
     code: dsa-largest-rectangle
     reports:
@@ -288,8 +474,15 @@ questions:
     difficulty: hard
     leetcode: dungeon-game
     topic: dsa/dynamic-programming
-    problem: 'Moving right or down through cells that add or subtract power, find the least starting power that never drops below 1. This is LeetCode''s Dungeon Game.'
-    solution: 'Work backward from the goal. `need = max(1, min(need of right, need of down) - cell)`. Working forward fails because a good total early can hide a dangerous low point.'
+    problem: 'You start in the top-left cell of a grid and must reach the bottom-right, moving only right or down. Entering a cell adds its value to your power, and values can be negative. Your power must stay at least 1 at all times, including in the first cell. Return the smallest starting power that makes this possible.'
+    examples:
+      - input: 'grid = [[-3, 5], [-10, 1]]'
+        output: '4'
+        explanation: 'Go right, then down: 4 → 1 → 6 → 7.'
+    constraints:
+      - '1 ≤ rows, columns ≤ 200'
+      - '-1000 ≤ grid[i][j] ≤ 1000'
+    solution: 'Work backward from the goal: `need[cell] = max(1, min(need[right], need[down]) - value)`. Working forward fails because a high running total early can hide a dangerous low point later. This is LeetCode''s Dungeon Game.'
     complexity: 'O(rows x columns) time, O(columns) space'
     code: cq-dungeon
     reports:
@@ -301,8 +494,18 @@ questions:
     difficulty: hard
     leetcode: find-median-from-data-stream
     topic: dsa/heaps-and-top-k
-    problem: 'Support adding numbers and reading the current median.'
-    solution: 'Two heaps: a max-heap for the lower half and a min-heap for the upper half, kept within one element of each other.'
+    problem: |-
+      Design a class that receives numbers one at a time and can return the median of everything seen so far.
+
+      - `addNum(x)` adds a number.
+      - `findMedian()` returns the median; with an even count, the average of the two middle values.
+    examples:
+      - input: 'addNum(5), addNum(15), findMedian(), addNum(1), findMedian()'
+        output: '10.0, 5.0'
+    constraints:
+      - 'Up to 5 × 10⁴ calls'
+      - 'findMedian is only called after at least one addNum'
+    solution: 'Two heaps: a max-heap for the lower half and a min-heap for the upper half, rebalanced so their sizes differ by at most one. The median is the top of the larger heap, or the average of both tops.'
     complexity: 'O(log n) per add, O(1) to read'
     code: dsa-median-stream
     reports:
@@ -316,8 +519,18 @@ questions:
     difficulty: hard
     leetcode: maximum-sum-bst-in-binary-tree
     topic: dsa/trees-and-bst
-    problem: 'Find the largest key sum of any subtree that is a valid BST.'
-    solution: 'Post-order. Each node returns whether it is a BST, its min, max and sum, so a parent decides in O(1).'
+    problem: 'Given a binary tree, find the largest sum of keys of any subtree that is also a valid binary search tree. If every valid BST subtree has a negative sum, return 0.'
+    examples:
+      - input: 'root = [10,5,15,1,8,null,7]'
+        output: '14'
+        explanation: 'The subtree rooted at 5: 5 + 1 + 8. The right side is not a BST, because 7 < 15.'
+      - input: 'root = [-3,-5,-1]'
+        output: '0'
+        explanation: 'Every valid subtree has a negative sum.'
+    constraints:
+      - '1 ≤ number of nodes ≤ 4 × 10⁴'
+      - '-4 × 10⁴ ≤ value ≤ 4 × 10⁴'
+    solution: 'Post-order traversal. Each node returns four facts about its subtree: whether it is a BST, its minimum, its maximum and its sum. A parent is a BST if both children are and `left.max < value < right.min`, so each check is O(1).'
     complexity: 'O(n) time, O(h) space'
     code: cq-max-sum-bst
     reports:
@@ -329,8 +542,16 @@ questions:
     difficulty: medium
     leetcode: product-of-array-except-self
     topic: dsa/arrays-and-hashing
-    problem: 'Return, for each index, the product of every other value, without division.'
-    solution: 'Make one pass for the product of everything on the left and another for everything on the right.'
+    problem: 'Return an array where element `i` is the product of every value in `nums` except `nums[i]`. Do not use division, and aim for O(n) time.'
+    examples:
+      - input: 'nums = [2, 3, 4, 5]'
+        output: '[60, 40, 30, 24]'
+      - input: 'nums = [3, 0, 2]'
+        output: '[0, 6, 0]'
+    constraints:
+      - '2 ≤ nums.length ≤ 10⁵'
+      - 'Every product fits in a 32-bit integer'
+    solution: 'The answer is (product of everything to the left) × (product of everything to the right). Fill the output with left products in one pass, then multiply in right products in a second pass from the end, using one running variable.'
     complexity: 'O(n) time, O(1) extra space'
     code: dsa-product-except-self
     reports:
@@ -342,8 +563,18 @@ questions:
     difficulty: medium
     leetcode: task-scheduler
     topic: dsa/greedy
-    problem: 'Tasks need a cooldown of n between identical ones. Find the fewest time slots.'
-    solution: 'The most frequent task sets the frame: `(maxCount - 1) x (n + 1) + tasksWithMaxCount`. The answer is the larger of that and the number of tasks.'
+    problem: 'A CPU runs tasks labelled with letters, one per time slot. Two runs of the same task must be at least `n` slots apart; the CPU may sit idle. Return the fewest slots needed to run every task.'
+    examples:
+      - input: 'tasks = ["A","A","A","B","B"], n = 2'
+        output: '7'
+        explanation: 'A B idle A B idle A.'
+      - input: 'tasks = ["X","X","Y","Z"], n = 1'
+        output: '4'
+        explanation: 'X Y X Z.'
+    constraints:
+      - '1 ≤ tasks.length ≤ 10⁴'
+      - '0 ≤ n ≤ 100'
+    solution: 'The most frequent task fixes the frame: `(maxCount - 1) × (n + 1) + (number of tasks with maxCount)`. If there are enough other tasks to fill every gap, no idling is needed, so the answer is the larger of that and the number of tasks.'
     complexity: 'O(n) time, O(1) space'
     code: dsa-task-scheduler
     reports:
@@ -355,8 +586,17 @@ questions:
     difficulty: hard
     leetcode: binary-tree-cameras
     topic: dsa/trees-and-bst
-    problem: 'Place the fewest cameras so each node is watched by itself, its parent or a child.'
-    solution: 'Greedy from the leaves up: each node reports whether it needs covering, has a camera, or is covered. Put a camera on the parent of any uncovered child.'
+    problem: 'Cameras are placed on nodes of a binary tree. A camera watches its own node, its parent and its children. Return the fewest cameras needed to watch every node.'
+    examples:
+      - input: 'root = [0,0,0]'
+        output: '1'
+        explanation: 'One camera on the root covers all three.'
+      - input: 'root = [0,0,null,0,null,0]'
+        output: '2'
+        explanation: 'A chain of four nodes.'
+    constraints:
+      - '1 ≤ number of nodes ≤ 1000'
+    solution: 'Greedy from the leaves up. Each node reports one of three states: needs covering, has a camera, or is covered without a camera. If any child needs covering, put a camera here. A leaf''s parent is always the best place, which is why bottom-up works.'
     complexity: 'O(n) time, O(h) space'
     code: cq-binary-tree-cameras
     reports:
@@ -368,8 +608,19 @@ questions:
     difficulty: medium
     leetcode: remove-duplicate-letters
     topic: dsa/stacks-and-monotonic-stacks
-    problem: 'Keep one copy of each letter and return the smallest possible result. The reported version asked for the **largest**.'
-    solution: 'Monotonic stack: pop a letter that can be improved on and appears again later. For the largest result, change `top < c` to `top > c`.'
+    problem: |-
+      Remove duplicate letters from `s` so every letter appears exactly once, keeping the remaining letters in their original order. Of all possible results, return the smallest in dictionary order.
+
+      The reported version asked for the **largest** result instead.
+    examples:
+      - input: 's = "dbacbd"'
+        output: '"acbd"'
+      - input: 's = "ecbacba"'
+        output: '"eacb"'
+    constraints:
+      - '1 ≤ s.length ≤ 10⁴'
+      - 's contains lowercase English letters'
+    solution: 'Monotonic stack. For each letter not already used, pop letters from the stack that are bigger than it and appear again later, since a better place for them is still coming. Record each letter''s last index first. For the largest result, pop letters that are smaller instead (change `top < c` to `top > c`).'
     complexity: 'O(n) time, O(1) extra space'
     code: cq-remove-duplicate-letters
     reports:
@@ -381,8 +632,15 @@ questions:
     difficulty: medium
     leetcode: 3sum-closest
     topic: dsa/two-pointers
-    problem: 'Find the three numbers whose sum is closest to a target.'
-    solution: 'Sort, fix one number, and move two pointers inward, keeping the closest sum.'
+    problem: 'Find three numbers in `nums` whose sum is closest to `target`, and return that sum. Exactly one answer is closest.'
+    examples:
+      - input: 'nums = [0, 5, -2, 9, 3], target = 4'
+        output: '3'
+        explanation: '0 + 5 + (-2).'
+    constraints:
+      - '3 ≤ nums.length ≤ 500'
+      - '-1000 ≤ nums[i] ≤ 1000'
+    solution: 'Sort. Fix the first number, then move two pointers inward from both ends of the rest, keeping the closest sum seen. Move the left pointer when the sum is too small and the right one when it is too large.'
     complexity: 'O(n squared) time, O(1) extra space'
     code: cq-three-sum-closest
     reports:
@@ -394,8 +652,17 @@ questions:
     difficulty: hard
     leetcode: longest-increasing-subsequence-ii
     topic: dsa/dynamic-programming
-    problem: 'Find the longest strictly increasing subsequence where neighbouring values differ by at most k.'
-    solution: 'The usual patience trick no longer works. Keep the best length ending at each value in a segment tree, and for each number query the range `[value - k, value)`.'
+    problem: 'Find the length of the longest subsequence of `nums` that is strictly increasing and in which every two neighbouring elements differ by at most `k`.'
+    examples:
+      - input: 'nums = [7, 1, 4, 5, 8, 8, 10, 6, 7, 7, 7, 8], k = 4'
+        output: '6'
+        explanation: '[1, 4, 5, 6, 7, 8]'
+      - input: 'nums = [5, 4, 3, 2, 1], k = 2'
+        output: '1'
+    constraints:
+      - '1 ≤ nums.length ≤ 10⁵'
+      - '1 ≤ nums[i], k ≤ 10⁵'
+    solution: 'The usual binary-search trick for LIS no longer works because of the gap. Instead store, for every value, the longest valid subsequence ending in it, in a segment tree over values. For each number, query the maximum over `[value - k, value)` and store that plus one.'
     complexity: 'O(n log maxValue) time, O(maxValue) space'
     code: cq-lis-bounded
     reports:
@@ -407,8 +674,18 @@ questions:
     difficulty: medium
     leetcode: ones-and-zeroes
     topic: dsa/dynamic-programming
-    problem: 'Pick the most binary strings using at most m zeros and n ones.'
-    solution: '0/1 knapsack with two capacities. Loop capacities downward so each string is used once.'
+    problem: 'Given binary strings `strs` and two limits, return the size of the largest subset that uses at most `maxZeros` zeros and `maxOnes` ones in total.'
+    examples:
+      - input: 'strs = ["01", "1", "0", "110"], maxZeros = 1, maxOnes = 2'
+        output: '2'
+        explanation: 'For example ["1", "0"].'
+      - input: 'strs = ["100", "10", "1", "11", "111"], maxZeros = 0, maxOnes = 3'
+        output: '2'
+        explanation: '["1", "11"]'
+    constraints:
+      - '1 ≤ strs.length ≤ 600'
+      - '1 ≤ maxZeros, maxOnes ≤ 100'
+    solution: 'A 0/1 knapsack with two capacities. `dp[z][o]` is the most strings that fit in `z` zeros and `o` ones. For each string, update capacities from high to low so the string is counted at most once.'
     complexity: 'O(strings x m x n) time, O(m x n) space'
     code: cq-ones-and-zeroes
     reports:
@@ -420,8 +697,16 @@ questions:
     difficulty: hard
     leetcode: basic-calculator
     topic: dsa/stacks-and-monotonic-stacks
-    problem: 'Evaluate a string with `+`, `-` and brackets.'
-    solution: 'Keep a running total and a stack holding the sign that applies to each open bracket.'
+    problem: 'Evaluate an arithmetic expression given as a string. It contains non-negative integers, `+`, `-`, brackets and spaces. `-` can also be unary, as in `-(2+3)`. Do not use a built-in evaluator.'
+    examples:
+      - input: 's = "10 - (4 + (3 - 1)) + 2"'
+        output: '6'
+      - input: 's = "1-(2-(3-4))"'
+        output: '-2'
+    constraints:
+      - '1 ≤ s.length ≤ 3 × 10⁵'
+      - 'The expression is valid'
+    solution: 'Keep a running total and the sign of the current number. A stack holds the sign that applies inside each open bracket: on `(` push the current sign, on `)` pop it. Each number is added with the current sign times the bracket''s sign.'
     complexity: 'O(n) time and space'
     code: cq-basic-calculator
     reports:
@@ -429,10 +714,19 @@ questions:
         source: https://leetcode.com/discuss/post/8409230/interview-experience-amazon-sde-2-3-yoe-xkxue/
   - id: tree-distance
     section: dsa
-    title: 'Distance Between Two Nodes in a Tree'
+    title: 'Distance Between Two Nodes in a Binary Tree'
     topic: dsa/trees-and-bst
-    problem: 'With only the root and two values, return how many edges separate them.'
-    solution: 'Find their lowest common ancestor, then add the depth of each value below it.'
+    problem: 'You are given only the root of a binary tree and two values, `a` and `b`, both present in the tree. There are no parent pointers. Return the number of edges on the path between the two nodes.'
+    examples:
+      - input: 'root = [1,2,3,4], a = 4, b = 3'
+        output: '3'
+        explanation: '4 → 2 → 1 → 3.'
+      - input: 'root = [1,2,3,4], a = 2, b = 4'
+        output: '1'
+    constraints:
+      - '1 ≤ number of nodes ≤ 10⁴'
+      - 'All values are unique'
+    solution: 'Find the lowest common ancestor, then add the depth of each value below it. Both steps are one traversal. Doing it in a single pass is possible but harder to get right under pressure.'
     complexity: 'O(n) time, O(h) space'
     code: cq-tree-distance
     reports:
@@ -442,8 +736,17 @@ questions:
     section: dsa
     title: 'Stack with Get Middle in O(1)'
     topic: dsa/design-data-structures
-    problem: 'Design a stack with push, pop, top and get middle, all in O(1).'
-    solution: 'Use a doubly linked list and a pointer to the middle. The pointer moves up on a push that makes the size odd, and down on a pop from an odd size.'
+    problem: |-
+      Design a stack that supports these operations, each in O(1) time:
+
+      - `push(x)`, `pop()` and `top()`
+      - `middle()`, which returns the middle element. With an even size, return the lower middle one, counting from the bottom.
+    examples:
+      - input: 'push(1), push(2), push(3), middle(), push(4), middle(), pop(), middle()'
+        output: '2, 2, 4, 2'
+    constraints:
+      - 'pop, top and middle are only called on a non-empty stack'
+    solution: 'Use a doubly linked list plus a pointer to the middle node. The pointer moves up one node after a push that makes the size odd, and down one node when popping from an odd size. An array cannot do this in O(1) once you add "delete middle", which is a common follow-up.'
     complexity: 'O(1) per operation, O(n) space'
     code: cq-stack-middle
     reports:
@@ -455,8 +758,15 @@ questions:
     difficulty: easy
     leetcode: next-greater-element-i
     topic: dsa/stacks-and-monotonic-stacks
-    problem: 'For each query value, find the next larger value to its right.'
-    solution: 'Scan with a stack of values still waiting. A bigger value answers everything smaller on the stack.'
+    problem: '`queries` is a subset of `nums`, and all values are distinct. For each query value, find the first larger value to its right in `nums`, or `-1` if there is none.'
+    examples:
+      - input: 'queries = [3, 8, 1], nums = [5, 3, 8, 1]'
+        output: '[8, -1, -1]'
+        explanation: '8 comes after 3. Nothing larger follows 8 or 1.'
+    constraints:
+      - '1 ≤ queries.length ≤ nums.length ≤ 1000'
+      - 'All values are distinct'
+    solution: 'Scan `nums` with a stack of values still waiting for a bigger one. Each new value pops and answers every smaller value on the stack, then waits itself. Store the answers in a map, then look up each query.'
     complexity: 'O(n) time and space'
     code: cq-next-greater
     reports:
@@ -464,12 +774,19 @@ questions:
         source: https://leetcode.com/discuss/post/8575909/amazon-sde-2-india-oct-2026-dsa-lld-roun-vk9s/
   - id: search-2d
     section: dsa
-    title: 'Search a Row and Column Sorted Matrix'
+    title: 'Search a Sorted Matrix'
     difficulty: medium
     leetcode: search-a-2d-matrix-ii
     topic: dsa/binary-search
-    problem: 'Find a value in a matrix sorted along rows and columns.'
-    solution: 'Start at the top-right. Larger means move left, smaller means move down, so each step discards a row or column.'
+    problem: 'Every row of the matrix is sorted left to right, and every column is sorted top to bottom. Return whether `target` is in the matrix.'
+    examples:
+      - input: 'matrix = [[1,4,7], [2,5,8], [3,6,9]], target = 5'
+        output: 'true'
+      - input: 'matrix = [[1,4,7], [2,5,8], [3,6,9]], target = 10'
+        output: 'false'
+    constraints:
+      - '1 ≤ rows, columns ≤ 300'
+    solution: 'Start at the top-right corner. If it is larger than the target, the whole column below is larger too, so move left; if smaller, move down. Each step discards a row or a column: O(rows + columns).'
     complexity: 'O(rows + columns) time, O(1) space'
     code: cq-search-2d-matrix
     reports:
@@ -479,8 +796,20 @@ questions:
     section: dsa
     title: 'Can B Be Reached from A?'
     topic: dsa/graphs-bfs-dfs
-    problem: 'Given directed pairs (URLs in one report, flights in another), decide whether a destination is reachable.'
-    solution: 'Build an adjacency list and run BFS or DFS with a visited set. The visited set is what stops cycles from hanging it.'
+    problem: |-
+      You are given a list of directed links `[from, to]`, for example web pages linking to each other. Given two pages, return whether you can get from the first to the second by following links.
+
+      One report used URLs, another used flights between cities.
+    examples:
+      - input: 'links = [["a","b"], ["b","c"], ["d","a"]], from = "a", to = "c"'
+        output: 'true'
+      - input: 'links = [["a","b"], ["d","a"]], from = "a", to = "d"'
+        output: 'false'
+        explanation: 'Links only go one way.'
+    constraints:
+      - 'Up to 10⁵ links'
+      - 'Links can form cycles'
+    solution: 'Build an adjacency list and run BFS or DFS from the start with a visited set. The visited set is what stops a cycle from looping forever. For many queries on a fixed graph, discuss precomputing connected components.'
     complexity: 'O(V + E) time and space'
     code: cq-reachable
     reports:
@@ -494,8 +823,15 @@ questions:
     difficulty: medium
     leetcode: find-k-pairs-with-smallest-sums
     topic: dsa/heaps-and-top-k
-    problem: 'From two sorted arrays, return the k pairs with the smallest sums.'
-    solution: 'Min-heap. Start with each `a[i]` paired with `b[0]`; popping a pair adds its next `b` partner.'
+    problem: 'Given two arrays sorted in ascending order, return the `k` pairs `(a, b)`, one value from each, with the smallest sums.'
+    examples:
+      - input: 'a = [1, 3, 9], b = [2, 5], k = 3'
+        output: '[[1,2], [3,2], [1,5]]'
+        explanation: 'Sums 3, 5 and 6.'
+    constraints:
+      - '1 ≤ a.length, b.length ≤ 10⁵'
+      - '1 ≤ k ≤ 10⁴'
+    solution: 'Use a min-heap of candidate pairs. Start with each `a[i]` (up to `k` of them) paired with `b[0]`. Each time you pop `(i, j)`, push `(i, j + 1)`. The heap never holds more than `k` items.'
     complexity: 'O(k log k) time, O(k) space'
     code: cq-k-smallest-pairs
     reports:
@@ -507,8 +843,16 @@ questions:
     difficulty: medium
     leetcode: find-k-closest-elements
     topic: dsa/binary-search
-    problem: 'In a sorted array, return the k values closest to x.'
-    solution: 'Binary search the left edge of a window of size k, comparing the elements just outside it.'
+    problem: 'Given a sorted array `arr`, return the `k` values closest to `x`, sorted ascending. If two values are equally close, prefer the smaller one.'
+    examples:
+      - input: 'arr = [1, 3, 7, 8, 10], k = 2, x = 6'
+        output: '[7, 8]'
+      - input: 'arr = [23, 45, 67, 98], k = 2, x = 75'
+        output: '[67, 98]'
+    constraints:
+      - '1 ≤ k ≤ arr.length ≤ 10⁴'
+      - 'arr is sorted ascending'
+    solution: 'The answer is a window of `k` consecutive elements. Binary search its left edge `lo` in `[0, n - k]`: if `x - arr[mid]` is greater than `arr[mid + k] - x`, the window should move right.'
     complexity: 'O(log(n - k) + k) time'
     code: cq-k-closest-elements
     reports:
@@ -520,8 +864,14 @@ questions:
     difficulty: medium
     leetcode: longest-consecutive-sequence
     topic: dsa/arrays-and-hashing
-    problem: 'Find the longest run of consecutive integers in an unsorted array, in O(n).'
-    solution: 'Put values in a set and only start counting from numbers with no predecessor.'
+    problem: 'Given an unsorted array, return the length of the longest run of consecutive integers it contains. Your solution must run in O(n).'
+    examples:
+      - input: 'nums = [10, 5, 12, 3, 11, 4, 13]'
+        output: '4'
+        explanation: '10, 11, 12, 13.'
+    constraints:
+      - '0 ≤ nums.length ≤ 10⁵'
+    solution: 'Put every value in a hash set. Only start counting from values that have no predecessor (`x - 1` is absent), then walk upward. Each value is visited a constant number of times.'
     complexity: 'O(n) time and space'
     code: dsa-longest-consecutive
     reports:
@@ -533,8 +883,15 @@ questions:
     difficulty: medium
     leetcode: remove-duplicates-from-sorted-array-ii
     topic: dsa/two-pointers
-    problem: 'In place, allow each value at most twice.'
-    solution: 'Keep a write index. Accept a value unless it matches the element two places before the write position.'
+    problem: 'Given a sorted array, remove extra duplicates in place so each value appears at most twice. Return the new length `k`; the first `k` elements must hold the result. Use O(1) extra memory.'
+    examples:
+      - input: 'nums = [0, 0, 0, 0, 1, 2, 2, 2]'
+        output: '5'
+        explanation: 'The array starts with [0, 0, 1, 2, 2].'
+    constraints:
+      - '1 ≤ nums.length ≤ 3 × 10⁴'
+      - 'nums is sorted ascending'
+    solution: 'Keep a write index. Copy each value unless it equals the element two places before the write position, which would make it a third copy.'
     complexity: 'O(n) time, O(1) space'
     code: cq-remove-duplicates-ii
     reports:
@@ -546,8 +903,18 @@ questions:
     difficulty: medium
     leetcode: insert-delete-getrandom-o1
     topic: dsa/design-data-structures
-    problem: 'Support insert, remove and random pick in O(1).'
-    solution: 'An array plus a map from value to index. To remove, swap the element with the last one and pop.'
+    problem: |-
+      Design a set with three operations, each in average O(1) time:
+
+      - `insert(x)` returns `true` if `x` was added.
+      - `remove(x)` returns `true` if `x` was present.
+      - `getRandom()` returns a random element, each with equal probability.
+    examples:
+      - input: 'insert(1), remove(2), insert(2), getRandom(), remove(1), insert(2), getRandom()'
+        output: 'true, false, true, 1 or 2, true, false, 2'
+    constraints:
+      - 'getRandom is only called when the set is non-empty'
+    solution: 'An array of values plus a map from value to its index. To remove, move the last element into the removed slot, update its index, and drop the last slot. The array makes random picks O(1).'
     complexity: 'O(1) average per operation'
     code: dsa-randomized-set
     reports:
@@ -559,8 +926,16 @@ questions:
     difficulty: hard
     leetcode: remove-invalid-parentheses
     topic: dsa/stacks-and-monotonic-stacks
-    problem: 'Check whether brackets balance, then find the fewest removals that make a string valid. The report mentioned BFS for the follow-up.'
-    solution: 'BFS over strings, removing one bracket per level. The first level containing a valid string has the fewest removals.'
+    problem: 'First, check whether the brackets in a string are balanced. Then, given a string of `(`, `)` and letters, remove the fewest brackets to make it valid and return every distinct valid result.'
+    examples:
+      - input: 's = "(a)())"'
+        output: '["(a())", "(a)()"]'
+      - input: 's = "x)("'
+        output: '["x"]'
+    constraints:
+      - '1 ≤ s.length ≤ 25'
+      - 'At most 20 brackets'
+    solution: 'BFS over strings: each level removes one more bracket. The first level that contains a valid string has the fewest removals, so return every valid string on it. A set avoids repeats. The report mentioned BFS for this follow-up.'
     complexity: 'Exponential at worst, O(2^n) strings'
     code: cq-remove-invalid-parens
     reports:
@@ -572,8 +947,14 @@ questions:
     difficulty: medium
     leetcode: copy-list-with-random-pointer
     topic: dsa/linked-lists
-    problem: 'Deep copy a list whose nodes also point at a random node.'
-    solution: 'Map every original node to its copy, then wire `next` and `random` in a second pass.'
+    problem: 'Each node of a linked list has a `next` pointer and a `random` pointer that may point to any node or be null. Return a deep copy: new nodes with the same values, wired the same way.'
+    examples:
+      - input: '[[3,null], [5,0], [8,1]]'
+        output: 'An identical list made of new nodes'
+        explanation: 'Each pair is [value, index of the random target].'
+    constraints:
+      - '0 ≤ number of nodes ≤ 1000'
+    solution: 'First pass: map every original node to a new copy. Second pass: set each copy''s `next` and `random` to the copies of the original''s targets. An O(1)-space version interleaves copies into the original list and then splits them.'
     complexity: 'O(n) time and space'
     code: cq-copy-random-list
     reports:
@@ -585,8 +966,21 @@ questions:
     difficulty: hard
     leetcode: meeting-rooms-iii
     topic: dsa/intervals
-    problem: 'Meetings take the lowest free room or wait for the first to free up. Which room hosts the most? The report changed the wording.'
-    solution: 'Two heaps: free rooms by number, and busy rooms by end time then number. A delayed meeting keeps its duration.'
+    problem: |-
+      There are `n` rooms numbered from 0. Each meeting `[start, end)` takes the lowest-numbered free room. If none is free, it waits for the room that frees up first and keeps its length. Return the room that hosted the most meetings, with ties going to the lowest number.
+
+      The report told this as a story, so map it back to this model.
+    examples:
+      - input: 'n = 2, meetings = [[0,5], [1,3], [2,7], [4,6]]'
+        output: '0'
+      - input: 'n = 3, meetings = [[0,10], [1,2], [3,4], [5,6], [7,8]]'
+        output: '1'
+        explanation: 'Room 0 is busy throughout, so room 1 takes every short meeting.'
+    constraints:
+      - '1 ≤ n ≤ 100'
+      - '1 ≤ meetings.length ≤ 10⁵'
+      - 'All start times are distinct'
+    solution: 'Sort meetings by start. Keep a min-heap of free rooms by number, and a min-heap of busy rooms by (end time, room). Before each meeting, free every room that has ended. If none is free, take the earliest-ending room and shift the meeting to start then.'
     complexity: 'O(m log n) time'
     code: cq-meeting-rooms-iii
     reports:
@@ -598,8 +992,16 @@ questions:
     difficulty: medium
     leetcode: 132-pattern
     topic: dsa/stacks-and-monotonic-stacks
-    problem: 'Find i < j < k with `nums[i] < nums[k] < nums[j]`.'
-    solution: 'Scan from the right with a decreasing stack. Popped values are the best "2"; any smaller number completes the pattern.'
+    problem: 'Return `true` if `nums` contains indices `i < j < k` with `nums[i] < nums[k] < nums[j]`.'
+    examples:
+      - input: 'nums = [6, 12, 3, 4, 6, 11, 20]'
+        output: 'true'
+        explanation: '6, 12, 11.'
+      - input: 'nums = [5, 4, 3, 2, 1]'
+        output: 'false'
+    constraints:
+      - '1 ≤ nums.length ≤ 2 × 10⁵'
+    solution: 'Scan from the right with a decreasing stack. When a larger value arrives, the values it pops are candidates for the "2" (they have a bigger "3" on their left); keep the largest. Any later value smaller than that candidate completes the pattern.'
     complexity: 'O(n) time and space'
     code: cq-132-pattern
     reports:
@@ -611,8 +1013,16 @@ questions:
     difficulty: medium
     leetcode: find-minimum-in-rotated-sorted-array
     topic: dsa/binary-search
-    problem: 'Find the smallest value in a rotated sorted array.'
-    solution: 'Compare the middle with the right end to tell which side holds the drop.'
+    problem: 'A sorted array of distinct values was rotated at an unknown index. Return its smallest element in O(log n).'
+    examples:
+      - input: 'nums = [30, 40, 50, 10, 20]'
+        output: '10'
+      - input: 'nums = [11, 13, 15, 17]'
+        output: '11'
+    constraints:
+      - '1 ≤ nums.length ≤ 5000'
+      - 'All values are distinct'
+    solution: 'Compare the middle with the right end. If the middle is larger, the drop is to its right; otherwise the minimum is at the middle or to its left.'
     complexity: 'O(log n) time, O(1) space'
     code: dsa-rotated-min
     reports:
@@ -624,8 +1034,18 @@ questions:
     difficulty: medium
     leetcode: partition-to-k-equal-sum-subsets
     topic: dsa/backtracking
-    problem: 'Can the numbers be split into k groups of equal sum?'
-    solution: 'Backtrack, placing the largest numbers first. Skip buckets with a load you have already tried at this step.'
+    problem: 'Return `true` if `nums` can be split into `k` non-empty groups that all have the same sum.'
+    examples:
+      - input: 'nums = [1, 1, 2, 2, 2], k = 2'
+        output: 'true'
+        explanation: '(2, 2) and (1, 1, 2).'
+      - input: 'nums = [5, 1, 1, 1], k = 2'
+        output: 'false'
+        explanation: 'Each half must be 4, and 5 is already larger.'
+    constraints:
+      - '1 ≤ k ≤ nums.length ≤ 16'
+      - '1 ≤ nums[i] ≤ 10⁴'
+    solution: 'The target is `total / k`; fail early if it does not divide. Backtrack by placing each number, largest first, into a group that still has room. Skip groups whose current sum you have already tried for this number: they lead to identical searches. A bitmask DP is the alternative.'
     complexity: 'Exponential at worst'
     code: cq-k-equal-partition
     reports:
@@ -637,8 +1057,16 @@ questions:
     difficulty: hard
     leetcode: cracking-the-safe
     topic: dsa/graphs-bfs-dfs
-    problem: 'Find the shortest string containing every password of length n over k digits.'
-    solution: 'Treat n-1 digits as nodes and each password as an edge, then walk an Euler circuit.'
+    problem: 'A safe opens when the last `n` digits typed match its password. Digits range from 0 to `k - 1`. Return any shortest string that is guaranteed to open the safe, whatever the password.'
+    examples:
+      - input: 'n = 2, k = 2'
+        output: '"01100"'
+        explanation: 'It contains 00, 01, 10 and 11. Other strings of length 5 also work.'
+    constraints:
+      - '1 ≤ n ≤ 4'
+      - '1 ≤ k ≤ 10'
+      - 'k^n ≤ 4096'
+    solution: 'Treat every string of `n - 1` digits as a node and every password as an edge that appends one digit. Each edge must be used once, so this is an Euler circuit (Hierholzer''s algorithm). The answer has length `k^n + n - 1`.'
     complexity: 'O(k^n) time and space'
     code: cq-cracking-the-safe
     reports:
@@ -650,8 +1078,17 @@ questions:
     difficulty: medium
     leetcode: most-stones-removed-with-same-row-or-column
     topic: dsa/union-find
-    problem: 'Remove stones that share a row or column with another. How many can go?'
-    solution: 'Union rows with columns. Each connected group can shrink to one stone, so the answer is stones minus groups.'
+    problem: 'Stones sit at integer points on a grid. You may remove a stone if another stone shares its row or column. Return the most stones you can remove.'
+    examples:
+      - input: 'stones = [[0,0], [0,3], [2,3], [5,5]]'
+        output: '2'
+        explanation: 'The first three are linked; one of them must stay.'
+      - input: 'stones = [[0,0], [1,1], [2,2]]'
+        output: '0'
+    constraints:
+      - '1 ≤ stones.length ≤ 1000'
+      - 'No two stones share a point'
+    solution: 'Stones connected through shared rows or columns form groups, and each group can be reduced to one stone. With union-find, join each stone''s row with its column; the answer is stones minus the number of groups.'
     complexity: 'O(n) near-linear time'
     code: cq-most-stones
     reports:
@@ -663,8 +1100,14 @@ questions:
     difficulty: medium
     leetcode: boundary-of-binary-tree
     topic: dsa/trees-and-bst
-    problem: 'List the root, left edge, leaves, then right edge reversed.'
-    solution: 'Handle the three parts separately and leave leaves out of the two edges so nothing is counted twice.'
+    problem: 'Return the boundary of a binary tree, anticlockwise from the root: the root, then the left edge from top to bottom, then all leaves from left to right, then the right edge from bottom to top. No node is listed twice.'
+    examples:
+      - input: 'root = [1,2,3,4,5,6]'
+        output: '[1, 2, 4, 5, 6, 3]'
+        explanation: 'Left edge 2, leaves 4, 5 and 6, right edge 3.'
+    constraints:
+      - '1 ≤ number of nodes ≤ 10⁴'
+    solution: 'Build the three parts separately. The left edge follows left children (or the right child when there is no left), stopping before a leaf. The leaves come from a full traversal. The right edge mirrors the left and is reversed. Leaving leaves out of both edges prevents duplicates.'
     complexity: 'O(n) time and space'
     code: cq-boundary-tree
     reports:
@@ -676,8 +1119,16 @@ questions:
     difficulty: hard
     leetcode: number-of-atoms
     topic: dsa/stacks-and-monotonic-stacks
-    problem: 'Count atoms in a chemical formula with nested brackets.'
-    solution: 'A stack of count maps. On `)`, multiply the top map and merge it down.'
+    problem: 'Given a chemical formula such as `"Mg(OH)2"`, return the count of each atom as a string, with atoms sorted by name and counts of 1 left out. Brackets can be nested and followed by a multiplier.'
+    examples:
+      - input: 'formula = "Ca(OH)2"'
+        output: '"CaH2O2"'
+      - input: 'formula = "Fe2(SO4)3"'
+        output: '"Fe2O12S3"'
+    constraints:
+      - '1 ≤ formula.length ≤ 1000'
+      - 'The formula is valid'
+    solution: 'Keep a stack of count maps. `(` pushes a new map. An atom name (a capital letter plus lowercase letters) and its number add to the top map. `)` and its multiplier pop the top map, multiply it and merge it into the one below. A sorted map gives the output order.'
     complexity: 'O(n squared) time at worst'
     code: cq-number-of-atoms
     reports:
@@ -689,8 +1140,15 @@ questions:
     difficulty: hard
     leetcode: ipo
     topic: dsa/heaps-and-top-k
-    problem: 'Do at most k projects, each needing capital, to maximise final capital.'
-    solution: 'Sort by capital needed. At each step, add newly affordable projects to a max-heap and take the most profitable.'
+    problem: 'You start with capital `w` and may complete at most `k` projects. Project `i` needs `capital[i]` to start and adds `profits[i]` to your capital when done. Return the most capital you can end with.'
+    examples:
+      - input: 'k = 3, w = 1, profits = [2, 4, 6, 1], capital = [1, 3, 10, 0]'
+        output: '8'
+        explanation: 'Projects 0, 1 and 3. Project 2 never becomes affordable.'
+    constraints:
+      - '1 ≤ k ≤ 10⁵'
+      - '1 ≤ number of projects ≤ 10⁵'
+    solution: 'Sort projects by required capital. Before each choice, push every newly affordable project''s profit into a max-heap, then take the largest. Greedy works because capital only grows, so anything affordable stays affordable.'
     complexity: 'O(n log n) time, O(n) space'
     code: cq-ipo
     reports:
@@ -702,8 +1160,16 @@ questions:
     difficulty: medium
     leetcode: maximize-distance-to-closest-person
     topic: dsa/two-pointers
-    problem: 'Given taken and free seats, find the free seat furthest from anyone.'
-    solution: 'Check each gap between taken seats, using the midpoint for inner gaps and the seat itself at the two ends.'
+    problem: 'A row of seats is given as `''O''` (taken) and `''U''` (free). Return the index of the free seat whose distance to the nearest taken seat is the largest. At least one seat is taken and one is free.'
+    examples:
+      - input: 'seats = [''O'',''U'',''U'',''U'',''O'',''O'']'
+        output: '2'
+        explanation: 'Seat 2 is two seats from both neighbours.'
+      - input: 'seats = [''U'',''U'',''O'']'
+        output: '0'
+    constraints:
+      - '2 ≤ seats.length ≤ 2 × 10⁴'
+    solution: 'Walk the row tracking the last taken seat. An inner gap is best at its midpoint; a gap at either end is best at the end seat itself. Keep the best distance and its index.'
     complexity: 'O(n) time, O(1) space'
     code: cq-seat-distance
     reports:
@@ -715,8 +1181,16 @@ questions:
     difficulty: medium
     leetcode: longest-common-subsequence
     topic: dsa/dynamic-programming
-    problem: 'Find the longest subsequence shared by two strings.'
-    solution: 'If the current letters match, take the diagonal plus one; otherwise take the better of dropping a letter from either side.'
+    problem: 'Return the length of the longest common subsequence of two strings: the longest sequence of characters found in both, in order but not necessarily together.'
+    examples:
+      - input: 'a = "stone", b = "longest"'
+        output: '3'
+        explanation: '"one"'
+      - input: 'a = "abc", b = "xyz"'
+        output: '0'
+    constraints:
+      - '1 ≤ a.length, b.length ≤ 1000'
+    solution: '`dp[i][j]` is the answer for the first `i` characters of `a` and the first `j` of `b`. If the last characters match, take `dp[i-1][j-1] + 1`; otherwise the better of dropping one character from either string. Two rows of memory are enough.'
     complexity: 'O(n x m) time and space'
     code: cq-lcs
     reports:
@@ -728,8 +1202,20 @@ questions:
     difficulty: medium
     leetcode: find-the-safest-path-in-a-grid
     topic: dsa/shortest-paths
-    problem: 'Maximise the smallest distance to any thief along a path. The report started from a plain BFS and added complexity.'
-    solution: 'Multi-source BFS gives each cell''s distance to a thief. Then run a widest-path search with a max-heap.'
+    problem: |-
+      In an n × n grid, `1` marks a thief. The safeness of a path is the smallest Manhattan distance from any cell on it to any thief. Return the largest safeness of any path from the top-left cell to the bottom-right, moving up, down, left or right.
+
+      The report reached this in stages, starting from a plain BFS question.
+    examples:
+      - input: 'grid = [[0,0,1], [0,0,0], [0,0,0]]'
+        output: '2'
+      - input: 'grid = [[1,0], [0,0]]'
+        output: '0'
+        explanation: 'The start cell is a thief.'
+    constraints:
+      - '1 ≤ n ≤ 400'
+      - 'There is at least one thief'
+    solution: 'First, a multi-source BFS from every thief gives each cell''s distance to the nearest one. Then find the path that maximises its smallest value: a Dijkstra-style search with a max-heap, or binary search on the answer with a BFS check.'
     complexity: 'O(n squared log n) time'
     code: cq-safest-path
     reports:
@@ -741,8 +1227,15 @@ questions:
     difficulty: hard
     leetcode: first-missing-positive
     topic: dsa/arrays-and-hashing
-    problem: 'Find the smallest missing positive integer in O(n) time and O(1) space.'
-    solution: 'Cyclic placement: swap each value v in 1..n to index v - 1, then scan for the first mismatch.'
+    problem: 'Return the smallest positive integer missing from an unsorted array. Use O(n) time and O(1) extra space.'
+    examples:
+      - input: 'nums = [2, 5, 1, -3]'
+        output: '3'
+      - input: 'nums = [4, 5, 6]'
+        output: '1'
+    constraints:
+      - '1 ≤ nums.length ≤ 10⁵'
+    solution: 'The answer is in `1..n+1`. Use the array as its own hash table: swap each value `v` in `1..n` to index `v - 1` until every position holds its own value or a value that can''t be placed. Then the first index `i` with `nums[i] != i + 1` gives the answer.'
     complexity: 'O(n) time, O(1) space'
     code: cq-first-missing-positive
     reports:
@@ -754,8 +1247,16 @@ questions:
     difficulty: medium
     leetcode: edit-distance
     topic: dsa/dynamic-programming
-    problem: 'Find the fewest inserts, deletes and replacements turning one word into another.'
-    solution: '`dp[i][j]` is the cost for the two prefixes. Matching letters copy the diagonal; otherwise take one plus the best of the three edits.'
+    problem: 'Return the fewest operations that turn `word1` into `word2`, where an operation inserts, deletes or replaces one character.'
+    examples:
+      - input: 'word1 = "kitten", word2 = "sitting"'
+        output: '3'
+      - input: 'word1 = "abc", word2 = "yabd"'
+        output: '2'
+        explanation: 'Insert y, then replace c with d.'
+    constraints:
+      - '0 ≤ word1.length, word2.length ≤ 500'
+    solution: '`dp[i][j]` is the cost for the first `i` and `j` characters. If the characters match, copy `dp[i-1][j-1]`; otherwise take one plus the smallest of delete `dp[i-1][j]`, insert `dp[i][j-1]` and replace `dp[i-1][j-1]`.'
     complexity: 'O(n x m) time and space'
     code: dsa-edit-distance
     reports:
@@ -767,8 +1268,15 @@ questions:
     difficulty: hard
     leetcode: word-ladder
     topic: dsa/graphs-bfs-dfs
-    problem: 'Change one letter at a time through dictionary words. Find the shortest chain. The report only asked for an explanation.'
-    solution: 'BFS over words. Group neighbours by wildcard patterns such as `h*t`.'
+    problem: 'Turn `begin` into `end` by changing one letter at a time, where every intermediate word must be in `wordList`. Return the number of words in the shortest such chain, counting both ends, or 0 if there is none.'
+    examples:
+      - input: 'begin = "cold", end = "warm", wordList = ["cord","card","ward","warm","worm","word","wore"]'
+        output: '5'
+        explanation: 'cold → cord → card → ward → warm.'
+    constraints:
+      - '1 ≤ wordList.length ≤ 5000'
+      - 'All words have the same length'
+    solution: 'BFS over words, one level per change. Find neighbours by trying each position with every letter, or by grouping words under wildcard patterns such as `h*t`. Two-ended BFS halves the search.'
     complexity: 'O(n x L squared) time'
     code: dsa-word-ladder
     reports:
@@ -780,8 +1288,16 @@ questions:
     difficulty: medium
     leetcode: decode-string
     topic: dsa/stacks-and-monotonic-stacks
-    problem: 'Expand strings such as `3[a2[c]]`.'
-    solution: 'Two stacks, for counts and partial strings. On `]`, repeat the current string and append it to the saved one.'
+    problem: 'Decode a string in which `k[text]` means `text` repeated `k` times. Brackets can be nested.'
+    examples:
+      - input: 's = "2[x3[y]]"'
+        output: '"xyyyxyyy"'
+      - input: 's = "2[ab]3[c]d"'
+        output: '"ababcccd"'
+    constraints:
+      - '1 ≤ s.length ≤ 30'
+      - 'The input is valid'
+    solution: 'Two stacks, one for repeat counts and one for the text built before each bracket. On `[`, push the count and the current text and start fresh. On `]`, pop them and append the current text repeated.'
     complexity: 'O(output length) time'
     code: dsa-decode-string
     reports:
@@ -793,8 +1309,20 @@ questions:
     difficulty: medium
     leetcode: jump-game
     topic: dsa/greedy
-    problem: 'Can you reach the last index? The interviewer asked for the DP version in this report.'
-    solution: 'The greedy answer tracks the furthest reachable index. The DP version marks each index reachable from an earlier one in O(n squared).'
+    problem: |-
+      You start at index 0, and `nums[i]` is the furthest you can jump forward from index `i`. Return whether you can reach the last index.
+
+      In the report, the interviewer asked for the dynamic programming solution, then the faster one.
+    examples:
+      - input: 'nums = [1, 2, 0, 1, 0]'
+        output: 'true'
+      - input: 'nums = [1, 0, 2]'
+        output: 'false'
+        explanation: 'Index 1 lets you go nowhere.'
+    constraints:
+      - '1 ≤ nums.length ≤ 10⁴'
+      - '0 ≤ nums[i] ≤ 10⁵'
+    solution: 'DP: mark index `i` reachable if some earlier reachable `j` has `j + nums[j] ≥ i`, which is O(n²). Greedy: track the furthest reachable index while scanning; if you reach an index beyond it, return false. O(n).'
     complexity: 'O(n) time, O(1) space (greedy)'
     code: dsa-jump-game
     reports:
@@ -806,8 +1334,16 @@ questions:
     difficulty: medium
     leetcode: longest-substring-without-repeating-characters
     topic: dsa/sliding-window
-    problem: 'Find the longest substring with no repeated character.'
-    solution: 'Sliding window that stores each character''s last index, jumping the left edge past a repeat.'
+    problem: 'Return the length of the longest substring of `s` with no repeated characters.'
+    examples:
+      - input: 's = "dvdf"'
+        output: '3'
+        explanation: '"vdf"'
+      - input: 's = "abba"'
+        output: '2'
+    constraints:
+      - '0 ≤ s.length ≤ 5 × 10⁴'
+    solution: 'Sliding window. Remember each character''s last index; when the incoming character was seen inside the window, move the left edge just past that position.'
     complexity: 'O(n) time, O(alphabet) space'
     code: dsa-longest-unique-substring
     reports:
@@ -819,8 +1355,18 @@ questions:
     difficulty: medium
     leetcode: evaluate-division
     topic: dsa/union-find
-    problem: 'Given rates such as `C = 10B` and `B = 110Z`, answer many "A to B" queries. Taken from a public compilation of recent questions.'
-    solution: 'Weighted union-find: store each currency''s value relative to its parent, and multiply along the path as you compress it. BFS per query also works if queries are few.'
+    problem: |-
+      You are given exchange rates such as `C = 10 B` (one C is worth 10 B). Answer queries of the form "how many B is one A worth?", or `-1` if the two currencies are not connected.
+
+      Follow-up: there are many queries, so make each one fast.
+    examples:
+      - input: 'rates: C = 10 B, D = 9 B, B = 110 Z, A = 2 Z; query: A to B'
+        output: '0.01818…'
+        explanation: '1 A = 2 Z, and 1 B = 110 Z, so 1 A = 2 / 110 B.'
+    constraints:
+      - 'Up to 10⁴ rates and 10⁴ queries'
+      - 'Rates are consistent'
+    solution: 'This is a graph with weighted edges. For a few queries, BFS from A, multiplying rates along the path. For many, use weighted union-find: store each currency''s value relative to its parent, multiply along the path while compressing it, and answer a query by dividing the two values relative to their shared root. This was taken from a public compilation of recent questions.'
     complexity: 'Near O(1) per query after setup'
     code: cq-currency-rates
     reports:
@@ -830,7 +1376,15 @@ questions:
     section: lld
     title: 'File Search Utility (Unix find)'
     topic: low-level-design/file-system
-    problem: 'Search files by name, size or extension, and combine filters. Expect to be asked how to add new filters.'
+    problem: |-
+      Design the search part of a Unix `find`-like utility.
+
+      **Requirements**
+      - Search a directory tree for files by name, size, extension and similar attributes.
+      - Combine conditions, such as "larger than 5 MB **and** extension `.xml`".
+      - Adding a new filter should not change existing code.
+
+      **Expect follow-ups on:** combining with OR and NOT, very large directory trees, and how you would test it.
     solution: 'Model filters as a Specification interface with `And`, `Or` and `Not` composites, and walk the tree separately from matching. New filters then need no change to the walker.'
     reports:
       - year: 2026
@@ -841,7 +1395,15 @@ questions:
     section: lld
     title: 'Logging Framework'
     topic: low-level-design/logging-framework
-    problem: 'Design a logger such as log4j.'
+    problem: |-
+      Design a logging library such as log4j.
+
+      **Requirements**
+      - Log levels (DEBUG, INFO, WARN, ERROR) with a configurable minimum level.
+      - Several destinations: console, file, and possibly a remote service.
+      - A configurable message format.
+
+      **Expect follow-ups on:** thread safety, logging without slowing the caller, and adding a new destination.
     solution: 'Loggers, levels, appenders and formatters behind interfaces. Discuss chain of responsibility for levels, and asynchronous writes with a bounded queue.'
     reports:
       - year: 2026
@@ -852,7 +1414,14 @@ questions:
     section: lld
     title: 'Publisher-Subscriber System'
     topic: low-level-design/pub-sub
-    problem: 'Publishers send events by type; subscribers join and leave each type.'
+    problem: |-
+      Design an in-process publish-subscribe system.
+
+      **Requirements**
+      - Publishers send events of a given type.
+      - Subscribers subscribe to and unsubscribe from event types, and receive every event of those types.
+
+      **Expect follow-ups on:** a slow or failing subscriber, delivery order, and concurrency.
     solution: 'Observer pattern with a map from topic to subscribers. Use a concurrent collection and decide what a slow subscriber does to delivery.'
     reports:
       - year: 2026
@@ -861,7 +1430,15 @@ questions:
     section: lld
     title: 'Notification System'
     topic: system-design/notification-system
-    problem: 'Several channels such as SMS and email, and users with configured channels.'
+    problem: |-
+      Design a notification system.
+
+      **Requirements**
+      - Several channels, such as SMS and email, with more to come.
+      - Each user has configured channels and preferences.
+      - Failures are handled and retried.
+
+      The report expected Factory, Strategy and Singleton to come up, with attention to error handling.
     solution: 'Factory to build a channel, Strategy for delivery, and clear retry and error handling. The report named these patterns specifically.'
     reports:
       - year: 2026
@@ -870,7 +1447,14 @@ questions:
     section: lld
     title: 'Elevator System'
     topic: low-level-design/elevator
-    problem: 'Design elevators, requests and dispatching.'
+    problem: |-
+      Design an elevator system for a building.
+
+      **Requirements**
+      - Several elevators, with requests from floors (up or down) and from inside a car.
+      - A dispatcher decides which elevator serves each request.
+
+      **Expect follow-ups on:** changing the scheduling policy, and the states of an elevator.
     solution: 'Separate state (Elevator) from the scheduling policy so policies can be swapped. Use the State pattern for moving, stopped and idle.'
     reports:
       - year: 2026
@@ -879,7 +1463,14 @@ questions:
     section: lld
     title: 'E-commerce Platform'
     topic: low-level-design/shopping-cart
-    problem: 'Class design for a store, with scenarios.'
+    problem: |-
+      Design the classes of an e-commerce platform.
+
+      **Requirements**
+      - Products and inventory, a cart, orders and payment.
+      - Walk through scenarios such as adding to the cart, checking out and cancelling.
+
+      **Expect follow-ups on:** two buyers ordering the last unit at the same time.
     solution: 'Separate Cart, Order, Inventory and Payment, and handle the last-unit race when placing an order.'
     reports:
       - year: 2026
@@ -888,7 +1479,15 @@ questions:
     section: lld
     title: 'Pizza Ordering System'
     topic: oop-patterns/decorator-adapter-facade-proxy
-    problem: 'Design ordering with toppings, using a decorator-style approach.'
+    problem: |-
+      Design a pizza ordering system.
+
+      **Requirements**
+      - A pizza has a base and any combination of toppings.
+      - Price and description depend on the toppings chosen.
+      - New toppings should be easy to add.
+
+      The report expected a decorator-style approach.
     solution: 'Each topping wraps a pizza and adds to its cost and description, so new toppings need no new classes.'
     reports:
       - year: 2026
@@ -897,7 +1496,12 @@ questions:
     section: lld
     title: 'Inventory Management'
     topic: low-level-design/inventory-management
-    problem: 'One unit is left and two users order at once. How do you stop both succeeding? Taken from a public compilation of recent questions.'
+    problem: |-
+      Design an inventory management system for an online store.
+
+      The report's focus: only one unit of a product is left and two users order it at the same moment. How do you make sure only one order succeeds?
+
+      **Expect follow-ups on:** race conditions, locking or transaction choices, and preventing overselling.
     solution: 'Reserve stock atomically: a conditional update (`stock > 0`), or row locks in a transaction. Then cover reservation expiry.'
     reports:
       - year: 2026
@@ -906,7 +1510,15 @@ questions:
     section: lld
     title: 'Rate Limiter'
     topic: low-level-design/rate-limiter
-    problem: 'Compare fixed window, sliding window and token bucket, then make it distributed. Taken from a public compilation of recent questions.'
+    problem: |-
+      Design a rate limiter.
+
+      **Requirements**
+      - Limit each client to N requests per time window.
+      - Compare fixed window, sliding window and token bucket.
+      - Then make it work across several application instances.
+
+      **Expect follow-ups on:** using Redis, locking, and consistency trade-offs.
     solution: 'Token bucket per key behind a strategy interface. Go distributed with an atomic Redis script.'
     reports:
       - year: 2026
@@ -915,7 +1527,14 @@ questions:
     section: lld
     title: 'Package Delivery, Lockers and Delivery Estimates'
     topic: low-level-design/lld-method
-    problem: 'Several reports use Amazon''s own logistics: package delivery, a reversed locker where customers book a drop-off slot, and a delivery estimate service.'
+    problem: |-
+      Several reports use Amazon's own logistics:
+
+      - **Package delivery:** orders arrive, packages are created for shipment and delivered.
+      - **Return drop-off:** a reversed Amazon Locker, where the customer books a slot at the nearest drop-off store and brings the package.
+      - **Delivery estimates:** a service that predicts when an order will arrive.
+
+      In one report the interviewer changed the requirements midway.
     solution: 'No single page covers these. Use the method: list requirements, find the entities and their states, then isolate the parts that will change behind interfaces. Slot booking has the same race as seat booking.'
     reports:
       - year: 2026
@@ -928,7 +1547,15 @@ questions:
     section: lld
     title: 'Playlist Mixing Two Song Sources'
     topic: low-level-design/lld-method
-    problem: 'Mix songs from a DJ service and a recommendation service in a chosen proportion, with user filters, written as production-ready classes on paper.'
+    problem: |-
+      Design a playlist that mixes songs from two services: a DJ service and a recommendation service.
+
+      **Requirements**
+      - Mix them in a given proportion, or equally.
+      - Apply filters based on user preferences.
+      - Write production-ready classes, on paper, with correct syntax.
+
+      The report had about ten printed requirements.
     solution: 'An iterator that merges two source iterators by a ratio Strategy, with filters as a chain of predicates.'
     reports:
       - year: 2026
@@ -937,7 +1564,10 @@ questions:
     section: lld
     title: 'Agentic Chatbot'
     topic: ai-engineering/agents-and-tool-calling
-    problem: 'Design a chatbot that accepts queries and generates responses.'
+    problem: |-
+      Design an agentic chatbot that accepts user queries and generates responses, calling tools when it needs to.
+
+      **Expect follow-ups on:** adding a tool, conversation memory, and stopping a loop that never ends.
     solution: 'An agent loop around a model client, with tools behind one interface, conversation memory, and limits on iterations and cost.'
     reports:
       - year: 2026
@@ -946,7 +1576,15 @@ questions:
     section: hld
     title: 'BookMyShow'
     topic: system-design/ticket-booking
-    problem: 'Search movies and theatres, and handle seat concurrency.'
+    problem: |-
+      Design a movie ticket booking system like BookMyShow.
+
+      **Requirements**
+      - Search movies and theatres by city.
+      - View a show's seats and book them.
+      - Two users must never book the same seat.
+
+      The report spent most of its time on search and seat concurrency.
     solution: 'Hold a seat with a short expiry, then confirm with a conditional update tied to payment. Serve search from a read store.'
     reports:
       - year: 2026
@@ -955,16 +1593,26 @@ questions:
     section: hld
     title: 'Job Scheduler'
     topic: system-design/job-scheduler
-    problem: 'One-off and periodic jobs, schema and database choice.'
+    problem: |-
+      Design a job scheduler.
+
+      **Requirements**
+      - One-off jobs and periodic jobs.
+      - Jobs run close to their scheduled time, even with many workers.
+
+      **Expect follow-ups on:** the data schema and tables, scaling, and the database choice (MongoDB or DynamoDB).
     solution: 'Partition due jobs by time bucket, lease them to workers, and make execution idempotent because delivery is at-least-once.'
     reports:
       - year: 2026
         source: https://leetcode.com/discuss/post/8584198/amazon-l5-interview-experience-offer-by-thbff/
   - id: hld-twitter
     section: hld
-    title: 'Twitter / News Feed'
+    title: 'Twitter Timeline'
     topic: system-design/news-feed
-    problem: 'Design a timeline.'
+    problem: |-
+      Design Twitter, focusing on posting and reading the home timeline.
+
+      **Expect follow-ups on:** users with millions of followers, and keeping timelines fast.
     solution: 'Fan out on write for normal accounts and on read for accounts with huge followings, then merge at read time.'
     reports:
       - year: 2026
@@ -973,7 +1621,10 @@ questions:
     section: hld
     title: 'Design ChatGPT'
     topic: ai-engineering/llm-system-design
-    problem: 'Asked with no explicit requirements.'
+    problem: |-
+      Design ChatGPT. The report gave no explicit requirements, so you are expected to set them.
+
+      **Likely areas:** streaming responses, storing conversations, GPU capacity and queueing, rate limits and cost.
     solution: 'Clarify first. Cover streaming responses, conversation storage, GPU capacity and queueing, rate limits and safety checks.'
     reports:
       - year: 2026
@@ -982,7 +1633,14 @@ questions:
     section: hld
     title: 'Google Photos'
     topic: system-design/file-storage
-    problem: 'Upload, store and browse photos.'
+    problem: |-
+      Design Google Photos.
+
+      **Requirements**
+      - Upload photos from devices, store them durably and browse them.
+      - Thumbnails and sharing.
+
+      **Expect follow-ups on:** storage cost at scale, and fast browsing.
     solution: 'Upload directly to object storage with signed URLs, generate thumbnails asynchronously, and serve through a CDN.'
     reports:
       - year: 2026
@@ -991,7 +1649,15 @@ questions:
     section: hld
     title: 'Personalised Auto-suggest'
     topic: low-level-design/autocomplete
-    problem: 'Suggestions with trending top-k and more than one language.'
+    problem: |-
+      Design personalised search suggestions as the user types.
+
+      **Requirements**
+      - Suggestions appear within tens of milliseconds.
+      - Include trending top-k queries.
+      - Support more than one language.
+
+      The report also asked about scalability and latency.
     solution: 'Precompute top-k per prefix, update trending through a stream with decay, and blend in personal history at read time.'
     reports:
       - year: 2026
@@ -1000,7 +1666,10 @@ questions:
     section: hld
     title: 'Live Temperature Heatmap'
     topic: system-design/realtime-analytics
-    problem: 'Sensors across a continent report temperature; show the latest as a heatmap.'
+    problem: |-
+      Sensors spread evenly across a continent each report temperature. Design a system that shows a heatmap of the latest temperatures.
+
+      **Expect follow-ups on:** the volume of updates, how fresh the map must be, and zooming in.
     solution: 'Aggregate by geo-cell in a stream processor, keep the latest value per cell, and push tiles to clients.'
     reports:
       - year: 2026
@@ -1009,16 +1678,27 @@ questions:
     section: hld
     title: 'Payment System'
     topic: system-design/payment-system
-    problem: 'The report remembered only that it was payment related.'
+    problem: |-
+      The candidate remembered only that it was a payment-related design.
+
+      **Prepare:** a payment flow end to end, including retries, double charges and reconciliation.
     solution: 'Idempotency keys, a double-entry ledger, a state machine for each payment, and reconciliation with the provider.'
     reports:
       - year: 2026
         source: https://leetcode.com/discuss/post/7701734/amazon-sde-2-interview-experience-by-ano-x6lv/
   - id: hld-custom
     section: hld
-    title: 'Examination, Attendance, Reviews, Notes'
+    title: 'Examination, Attendance, Reviews and Notes'
     topic: system-design/approach-and-estimation
-    problem: 'Several reports use everyday products with little guidance: an examination system, hourly attendance, Amazon reviews and a Google Keep style notes app.'
+    problem: |-
+      Several reports use everyday products with very little guidance:
+
+      - an online examination system;
+      - attendance management for hourly employees;
+      - Amazon's product review system;
+      - a Google Keep style notes app.
+
+      The interviewers deliberately gave almost no constraints.
     solution: 'The interviewer expects you to drive. Set requirements and scale, sketch the API and data model, then go deep on the hardest part.'
     reports:
       - year: 2026
@@ -1033,7 +1713,12 @@ questions:
     section: behavioral
     title: 'Leadership Principles, in Nearly Every Round'
     topic: interviews/behavioral
-    problem: 'Expect about two questions per round, and up to half the hour in some. Named in reports: Ownership, Customer Obsession, Deliver Results, Dive Deep, Learn and Be Curious, Invent and Simplify. One question was "when did you solve a complex problem with a simple solution?"'
+    problem: |-
+      Expect about two Leadership Principle questions in each round, and up to half the hour in some.
+
+      **Named in reports:** Ownership, Customer Obsession, Deliver Results, Dive Deep, Learn and Be Curious, and Invent and Simplify.
+
+      **Asked, for example:** "Tell me about a time you solved a complex problem with a simple solution." "Describe a project where you took ownership of a critical issue."
     solution: 'Prepare specific STAR stories with numbers, and expect follow-ups on your own part in them. One candidate reports strong technical feedback but a weak Bar Raiser result on these alone.'
     reports:
       - year: 2026
@@ -1052,7 +1737,10 @@ questions:
     section: ai
     title: 'AI-assisted Code Repository Round'
     topic: interviews/ai-assisted-coding
-    problem: 'A real project with an AI assistant: find and fix bugs, or fill in missing code, often against test cases.'
+    problem: |-
+      You get a real project, sometimes in a framework you choose, plus an AI coding assistant. Find and fix bugs, or fill in missing code, often against pre-written tests.
+
+      One report: "a full-fledged project with pre-written test cases; find the buggy or missing pieces."
     solution: 'Read the failing test first and reproduce the bug before asking the assistant. Check each suggestion yourself. One report found the assistant was designed not to reveal the bug.'
     reports:
       - year: 2026
@@ -1067,7 +1755,7 @@ questions:
     section: ai
     title: 'Questions on Using LLMs'
     topic: interviews/ai-assisted-coding
-    problem: 'How do you use LLMs while developing? How do you verify AI-generated code? When do you not trust it?'
+    problem: 'How do you use LLMs while developing? How do you verify that AI-generated code is correct? When do you trust an LLM, and when do you not?'
     solution: 'Give a concrete workflow: tests first, review each change, and treat output as an untrusted draft, especially around security and concurrency.'
     reports:
       - year: 2026
