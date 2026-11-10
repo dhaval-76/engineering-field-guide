@@ -4,7 +4,7 @@ import { read } from '~/lib/storage';
 import { LAST_UPDATE, type UpdateChanges } from '~/lib/update-changes';
 
 interface Props {
-  /** topic id → title */
+  /** topic id (or companies/<slug> for a company question list) → title */
   topicTitles: Record<string, string>;
   base: string;
 }
@@ -30,11 +30,19 @@ export default function LastUpdate({ topicTitles, base }: Props) {
       </section>
     );
 
-  const listed = (ids: string[]) =>
-    ids.filter((id) => id in topicTitles).map((id) => ({ id, title: topicTitles[id]! }));
-  const added = listed(changes.topics?.added ?? []);
-  const changed = listed(changes.topics?.changed ?? []);
-  const removed = changes.topics?.removed.length ?? 0;
+  // Company question lists share the fingerprint record as `companies/<slug>`.
+  const isCompany = (id: string) => id.startsWith('companies/');
+  const listed = (ids: string[], companies: boolean) =>
+    ids
+      .filter((id) => id in topicTitles && isCompany(id) === companies)
+      .map((id) => ({ id, title: topicTitles[id]! }));
+  const added = listed(changes.topics?.added ?? [], false);
+  const changed = listed(changes.topics?.changed ?? [], false);
+  const companies = [
+    ...listed(changes.topics?.added ?? [], true),
+    ...listed(changes.topics?.changed ?? [], true),
+  ];
+  const removed = (changes.topics?.removed ?? []).filter((id) => !isCompany(id)).length;
   const when = new Date(changes.at).toLocaleString(undefined, {
     dateStyle: 'long',
     timeStyle: 'short',
@@ -63,6 +71,12 @@ export default function LastUpdate({ topicTitles, base }: Props) {
           <ul>{changed.map(link)}</ul>
         </>
       )}
+      {companies.length > 0 && (
+        <>
+          <h3>Company questions</h3>
+          <ul>{companies.map(link)}</ul>
+        </>
+      )}
       {removed > 0 && (
         <p className="lu-muted">
           {removed} topic{removed === 1 ? ' was' : 's were'} removed or moved.
@@ -74,7 +88,7 @@ export default function LastUpdate({ topicTitles, base }: Props) {
           update onwards.
         </p>
       )}
-      {changes.topics && !added.length && !changed.length && !removed && (
+      {changes.topics && !added.length && !changed.length && !removed && !companies.length && (
         <p className="lu-muted">No topic content changed. This update was to the site itself.</p>
       )}
       {changes.files !== undefined && (

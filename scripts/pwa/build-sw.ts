@@ -40,6 +40,9 @@ for (const full of (await walk(dist)).sort()) {
 // A fingerprint of each topic's source. Built pages also change with the layout, the footer or a
 // new script name, so comparing them can't tell whether a topic's own content changed.
 const sources = join(root, 'src/content/topics');
+// Lets scripts/audit/offline-update.ts publish content changes without editing a source file
+// (comma-separated topic or companies/<slug> ids).
+const testChanged = new Set((process.env.EFG_TEST_CHANGED_TOPIC ?? '').split(',').filter(Boolean));
 const topics: Record<string, string> = {};
 for (const track of (await readdir(sources, { withFileTypes: true })).filter((d) =>
   d.isDirectory(),
@@ -52,10 +55,26 @@ for (const track of (await readdir(sources, { withFileTypes: true })).filter((d)
     const digest = createHash('sha256');
     for (const full of (await walk(join(sources, id))).sort())
       digest.update(relative(sources, full)).update(await readFile(full));
-    // lets scripts/audit/offline-update.ts publish a content change without editing a source file
-    if (process.env.EFG_TEST_CHANGED_TOPIC === id) digest.update('test');
+    if (testChanged.has(id)) digest.update('test');
     topics[id] = digest.digest('hex').slice(0, 12);
   }
+}
+
+// Company question lists are tracked the same way, as `companies/<slug>`: the YAML file plus the
+// solution files it names from company-questions/code/. Solutions reused from topics are covered
+// by those topics' own fingerprints.
+const companySources = join(root, 'src/content/company-questions');
+const companyCode = await readdir(join(companySources, 'code')).catch(() => [] as string[]);
+for (const file of (await readdir(companySources)).filter((f) => f.endsWith('.yaml')).sort()) {
+  const id = `companies/${file.replace(/\.yaml$/, '')}`;
+  if (!(`${id}/index.html` in files)) continue;
+  const yaml = await readFile(join(companySources, file));
+  const digest = createHash('sha256').update(file).update(yaml);
+  const used = new Set([...yaml.toString().matchAll(/^\s+code: (\S+)$/gm)].map((m) => m[1]));
+  for (const f of companyCode.filter((f) => used.has(f.replace(/\.[^.]+$/, ''))).sort())
+    digest.update(f).update(await readFile(join(companySources, 'code', f)));
+  if (testChanged.has(id)) digest.update('test');
+  topics[id] = digest.digest('hex').slice(0, 12);
 }
 
 const list = JSON.stringify(files);

@@ -48,6 +48,12 @@ const sections = SECTIONS.map((s) => ({
   (s) => s.questions.length + s.tagged.length + s.taggedTopics.length + s.reported.length > 0,
 );
 const count = (s: (typeof sections)[number]) => s.questions.length + s.tagged.length;
+/** When a question was reported, for the folded row: "2026", "2025, 2026" or "2021–2025". */
+const asked = (years: number[]) => {
+  const ys = [...new Set(years)].sort();
+  if (!ys.length) return '';
+  return ys.length <= 2 ? ys.join(', ') : `${ys[0]}–${ys[ys.length - 1]}`;
+};
 const summaryOf = (s: (typeof sections)[number]) => {
   const n = count(s);
   if (n > 0) return `${n} question${n === 1 ? '' : 's'}`;
@@ -106,6 +112,7 @@ const summaryOf = (s: (typeof sections)[number]) => {
               <span class="t">{q.title}</span>
               <span class="meta">
                 {q.difficulty && <span class={`d ${q.difficulty}`}>{q.difficulty}</span>}
+                <span class="y">asked {asked(q.reports.map((r) => r.year))}</span>
                 {q.reports.length > 1 && <span class="r">{q.reports.length} reports</span>}
               </span>
             </summary>
@@ -179,6 +186,11 @@ const summaryOf = (s: (typeof sections)[number]) => {
           <details class="cq">
             <summary>
               <span class="t">{it.text}</span>
+              {it.year && (
+                <span class="meta">
+                  <span class="y">asked {it.year}</span>
+                </span>
+              )}
             </summary>
             <div class="body">
               <p class="links">

@@ -252,7 +252,8 @@ them in export and import. This extends 9c.
 Done: `/companies/<company>/` now lists questions by section, each with a solution, a link to its
 explanation and the original reports. Updated the same day: sections and solutions fold separately, and every
 question is written as an interview problem with examples (checked by running the code) and
-constraints. Amazon has 84 questions and Cashfree 31; every other company
+constraints. Then: folded rows show the years each question was asked, and "What's new" lists
+changed company question lists after an offline update. Amazon has 84 questions and Cashfree 31; every other company
 shows its tagged questions and report topics in the same sections.
 
 Follow-ups, not done:

@@ -18,7 +18,7 @@ and its order are in [`BACKLOG.md`](BACKLOG.md).
   practice and a quiz.
 - **Company tags:** "Reported in interviews at …", built from public interview reports, each linked
   to its source. Browse them by company at `/companies/`.
-- **Company question banks:** `/companies/<company>/` lists reported questions by section (DSA, low-level design, system design and so on), most reported first. Each is written as an interview problem with examples and constraints, and its solution, code and link to the explaining page sit in a separate fold, so you can try it first. Amazon and Cashfree have full lists; other companies show what is tagged so far.
+- **Company question banks:** `/companies/<company>/` lists reported questions by section (DSA, low-level design, system design and so on), most reported first, each row showing the years it was asked. Each is written as an interview problem with examples and constraints, and its solution, code and link to the explaining page sit in a separate fold, so you can try it first. Amazon and Cashfree have full lists; other companies show what is tagged so far.
 - **Glossary** terms show their definition on hover or tap; the full list is at `/glossary/`.
 - **Cheat sheets** collect every Quick Reference card of a track on one printable page.
 - **Search** (`/` or `Ctrl/⌘ K`), light and dark themes, reading mode (hides both side panels),
@@ -34,7 +34,8 @@ and its order are in [`BACKLOG.md`](BACKLOG.md).
 - **Reading history** (`/history/`): every topic you open, newest first, grouped by day, with a
   filter and per-entry or clear-all removal. Up to 200 entries, one per topic per day.
 - **What's new** (`/whats-new/`): topics recently added (dated by their first git commit) and
-  recently reviewed, plus the topics changed by the last update your offline copy downloaded.
+  recently reviewed, plus the topics and company question lists changed by the last update your
+  offline copy downloaded.
 - **Your data** (`/data/`): see everything stored in this browser in plain words or as raw JSON,
   including quiz results by topic. Back it up to a versioned file, restore with a preview (merge or
   replace), copy it to another device with a sync code or QR code (no account, no server), or delete

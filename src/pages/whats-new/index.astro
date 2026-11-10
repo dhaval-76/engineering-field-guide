@@ -2,6 +2,7 @@
 import BaseLayout from '~/layouts/BaseLayout.astro';
 import LastUpdate from '~/components/islands/LastUpdate';
 import { topicAddedDates } from '~/lib/git-dates';
+import { getCompanyIndex } from '~/lib/companies';
 import { getNav } from '~/lib/nav';
 import { topicUrl, url } from '~/lib/url';
 
@@ -43,7 +44,14 @@ function byDate<T>(list: T[], key: (t: T) => string) {
   }
   return groups;
 }
-const topicTitles = Object.fromEntries(topics.map((t) => [t.id, t.title]));
+const topicTitles = {
+  ...Object.fromEntries(topics.map((t) => [t.id, t.title])),
+  ...Object.fromEntries(
+    (await getCompanyIndex())
+      .filter((c) => c.questions.length > 0)
+      .map((c) => [`companies/${c.slug}`, `${c.name} interview questions`]),
+  ),
+};
 ---
 
 <BaseLayout title="What's new" noindex>

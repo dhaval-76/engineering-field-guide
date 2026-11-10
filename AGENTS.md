@@ -202,9 +202,11 @@ reported as small; that is expected.
   opts in.
 - **`/offline/` page**: status, size, storage used, persistence, version, last check; actions:
   check for updates, repair missing files, re-download everything, remove the offline copy, install.
-- **What changed**: `build-sw.ts` also fingerprints each topic's source folder (`TOPICS`), kept in
+- **What changed**: `build-sw.ts` also fingerprints each topic's source folder (`TOPICS`), and each
+  company question list as `companies/<slug>` (its YAML plus the solution files it names), kept in
   the cache as `__topics__`. On install the worker compares them with the previous version's and
-  saves `{ version, at, files, topics: { added, changed, removed } }` as `__changes__`. The `status`
+  saves `{ version, at, files, topics: { added, changed, removed } }` as `__changes__`; the what's
+  new page lists company ids separately, under "Company questions". The `status`
   reply includes it, and `src/scripts/offline.ts` stores it once as `efg:last-update`; the what's
   new page lists those topics. Don't compare built pages for this: the layout, the footer or a new
   script name changes all of them. The first install records nothing.

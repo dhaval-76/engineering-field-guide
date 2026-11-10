@@ -7,7 +7,8 @@
  *  3. deleting saved files shows them as missing and Repair restores them;
  *  4. Re-download everything finishes with every file saved;
  *  5. Check for updates with nothing new says so;
- *  6. publishing a change to a topic's source lists that topic, and only it, in what's new.
+ *  6. publishing a change to a topic's source lists that topic, and only it, in what's new, and a
+ *     changed company question list is listed under company questions.
  * It edits one file in dist/ and regenerates dist/sw.js, then puts both back.
  *   npm run build && npm run preview   (in another terminal)
  *   npm run test:offline-update
@@ -92,7 +93,7 @@ try {
   }
 
   writeFileSync(changed, original.replace('</body>', '<!-- update test 2 --></body>'));
-  rebuildWorker('dsa/two-pointers');
+  rebuildWorker('dsa/two-pointers,companies/amazon');
   await page.goto(`${BASE}offline/`);
   await page.waitForSelector('.update-toast', { timeout: 60_000 });
   await Promise.all([page.waitForEvent('load'), page.click('.update-toast [data-apply]')]);
@@ -111,6 +112,12 @@ try {
     expect(
       panel.includes('Two Pointers') && !panel.includes('Sliding Window'),
       "a changed topic source lists that topic, and only it, in what's new",
+    );
+    expect(
+      panel.includes('Company questions') &&
+        panel.includes('Amazon interview questions') &&
+        !panel.includes('Cashfree'),
+      "a changed company question list is listed, and only it, in what's new",
     );
   }
   await page.goto(`${BASE}offline/`);
