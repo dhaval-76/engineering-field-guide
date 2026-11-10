@@ -58,6 +58,7 @@ export interface Company {
   /** Curated questions with solutions, from src/content/company-questions/. */
   questions: CompanyQuestion[];
   overview: string[];
+  listSource?: string | undefined;
 }
 
 /** Every askedAt tag across topics and Q&A, grouped by company. */
@@ -140,6 +141,7 @@ export async function getCompanyIndex(): Promise<Company[]> {
     };
     c.questions = entry.data.questions;
     c.overview = entry.data.overview;
+    c.listSource = entry.data.listSource;
     map.set(slug, c);
   }
   return [...map.values()].sort((a, b) => a.name.localeCompare(b.name));

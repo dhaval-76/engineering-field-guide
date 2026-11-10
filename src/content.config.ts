@@ -194,45 +194,56 @@ const companyQuestions = defineCollection({
   schema: z.object({
     company: z.string(),
     updated: z.coerce.date(),
+    /** Community copy of LeetCode's company tags used for listWindow (no dates or rounds). */
+    listSource: z.url().optional(),
+    listChecked: z.coerce.date().optional(),
     overview: z.array(markdown).default([]),
     questions: z
       .array(
-        z.object({
-          id: z.string(),
-          section: z.enum([
-            'dsa',
-            'lld',
-            'hld',
-            'language',
-            'backend',
-            'fundamentals',
-            'frontend',
-            'ai',
-            'behavioral',
-          ]),
-          title: z.string(),
-          difficulty: z.enum(['easy', 'medium', 'hard']).optional(),
-          leetcode: z.string().optional().describe('Problem slug, exact or closest match'),
-          topic: reference('topics').describe('The guide page that explains this'),
-          problem: markdown.describe('Written as the interviewer would give it'),
-          examples: z
-            .array(
-              z.object({
-                input: z.string(),
-                output: z.string(),
-                explanation: z.string().optional(),
-              }),
-            )
-            .default([]),
-          constraints: z.array(z.string()).default([]),
-          solution: markdown,
-          complexity: z.string().optional(),
-          code: z.string().optional().describe('Snippet id rendered as code tabs'),
-          reports: z
-            .array(z.object({ year: z.number().int(), source: z.url() }))
-            .min(1)
-            .describe('Public reports, one per candidate'),
-        }),
+        z
+          .object({
+            id: z.string(),
+            section: z.enum([
+              'dsa',
+              'lld',
+              'hld',
+              'language',
+              'backend',
+              'fundamentals',
+              'frontend',
+              'ai',
+              'behavioral',
+            ]),
+            title: z.string(),
+            difficulty: z.enum(['easy', 'medium', 'hard']).optional(),
+            leetcode: z.string().optional().describe('Problem slug, exact or closest match'),
+            listWindow: z
+              .enum(['30 days', '3 months', '6 months', 'all time'])
+              .optional()
+              .describe('Most recent window of the company list that has this problem'),
+            topic: reference('topics').describe('The guide page that explains this'),
+            problem: markdown.describe('Written as the interviewer would give it'),
+            examples: z
+              .array(
+                z.object({
+                  input: z.string(),
+                  output: z.string(),
+                  explanation: z.string().optional(),
+                }),
+              )
+              .default([]),
+            constraints: z.array(z.string()).default([]),
+            solution: markdown,
+            complexity: z.string().optional(),
+            code: z.string().optional().describe('Snippet id rendered as code tabs'),
+            reports: z
+              .array(z.object({ year: z.number().int(), source: z.url() }))
+              .default([])
+              .describe('Public reports, one per candidate'),
+          })
+          .refine((q) => q.reports.length > 0 || q.listWindow !== undefined, {
+            message: 'a question needs at least one report or a listWindow',
+          }),
       )
       .min(1),
   }),

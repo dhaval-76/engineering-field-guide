@@ -18,7 +18,7 @@ and its order are in [`BACKLOG.md`](BACKLOG.md).
   practice and a quiz.
 - **Company tags:** "Reported in interviews at …", built from public interview reports, each linked
   to its source. Browse them by company at `/companies/`.
-- **Company question banks:** `/companies/<company>/` lists reported questions by section (DSA, low-level design, system design and so on), most reported first, each row showing the years it was asked. Each is written as an interview problem with examples and constraints, and its solution, code and link to the explaining page sit in a separate fold, so you can try it first. Amazon and Cashfree have full lists; other companies show what is tagged so far.
+- **Company question banks:** `/companies/<company>/` lists reported questions by section (DSA, low-level design, system design and so on), most reported first, each row showing the years it was asked and whether the problem is also on LeetCode's company list (from a community copy on GitHub, shown separately from reports). Each is written as an interview problem with examples and constraints, and its solution, code and link to the explaining page sit in a separate fold, so you can try it first. Amazon and Cashfree have full lists; other companies show what is tagged so far.
 - **Glossary** terms show their definition on hover or tap; the full list is at `/glossary/`.
 - **Cheat sheets** collect every Quick Reference card of a track on one printable page.
 - **Search** (`/` or `Ctrl/⌘ K`), light and dark themes, reading mode (hides both side panels),

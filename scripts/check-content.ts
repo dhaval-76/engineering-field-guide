@@ -42,7 +42,12 @@ for (const f of codeFiles) {
   snippetIds.set(id, [...(snippetIds.get(id) ?? []), f]);
 }
 // Snippets that demonstrate one language's own runtime (the JS event loop, ES modules) and have no Java equivalent.
-const LANGUAGE_SPECIFIC = new Set(['singleton-module', 'event-loop-order', 'blocking-the-loop', 'resilience-other']);
+const LANGUAGE_SPECIFIC = new Set([
+  'singleton-module',
+  'event-loop-order',
+  'blocking-the-loop',
+  'resilience-other',
+]);
 for (const [id, files] of snippetIds) {
   // A variant's language is its @app extension (dockerfile@py.dockerfile → py).
   const exts = files.map((f) => basename(f).match(/@([^.]+)\./)?.[1] ?? f.split('.').pop());
@@ -56,7 +61,15 @@ for (const [id, files] of snippetIds) {
 const diagramIds = new Set(diagramFiles.map(stem));
 const walkIds = new Set(walkFiles.map(stem));
 // Diagram and walkthrough ids are global: two files with the same name would silently shadow each other.
-for (const [kind, files] of [['diagram', diagramFiles.filter((f) => f.endsWith('.svg') || !diagramFiles.includes(f.replace(/\.mmd$/, '.svg')))], ['walkthrough', walkFiles]] as const) {
+for (const [kind, files] of [
+  [
+    'diagram',
+    diagramFiles.filter(
+      (f) => f.endsWith('.svg') || !diagramFiles.includes(f.replace(/\.mmd$/, '.svg')),
+    ),
+  ],
+  ['walkthrough', walkFiles],
+] as const) {
   const seen = new Map<string, string>();
   for (const f of files) {
     const id = stem(f);
@@ -87,7 +100,8 @@ for (const f of mdxFiles) {
   }
   try {
     const fm = parse(src.split(/^---$/m)[1] ?? '') as { summary?: string };
-    if ((fm.summary?.length ?? 0) > 240) errors.push(`${f}: summary is ${fm.summary!.length} chars (max 240)`);
+    if ((fm.summary?.length ?? 0) > 240)
+      errors.push(`${f}: summary is ${fm.summary!.length} chars (max 240)`);
   } catch (e) {
     errors.push(`${f}: invalid frontmatter YAML — ${(e as Error).message.split('\n')[0]}`);
   }
@@ -148,6 +162,8 @@ for (const f of companyFiles) {
     const urls = (q.reports ?? []).map((r: { source: string }) => r.source);
     if (new Set(urls).size !== urls.length) errors.push(`${f}: "${q.id}" cites a report twice`);
   }
+  if ((data.questions ?? []).some((q: { listWindow?: string }) => q.listWindow) && !data.listSource)
+    errors.push(`${f}: listWindow is used but listSource is missing`);
   const b = withoutUrls(JSON.stringify(data)).match(banned);
   if (b) errors.push(`${f}: contains level/schedule framing "${b[0]}"`);
 }
@@ -176,7 +192,8 @@ for (const f of walkFiles) {
 // Every track needs a pre-rendered social card (npm run og), or its pages point og:image at a 404.
 for (const f of await list('src/content/tracks/*.yaml')) {
   const id = stem(f);
-  if (!(await list(`public/og/${id}.png`)).length) errors.push(`Track "${id}" has no public/og/${id}.png — run npm run og`);
+  if (!(await list(`public/og/${id}.png`)).length)
+    errors.push(`Track "${id}" has no public/og/${id}.png — run npm run og`);
 }
 
 for (const w of warn) console.warn(`warn  ${w}`);

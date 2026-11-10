@@ -243,6 +243,13 @@ topics appear in the same sections. The solution sits in its own fold so readers
   Check the company against the text, because tags and multi-company posts mislead.
 - Don't use study lists, prep sheets, articles or "you should know" advice as reports. A public
   compilation is allowed only when no first-hand report exists, and the question must say so.
+- **LeetCode company lists are a separate, weaker signal.** The company file's `listSource` points
+  to the community copy of LeetCode's company tags (`liquidslr/leetcode-company-wise-problems`, no
+  licence, no dates or rounds), and `listWindow` on a question records the most recent period it
+  appears in (`30 days`, `3 months`, `6 months`, `all time`). Never count it as a report. A
+  question may rest on the list alone (no `reports`), and those sort after reported ones. Store
+  only the problems used, not the list or its frequency scores, and refresh windows from the
+  repository's CSVs (`listChecked` is the date).
 - Say so in the question when a report describes a variation.
 - Write `problem` the way an interviewer would give it, in your own words: the task, then any
   follow-up the reports mention. DSA questions get `examples` and `constraints`; design questions

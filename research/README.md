@@ -105,6 +105,10 @@ Research for the 9-page Networking and Operating Systems split, written on 2026-
 
 **Primary sources read:** Kubernetes Deployment docs (25% surge and unavailable, progressDeadlineSeconds 600, revisionHistoryLimit 10), Argo Rollouts canary and analysis docs (abort sets the canary weight to zero), Terraform state, sensitive data (secrets stored in plain text; `sensitive` only hides output), locking and `plan -detailed-exitcode`, the Google SRE Workbook's burn-rate table, Prometheus histogram and naming practices, Kubernetes logging docs (summarised by the fetch tool, not verbatim) and the kube-state-metrics README. The OpenTelemetry collector deployment page returned 404, so the page describes agent and gateway only in general terms.
 
+## Research log: company lists on GitHub (2026-11-10)
+
+Searched GitHub for company-wise question collections. The only current, maintained one is [liquidslr/leetcode-company-wise-problems](https://github.com/liquidslr/leetcode-company-wise-problems) (about 34,600 stars, last updated 20 October 2026, no licence): CSVs per company of LeetCode's company tags for the last 30 days, 3 months, 6 months and all time, with a relative frequency. Others are copies of 2022 data or small personal lists, and none covers design rounds by company. The tags come from LeetCode users, with no dates or rounds, and are noisy (Two Sum scores highest for Amazon), so they are used only as a labelled second signal: 55 of Amazon's 56 report-based problems appear on the list, 47 within six months. Only the problems used are stored, with the window they appear in, not the lists or scores. Cashfree's list has 6 problems, none recent.
+
 ## Decisions (2026-10-30)
 
 **Keep** every migrated legacy topic; all of them show up in the data.

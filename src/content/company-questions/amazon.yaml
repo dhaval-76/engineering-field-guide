@@ -1,5 +1,7 @@
 company: Amazon
 updated: 2026-11-09
+listSource: https://github.com/liquidslr/leetcode-company-wise-problems/tree/main/Amazon
+listChecked: 2026-11-10
 overview:
   - 'Reported loops usually have **four rounds**: two on DSA, plus low-level and system design. A DSA round is one or two problems in about an hour.'
   - '**Leadership Principle questions come with almost every round**, so plan for less coding time than the hour suggests.'
@@ -11,6 +13,7 @@ questions:
     title: 'Search in Rotated Sorted Array'
     difficulty: medium
     leetcode: search-in-rotated-sorted-array
+    listWindow: '30 days'
     topic: dsa/binary-search
     problem: |-
       You are given an array of distinct integers that was sorted in ascending order and then rotated at some unknown index, so `[1,2,3,4,5]` might become `[4,5,1,2,3]`. Given a `target`, return its index, or `-1` if it is not present.
@@ -44,6 +47,7 @@ questions:
     title: 'Course Schedule II (Package Dependencies)'
     difficulty: medium
     leetcode: course-schedule-ii
+    listWindow: '30 days'
     topic: dsa/topological-sort
     problem: |-
       There are `n` courses labelled `0` to `n - 1`. Each pair `[a, b]` in `prerequisites` means you must finish course `b` before course `a`. Return any order in which you can finish every course. If it is impossible, return an empty array.
@@ -77,6 +81,7 @@ questions:
     title: 'Merge Intervals'
     difficulty: medium
     leetcode: merge-intervals
+    listWindow: '30 days'
     topic: dsa/intervals
     problem: 'Given a list of intervals `[start, end]`, merge every group of overlapping intervals and return the result. Intervals that touch, such as `[1,4]` and `[4,6]`, count as overlapping.'
     examples:
@@ -103,6 +108,7 @@ questions:
     title: 'House Robber'
     difficulty: medium
     leetcode: house-robber
+    listWindow: '30 days'
     topic: dsa/dynamic-programming
     problem: |-
       Houses stand in a row, and `nums[i]` is the money in house `i`. You cannot take from two adjacent houses. Return the most money you can collect.
@@ -133,6 +139,7 @@ questions:
     title: 'Rotting Oranges'
     difficulty: medium
     leetcode: rotting-oranges
+    listWindow: '30 days'
     topic: dsa/graphs-bfs-dfs
     problem: |-
       A grid holds `0` (empty), `1` (fresh orange) or `2` (rotten orange). Every minute, each fresh orange next to a rotten one (up, down, left or right) becomes rotten. Return the number of minutes until no fresh orange is left, or `-1` if that never happens.
@@ -163,6 +170,7 @@ questions:
     title: 'First Unique Element in a Stream'
     difficulty: medium
     leetcode: first-unique-number
+    listWindow: '30 days'
     topic: dsa/design-data-structures
     problem: |-
       Design a class that receives integers one at a time. At any moment it must return the first value that has been seen exactly once so far, or `-1` if there is none.
@@ -193,6 +201,7 @@ questions:
     title: 'Lowest Common Ancestor of a Binary Tree'
     difficulty: medium
     leetcode: lowest-common-ancestor-of-a-binary-tree
+    listWindow: '30 days'
     topic: dsa/trees-and-bst
     problem: |-
       Given the root of a binary tree and two nodes `p` and `q` that are both in the tree, return their lowest common ancestor: the deepest node that has both of them as descendants. A node counts as a descendant of itself.
@@ -222,6 +231,7 @@ questions:
     title: 'Reorganize String'
     difficulty: medium
     leetcode: reorganize-string
+    listWindow: '30 days'
     topic: dsa/heaps-and-top-k
     problem: 'Rearrange the letters of `s` so that no two neighbouring characters are the same. Return any valid arrangement, or an empty string if none exists.'
     examples:
@@ -246,6 +256,7 @@ questions:
     title: 'Word Break'
     difficulty: medium
     leetcode: word-break
+    listWindow: '30 days'
     topic: dsa/dynamic-programming
     problem: |-
       Given a string `s` and a list of words `dictionary`, return `true` if `s` can be split into a sequence of one or more dictionary words. A word may be used more than once.
@@ -271,6 +282,7 @@ questions:
     title: 'Number of Islands'
     difficulty: medium
     leetcode: number-of-islands
+    listWindow: '30 days'
     topic: dsa/graphs-bfs-dfs
     problem: 'A grid contains `''1''` for land and `''0''` for water. An island is a group of land cells connected up, down, left or right. Return the number of islands.'
     examples:
@@ -291,6 +303,7 @@ questions:
     title: 'Trapping Rain Water'
     difficulty: hard
     leetcode: trapping-rain-water
+    listWindow: '30 days'
     topic: dsa/two-pointers
     problem: '`height[i]` is the height of a bar of width 1. After it rains, how much water is trapped between the bars?'
     examples:
@@ -315,6 +328,7 @@ questions:
     title: 'Top K Frequent Elements'
     difficulty: medium
     leetcode: top-k-frequent-elements
+    listWindow: '30 days'
     topic: dsa/arrays-and-hashing
     problem: |-
       Return the `k` most frequent values in `nums`, in any order. The answer is guaranteed to be unique.
@@ -339,6 +353,7 @@ questions:
     title: 'Shortest Path with Obstacle Removal'
     difficulty: hard
     leetcode: shortest-path-in-a-grid-with-obstacles-elimination
+    listWindow: 'all time'
     topic: dsa/graphs-bfs-dfs
     problem: |-
       You are in the top-left cell of a grid where `0` is open and `1` is an obstacle. Each step moves up, down, left or right. Return the fewest steps to reach the bottom-right cell if you may remove at most `k` obstacles, or `-1` if it cannot be done.
@@ -387,6 +402,7 @@ questions:
     title: 'Capacity To Ship Packages Within D Days'
     difficulty: medium
     leetcode: capacity-to-ship-packages-within-d-days
+    listWindow: '30 days'
     topic: dsa/binary-search
     problem: 'Packages on a conveyor belt must ship in the given order within `days` days. `weights[i]` is the weight of package `i`. Each day you load packages in order until the next one would exceed the ship''s capacity. Return the smallest capacity that ships everything in time.'
     examples:
@@ -410,6 +426,7 @@ questions:
     title: 'Container With Most Water'
     difficulty: medium
     leetcode: container-with-most-water
+    listWindow: '30 days'
     topic: dsa/two-pointers
     problem: '`height[i]` is the height of a vertical line at position `i`. Pick two lines that, with the x-axis, form a container holding the most water. Return that amount.'
     examples:
@@ -430,6 +447,7 @@ questions:
     title: 'Cheapest Flights Within K Stops'
     difficulty: medium
     leetcode: cheapest-flights-within-k-stops
+    listWindow: '3 months'
     topic: dsa/shortest-paths
     problem: 'There are `n` cities and a list of flights `[from, to, price]`. Find the cheapest price from `src` to `dst` using at most `k` stops in between, or `-1` if there is no such route.'
     examples:
@@ -451,6 +469,7 @@ questions:
     title: 'Largest Rectangle in Histogram'
     difficulty: hard
     leetcode: largest-rectangle-in-histogram
+    listWindow: '30 days'
     topic: dsa/stacks-and-monotonic-stacks
     problem: '`heights[i]` is the height of a histogram bar of width 1. Return the area of the largest rectangle that fits inside the histogram.'
     examples:
@@ -473,6 +492,7 @@ questions:
     title: 'Minimum Starting Power Across a Grid'
     difficulty: hard
     leetcode: dungeon-game
+    listWindow: '3 months'
     topic: dsa/dynamic-programming
     problem: 'You start in the top-left cell of a grid and must reach the bottom-right, moving only right or down. Entering a cell adds its value to your power, and values can be negative. Your power must stay at least 1 at all times, including in the first cell. Return the smallest starting power that makes this possible.'
     examples:
@@ -493,6 +513,7 @@ questions:
     title: 'Find Median from Data Stream'
     difficulty: hard
     leetcode: find-median-from-data-stream
+    listWindow: '30 days'
     topic: dsa/heaps-and-top-k
     problem: |-
       Design a class that receives numbers one at a time and can return the median of everything seen so far.
@@ -518,6 +539,7 @@ questions:
     title: 'Maximum Sum BST in Binary Tree'
     difficulty: hard
     leetcode: maximum-sum-bst-in-binary-tree
+    listWindow: '6 months'
     topic: dsa/trees-and-bst
     problem: 'Given a binary tree, find the largest sum of keys of any subtree that is also a valid binary search tree. If every valid BST subtree has a negative sum, return 0.'
     examples:
@@ -541,6 +563,7 @@ questions:
     title: 'Product of Array Except Self'
     difficulty: medium
     leetcode: product-of-array-except-self
+    listWindow: '30 days'
     topic: dsa/arrays-and-hashing
     problem: 'Return an array where element `i` is the product of every value in `nums` except `nums[i]`. Do not use division, and aim for O(n) time.'
     examples:
@@ -562,6 +585,7 @@ questions:
     title: 'Task Scheduler'
     difficulty: medium
     leetcode: task-scheduler
+    listWindow: '30 days'
     topic: dsa/greedy
     problem: 'A CPU runs tasks labelled with letters, one per time slot. Two runs of the same task must be at least `n` slots apart; the CPU may sit idle. Return the fewest slots needed to run every task.'
     examples:
@@ -585,6 +609,7 @@ questions:
     title: 'Binary Tree Cameras'
     difficulty: hard
     leetcode: binary-tree-cameras
+    listWindow: '3 months'
     topic: dsa/trees-and-bst
     problem: 'Cameras are placed on nodes of a binary tree. A camera watches its own node, its parent and its children. Return the fewest cameras needed to watch every node.'
     examples:
@@ -607,6 +632,7 @@ questions:
     title: 'Remove Duplicate Letters'
     difficulty: medium
     leetcode: remove-duplicate-letters
+    listWindow: '30 days'
     topic: dsa/stacks-and-monotonic-stacks
     problem: |-
       Remove duplicate letters from `s` so every letter appears exactly once, keeping the remaining letters in their original order. Of all possible results, return the smallest in dictionary order.
@@ -631,6 +657,7 @@ questions:
     title: '3Sum Closest'
     difficulty: medium
     leetcode: 3sum-closest
+    listWindow: '30 days'
     topic: dsa/two-pointers
     problem: 'Find three numbers in `nums` whose sum is closest to `target`, and return that sum. Exactly one answer is closest.'
     examples:
@@ -651,6 +678,7 @@ questions:
     title: 'Longest Increasing Subsequence with a Maximum Gap'
     difficulty: hard
     leetcode: longest-increasing-subsequence-ii
+    listWindow: 'all time'
     topic: dsa/dynamic-programming
     problem: 'Find the length of the longest subsequence of `nums` that is strictly increasing and in which every two neighbouring elements differ by at most `k`.'
     examples:
@@ -673,6 +701,7 @@ questions:
     title: 'Ones and Zeroes'
     difficulty: medium
     leetcode: ones-and-zeroes
+    listWindow: '3 months'
     topic: dsa/dynamic-programming
     problem: 'Given binary strings `strs` and two limits, return the size of the largest subset that uses at most `maxZeros` zeros and `maxOnes` ones in total.'
     examples:
@@ -696,6 +725,7 @@ questions:
     title: 'Basic Calculator'
     difficulty: hard
     leetcode: basic-calculator
+    listWindow: '3 months'
     topic: dsa/stacks-and-monotonic-stacks
     problem: 'Evaluate an arithmetic expression given as a string. It contains non-negative integers, `+`, `-`, brackets and spaces. `-` can also be unary, as in `-(2+3)`. Do not use a built-in evaluator.'
     examples:
@@ -757,6 +787,7 @@ questions:
     title: 'Next Greater Element'
     difficulty: easy
     leetcode: next-greater-element-i
+    listWindow: '3 months'
     topic: dsa/stacks-and-monotonic-stacks
     problem: '`queries` is a subset of `nums`, and all values are distinct. For each query value, find the first larger value to its right in `nums`, or `-1` if there is none.'
     examples:
@@ -777,6 +808,7 @@ questions:
     title: 'Search a Sorted Matrix'
     difficulty: medium
     leetcode: search-a-2d-matrix-ii
+    listWindow: '30 days'
     topic: dsa/binary-search
     problem: 'Every row of the matrix is sorted left to right, and every column is sorted top to bottom. Return whether `target` is in the matrix.'
     examples:
@@ -822,6 +854,7 @@ questions:
     title: 'Find K Pairs with Smallest Sums'
     difficulty: medium
     leetcode: find-k-pairs-with-smallest-sums
+    listWindow: 'all time'
     topic: dsa/heaps-and-top-k
     problem: 'Given two arrays sorted in ascending order, return the `k` pairs `(a, b)`, one value from each, with the smallest sums.'
     examples:
@@ -842,6 +875,7 @@ questions:
     title: 'Find K Closest Elements'
     difficulty: medium
     leetcode: find-k-closest-elements
+    listWindow: '3 months'
     topic: dsa/binary-search
     problem: 'Given a sorted array `arr`, return the `k` values closest to `x`, sorted ascending. If two values are equally close, prefer the smaller one.'
     examples:
@@ -863,6 +897,7 @@ questions:
     title: 'Longest Consecutive Sequence'
     difficulty: medium
     leetcode: longest-consecutive-sequence
+    listWindow: '30 days'
     topic: dsa/arrays-and-hashing
     problem: 'Given an unsorted array, return the length of the longest run of consecutive integers it contains. Your solution must run in O(n).'
     examples:
@@ -882,6 +917,7 @@ questions:
     title: 'Remove Duplicates from Sorted Array II'
     difficulty: medium
     leetcode: remove-duplicates-from-sorted-array-ii
+    listWindow: '3 months'
     topic: dsa/two-pointers
     problem: 'Given a sorted array, remove extra duplicates in place so each value appears at most twice. Return the new length `k`; the first `k` elements must hold the result. Use O(1) extra memory.'
     examples:
@@ -902,6 +938,7 @@ questions:
     title: 'Insert Delete GetRandom O(1)'
     difficulty: medium
     leetcode: insert-delete-getrandom-o1
+    listWindow: '3 months'
     topic: dsa/design-data-structures
     problem: |-
       Design a set with three operations, each in average O(1) time:
@@ -925,6 +962,7 @@ questions:
     title: 'Remove Invalid Parentheses'
     difficulty: hard
     leetcode: remove-invalid-parentheses
+    listWindow: '6 months'
     topic: dsa/stacks-and-monotonic-stacks
     problem: 'First, check whether the brackets in a string are balanced. Then, given a string of `(`, `)` and letters, remove the fewest brackets to make it valid and return every distinct valid result.'
     examples:
@@ -946,6 +984,7 @@ questions:
     title: 'Copy List with Random Pointer'
     difficulty: medium
     leetcode: copy-list-with-random-pointer
+    listWindow: '30 days'
     topic: dsa/linked-lists
     problem: 'Each node of a linked list has a `next` pointer and a `random` pointer that may point to any node or be null. Return a deep copy: new nodes with the same values, wired the same way.'
     examples:
@@ -965,6 +1004,7 @@ questions:
     title: 'Meeting Rooms III'
     difficulty: hard
     leetcode: meeting-rooms-iii
+    listWindow: 'all time'
     topic: dsa/intervals
     problem: |-
       There are `n` rooms numbered from 0. Each meeting `[start, end)` takes the lowest-numbered free room. If none is free, it waits for the room that frees up first and keeps its length. Return the room that hosted the most meetings, with ties going to the lowest number.
@@ -991,6 +1031,7 @@ questions:
     title: '132 Pattern'
     difficulty: medium
     leetcode: 132-pattern
+    listWindow: '3 months'
     topic: dsa/stacks-and-monotonic-stacks
     problem: 'Return `true` if `nums` contains indices `i < j < k` with `nums[i] < nums[k] < nums[j]`.'
     examples:
@@ -1012,6 +1053,7 @@ questions:
     title: 'Find Minimum in Rotated Sorted Array'
     difficulty: medium
     leetcode: find-minimum-in-rotated-sorted-array
+    listWindow: '3 months'
     topic: dsa/binary-search
     problem: 'A sorted array of distinct values was rotated at an unknown index. Return its smallest element in O(log n).'
     examples:
@@ -1033,6 +1075,7 @@ questions:
     title: 'Partition to K Equal Sum Subsets'
     difficulty: medium
     leetcode: partition-to-k-equal-sum-subsets
+    listWindow: '3 months'
     topic: dsa/backtracking
     problem: 'Return `true` if `nums` can be split into `k` non-empty groups that all have the same sum.'
     examples:
@@ -1077,6 +1120,7 @@ questions:
     title: 'Most Stones Removed'
     difficulty: medium
     leetcode: most-stones-removed-with-same-row-or-column
+    listWindow: 'all time'
     topic: dsa/union-find
     problem: 'Stones sit at integer points on a grid. You may remove a stone if another stone shares its row or column. Return the most stones you can remove.'
     examples:
@@ -1099,6 +1143,7 @@ questions:
     title: 'Boundary of Binary Tree'
     difficulty: medium
     leetcode: boundary-of-binary-tree
+    listWindow: 'all time'
     topic: dsa/trees-and-bst
     problem: 'Return the boundary of a binary tree, anticlockwise from the root: the root, then the left edge from top to bottom, then all leaves from left to right, then the right edge from bottom to top. No node is listed twice.'
     examples:
@@ -1118,6 +1163,7 @@ questions:
     title: 'Number of Atoms'
     difficulty: hard
     leetcode: number-of-atoms
+    listWindow: 'all time'
     topic: dsa/stacks-and-monotonic-stacks
     problem: 'Given a chemical formula such as `"Mg(OH)2"`, return the count of each atom as a string, with atoms sorted by name and counts of 1 left out. Brackets can be nested and followed by a multiplier.'
     examples:
@@ -1139,6 +1185,7 @@ questions:
     title: 'IPO'
     difficulty: hard
     leetcode: ipo
+    listWindow: '6 months'
     topic: dsa/heaps-and-top-k
     problem: 'You start with capital `w` and may complete at most `k` projects. Project `i` needs `capital[i]` to start and adds `profits[i]` to your capital when done. Return the most capital you can end with.'
     examples:
@@ -1159,6 +1206,7 @@ questions:
     title: 'Seat Furthest from Everyone'
     difficulty: medium
     leetcode: maximize-distance-to-closest-person
+    listWindow: 'all time'
     topic: dsa/two-pointers
     problem: 'A row of seats is given as `''O''` (taken) and `''U''` (free). Return the index of the free seat whose distance to the nearest taken seat is the largest. At least one seat is taken and one is free.'
     examples:
@@ -1180,6 +1228,7 @@ questions:
     title: 'Longest Common Subsequence'
     difficulty: medium
     leetcode: longest-common-subsequence
+    listWindow: '6 months'
     topic: dsa/dynamic-programming
     problem: 'Return the length of the longest common subsequence of two strings: the longest sequence of characters found in both, in order but not necessarily together.'
     examples:
@@ -1201,6 +1250,7 @@ questions:
     title: 'Find the Safest Path in a Grid'
     difficulty: medium
     leetcode: find-the-safest-path-in-a-grid
+    listWindow: '3 months'
     topic: dsa/shortest-paths
     problem: |-
       In an n × n grid, `1` marks a thief. The safeness of a path is the smallest Manhattan distance from any cell on it to any thief. Return the largest safeness of any path from the top-left cell to the bottom-right, moving up, down, left or right.
@@ -1226,6 +1276,7 @@ questions:
     title: 'First Missing Positive'
     difficulty: hard
     leetcode: first-missing-positive
+    listWindow: '3 months'
     topic: dsa/arrays-and-hashing
     problem: 'Return the smallest positive integer missing from an unsorted array. Use O(n) time and O(1) extra space.'
     examples:
@@ -1246,6 +1297,7 @@ questions:
     title: 'Edit Distance'
     difficulty: medium
     leetcode: edit-distance
+    listWindow: '6 months'
     topic: dsa/dynamic-programming
     problem: 'Return the fewest operations that turn `word1` into `word2`, where an operation inserts, deletes or replaces one character.'
     examples:
@@ -1267,6 +1319,7 @@ questions:
     title: 'Word Ladder'
     difficulty: hard
     leetcode: word-ladder
+    listWindow: '3 months'
     topic: dsa/graphs-bfs-dfs
     problem: 'Turn `begin` into `end` by changing one letter at a time, where every intermediate word must be in `wordList`. Return the number of words in the shortest such chain, counting both ends, or 0 if there is none.'
     examples:
@@ -1287,6 +1340,7 @@ questions:
     title: 'Decode String'
     difficulty: medium
     leetcode: decode-string
+    listWindow: '3 months'
     topic: dsa/stacks-and-monotonic-stacks
     problem: 'Decode a string in which `k[text]` means `text` repeated `k` times. Brackets can be nested.'
     examples:
@@ -1308,6 +1362,7 @@ questions:
     title: 'Jump Game'
     difficulty: medium
     leetcode: jump-game
+    listWindow: '3 months'
     topic: dsa/greedy
     problem: |-
       You start at index 0, and `nums[i]` is the furthest you can jump forward from index `i`. Return whether you can reach the last index.
@@ -1333,6 +1388,7 @@ questions:
     title: 'Longest Substring Without Repeating Characters'
     difficulty: medium
     leetcode: longest-substring-without-repeating-characters
+    listWindow: '30 days'
     topic: dsa/sliding-window
     problem: 'Return the length of the longest substring of `s` with no repeated characters.'
     examples:
@@ -1354,6 +1410,7 @@ questions:
     title: 'Currency Conversion Queries'
     difficulty: medium
     leetcode: evaluate-division
+    listWindow: '30 days'
     topic: dsa/union-find
     problem: |-
       You are given exchange rates such as `C = 10 B` (one C is worth 10 B). Answer queries of the form "how many B is one A worth?", or `-1` if the two currencies are not connected.
@@ -1762,3 +1819,280 @@ questions:
         source: https://leetcode.com/discuss/post/8014509/amazon-sde-1-interview-experience-by-pra-azvd/
       - year: 2026
         source: https://leetcode.com/discuss/post/8519174/questions-asked-by-amazon-in-past-6-mont-zxfk/
+  - id: two-sum
+    section: dsa
+    title: 'Two Sum'
+    difficulty: easy
+    leetcode: two-sum
+    listWindow: '30 days'
+    topic: dsa/arrays-and-hashing
+    problem: 'Given an array of integers and a target, return the indices of the two numbers that add up to the target. Exactly one answer exists, and you may not use the same element twice.'
+    examples:
+      - input: 'nums = [8, 3, 11, 6], target = 9'
+        output: '[1, 3]'
+        explanation: '3 + 6 = 9.'
+      - input: 'nums = [5, 5, 1], target = 10'
+        output: '[0, 1]'
+    constraints:
+      - '2 ≤ nums.length ≤ 10⁴'
+      - 'Exactly one valid answer'
+    solution: 'One pass with a hash map from value to index: for each number, check whether `target - number` is already in the map, then add the number. O(n) instead of checking every pair.'
+    complexity: 'O(n) time and space'
+    code: dsa-two-sum
+  - id: max-coins-bags
+    section: dsa
+    title: 'Maximum Coins from K Consecutive Bags'
+    difficulty: medium
+    leetcode: maximum-coins-from-k-consecutive-bags
+    listWindow: '30 days'
+    topic: dsa/sliding-window
+    problem: 'Bags stand on a number line, one per integer position. You are given non-overlapping ranges `[left, right, c]`: every bag from `left` to `right` holds `c` coins; all other bags are empty. Return the most coins you can collect from `k` consecutive bags.'
+    examples:
+      - input: 'coins = [[1,3,2], [5,6,4], [8,10,1]], k = 4'
+        output: '10'
+        explanation: 'Bags 3 to 6: 2 + 0 + 4 + 4.'
+      - input: 'coins = [[1,10,3]], k = 2'
+        output: '6'
+    constraints:
+      - '1 ≤ coins.length ≤ 10⁵'
+      - '1 ≤ left ≤ right ≤ 10⁹'
+      - '1 ≤ k ≤ 10⁹'
+    solution: 'Positions go up to 10⁹, so slide over ranges, not bags. An optimal window can always be shifted until it starts at some ranges left end or ends at some ranges right end. Check every window starting at a left end with two pointers (whole ranges inside, plus a partial one at the end), then mirror the line and repeat for windows ending at right ends.'
+    complexity: 'O(n log n) time, O(n) space'
+    code: cq-max-coins-bags
+  - id: group-anagrams
+    section: dsa
+    title: 'Group Anagrams'
+    difficulty: medium
+    leetcode: group-anagrams
+    listWindow: '30 days'
+    topic: dsa/arrays-and-hashing
+    problem: 'Group the words that are anagrams of each other (same letters, any order). Return the groups in any order.'
+    examples:
+      - input: 'words = ["stop", "pots", "tops", "cat", "act", "dog"]'
+        output: '[["stop","pots","tops"], ["cat","act"], ["dog"]]'
+    constraints:
+      - '1 ≤ words.length ≤ 10⁴'
+      - 'Lowercase letters only'
+    solution: 'Give every word a key that anagrams share, such as its letters sorted or a 26-letter count, and group by that key in a hash map.'
+    complexity: 'O(n × L log L) time with sorted keys'
+    code: dsa-group-anagrams
+  - id: lru-cache
+    section: dsa
+    title: 'LRU Cache'
+    difficulty: medium
+    leetcode: lru-cache
+    listWindow: '30 days'
+    topic: low-level-design/lru-cache
+    problem: 'Design a cache with a fixed capacity. `get(key)` returns the value or nothing, and `put(key, value)` inserts or updates. When the cache is full, adding a new key removes the least recently used one. Both operations must be O(1).'
+    examples:
+      - input: 'capacity 2: put(1, a), put(2, b), get(1), put(3, c), get(2), get(3)'
+        output: 'a, nothing, c'
+        explanation: 'Reading 1 made 2 the least recently used, so adding 3 evicted 2.'
+    constraints:
+      - 'Up to 10⁵ operations'
+      - 'Both operations in O(1)'
+    solution: 'A hash map from key to node, plus a doubly linked list in recency order. `get` moves the node to the front; `put` adds at the front and, when over capacity, removes the node at the back and its map entry. In Java, `LinkedHashMap` in access order does this for you, but interviews usually want it by hand.'
+    complexity: 'O(1) per operation, O(capacity) space'
+    code: lru-from-scratch
+  - id: median-two-arrays
+    section: dsa
+    title: 'Median of Two Sorted Arrays'
+    difficulty: hard
+    leetcode: median-of-two-sorted-arrays
+    listWindow: '30 days'
+    topic: dsa/binary-search
+    problem: 'Given two sorted arrays, return the median of all their elements combined, in O(log(m + n)) time.'
+    examples:
+      - input: 'a = [1, 4, 9], b = [2, 3]'
+        output: '3.0'
+        explanation: 'Combined: 1 2 3 4 9.'
+      - input: 'a = [2, 6], b = [1, 8]'
+        output: '4.0'
+        explanation: 'Combined: 1 2 6 8, so (2 + 6) / 2.'
+    constraints:
+      - '0 ≤ m, n ≤ 1000'
+      - 'm + n ≥ 1'
+    solution: 'Binary search a cut in the shorter array; the cut in the other array follows from the total size. The cut is right when everything on the left of both cuts is no bigger than everything on the right. The median comes from the four values around the cuts.'
+    complexity: 'O(log min(m, n)) time, O(1) space'
+    code: dsa-median-two-arrays
+  - id: longest-palindrome
+    section: dsa
+    title: 'Longest Palindromic Substring'
+    difficulty: medium
+    leetcode: longest-palindromic-substring
+    listWindow: '30 days'
+    topic: dsa/two-pointers
+    problem: 'Return the longest substring of `s` that reads the same backwards. If there are several of the same length, return any.'
+    examples:
+      - input: 's = "tracecars"'
+        output: '"racecar"'
+      - input: 's = "abcd"'
+        output: '"a"'
+        explanation: 'Any single letter is a palindrome.'
+    constraints:
+      - '1 ≤ s.length ≤ 1000'
+    solution: 'Expand around each of the 2n - 1 centres (each letter, and each gap between letters) while the two ends match, and keep the longest. O(n²) time with O(1) space; Manachers algorithm does it in O(n) but is rarely expected.'
+    complexity: 'O(n²) time, O(1) space'
+    code: cq-longest-palindrome
+  - id: best-time-stock
+    section: dsa
+    title: 'Best Time to Buy and Sell Stock'
+    difficulty: easy
+    leetcode: best-time-to-buy-and-sell-stock
+    listWindow: '30 days'
+    topic: dsa/arrays-and-hashing
+    problem: '`prices[i]` is a stocks price on day `i`. Choose one day to buy and a later day to sell. Return the largest profit, or 0 if no profit is possible.'
+    examples:
+      - input: 'prices = [9, 2, 6, 1, 4]'
+        output: '4'
+        explanation: 'Buy at 2, sell at 6.'
+    constraints:
+      - '1 ≤ prices.length ≤ 10⁵'
+    solution: 'Track the cheapest price so far and the best profit from selling today. One pass.'
+    complexity: 'O(n) time, O(1) space'
+    code: cq-best-time-stock
+  - id: move-zeroes
+    section: dsa
+    title: 'Move Zeroes'
+    difficulty: easy
+    leetcode: move-zeroes
+    listWindow: '30 days'
+    topic: dsa/two-pointers
+    problem: 'Move every 0 in the array to the end, in place, keeping the other numbers in their original order.'
+    examples:
+      - input: 'nums = [0, 4, 0, 3, 12]'
+        output: '[4, 3, 12, 0, 0]'
+    constraints:
+      - '1 ≤ nums.length ≤ 10⁴'
+      - 'O(1) extra space'
+    solution: 'Keep a write index for the next non-zero value. Scan once and swap each non-zero into the write position; the zeros end up at the back.'
+    complexity: 'O(n) time, O(1) space'
+    code: cq-move-zeroes
+  - id: koko-bananas
+    section: dsa
+    title: 'Koko Eating Bananas'
+    difficulty: medium
+    leetcode: koko-eating-bananas
+    listWindow: '30 days'
+    topic: dsa/binary-search
+    problem: 'There are piles of bananas and `h` hours. Each hour Koko picks one pile and eats up to `speed` bananas from it; if the pile has fewer, she finishes it and waits for the next hour. Return the smallest whole-number speed that lets her finish every pile within `h` hours.'
+    examples:
+      - input: 'piles = [4, 9, 12, 5], h = 6'
+        output: '6'
+      - input: 'piles = [20, 15, 11], h = 4'
+        output: '15'
+    constraints:
+      - 'piles.length ≤ h ≤ 10⁹'
+      - '1 ≤ piles[i] ≤ 10⁹'
+    solution: 'Binary search the speed between 1 and the largest pile. A speed works if the sum of `ceil(pile / speed)` is at most `h`, and that test only gets easier as speed rises, so find the smallest speed that passes.'
+    complexity: 'O(n log maxPile) time'
+    code: cq-koko-bananas
+  - id: add-two-numbers
+    section: dsa
+    title: 'Add Two Numbers'
+    difficulty: medium
+    leetcode: add-two-numbers
+    listWindow: '30 days'
+    topic: dsa/linked-lists
+    problem: 'Two non-negative numbers are stored as linked lists with their digits in reverse order (the head is the ones digit). Return their sum as a list in the same form.'
+    examples:
+      - input: 'a = 4 → 9 → 9 (994), b = 7 → 1 (17)'
+        output: '1 → 1 → 0 → 1 (1011)'
+    constraints:
+      - 'Up to 100 digits per list'
+      - 'No leading zeros'
+    solution: 'Walk both lists together, adding digits and a carry, appending `sum % 10` to the result and carrying `sum / 10`. Continue while either list or the carry remains. A dummy head node keeps the code short.'
+    complexity: 'O(max(m, n)) time'
+    code: dsa-add-two-numbers
+  - id: common-prefix
+    section: dsa
+    title: 'Longest Common Prefix'
+    difficulty: easy
+    leetcode: longest-common-prefix
+    listWindow: '30 days'
+    topic: dsa/arrays-and-hashing
+    problem: 'Return the longest prefix shared by every word in the list, or an empty string if there is none.'
+    examples:
+      - input: 'words = ["interview", "internet", "interval"]'
+        output: '"inter"'
+      - input: 'words = ["cat", "dog"]'
+        output: '""'
+    constraints:
+      - '1 ≤ words.length ≤ 200'
+    solution: 'Start with the first word as the prefix and shrink it against each other word until they match. Sorting and comparing only the first and last words also works.'
+    complexity: 'O(total characters) time'
+    code: cq-common-prefix
+  - id: three-sum
+    section: dsa
+    title: '3Sum'
+    difficulty: medium
+    leetcode: 3sum
+    listWindow: '30 days'
+    topic: dsa/two-pointers
+    problem: 'Return every unique triple of numbers in the array that adds up to 0. The answer must not contain duplicate triples.'
+    examples:
+      - input: 'nums = [3, -2, -1, 0, 1, -1]'
+        output: '[[-2,-1,3], [-1,0,1]]'
+    constraints:
+      - '3 ≤ nums.length ≤ 3000'
+    solution: 'Sort, fix the first number, and find pairs in the rest with two pointers moving inward. Skip repeated values at each level so no triple appears twice.'
+    complexity: 'O(n²) time'
+    code: dsa-three-sum
+  - id: max-subarray
+    section: dsa
+    title: 'Maximum Subarray'
+    difficulty: medium
+    leetcode: maximum-subarray
+    listWindow: '30 days'
+    topic: dsa/dynamic-programming
+    problem: 'Return the largest sum of any non-empty contiguous subarray.'
+    examples:
+      - input: 'nums = [4, -6, 2, 3, -1, 5, -8]'
+        output: '9'
+        explanation: '2 + 3 - 1 + 5.'
+      - input: 'nums = [-3, -1, -2]'
+        output: '-1'
+    constraints:
+      - '1 ≤ nums.length ≤ 10⁵'
+    solution: 'Kadanes algorithm: the best sum ending at each position is either that number alone or the previous best plus it. Keep the largest seen. Starting the best at the first element handles all-negative arrays.'
+    complexity: 'O(n) time, O(1) space'
+    code: cq-max-subarray
+  - id: subarray-sum-k
+    section: dsa
+    title: 'Subarray Sum Equals K'
+    difficulty: medium
+    leetcode: subarray-sum-equals-k
+    listWindow: '30 days'
+    topic: dsa/arrays-and-hashing
+    problem: 'Count the contiguous subarrays whose sum equals `k`. Values can be negative.'
+    examples:
+      - input: 'nums = [2, -1, 1, 2, 1], k = 3'
+        output: '3'
+      - input: 'nums = [1, 1, 1, 1], k = 2'
+        output: '3'
+    constraints:
+      - '1 ≤ nums.length ≤ 2 × 10⁴'
+    solution: 'Prefix sums with a hash map of how often each prefix sum has occurred. At each position, the subarrays ending here that sum to `k` are the earlier prefixes equal to `current - k`. A sliding window doesnt work because values can be negative.'
+    complexity: 'O(n) time and space'
+    code: dsa-subarray-sum-k
+  - id: valid-parentheses
+    section: dsa
+    title: 'Valid Parentheses'
+    difficulty: easy
+    leetcode: valid-parentheses
+    listWindow: '30 days'
+    topic: dsa/stacks-and-monotonic-stacks
+    problem: 'Given a string of `()[]{}`, return whether every bracket is closed by the same type, in the right order.'
+    examples:
+      - input: 's = "{[()]()}"'
+        output: 'true'
+      - input: 's = "([)]"'
+        output: 'false'
+      - input: 's = "(("'
+        output: 'false'
+    constraints:
+      - '1 ≤ s.length ≤ 10⁴'
+    solution: 'Push each opening bracket on a stack; each closing bracket must match the top, which is popped. The string is valid if the stack is empty at the end.'
+    complexity: 'O(n) time and space'
+    code: dsa-valid-parentheses

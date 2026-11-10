@@ -292,6 +292,11 @@ constraints. Then: folded rows show the years each question was asked, and "What
 changed company question lists after an offline update. Amazon has 84 questions and Cashfree 31; every other company
 shows its tagged questions and report topics in the same sections.
 
+Then (2026-11-10): questions also show whether they appear on LeetCode's company list, from the
+community copy `liquidslr/leetcode-company-wise-problems` (55 of Amazon's 56 reported problems
+appear on it). The most frequent list problems with no report were added with solutions: 15 for
+Amazon (last 3 months) and the 4 Cashfree has. They are labelled and sort after reported ones.
+
 Follow-ups, not done:
 
 - 50 new DSA solutions are Java only, so they need JavaScript and Python versions.
