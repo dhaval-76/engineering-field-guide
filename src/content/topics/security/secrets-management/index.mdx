@@ -1,0 +1,85 @@
+---
+title: Secrets Management
+summary: Where API keys, database passwords and signing keys should live, how applications get them without putting them in code, images or logs, how rotation and short-lived dynamic credentials work, and what to do when one leaks.
+track: security
+order: 50
+tags: [security, secrets, devops, kubernetes]
+aliases: [secrets management, secret manager, vault, hashicorp vault, aws secrets manager, gcp secret manager, azure key vault, kubernetes secrets, environment variables secrets, api keys, database password, secret rotation, dynamic secrets, short lived credentials, workload identity, secret in git, leaked secret, gitleaks, trufflehog, secret scanning, pre-commit hook, docker build secrets]
+prerequisites: [security/owasp-top-10]
+related: [security/encryption-and-keys, devops/docker-kubernetes, devops/git-workflow, devops/ci-cd-and-cloud]
+quickRef:
+  points:
+    - 'Secrets never go in **source code, container images, build args or logs**. They live in a **secret manager**.'
+    - 'Applications fetch them at runtime, authenticating with their **workload identity** (cloud role, Kubernetes service account), not with another secret.'
+    - 'Prefer **short-lived, dynamic credentials** (a database user created per service, expiring in hours) over long-lived shared passwords.'
+    - '**Rotate** regularly and on any suspicion. Applications must pick up a new value **without a redeploy**.'
+    - 'A secret pushed to git is **compromised**: revoke and rotate it first, then clean history.'
+    - 'Scan for secrets with a **pre-commit hook** and in CI.'
+  useWhen: Designing how a service gets credentials, setting up CI/CD, or responding to a leaked key.
+lastReviewed: 2026-11-10
+---
+
+## Why it matters
+
+Leaked credentials are one of the most common ways into a system, and they leak in boring ways: a key committed to a public repository, a password baked into a Docker image layer, a token printed in a log line, a shared `.env` file in a chat. Once out, they work for anyone until someone notices and rotates them. Good secrets management makes leaks less likely, short-lived when they happen, and quick to recover from.
+
+<Callout type="analogy">
+Hotel key cards instead of house keys. A house key copied once works forever. A key card is issued at the desk to a known guest, opens only their room, expires at checkout, and can be cancelled from the desk in seconds.
+</Callout>
+
+## Where secrets should and shouldn't live
+
+| Place | Verdict | Why |
+|---|---|---|
+| Source code, config files in git | **Never** | Git history keeps them forever, and repos get copied and shared |
+| Docker `ENV` or `ARG` in a Dockerfile | **Never** | Baked into image layers that anyone with the image can read |
+| CI logs, application logs, error reports | **Never** | Logs are widely readable and kept for months |
+| Plain environment variables | Acceptable with care | Easy, but visible to the process's children and in crash dumps; prefer files or direct fetches |
+| Files mounted by the platform (Kubernetes secret volume, Vault agent) | Good | Not in the image; can be updated in place for rotation |
+| A secret manager, fetched at runtime with workload identity | Best | Central access control, audit log, rotation, short lifetimes |
+
+Kubernetes Secrets are only base64-encoded by default; enable encryption at rest for etcd and limit who can read them, or sync them from an external secret manager.
+
+<CodeTabs id="secret-file" title="Read a mounted secret and pick up rotations without a restart (tested by rotating the file)" />
+
+## Getting secrets without another secret
+
+The "secret zero" problem: to read secrets, an application needs to authenticate, and if that takes a password, where does that live? The answer is **workload identity**: the platform vouches for the workload. An EC2 instance or ECS task has an IAM role, a Kubernetes pod has a service account token, a CI job gets an OIDC token from the CI provider. The secret manager trusts that identity and returns only what that workload may read.
+
+## Rotation and dynamic secrets
+
+<Walkthrough id="dynamic-credentials" />
+
+- **Rotation** replaces a secret on a schedule (and immediately on any suspicion), so a stolen copy only works for a short time. Applications must reload it without a redeploy: re-read a mounted file, or refetch when a call fails with an authentication error.
+- To rotate without downtime, support **two valid values** during the switch: issue the new one, let every client pick it up, then revoke the old one. Signing secrets for webhooks work the same way.
+- **Dynamic secrets** go further: the secret manager creates a unique database user or cloud credential per workload on request, with a lease of minutes or hours, and deletes it when the lease ends. There is no long-lived password to leak, and every credential traces back to one workload.
+
+## When a secret leaks
+
+<Steps>
+
+1. **Revoke and rotate it immediately.** Removing the commit doesn't help: forks, clones, caches and scanners have it already.
+2. **Check the audit logs** for its use since the leak, and contain anything suspicious.
+3. **Then** clean history if needed, and find how it leaked.
+4. **Prevent the next one**: secret scanning in pre-commit hooks and CI (more than one tool catches more), push protection on the repository, and no long-lived secrets where dynamic ones can be used.
+
+</Steps>
+
+<Pitfalls>
+
+- **Secrets in Dockerfiles** via `ENV` or `ARG`; use build-time secret mounts instead.
+- **Logging request headers or config objects** that contain tokens.
+- **One shared, never-rotated admin password** used by many services.
+- **"Deleting" a leaked key from git** instead of revoking it.
+- **Applications that need a restart to pick up a rotated secret**, so nobody rotates.
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- Keep secrets out of code, images and logs; store them in a secret manager.
+- Authenticate workloads with platform identity, not another stored secret.
+- Prefer short-lived dynamic credentials; rotate everything else and reload without redeploying.
+- Treat any leaked secret as compromised: revoke first, clean up second.
+
+</KeyTakeaways>

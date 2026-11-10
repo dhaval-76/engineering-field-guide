@@ -1,0 +1,54 @@
+questions:
+  - q: 'How would you secure a website against the common browser attacks?'
+    think: Transport, what you output, how cookies behave, and which requests you accept.
+    answer: |
+      HTTPS everywhere with HSTS. Against XSS: rely on the framework's escaping, encode output for its context, sanitise any user HTML with a maintained library, avoid `innerHTML` with user data, and add a nonce-based Content Security Policy as a second layer. Session cookies get `HttpOnly`, `Secure` and `SameSite=Lax` or `Strict`.
+
+      Against CSRF: no state changes on GET, reject cross-site state-changing requests using `Sec-Fetch-Site` with an `Origin` fallback, and require a CSRF token. Keep CORS limited to known origins, set security headers (`X-Content-Type-Options: nosniff`, frame restrictions via CSP `frame-ancestors`), and never put secrets in front-end code.
+    askedAt:
+      - company: Apple
+        year: 2025
+        round: Technical
+        source: https://leetcode.com/discuss/post/6979238/my-apple-ic3-frontend-interview-experien-k4jt/
+  - q: 'What is the difference between XSS and CSRF?'
+    think: Whose code runs, and where?
+    answer: |
+      XSS gets the attacker's script running inside your site's page, in the victim's browser, so it can read the page, act as the user and exfiltrate data. It is fixed by not letting user data become code: output encoding, sanitising, CSP.
+
+      CSRF never runs code on your site. It makes the victim's browser send a request to your site from elsewhere, relying on cookies being attached automatically; the attacker can trigger actions but usually can't read responses. It is fixed by checking where requests come from and requiring a token, with SameSite cookies as an extra layer. XSS defeats CSRF defences, because script on your own page is same-origin.
+  - q: 'Is SameSite=Lax enough to protect against CSRF?'
+    think: What counts as the same site, and which requests does Lax still allow?
+    answer: |
+      It blocks most CSRF, since cookies aren't sent on cross-site POSTs or embedded requests, but OWASP treats it as defence in depth. Sibling subdomains are the same site, so a compromised or user-controlled subdomain can still forge requests; top-level GET navigations still carry cookies, so any state-changing GET is exposed; and browser behaviour has varied. Combine it with an origin check (Sec-Fetch-Site or Origin) and a CSRF token.
+followUps:
+  - q: What does a Content Security Policy do against XSS?
+    intuition: Which scripts is the browser allowed to run?
+    approach: |
+      It tells the browser which sources of script, style and other resources are allowed. A nonce-based policy (`script-src 'nonce-…'`) lets only scripts that carry this response's random nonce run, so injected tags and inline event handlers are blocked. It is a second layer: it limits the impact of an encoding bug but doesn't remove it.
+  - q: Why are APIs using Bearer tokens in a header not vulnerable to classic CSRF?
+    intuition: What does the browser add automatically?
+    approach: |
+      Browsers automatically attach cookies, not `Authorization` headers. A forged request from another site therefore arrives without the token, and a script there can't add it without the token, which it can't read. If the token is stored in a cookie, CSRF applies again.
+practice:
+  - task: Implement HTML output encoding and a CSRF check for state-changing requests.
+    hint: Encode & < > " and '. For CSRF, allow safe methods, check Sec-Fetch-Site or Origin, then compare the token in constant time.
+    solution: |
+      Replace `&` first, then `<`, `>`, `"` and `'` with entities so the text can't open a tag or leave an attribute. For CSRF: GET, HEAD and OPTIONS pass (they must not change anything); otherwise require `Sec-Fetch-Site` to be `same-origin` or `none`, or, if that header is missing, `Origin` to equal your origin; then compare the submitted token with the session's using a constant-time function.
+    solutionCode: web-defences
+quiz:
+  - q: Which defence is primary against XSS?
+    options: [A WAF, Context-aware output encoding, CORS, SameSite cookies]
+    correct: 1
+    why: Encoding stops user data from becoming markup or script; CSP and WAFs are extra layers.
+  - q: What does an HttpOnly cookie prevent?
+    options: [CSRF, JavaScript reading the cookie, Sending it over HTTP, Its expiry]
+    correct: 1
+    why: Scripts, including injected ones, can't read HttpOnly cookies.
+  - q: 'A POST arrives with Sec-Fetch-Site: cross-site. What should a CSRF check do?'
+    options: [Allow it, Reject it, Retry it, Log in again]
+    correct: 1
+    why: State-changing requests from other sites are exactly what CSRF forges.
+  - q: Does CORS prevent CSRF?
+    options: [Yes, completely, No, it controls whether scripts can read responses, Only for GET, Only with cookies]
+    correct: 1
+    why: A forged form submission is sent regardless of CORS; CORS only governs reading the response.

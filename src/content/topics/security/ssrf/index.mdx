@@ -1,0 +1,87 @@
+---
+title: SSRF
+summary: Server-side request forgery makes your server fetch a URL the attacker chooses, reaching internal services and cloud credentials. How it happens, why blocklists and naive URL checks fail, and the layered defences, including IMDSv2.
+track: security
+order: 40
+tags: [security, owasp, ssrf, cloud, networking]
+aliases: [ssrf, server side request forgery, url fetch, webhook url, image proxy, link preview, cloud metadata, instance metadata, 169.254.169.254, imdsv2, imdsv1, dns rebinding, open redirect, allowlist, url validation, private ip ranges, ipv4 mapped ipv6, egress proxy, network segmentation]
+prerequisites: [cs-foundations/dns-and-tls, security/owasp-top-10]
+related: [security/secrets-management, system-design/webhook-delivery, cs-foundations/networking]
+quickRef:
+  points:
+    - '**SSRF**: your server fetches a URL from user input, and the attacker points it at something only your server can reach.'
+    - 'The prize is often **cloud metadata** at `169.254.169.254`, which can hand out the instance''s credentials.'
+    - 'Prefer an **allowlist** of hosts. If any URL must be accepted, **resolve it once, reject internal addresses, and connect to that address**.'
+    - '**Turn off redirects**, or check every hop: a public URL can redirect inside.'
+    - 'On AWS, **require IMDSv2**: it needs a token from a PUT with a special header, which a simple SSRF can''t send.'
+    - 'Since 2025, OWASP lists SSRF under **broken access control**.'
+  useWhen: Building webhooks, URL previews, image fetchers, imports from a URL, or anything that makes a request to an address a user supplied.
+lastReviewed: 2026-11-10
+---
+
+## Why it matters
+
+Plenty of features fetch a URL a user typed: webhooks, link previews, "import from URL", PDF rendering, avatar downloads. The server making that request sits inside your network, behind the firewall, with access to internal admin panels, databases and the cloud provider's metadata service. If an attacker controls the URL, your server becomes their way in. OWASP now counts SSRF as part of broken access control, the top category.
+
+<Callout type="analogy">
+A receptionist who will fetch any parcel you name. You can't walk into the company's back office, but you can say "please bring me the box labelled 'master keys' from the back office", and the receptionist, who has access, will.
+</Callout>
+
+## How it works
+
+<Walkthrough id="ssrf-metadata" />
+
+Targets an attacker tries:
+
+- **Cloud metadata**: `http://169.254.169.254/` (AWS, Azure, others), `metadata.google.internal`. These can return temporary credentials for the machine's role.
+- **Internal services**: admin panels, Elasticsearch, Redis, Kubernetes APIs on `10.x`, `172.16–31.x`, `192.168.x` or `localhost`, which often skip authentication because "only internal callers can reach them".
+- **Other schemes**: `file:///etc/passwd`, `gopher://` if the HTTP client supports them.
+
+## Why simple checks fail
+
+| Check | Bypass |
+|---|---|
+| Block the string "localhost" and "127.0.0.1" | `http://2130706433/`, `http://0x7f.1/`, `http://[::1]/`, `http://[::ffff:127.0.0.1]/` |
+| Block internal IPs in the URL | A public name whose DNS record points to `10.0.0.5` |
+| Resolve, check, then fetch by name | **DNS rebinding**: the first lookup returns a public IP, the second (when fetching) returns an internal one |
+| Check the URL once | The public URL answers with a **redirect** to an internal address |
+| Block a list of bad ranges | Lists miss ranges (carrier-grade NAT, IPv6 unique-local), and are "bypass-prone" in OWASP's words |
+
+## Defences, in layers
+
+<Steps>
+
+1. **Avoid taking URLs at all** where you can: let users pick from known integrations, or take an id and build the URL yourself from an **allowlist** of hosts.
+2. **If you must accept URLs**: allow only `http` and `https`; resolve the host **once**; reject the request if **any** resolved address is loopback, private, link-local, carrier-grade NAT, unique-local IPv6, multicast or unspecified, after unwrapping IPv4-mapped IPv6; then **connect to that validated address**, sending the original host name in the Host header and for TLS.
+3. **Disable redirects**, or follow them yourself and validate each hop the same way.
+4. **Send outbound fetches through an egress proxy** that only reaches the internet, with no route to internal networks. This catches what code-level checks miss.
+5. **Harden the targets**: require IMDSv2 and turn IMDSv1 off; give internal services authentication instead of trusting "internal" callers; give the machine's role only the permissions it needs.
+6. **Limit what comes back**: time out quickly, cap the response size, and don't return raw responses or detailed errors to the user (they turn a blind SSRF into a readable one).
+
+</Steps>
+
+<CodeTabs id="ssrf-guard" title="Resolve once, reject internal addresses, return the address to connect to (tested against the bypasses above)" />
+
+## IMDSv2
+
+AWS's original metadata service (IMDSv1) answered any simple GET from the instance, which is exactly what a typical SSRF can send. **IMDSv2** requires a session token first: a **PUT** to `/latest/api/token` with an `X-aws-ec2-metadata-token-ttl-seconds` header, then that token in an `X-aws-ec2-metadata-token` header on every read. PUT requests carrying `X-Forwarded-For` are refused, and the token response has an IP hop limit of 1 by default, so it doesn't survive passing through a proxy or container network hop. An SSRF that can only make simple GETs can't complete this. Set token use to "required" on every instance, and in launch templates.
+
+<Pitfalls>
+
+- **Blocklisting strings** such as "localhost" instead of checking resolved addresses.
+- **Validating the name, then fetching by name**, which allows DNS rebinding.
+- **Following redirects** automatically.
+- **IMDSv1 still enabled**, or instance roles with broad permissions.
+- **Internal services without authentication.**
+- **Returning the fetched response or the error** to the user.
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- SSRF turns your server into the attacker's client inside your network.
+- Prefer allowlists; otherwise resolve once, reject internal addresses, and connect to the checked address.
+- Disable redirects and route outbound fetches through an egress proxy.
+- Require IMDSv2 and keep instance credentials narrow.
+
+</KeyTakeaways>

@@ -40,6 +40,7 @@ const tracks = defineCollection({
       'devops',
       'career',
       'ai',
+      'security',
     ]),
   }),
 });

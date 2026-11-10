@@ -91,6 +91,14 @@ Research for the 9-page Networking and Operating Systems split, written on 2026-
 
 **Cashfree** wasn't in the cache, so 56 posts mentioning it were fetched from LeetCode Discuss on 2026-11-09 (Cashfree is now in the fetch list). 13 contain real questions, from 2021 to 2026, so older ones are included and dated. The other posts are offers or requests for help. Not used: `interviewexperiences.in` (mirrors the same LeetCode posts), a generic scaleengineer.com guide (not tied to any candidate), Glassdoor (blocked), and a search snippet claiming LeetCode 84 and 410 that couldn't be traced to any report.
 
+## Research log: Security track (2026-11-10)
+
+**Interview reports.** The cached LeetCode posts barely mention security by name: no first-hand reports for SQL injection, XSS, CSRF, SSRF or OWASP. Tags used: [Salesforce 2026](https://leetcode.com/discuss/post/7455964/salesforce-smts-interview-experience-rej-meuy/) (how passwords are stored with BCrypt) and [Apple 2025](https://leetcode.com/discuss/post/6979238/my-apple-ic3-frontend-interview-experien-k4jt/) (securing a website: HTTPS, CSP, CORS, cookies). Not used: a Goldman Sachs post about a job simulation, not an interview.
+
+**Primary sources read.** The OWASP Top 10:2025 (final; SSRF folded into A01, A10 new), and the OWASP cheat sheets for password storage (Argon2id 19 MiB / 2 / 1, scrypt 2^17 / 8 / 1, bcrypt cost 10+ with its 72-byte limit, PBKDF2-SHA256 600,000), SSRF, CSRF (Sec-Fetch-Site as the primary signal; SameSite as defence in depth), XSS, SQL injection and secrets management. AWS's IMDSv2 page (token by PUT, hop limit 1, X-Forwarded-For refused), AWS KMS envelope encryption, Stripe's and GitHub's webhook verification docs (GitHub's test vector is used in the tests). Capital One's own breach statement doesn't mention SSRF, so the pages don't use that example. NIST SP 800-38D's page had no nonce guidance in its HTML; the 2^32 random-nonce limit is from the standard itself.
+
+**Testing.** Node's `BlockList` matches IPv4-mapped IPv6 addresses with IPv4 rules; an extra `::ffff:0:0/96` rule wrongly blocked every IPv4 address, so it was removed. Python's `cryptography` package and the SQLite JDBC driver were installed only in throwaway locations for testing.
+
 ## Decisions (2026-10-30)
 
 **Keep** every migrated legacy topic; all of them show up in the data.

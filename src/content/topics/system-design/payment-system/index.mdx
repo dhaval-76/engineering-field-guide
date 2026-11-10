@@ -6,7 +6,7 @@ order: 150
 tags: [system-design, case-study, payments, consistency, idempotency, fintech]
 aliases: [design a payment system, payment gateway, psp, stripe, razorpay, upi, card payments, double entry ledger, ledger, wallet, money transfer, idempotency key, payment state machine, webhooks, reconciliation, settlement, refunds, chargebacks, pci dss, tokenization, saga payments, outbox payments, exactly once payments]
 prerequisites: [backend/idempotency, databases/transactions-isolation, distributed-systems/microservices]
-related: [concurrency/case-payment-thread-safety, distributed-systems/kafka-deep-dive, system-design/auth-at-scale]
+related: [concurrency/case-payment-thread-safety, distributed-systems/kafka-deep-dive, system-design/auth-at-scale, security/encryption-and-keys, security/webhook-signing]
 quickRef:
   points:
     - 'The one rule: **money is never created, lost or moved twice**. Everything else serves it.'

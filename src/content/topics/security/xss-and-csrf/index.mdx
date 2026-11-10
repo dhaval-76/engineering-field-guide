@@ -1,0 +1,85 @@
+---
+title: XSS and CSRF
+summary: 'The two classic browser attacks: XSS runs an attacker''s script on your page; CSRF makes a victim''s browser send a request they didn''t intend. How encoding, CSP, SameSite cookies, Fetch Metadata and tokens stop them.'
+track: security
+order: 30
+tags: [security, owasp, xss, csrf, web, cookies]
+aliases: [xss, cross site scripting, stored xss, reflected xss, dom xss, output encoding, html escaping, sanitize html, dompurify, content security policy, csp, nonce, httponly, csrf, xsrf, cross site request forgery, csrf token, synchronizer token, double submit cookie, samesite, sec-fetch-site, fetch metadata, origin header, how to secure a website, secure cookies]
+prerequisites: [cs-foundations/http-versions, security/owasp-top-10]
+related: [security/sql-injection, backend/authn-authz, cs-foundations/http-versions]
+quickRef:
+  points:
+    - '**XSS**: attacker-supplied text becomes script on your page, running with the user''s session. Fix: **encode output for its context**, sanitise any HTML you allow, and add **CSP** as a second layer.'
+    - 'Prefer APIs that treat data as text (`textContent`, framework templates) over building HTML strings.'
+    - '**CSRF**: another site makes the victim''s browser send a request that carries their cookies. Fix: **reject cross-site state changes** (Sec-Fetch-Site or Origin) and require a **token**.'
+    - '`SameSite=Lax` cookies block most CSRF, but OWASP treats them as defence in depth, not the only defence.'
+    - '**XSS defeats CSRF defences**: script on your own page is same-origin. Fix XSS first.'
+  useWhen: 'Building anything that renders user content or uses cookies for sessions, or answering "how do you secure a website".'
+askedAt:
+  - company: Apple
+    year: 2025
+    round: Technical
+    source: https://leetcode.com/discuss/post/6979238/my-apple-ic3-frontend-interview-experien-k4jt/
+lastReviewed: 2026-11-10
+---
+
+## Why it matters
+
+Both attacks abuse the browser's trust. With **XSS**, the browser trusts your page, so an attacker's script on it can read the page, act as the user and send their data anywhere. With **CSRF**, the browser attaches the user's cookies to any request to your site, including ones another site started. Backend engineers own most of the fixes: what the server outputs, the cookie attributes it sets, and which requests it accepts.
+
+<Callout type="analogy">
+XSS is someone slipping a forged instruction into the company newsletter: staff trust the newsletter, so they follow it. CSRF is someone posting a pre-filled, signed-looking form to your bank in your name: the bank sees your signature (cookie) and processes it, without asking whether you filled it in.
+</Callout>
+
+## Cross-site scripting
+
+<Walkthrough id="xss-stored" />
+
+Three kinds, one cause: untrusted text reaching a place where the browser interprets it as code.
+
+- **Stored**: saved (a review, a profile name) and shown to other users later. The most damaging.
+- **Reflected**: echoed straight back from the request, such as a search term in "No results for …".
+- **DOM-based**: the page's own JavaScript writes untrusted data into the page, for example `element.innerHTML = location.hash`.
+
+**Defences, in OWASP's order of importance:**
+
+1. **Framework protections.** React, Angular and server templates escape by default; the danger is their escape hatches (`dangerouslySetInnerHTML`, `v-html`, unescaped template tags).
+2. **Output encoding for the context.** HTML body and attributes need HTML entity encoding; URLs need percent-encoding and a check that the scheme is `http` or `https` (`javascript:` URLs run code); JavaScript and CSS contexts need their own encoders. HTML encoding inside a `<script>` block does not protect you.
+3. **Sanitise HTML** when users may submit markup (rich text): use a maintained sanitiser such as DOMPurify, never your own regular expressions.
+4. **Content Security Policy** as a second layer: `Content-Security-Policy: script-src 'nonce-r4nd0m'` means only scripts carrying that per-response nonce run, so injected `<script>` and inline handlers don't. CSP limits damage; it doesn't replace encoding.
+5. **`HttpOnly` session cookies**, so a successful XSS can't read the session token, although it can still act within the page.
+
+<CodeTabs id="web-defences" title="HTML encoding, and a CSRF check using Sec-Fetch-Site or Origin plus a token" />
+
+## Cross-site request forgery
+
+<Walkthrough id="csrf-forged-post" />
+
+CSRF needs three things: the action is triggered by a request the attacker can describe, the server identifies the user only by something the browser sends automatically (cookies, or basic auth), and the server can't tell the request came from another site. Remove any one:
+
+- **Check where the request came from.** Browsers send `Sec-Fetch-Site` (`same-origin`, `same-site`, `cross-site` or `none`), which OWASP calls the primary signal; fall back to the `Origin` header for older browsers. Reject state-changing requests from other sites.
+- **Require a token** the attacker can't know: a random per-session value embedded in your forms (synchronizer token), or a signed double-submit cookie for stateless servers. Compare it in constant time.
+- **`SameSite` cookies.** `Lax` stops cookies on cross-site POSTs and most embedded requests; `Strict` stops them on all cross-site requests. They are a strong extra layer, but sibling subdomains count as the same site, and older browsers vary, so don't rely on them alone.
+- **Never change state on GET.** Links and images can trigger GETs from anywhere.
+
+APIs that authenticate with a header (`Authorization: Bearer …`) rather than cookies aren't exposed to classic CSRF, because browsers never add that header by themselves. CORS doesn't prevent CSRF: it controls whether a script can **read** a response, while a forged form POST is sent anyway.
+
+<Pitfalls>
+
+- **Building HTML with string concatenation**, or using `innerHTML` with user data.
+- **Escaping for the wrong context**, such as HTML-encoding inside a script block or a `javascript:` URL.
+- **Home-made HTML sanitisers.**
+- **Relying on CSP alone**, or on a WAF, instead of encoding.
+- **State-changing GET endpoints.**
+- **Relying on SameSite alone**, or on CORS, against CSRF.
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- XSS: encode output for its context, sanitise allowed HTML, and add CSP and HttpOnly cookies as extra layers.
+- CSRF: reject cross-site state changes using Sec-Fetch-Site or Origin, and require an unguessable token.
+- SameSite cookies help a lot but are defence in depth.
+- Fix XSS first: script on your page can bypass every CSRF defence.
+
+</KeyTakeaways>

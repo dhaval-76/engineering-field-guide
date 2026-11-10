@@ -1,0 +1,92 @@
+---
+title: SQL Injection
+summary: How text from a user turns into SQL that runs, why parameterised queries stop it and escaping doesn't, how to handle the parts that can't be parameters such as sort columns, and the related command and template injections.
+track: security
+order: 20
+tags: [security, owasp, injection, sql, databases]
+aliases: [sql injection, sqli, injection attack, prepared statement, parameterized query, parameterised query, bind variables, escaping, union based injection, blind sql injection, second order injection, orm injection, order by injection, dynamic sort column, allowlist, command injection, shell injection, template injection, least privilege database user]
+prerequisites: [databases/sql-fundamentals, security/owasp-top-10]
+related: [security/xss-and-csrf, databases/sql-fundamentals, backend/jpa-hibernate]
+quickRef:
+  points:
+    - 'Injection happens when **data is pasted into code**: the database can''t tell where your SQL ends and the user''s text begins.'
+    - '**Parameterised queries** send the SQL and the values separately, so a value can never change the query. Use them for every value.'
+    - '**Don''t escape by hand.** It is easy to get wrong and differs between databases.'
+    - 'Table names, column names and sort direction **can''t be parameters**: map user choices to a fixed allowlist.'
+    - 'Run the app with a **least-privilege database user**, so a missed bug can''t drop tables or read other schemas.'
+  useWhen: Writing any query that includes user input, reviewing code, or explaining injection in an interview.
+lastReviewed: 2026-11-10
+---
+
+## Why it matters
+
+SQL injection is one of the oldest web vulnerabilities and still in the top five of the OWASP Top 10, because it keeps being reintroduced: a quick report query built with string concatenation, a "sort by" parameter, a search box added in a hurry. One such query can expose every table the application's database user can read.
+
+<Callout type="analogy">
+A form letter. "Pay ___ the sum of £10" is safe if the blank only ever holds a name. If someone writes "Mallory £10,000 and also pay" in the blank, and the clerk reads the whole sentence as instructions, the meaning of the letter changes. A parameterised query is a form whose blank can only ever be read as a name.
+</Callout>
+
+## How it works
+
+<Walkthrough id="sqli-login" />
+
+The root cause is mixing **code** (the SQL) and **data** (the user's text) in one string, then asking the database to parse it. Anything that lets the data contain a quote, a comment marker or a keyword lets it change the query's structure. Common forms:
+
+- **Classic**: `' OR '1'='1` turns a filter into "always true".
+- **UNION-based**: appending `UNION SELECT card_number, … FROM cards` returns data from other tables in the same response.
+- **Blind**: no data comes back, but the attacker asks yes-or-no questions through timing (`SLEEP(5)`) or different responses, one bit at a time.
+- **Second-order**: a value is stored safely, then later pasted unsafely into another query, such as a report.
+
+## The fix: parameters
+
+A **parameterised query** (prepared statement) sends the SQL with placeholders and the values separately. The database parses the SQL first, then binds the values as data, so a value can never become a keyword or end the string.
+
+<CodeTabs id="sql-safe" title="The unsafe query, the parameterised one, and an allowlisted sort column (each tested against SQLite)" />
+
+- Use parameters for **every** value, including ones that "can't" be malicious, such as numbers from a dropdown. Sooner or later something else calls that code.
+- ORMs parameterise for you, until you use their raw-SQL escape hatch with string formatting: JPA `createNativeQuery` with concatenation, or string-built JPQL, is just as injectable.
+- **Escaping by hand is discouraged** by OWASP: rules differ by database, character set and context, and one missed case is enough.
+
+## What can't be a parameter
+
+Placeholders stand for **values**, not for parts of the query's structure. Table names, column names, `ASC`/`DESC` and SQL keywords can't be bound. When a user picks a sort column:
+
+- Map their choice to a **fixed allowlist** of known identifiers in your code, as in `SORTABLE` above, and reject anything else.
+- Never quote a user's text as an identifier and hope: quoting stops syntax tricks, but still lets them pick any column or table.
+
+## Defence in depth
+
+- **Least privilege**: the application's database user can read and write its own tables, and nothing else. It shouldn't be able to drop tables, read the user table of another service, or call file functions.
+- **Validate input** for type and shape (an email looks like an email). It narrows what reaches the query but never replaces parameters.
+- **Don't show database errors** to clients; they help attackers map the schema.
+- **Monitor** for SQL syntax errors and unusual query volumes.
+
+## The same mistake elsewhere
+
+The pattern, pasting data into something that will be parsed as code, has many forms:
+
+| Injection | Unsafe | Safe |
+|---|---|---|
+| OS command | `sh -c "convert " + file` | Pass arguments as a list (`ProcessBuilder("convert", file)`), never through a shell |
+| Template | Rendering a user's string as a template | Pass user data as template variables only |
+| LDAP, XPath, NoSQL | String-built queries, or JSON where `{"$ne": null}` slips in | The driver's parameter or builder APIs, and type checks |
+| HTML | Inserting text into a page unencoded | Output encoding: see [XSS](../xss-and-csrf/) |
+
+<Pitfalls>
+
+- **String-formatting a "quick" query** in a report, admin tool or migration.
+- **Parameterising values but concatenating `ORDER BY`** from a request parameter.
+- **Trusting values from your own database** (second-order injection).
+- **Raw-SQL methods in ORMs** used with string concatenation.
+- **An application database user with admin rights.**
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- Injection is data being parsed as code; keep them apart.
+- Parameterised queries for every value; never escape by hand.
+- Allowlist identifiers such as sort columns, which can't be parameters.
+- Least-privilege database users limit the damage of anything missed.
+
+</KeyTakeaways>

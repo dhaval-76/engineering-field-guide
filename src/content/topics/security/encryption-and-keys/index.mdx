@@ -1,0 +1,85 @@
+---
+title: Encryption and Key Management
+summary: Hashing versus encryption versus encoding, encryption in transit and at rest, AES-GCM and why a nonce must never repeat, and how envelope encryption with a KMS keeps master keys out of your application.
+track: security
+order: 60
+tags: [security, encryption, cryptography, kms]
+aliases: [encryption at rest, encryption in transit, aes, aes gcm, authenticated encryption, nonce, iv, nonce reuse, symmetric vs asymmetric encryption, public key, rsa, ecdsa, hashing vs encryption, encoding vs encryption, base64 is not encryption, kms, key management service, envelope encryption, data key, master key, key encryption key, key rotation, hsm, field level encryption, tde, crypto shredding]
+prerequisites: [cs-foundations/dns-and-tls, security/owasp-top-10]
+related: [security/secrets-management, security/webhook-signing, cs-foundations/dns-and-tls, databases/replication]
+quickRef:
+  points:
+    - '**Encoding** (Base64) is not security. **Hashing** is one-way. **Encryption** is two-way with a key.'
+    - '**In transit**: TLS everywhere, including inside your network. **At rest**: disks and databases encrypted, sensitive fields encrypted by the application.'
+    - 'Use **authenticated encryption** (AES-GCM): it hides the data and detects any change to it.'
+    - 'A GCM **nonce must never repeat** with the same key; reuse breaks both secrecy and integrity.'
+    - '**Envelope encryption**: a fresh data key encrypts each record; a master key in a **KMS** encrypts the data key; the master key never leaves the KMS.'
+    - 'Never invent your own crypto. Use the platform''s libraries and a KMS.'
+  useWhen: Protecting personal or payment data, designing storage for sensitive fields, or explaining "encryption at rest" in a design.
+lastReviewed: 2026-11-10
+---
+
+## Why it matters
+
+"Is the data encrypted?" comes up in every design review and compliance audit, and the honest answer is usually more nuanced than yes. Disk encryption protects against a stolen drive but not against a stolen database password. A field encrypted with a key stored next to it protects nothing. A reused nonce can expose every message. Knowing what each layer protects against, and how keys are kept and rotated, is what turns "we use AES" into actual protection.
+
+<Callout type="analogy">
+Envelope encryption is a building with a key safe. Each flat's door has its own key (the data key). The flat keys are kept in a lockbox opened by one master key, and the master key never leaves the security office (the KMS). Changing the master key means re-locking the lockbox, not changing every door.
+</Callout>
+
+## Encoding, hashing, encryption
+
+| | Reversible? | Needs a key? | Use it for |
+|---|---|---|---|
+| **Encoding** (Base64, hex) | Yes, by anyone | No | Moving bytes through text channels. **Not security.** |
+| **Hashing** (SHA-256) | No | No | Integrity checks, fingerprints; passwords only with a slow password hash |
+| **MAC** (HMAC-SHA256) | No | Yes, shared | Proving a message came from someone with the key, unchanged: [webhook signing](../webhook-signing/) |
+| **Symmetric encryption** (AES) | Yes, with the key | One shared key | Bulk data: disks, fields, files, TLS traffic |
+| **Asymmetric** (RSA, elliptic curves) | Yes, with the private key | Key pair | Exchanging keys, signatures, certificates |
+
+## In transit and at rest
+
+- **In transit**: TLS on every connection, including service to service and to the database, because "inside the network" is not a security boundary. mTLS where services need to prove identity. See [DNS and TLS](../../cs-foundations/dns-and-tls/).
+- **At rest, by the platform**: encrypted disks, database storage encryption and encrypted backups. Cheap and on by default in most clouds, it protects against stolen disks and snapshots, but anyone who can query the database sees plain data.
+- **At rest, by the application**: encrypting specific fields (card numbers, national ids) before they reach the database, so a leaked dump or an over-privileged query sees only ciphertext. This needs key management, and the encrypted fields can't be searched or sorted directly (store a keyed hash alongside for exact lookups).
+
+## Authenticated encryption with AES-GCM
+
+Use an **authenticated** mode: it both hides the data and detects tampering. AES-GCM, with a 256-bit key, a 12-byte nonce and a 16-byte tag, is the common choice; ChaCha20-Poly1305 is the alternative.
+
+- The **nonce** (number used once) must be unique for every encryption under the same key. With GCM, reusing one lets an attacker combine the two ciphertexts to recover plaintext and forge messages. Random 12-byte nonces are fine, but NIST limits random nonces to about 4 billion messages per key; generate new data keys well before that.
+- The **tag** is checked on decryption. If anything changed, decryption fails rather than returning altered data.
+- Unauthenticated modes (ECB, CBC without a MAC) are mistakes: ECB leaks patterns, and CBC without a MAC can be tampered with.
+
+## Envelope encryption and a KMS
+
+<Walkthrough id="envelope-flow" />
+
+A **key management service** (AWS KMS, GCP Cloud KMS, Azure Key Vault, or an HSM) holds master keys inside hardware that never releases them. You send it small data keys to encrypt or decrypt, and every use is checked against a policy and logged. Envelope encryption keeps bulk data out of the KMS:
+
+<CodeTabs id="envelope-encryption" title="Envelope encryption with AES-256-GCM (records sealed in one language open in the others)" />
+
+- **Per-record data keys** limit what one leaked key exposes and keep nonce counts tiny.
+- **Rotating the master key** only re-encrypts data keys, not the data; KMS services keep old key versions so existing records still open.
+- **Crypto-shredding**: deleting a customer's data key makes all their encrypted data unreadable, which helps with deletion requests and backups.
+- Cache decrypted data keys briefly to avoid a KMS call per record, and never log them.
+
+<Pitfalls>
+
+- **Calling Base64 "encryption".**
+- **Keys stored next to the data** they protect, or in source code.
+- **Reusing a nonce** with the same key, or using a counter that resets on restart.
+- **Unauthenticated modes** such as ECB or plain CBC.
+- **Writing your own crypto** instead of using standard libraries.
+- **Assuming disk encryption protects against application-level access.**
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- Encoding isn't security, hashing is one-way, encryption needs keys and key management.
+- Encrypt in transit everywhere; at rest, know whether the platform or the application holds the key.
+- Use AES-GCM and never repeat a nonce under one key.
+- Envelope encryption with a KMS keeps master keys in hardware and makes rotation and deletion cheap.
+
+</KeyTakeaways>

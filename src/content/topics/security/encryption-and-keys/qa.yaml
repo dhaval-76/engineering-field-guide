@@ -1,0 +1,41 @@
+questions:
+  - q: 'What do "encryption in transit" and "encryption at rest" mean in a design, and what does each protect against?'
+    think: Who can see the data at each layer, and who holds the key?
+    answer: |
+      In transit means every network hop is protected by TLS, including internal service-to-service and database connections, so someone on the network can't read or change traffic. At rest means stored data is encrypted. Platform-level encryption (disks, database storage, backups) protects against stolen disks and snapshots, but the database decrypts transparently, so anyone with a valid database login still sees plain data.
+
+      For sensitive fields I'd add application-level encryption: encrypt card numbers or ids before storing them, with keys managed by a KMS through envelope encryption, so a dump or an over-broad query exposes only ciphertext. The trade-offs are key management, extra latency, and losing direct search on those fields.
+  - q: 'What is envelope encryption, and why use a KMS?'
+    think: Two levels of keys, and where the top one lives.
+    answer: |
+      Data is encrypted with a data key, and the data key is encrypted with a master key; the encrypted data key is stored next to the data. The master key lives in a KMS or HSM and never leaves it: the application sends data keys to be encrypted or decrypted, and the KMS checks permissions and logs every use.
+
+      This keeps bulk data out of the KMS, limits the damage of one leaked data key, makes rotating the master key cheap (only data keys are re-encrypted), and gives an audit trail. Deleting a data key renders its data unreadable, which helps with deletion requests.
+followUps:
+  - q: What is the difference between hashing, encryption and encoding?
+    intuition: Can you get the input back, and do you need a key?
+    approach: |
+      Encoding such as Base64 is a reversible format change anyone can undo; it is not security. Hashing is one-way: you can't recover the input, only check it, which suits integrity checks and, with slow salted algorithms, passwords. Encryption is reversible only with the key, for data you need to read again.
+  - q: Why must an AES-GCM nonce never repeat under the same key?
+    intuition: GCM is a stream of key-derived bytes XORed with your data.
+    approach: |
+      GCM encrypts by XORing data with a keystream derived from the key and nonce. Two messages with the same key and nonce share the keystream, so XORing the ciphertexts cancels it and reveals the XOR of the plaintexts, and the authentication key can be recovered, allowing forgeries. Use random 12-byte nonces with a fresh key well before about 2³² messages, or a counter that can never reset.
+practice:
+  - task: Implement envelope encryption with AES-256-GCM, with a local key standing in for the KMS master key.
+    hint: Generate a data key, encrypt the data with it and a random nonce, wrap the data key with the master key, store all three parts.
+    solution: |
+      Generate a random 256-bit data key and a random 12-byte nonce, and encrypt the plaintext with AES-GCM (ciphertext plus a 16-byte tag). Wrap the data key with the master key the same way, with its own nonce, and store wrapped key, nonce and ciphertext together; discard the plain data key. To open, unwrap the data key, then decrypt; any change makes the tag check fail. In production the wrap and unwrap are KMS calls.
+    solutionCode: envelope-encryption
+quiz:
+  - q: Is Base64 a form of encryption?
+    options: [Yes, No, it is an encoding anyone can reverse, Only with a key, Only for passwords]
+    correct: 1
+    why: Base64 is a format change with no secret involved.
+  - q: In envelope encryption, what is stored next to the encrypted data?
+    options: [The master key, The plaintext data key, The data key encrypted by the master key, Nothing]
+    correct: 2
+    why: The wrapped data key is useless without the KMS, so it can be stored with the data.
+  - q: What does the GCM tag provide?
+    options: [Compression, Detection of any change to the ciphertext, A shorter key, Faster decryption]
+    correct: 1
+    why: Authenticated encryption fails to decrypt anything that was altered.

@@ -43,6 +43,7 @@ const TRACK_SECTION: Record<string, SectionId> = {
   devops: 'backend',
   'cs-foundations': 'fundamentals',
   'ai-engineering': 'ai',
+  security: 'backend',
   interviews: 'behavioral',
 };
 export const sectionOfTopic = (topicId: string): SectionId =>

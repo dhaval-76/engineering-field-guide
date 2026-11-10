@@ -1,0 +1,41 @@
+questions:
+  - q: 'How do you verify that a webhook really came from the payment provider?'
+    think: What proves the sender, what proves freshness, and what stops duplicates?
+    answer: |
+      Use the signature the provider sends. Read the raw request body, take the timestamp and signature from the header, compute HMAC-SHA256 with the shared signing secret over `timestamp + "." + rawBody`, and compare it with the received signature using a constant-time comparison. Reject the request if they differ or if the timestamp is outside a short tolerance, typically 5 minutes, which stops replays because the timestamp is part of what was signed.
+
+      Then deduplicate by event id, because deliveries are at least once and a replay within the window is still possible, and keep the handler idempotent. Respond 2xx quickly and process asynchronously. Keep the secret in a secret manager and support rotation by accepting two signatures during a change.
+  - q: 'You''re designing outgoing webhooks for your own platform. How do customers verify them?'
+    think: Mirror what good providers do, and think about the customer's URL too.
+    answer: |
+      Give each endpoint its own random signing secret. Sign every delivery with HMAC-SHA256 over a timestamp and the raw body, send both in a header along with an event id, and document the exact steps with a test vector. Let customers rotate secrets with an overlap period, sending both signatures while the old secret is still valid. Retry with exponential backoff and keep event ids stable across retries so customers can deduplicate.
+
+      On our side, treat customer URLs as untrusted: validate them against SSRF (resolve once, reject internal addresses, no redirects, egress proxy) and time out quickly.
+followUps:
+  - q: Why compare signatures in constant time?
+    intuition: How long does == take on two strings that differ early versus late?
+    approach: |
+      A normal comparison returns at the first differing character, so the response time leaks how many leading characters of a guess were right. With enough measurements an attacker could build a valid signature byte by byte. Constant-time functions always compare every byte.
+  - q: Why must the signature be checked against the raw body rather than the parsed JSON?
+    intuition: Does parsing and re-serialising produce the same bytes?
+    approach: |
+      The HMAC covers exact bytes. Re-serialising parsed JSON can change whitespace, key order, number formatting or escaping, so a genuine request would fail verification, or a lenient workaround would weaken it. Verify the raw bytes first, then parse.
+practice:
+  - task: Implement Stripe-style webhook signing and verification with a tolerance window and secret rotation.
+    hint: The header is t=<seconds>,v1=<hex HMAC of t.body>. Parse every v1, check the age, compare each in constant time.
+    solution: |
+      To sign, compute HMAC-SHA256 with the secret over `t + "." + body` and format `t=…,v1=…`. To verify, split the header on commas, read `t` and every `v1`, ignore other schemes, reject if `t` is missing or more than 300 seconds from now, then accept if any `v1` equals the expected HMAC under a constant-time comparison. Several `v1` values support rotation. GitHub's test vector (secret `It's a Secret to Everybody`, body `Hello, World!`) checks the HMAC itself.
+    solutionCode: webhook-signature
+quiz:
+  - q: Why is the timestamp included inside the signed content?
+    options: [For logging, So an attacker can't replay an old body with a new timestamp, To make the signature longer, For time zones]
+    correct: 1
+    why: Changing the timestamp would invalidate the signature.
+  - q: Which comparison should you use for signatures?
+    options: ['==', A constant-time function such as hmac.compare_digest, A regex, Lowercasing then ==]
+    correct: 1
+    why: Constant-time comparison doesn't leak how much of a guess matched.
+  - q: A genuine webhook is delivered twice within the tolerance window. What prevents processing it twice?
+    options: [The signature, The timestamp, Deduplicating by event id, TLS]
+    correct: 2
+    why: Both deliveries are valid, so only the event id shows they are the same event.

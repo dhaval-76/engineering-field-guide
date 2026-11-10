@@ -1,0 +1,39 @@
+questions:
+  - q: 'Your service lets customers register a webhook URL that you call when events happen. What could go wrong, and how do you make it safe?'
+    think: Who controls the destination of a request your server makes?
+    answer: |
+      That is an SSRF surface: a customer can register `http://169.254.169.254/…`, `http://localhost:8080/admin` or a name that resolves to an internal address, and our servers would call it from inside the network.
+
+      Defences in layers: accept only `https` (or `http`) URLs; when sending, resolve the host once, reject any internal, loopback, link-local, private or unique-local address (after unwrapping IPv4-mapped IPv6), and connect to the validated address so DNS rebinding can't swap it; don't follow redirects; send deliveries through an egress proxy or a separate network with no internal routes; time out quickly and cap response sizes; never show the response or detailed errors to the customer. On the cloud side, require IMDSv2 and keep the sender's role narrow.
+  - q: 'Why isn''t checking the URL against a list of internal IP ranges enough?'
+    think: Name versus address, and when each is looked up.
+    answer: |
+      Several reasons. The URL may contain a host name that resolves to an internal address, so you must check the resolved addresses, all of them. Addresses have many spellings: decimal (`2130706433`), hex, IPv6, IPv4-mapped IPv6. If you check one lookup and then let the HTTP client resolve again, DNS rebinding can return a different, internal address the second time. Redirects can send a checked public URL to an internal one. And deny-lists miss ranges. So resolve once, check, connect to that exact address, disable redirects, and prefer allowlists or an egress proxy.
+followUps:
+  - q: What is IMDSv2 and how does it help?
+    intuition: What can a typical SSRF request look like?
+    approach: |
+      IMDSv2 requires a session token: first a PUT to `/latest/api/token` with a TTL header, then the token in a header on every read. Most SSRFs can only make simple GETs without custom headers, so they can't get a token; PUTs with `X-Forwarded-For` are refused, and the token response's hop limit of 1 stops it crossing an extra network hop. Require it on all instances.
+  - q: What is DNS rebinding?
+    intuition: Check-then-use, with two lookups.
+    approach: |
+      An attacker's domain first resolves to a harmless public address, passing your check, then, with a very short TTL, resolves to an internal address when your HTTP client looks it up again to connect. The fix is to resolve once and connect to the address you checked.
+practice:
+  - task: Write a function that validates a user-supplied URL for server-side fetching and returns the address to connect to.
+    hint: Allow only http and https, resolve all addresses, reject internal ranges including IPv4-mapped IPv6, return one checked address.
+    solution: |
+      Parse the URL and reject other schemes. Resolve the host to all its addresses; for each, unwrap IPv4-mapped IPv6, then reject loopback, private (10/8, 172.16/12, 192.168/16), link-local (169.254/16, fe80::/10), carrier-grade NAT (100.64/10), unique-local (fc00::/7), multicast and unspecified addresses. Return one checked address, and make the request to it with the original Host header and TLS name, with redirects disabled. Test it with tricks such as `http://2130706433/` and `http://[::ffff:127.0.0.1]/`.
+    solutionCode: ssrf-guard
+quiz:
+  - q: Which address is the classic SSRF target in the cloud?
+    options: ['8.8.8.8', '169.254.169.254', '1.1.1.1', '255.255.255.255']
+    correct: 1
+    why: It is the instance metadata service, which can hand out credentials.
+  - q: Why connect to the address you validated rather than the host name?
+    options: [It is faster, To prevent DNS rebinding, TLS requires it, To avoid IPv6]
+    correct: 1
+    why: A second lookup could return a different, internal address.
+  - q: What should an SSRF-safe fetcher do with redirects?
+    options: [Follow them, Disable them or validate every hop, Follow only 301, Cache them]
+    correct: 1
+    why: A validated public URL can redirect to an internal one.

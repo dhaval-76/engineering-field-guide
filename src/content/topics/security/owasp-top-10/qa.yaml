@@ -1,0 +1,56 @@
+questions:
+  - q: 'How should a system store user passwords? How does bcrypt help?'
+    think: What does an attacker do with a stolen table, and what makes each guess expensive?
+    answer: |
+      Never store the password, only a hash you can check it against. Use a slow, salted password-hashing function: Argon2id first, scrypt, bcrypt with a work factor of at least 10, or PBKDF2-HMAC-SHA256 with 600,000 iterations where FIPS compliance is required.
+
+      bcrypt generates a random salt per password and stores it, with the cost, inside the hash string, so equal passwords hash differently and precomputed tables are useless. Its cost factor makes each guess deliberately slow, and you can raise it over time, rehashing users as they log in. On login, hash the attempt with the stored salt and cost and compare in constant time. Fast hashes such as SHA-256 or MD5 are wrong even with a salt, because GPUs try billions per second. Note bcrypt only uses the first 72 bytes of a password.
+    askedAt:
+      - company: Salesforce
+        year: 2026
+        round: Low-level design
+        source: https://leetcode.com/discuss/post/7455964/salesforce-smts-interview-experience-rej-meuy/
+  - q: 'A user changes the order id in the URL and sees another customer''s order. What went wrong, and how do you prevent this class of bug?'
+    think: Authentication passed. What was never checked?
+    answer: |
+      The endpoint authenticated the user but never authorized access to that specific object: an insecure direct object reference, part of broken access control, the top OWASP category. The fix is to check ownership on the server for every request, ideally by scoping the query itself (`WHERE id = ? AND user_id = ?`), and to return 404 when nothing matches.
+
+      To prevent the class: centralise authorization in one policy layer rather than ad hoc checks, deny by default, write tests that call every endpoint as the wrong user, and log and alert on bursts of 404s or 403s. Random ids help against enumeration but are not a substitute.
+  - q: 'How would you approach securing a new public API?'
+    think: Walk the OWASP list from the top, in backend terms.
+    answer: |
+      Start with access control: authenticate every request (short-lived tokens, OAuth for third parties), authorize every object server-side, deny by default. Validate input at the edge and use parameterised queries; encode output. Use TLS everywhere, keep secrets in a secrets manager, encrypt sensitive data at rest. Add rate limits and quotas per client.
+
+      Then operations: no verbose errors, safe defaults, minimal CORS, dependency scanning and pinned versions in CI, audit logging of security events with alerts, and fail closed when an auth dependency is down. Finally a threat model for the riskiest flows, such as payments or account recovery.
+followUps:
+  - q: Why not just SHA-256 a password with a salt?
+    intuition: How many guesses per second can an attacker make?
+    approach: |
+      SHA-256 is designed to be fast, so a GPU can test billions of candidate passwords per second against a stolen hash, salt or not. Password-hashing functions are deliberately slow and, for Argon2id and scrypt, memory-hard, which makes each guess cost real time and memory and puts parallel hardware at less of an advantage.
+  - q: Should a failed authorization check return 403 or 404?
+    intuition: What does each tell an attacker?
+    approach: |
+      403 confirms the object exists. For objects the caller shouldn't know about, such as another user's order, return 404 so ids can't be probed. Use 403 when the caller knows the resource exists but lacks permission, such as a non-admin opening the admin page.
+practice:
+  - task: Implement salted password hashing and verification that stores its own parameters.
+    hint: Random 16-byte salt, a slow KDF, a self-describing stored string, constant-time comparison.
+    solution: |
+      Generate a random salt, derive a 32-byte hash with PBKDF2-HMAC-SHA256 at 600,000 iterations (or Argon2id via a library), and store `algorithm$iterations$salt$hash`. To verify, parse the stored string, derive with the same salt and iterations, and compare with a constant-time function. Storing the parameters lets you raise them later and rehash on the next successful login.
+    solutionCode: password-hash
+quiz:
+  - q: Which category is first in the OWASP Top 10:2025?
+    options: [Injection, Broken Access Control, Cryptographic Failures, Security Misconfiguration]
+    correct: 1
+    why: Broken access control has been first since 2021, and SSRF is now part of it.
+  - q: Which is a good way to store passwords?
+    options: [AES encryption, SHA-256 with a salt, Argon2id with a salt, Base64]
+    correct: 2
+    why: Password-hashing functions such as Argon2id are slow and salted by design.
+  - q: What is the main purpose of a salt?
+    options: [Makes hashing faster, Makes equal passwords hash differently and defeats precomputed tables, Encrypts the password, Hides the algorithm]
+    correct: 1
+    why: A unique random salt per password forces attackers to attack each hash separately.
+  - q: An authorization service times out. What should the API do?
+    options: [Allow the request, Deny the request, Retry forever, Return the data without checks]
+    correct: 1
+    why: Failing closed keeps an outage from becoming a breach.

@@ -1,0 +1,26 @@
+title: A forged money transfer
+legend:
+  accent: 'attacker''s page'
+  bad: 'accepted forgery'
+  ok: 'rejected'
+frames:
+  - caption: 'Ana is logged in to her bank; her browser holds the session cookie. In another tab she opens a page on `prizes.example`, run by the attacker.'
+    panels:
+      - kind: kv
+        label: Ana's browser
+        pairs: [[bank cookie, 'session=…'], [open tab, { v: 'prizes.example', tone: accent }]]
+  - caption: 'The page contains a hidden form that posts to the bank and submits itself with JavaScript. Ana sees nothing.'
+    panels:
+      - kind: flow
+        label: Hidden form on prizes.example
+        items: [{ v: '<form action="https://bank.example/transfer" method="POST">', tone: accent }, { v: '<input name="to" value="mallory"><input name="amount" value="500">', tone: accent }, { v: 'form.submit()', tone: accent }]
+  - caption: 'Without SameSite, the browser attaches Ana''s bank cookie to the request. If the bank only checks the cookie, it moves the money: the request looks exactly like one Ana made.'
+    panels:
+      - kind: kv
+        label: Request to bank.example
+        pairs: [[cookie, 'session=… (Ana)'], [Sec-Fetch-Site, 'cross-site'], [Origin, 'https://prizes.example'], [result, { v: 'transfer done', tone: bad }]]
+  - caption: 'A protected bank rejects it: `Sec-Fetch-Site: cross-site` (or the foreign `Origin`) shows it came from another site, the form lacks the secret token from Ana''s session, and a `SameSite=Lax` cookie wouldn''t have been sent with a cross-site POST at all.'
+    panels:
+      - kind: rows
+        label: Checks
+        items: [{ v: 'Sec-Fetch-Site is cross-site: reject', tone: ok }, { v: 'CSRF token missing: reject', tone: ok }, { v: 'SameSite=Lax: no cookie sent', tone: ok }]

@@ -79,7 +79,19 @@ each group, so existing links keep working. Update `related`/`prerequisites` lin
 
    Open question for the owner: keep this page here or move it to DevOps.
 
-### 2. Security track (new track)
+### 2. Security track (done 2026-11-10)
+
+Done: a new `security` track with seven pages: `owasp-top-10` (the 2025 list, broken access
+control, password storage), `sql-injection`, `xss-and-csrf`, `ssrf` (including IMDSv2),
+`secrets-management`, `encryption-and-keys` (AES-GCM, envelope encryption with a KMS) and
+`webhook-signing`. Each has a walkthrough of the attack or flow, code in Java, JavaScript and
+Python tested together (password hashes and encrypted records made in one language verify in the
+others; the HMAC matches GitHub's published test vector; the SQL examples ran against SQLite), an
+interview section and a quiz. Linked from authentication, webhook delivery, SQL, Docker, git and
+payments pages. Research notes are in `research/README.md`.
+
+Original scope:
+
 
 - The OWASP Top 10 for backend engineers, with walkthroughs for SQL injection, XSS, CSRF and SSRF.
 - Secrets management (vaults, rotation, never in git or images).

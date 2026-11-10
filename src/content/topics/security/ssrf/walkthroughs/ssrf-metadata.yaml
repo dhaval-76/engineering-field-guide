@@ -1,0 +1,26 @@
+title: A link preview that leaks cloud credentials
+legend:
+  accent: 'attacker input'
+  bad: 'reached internally'
+  ok: 'blocked'
+frames:
+  - caption: 'A chat app shows previews of links. When someone posts a URL, the server fetches it and extracts the title and image. Normally it fetches public pages.'
+    panels:
+      - kind: flow
+        label: Normal preview
+        items: ['user posts https://news.example/story', 'server fetches it', 'preview: title + image']
+  - caption: 'An attacker posts `http://169.254.169.254/latest/meta-data/iam/security-credentials/`. That address is the cloud provider''s metadata service, reachable only from inside the machine. The server fetches it, because it can.'
+    panels:
+      - kind: flow
+        label: Attack
+        items: [{ v: 'user posts http://169.254.169.254/latest/meta-data/…', tone: accent }, { v: 'server fetches it from inside', tone: bad }]
+  - caption: 'With IMDSv1, a plain GET returns the role name, and the next one returns temporary **access keys** for the machine''s role. The preview, or an error message, shows them to the attacker.'
+    panels:
+      - kind: kv
+        label: Returned to the attacker
+        pairs: [[role, { v: 'app-server-role', tone: bad }], [AccessKeyId, { v: 'ASIA…', tone: bad }], [SecretAccessKey, { v: '…', tone: bad }]]
+  - caption: 'Layered defences stop it: the URL check resolves the host and rejects link-local `169.254.x.x`; outbound fetches go through an egress proxy with no route inside; and IMDSv2 requires a PUT with a token header first, which this SSRF can''t send.'
+    panels:
+      - kind: rows
+        label: Defences
+        items: [{ v: 'resolved address is link-local: rejected', tone: ok }, { v: 'egress proxy: no internal routes', tone: ok }, { v: 'IMDSv2 required: GET without token gets 401', tone: ok }]

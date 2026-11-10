@@ -1,0 +1,5 @@
+title: Security for Backend Engineers
+short: Security
+blurb: The attacks that actually hit backend services and how to stop them, plus secrets, encryption and signed webhooks.
+order: 13
+icon: security

@@ -6,7 +6,7 @@ order: 105
 tags: [system-design, case-study, webhooks, messaging, reliability, security]
 aliases: [design webhooks, webhook delivery system, webhook service, stripe webhooks, github webhooks, event notifications to customers, webhook signature, hmac signature, webhook retries, exponential backoff, jitter, dead letter, webhook replay, ssrf, idempotent receiver, webhook id, svix]
 prerequisites: [distributed-systems/saga-and-outbox, backend/idempotency]
-related: [system-design/notification-system, backend/api-styles, distributed-systems/resilience-patterns, system-design/job-scheduler]
+related: [system-design/notification-system, backend/api-styles, distributed-systems/resilience-patterns, system-design/job-scheduler, security/webhook-signing, security/ssrf]
 quickRef:
   points:
     - 'Events → **fan-out** to subscribed endpoints → **one delivery job per (event, endpoint)** with its own retries.'

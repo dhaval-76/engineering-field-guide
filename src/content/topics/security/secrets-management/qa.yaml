@@ -1,0 +1,39 @@
+questions:
+  - q: 'How should a microservice get its database password and API keys?'
+    think: Where do they live, how does the service prove who it is, and how do they change?
+    answer: |
+      Not from code, images or build arguments. Store them in a secret manager (Vault, AWS Secrets Manager, GCP Secret Manager and so on). The service authenticates with its workload identity, such as an IAM role or a Kubernetes service account, so no bootstrap password is needed, and fetches only the secrets its policy allows, at startup or through a mounted file kept up to date by an agent.
+
+      Prefer dynamic credentials: a database user created per service with a short lease, deleted when it ends. Rotate the remaining static secrets regularly and make the service reload them without a redeploy. Keep secrets out of logs and error reports, and audit every read.
+  - q: 'A developer pushed an AWS access key to a public GitHub repository an hour ago. What do you do?'
+    think: Order matters. Is deleting the commit enough?
+    answer: |
+      Treat the key as compromised and revoke it immediately, creating a new one for whatever legitimately used it; bots scan public repositories within minutes, so deleting the commit is not enough and doesn't remove it from clones or caches. Then check CloudTrail and billing for any use of the key since the push and contain it (unexpected instances, new users, data access). After that, clean the history if needed and run a short review: add pre-commit and CI secret scanning, enable push protection, and replace long-lived keys with roles or short-lived credentials.
+followUps:
+  - q: Why not put secrets in environment variables set in the Dockerfile?
+    intuition: Who can read an image?
+    approach: |
+      `ENV` and `ARG` values are stored in the image's layers and metadata, so anyone who can pull the image, or inspect a running container, can read them, and they end up in registries and caches. Inject secrets at runtime instead, as mounted files or fetched from a secret manager, and use build secret mounts for secrets needed only during the build.
+  - q: How do you rotate a secret without downtime?
+    intuition: How many values are valid during the switch?
+    approach: |
+      Allow two valid values for a while: create the new secret, make every consumer pick it up (re-reading a mounted file, or refetching on an authentication failure), confirm the old one is no longer used, then revoke it. Webhook signing secrets and JWT signing keys use the same overlap, sending or accepting both during the change.
+practice:
+  - task: Load a secret from a file mounted by the platform and pick up rotated values without restarting.
+    hint: Remember when you last read the file, and reread when its modification time changes.
+    solution: |
+      Keep the file path, the last modification time and the cached value. On each `get`, check the file's modification time and reread only if it changed, stripping whitespace. Make `toString` or its equivalent hide the value so it can't end up in logs. Kubernetes updates mounted secret files in place when the Secret changes, so the service picks up a rotation on its next read.
+    solutionCode: secret-file
+quiz:
+  - q: Where should a production database password live?
+    options: [In the source code, In the Docker image, In a secret manager, In the CI log]
+    correct: 2
+    why: A secret manager controls access, audits reads and supports rotation.
+  - q: What is the first thing to do when a key leaks to a public repository?
+    options: [Delete the commit, Revoke and rotate the key, Make the repository private, Wait and watch]
+    correct: 1
+    why: The key is already copied; only revoking it stops its use.
+  - q: How does a service authenticate to a secret manager without a stored password?
+    options: [It doesn't need to, With its workload identity such as an IAM role or service account, With a password in an environment variable, With its IP address]
+    correct: 1
+    why: The platform vouches for the workload, which solves the "secret zero" problem.

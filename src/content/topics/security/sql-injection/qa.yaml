@@ -1,0 +1,39 @@
+questions:
+  - q: 'What is SQL injection and how do you prevent it?'
+    think: Code versus data. Then the parts that can't be parameters.
+    answer: |
+      SQL injection happens when user input is concatenated into a SQL string, so specially crafted input changes the query's structure: `' OR '1'='1` makes a filter always true, and `UNION SELECT` reads other tables.
+
+      Prevent it with parameterised queries (prepared statements) for every value: the SQL is parsed with placeholders and values are bound separately, so they can never become SQL. ORMs do this, except in their raw-SQL escape hatches. Identifiers such as sort columns can't be parameters, so map them through an allowlist. Don't escape by hand. Add defence in depth: a least-privilege database user, input validation, no database errors shown to clients, and monitoring for syntax errors.
+  - q: 'Your API lets clients choose a sort column with ?sort=. How do you implement it safely?'
+    think: Can a placeholder stand for a column name?
+    answer: |
+      Placeholders bind values, not identifiers, so `ORDER BY ?` doesn't sort by a column. Map the client's choice to a fixed set of known columns in code, for example `{"date": "created_at", "total": "amount"}`, reject anything else, and build only the `ORDER BY` from that map; the direction comes from a boolean, never from the raw string. All values in the query still use placeholders.
+followUps:
+  - q: Why isn't escaping quotes enough?
+    intuition: How many rules must an escaping function get right?
+    approach: |
+      Correct escaping depends on the database, its settings, the character encoding and the context (string, number, identifier, LIKE pattern). Numbers need no quotes at all, so escaping quotes does nothing for `WHERE id = 1 OR 1=1`. One missed case is enough, which is why OWASP strongly discourages manual escaping and recommends parameters.
+  - q: What is second-order SQL injection?
+    intuition: Where else does data come from besides the request?
+    approach: |
+      Input is stored safely the first time, perhaps a user name with a quote in it, then later read from the database and pasted unsafely into another query, such as a report or a batch job. The fix is the same: parameterise every query, whatever the source of the value.
+practice:
+  - task: Show an injectable lookup, fix it with a parameterised query, and add a safe dynamic sort.
+    hint: Concatenate the email into the SQL to see the bug, then use ? placeholders; map sort names to columns.
+    solution: |
+      Build `"... WHERE email = '" + email + "'"` and pass `x' OR '1'='1` to see it return the first user. Replace it with `WHERE email = ?` and bind the email; the same input now returns nothing. For sorting, look the user's choice up in a fixed map of allowed columns, throw for anything else, and append only the mapped name and a direction derived from a boolean.
+    solutionCode: sql-safe
+quiz:
+  - q: What prevents SQL injection most reliably?
+    options: [Escaping quotes, Parameterised queries, Input length limits, HTTPS]
+    correct: 1
+    why: Values are bound separately from the SQL, so they can never change its structure.
+  - q: How should a user-chosen ORDER BY column be handled?
+    options: [As a bound parameter, Quoted as an identifier, Mapped through a fixed allowlist, Escaped]
+    correct: 2
+    why: Identifiers can't be parameters, so only known column names should ever reach the SQL.
+  - q: What limits the damage if an injection is missed?
+    options: [A larger connection pool, A least-privilege database user, Longer timeouts, Caching]
+    correct: 1
+    why: The attacker can only do what the application's database user is allowed to do.

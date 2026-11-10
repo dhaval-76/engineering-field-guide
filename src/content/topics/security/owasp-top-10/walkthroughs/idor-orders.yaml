@@ -1,0 +1,26 @@
+title: Reading someone else's order by changing a number
+legend:
+  accent: 'request in this step'
+  bad: 'data leaked'
+  ok: 'blocked'
+frames:
+  - caption: 'Ana logs in and opens her order. The app calls `GET /api/orders/1043` with her session cookie. The server checks she is logged in, loads order 1043 and returns it. All correct so far.'
+    panels:
+      - kind: kv
+        label: Request
+        pairs: [[user, 'Ana (id 7)'], [request, { v: 'GET /api/orders/1043', tone: accent }], [order 1043 belongs to, 'Ana']]
+  - caption: 'Ana changes the number in the URL to **1044**. She is still logged in, so the authentication check passes. The handler runs `SELECT * FROM orders WHERE id = 1044` and returns Ben''s order: his address, items and phone number.'
+    panels:
+      - kind: kv
+        label: Request
+        pairs: [[user, 'Ana (id 7)'], [request, { v: 'GET /api/orders/1044', tone: accent }], [order 1044 belongs to, { v: 'Ben: returned to Ana', tone: bad }]]
+  - caption: 'This is an **insecure direct object reference**, the classic broken access control. A script can walk every id from 1 to a million. Nothing here needed a clever attack, only a missing check.'
+    panels:
+      - kind: rows
+        label: Script
+        items: [{ v: '/api/orders/1045 → 200', tone: bad }, { v: '/api/orders/1046 → 200', tone: bad }, { v: '/api/orders/1047 → 200', tone: bad }]
+  - caption: 'The fix: authorize the object, not just the user. Scope the query by the caller, `WHERE id = ? AND user_id = ?`, and return **404** when nothing matches, so the attacker can''t even tell which ids exist.'
+    panels:
+      - kind: kv
+        label: Fixed handler
+        pairs: [[query, 'WHERE id = 1044 AND user_id = 7'], [result, { v: '404 Not Found', tone: ok }]]

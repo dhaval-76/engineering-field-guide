@@ -1,0 +1,27 @@
+title: Encrypting a card number with envelope encryption
+legend:
+  accent: 'acted on in this step'
+  plum: 'key material'
+  ok: 'stored safely'
+  muted: 'discarded'
+frames:
+  - caption: 'The payments service must store a card number. It asks the KMS for a new **data key**. The KMS returns it twice: in plain form, and encrypted under the master key, which never leaves the KMS.'
+    panels:
+      - kind: kv
+        label: From the KMS
+        pairs: [[plaintext data key, { v: '32 random bytes', tone: plum }], [encrypted data key, { v: 'wrapped by master key', tone: plum }], [master key, 'stays inside the KMS']]
+  - caption: 'The service encrypts the card number locally with AES-256-GCM, using the plain data key and a fresh random nonce. The result includes a tag that detects any later change.'
+    panels:
+      - kind: kv
+        label: Encrypt locally
+        pairs: [[input, '4111 1111 1111 1111'], [nonce, '12 random bytes'], [output, { v: 'ciphertext + tag', tone: accent }]]
+  - caption: 'It stores the ciphertext, the nonce and the **encrypted** data key together in the row, then discards the plain data key. A database dump now holds nothing usable without the KMS.'
+    panels:
+      - kind: kv
+        label: Stored row
+        pairs: [[card, { v: 'ciphertext + tag', tone: ok }], [nonce, { v: 'stored', tone: ok }], [wrapped key, { v: 'stored', tone: ok }], [plaintext data key, { v: 'discarded', tone: muted }]]
+  - caption: 'To read it, the service sends the wrapped key to the KMS, which checks the caller''s permission, logs the request and returns the plain data key. The service decrypts the row; if a single bit changed, the tag check fails.'
+    panels:
+      - kind: flow
+        label: Decrypt
+        items: ['wrapped key → KMS (policy check, audit log)', { v: 'plain data key → service', tone: plum }, 'AES-GCM decrypt + tag check', { v: '4111 1111 1111 1111', tone: accent }]

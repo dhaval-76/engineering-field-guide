@@ -1,0 +1,26 @@
+title: How one input rewrites a query
+legend:
+  accent: 'the user''s input'
+  bad: 'attacker-controlled SQL'
+  ok: 'treated as data only'
+frames:
+  - caption: 'A lookup endpoint builds its SQL by pasting the email into a string. With a normal email, the query does what was intended.'
+    panels:
+      - kind: kv
+        label: Built query
+        pairs: [[input, { v: 'ana@shop.example', tone: accent }], [SQL, "SELECT name FROM users WHERE email = 'ana@shop.example'"], [returns, 'Ana']]
+  - caption: 'The attacker sends `x'' OR ''1''=''1`. The first quote **closes the string early**, and the rest becomes SQL: a condition that is always true. The query now returns the first user in the table, often the administrator.'
+    panels:
+      - kind: kv
+        label: Built query
+        pairs: [[input, { v: "x' OR '1'='1", tone: accent }], [SQL, { v: "SELECT name FROM users WHERE email = 'x' OR '1'='1'", tone: bad }], [returns, { v: 'Admin', tone: bad }]]
+  - caption: 'Worse inputs read other tables. A `UNION SELECT` appends rows from any table the database user can read; a stacked query can change data. The database can''t tell which part of the string came from you and which from the attacker.'
+    panels:
+      - kind: rows
+        label: Other payloads
+        items: [{ v: "' UNION SELECT card_number FROM cards --", tone: bad }, { v: "'; UPDATE users SET role='admin' WHERE email='me@x' --", tone: bad }]
+  - caption: 'With a parameterised query, the SQL is fixed: `WHERE email = ?`. The input is sent separately and bound as a value, so it is just an odd email address. No user has it, so nothing is returned.'
+    panels:
+      - kind: kv
+        label: Parameterised query
+        pairs: [[SQL, "SELECT name FROM users WHERE email = ?"], [value, { v: "x' OR '1'='1", tone: ok }], [returns, { v: 'nothing', tone: ok }]]

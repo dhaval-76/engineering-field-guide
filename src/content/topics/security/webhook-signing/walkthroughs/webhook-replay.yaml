@@ -1,0 +1,26 @@
+title: A forged and a replayed payment webhook
+legend:
+  accent: 'request in this step'
+  ok: 'accepted'
+  bad: 'rejected'
+frames:
+  - caption: 'The payment provider sends `payment.succeeded` for order A17. It signs `t.body` with the shared secret and puts the timestamp and signature in the header. The receiver recomputes the HMAC, the timestamp is 4 seconds old, and the signatures match: ship the order.'
+    panels:
+      - kind: kv
+        label: Genuine delivery
+        pairs: [[header, 't=1800000000,v1=9f3c…'], [age, '4 s'], [signature, { v: 'matches', tone: ok }], [event id, 'evt_51 (new)']]
+  - caption: 'An attacker sends a fake `payment.succeeded` for order B90. Without the secret, they can''t compute a valid HMAC; any guess fails the constant-time comparison.'
+    panels:
+      - kind: kv
+        label: Forged request
+        pairs: [[header, { v: 't=1800000100,v1=0000…', tone: accent }], [signature, { v: 'does not match', tone: bad }]]
+  - caption: 'Next the attacker replays the **genuine** request, captured earlier, an hour later. The signature is still valid, but the signed timestamp is an hour old, outside the 5-minute tolerance. Because the timestamp is inside the signature, they can''t update it.'
+    panels:
+      - kind: kv
+        label: Replay an hour later
+        pairs: [[header, { v: 't=1800000000,v1=9f3c…', tone: accent }], [age, { v: '3,600 s > 300 s', tone: bad }]]
+  - caption: 'A replay within the window, or the provider''s own retry, has a valid signature and a fresh enough timestamp. The receiver has already recorded `evt_51` as processed, so it returns 200 and does nothing.'
+    panels:
+      - kind: kv
+        label: Duplicate within the window
+        pairs: [[signature, { v: 'matches', tone: ok }], [event id, { v: 'evt_51 already processed: ignored', tone: bad }]]

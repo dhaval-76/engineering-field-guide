@@ -1,0 +1,110 @@
+---
+title: OWASP Top 10 for Backend Engineers
+summary: The OWASP Top 10:2025 in backend terms, with the one that tops the list, broken access control, in depth, and how to store passwords so a database leak doesn't leak them. A map to the rest of the security track.
+track: security
+order: 10
+tags: [security, owasp, access-control, passwords]
+aliases: [owasp, owasp top 10, owasp top 10 2025, web security, application security, broken access control, idor, insecure direct object reference, security misconfiguration, supply chain, cryptographic failures, injection, insecure design, authentication failures, integrity failures, logging and alerting, exceptional conditions, fail closed, password storage, password hashing, bcrypt, argon2, scrypt, pbkdf2, salt, pepper, how are passwords stored]
+prerequisites: [backend/authn-authz]
+related: [security/sql-injection, security/xss-and-csrf, security/ssrf, security/secrets-management, security/encryption-and-keys, security/webhook-signing]
+quickRef:
+  points:
+    - 'The **OWASP Top 10:2025** starts with **broken access control**, then misconfiguration, supply chain failures, cryptographic failures and injection.'
+    - '**Check access on every request, on the server, for that specific object.** Logging in proves who someone is, not what they may touch.'
+    - 'Never trust ids from the client: `/orders/1043` must check that order 1043 belongs to the caller (IDOR).'
+    - '**Store passwords with a slow, salted hash**: Argon2id, scrypt, bcrypt (cost 10+) or PBKDF2-SHA256 with 600,000 iterations. Never plain SHA-256 or MD5.'
+    - '**Fail closed**: when a check errors or a dependency is down, deny.'
+  useWhen: 'Reviewing a design for security, answering "how do you secure an API" or "how are passwords stored", or deciding what to fix first.'
+askedAt:
+  - company: Salesforce
+    year: 2026
+    round: Low-level design
+    source: https://leetcode.com/discuss/post/7455964/salesforce-smts-interview-experience-rej-meuy/
+lastReviewed: 2026-11-10
+---
+
+## Why it matters
+
+Most breaches are not clever cryptographic attacks. They are an API that returns another customer's order when you change a number in the URL, a password table hashed with MD5, a debug endpoint left on, or a library nobody updated. The OWASP Top 10 is a ranking, built from real data, of the kinds of weakness that cause the most damage. It is a good checklist for design reviews, and interviewers use it as a shared vocabulary.
+
+<Callout type="analogy">
+A hotel. Checking in (authentication) gives you a key card. Broken access control is a card that opens every room on your floor. Password storage is how the hotel keeps the master list of guests' PINs: in a safe that takes an hour to open per PIN, not on a sticky note.
+</Callout>
+
+## The 2025 list, in backend terms
+
+| | Category | What it looks like in a backend | Where to read more |
+|---|---|---|---|
+| A01 | Broken Access Control | Fetching or changing another user's data by changing an id; missing checks on admin endpoints; SSRF | Below, and [SSRF](../ssrf/) |
+| A02 | Security Misconfiguration | Default passwords, debug pages, verbose errors, open storage buckets, permissive CORS | Below |
+| A03 | Software Supply Chain Failures | Vulnerable or malicious dependencies, compromised build pipelines | Below |
+| A04 | Cryptographic Failures | Plain-text data, weak hashing, home-made crypto, keys in code | [Encryption and keys](../encryption-and-keys/), [secrets](../secrets-management/) |
+| A05 | Injection | SQL, command and template injection; XSS | [SQL injection](../sql-injection/), [XSS and CSRF](../xss-and-csrf/) |
+| A06 | Insecure Design | No rate limits, no threat model, trusting the client | [Rate limiting](../../system-design/distributed-rate-limiter/) |
+| A07 | Authentication Failures | Weak password storage, no lockout, session fixation | Below, and [authentication](../../backend/authn-authz/) |
+| A08 | Software or Data Integrity Failures | Unsigned updates, unsigned webhooks, unsafe deserialisation | [Webhook signing](../webhook-signing/) |
+| A09 | Security Logging and Alerting Failures | No audit trail; attacks nobody notices | [Logging and monitoring](../../system-design/logging-monitoring/) |
+| A10 | Mishandling of Exceptional Conditions | Failing open when a check errors; leaking details in errors | Below |
+
+Compared with 2021, SSRF was folded into broken access control, supply chain failures grew out of "vulnerable and outdated components", and A10 is new.
+
+## A01: broken access control
+
+<Walkthrough id="idor-orders" />
+
+Authentication answers "who are you"; authorization answers "may you do this, to this object". The common failure is checking the first and forgetting the second.
+
+- **Check on the server, on every request, for the specific object.** Hiding a button in the UI is not access control.
+- **Scope queries by the caller.** `SELECT … FROM orders WHERE id = ? AND user_id = ?` can't return someone else's order, even if a check elsewhere is forgotten.
+- **Deny by default.** New endpoints should be closed until a rule opens them.
+- **Return 404 rather than 403** for objects the caller may not know exist, so ids can't be probed.
+- Random, unguessable ids (UUIDs) make probing harder, but they are not access control.
+
+## A07: storing passwords
+
+Passwords leak when databases leak, so store them so a stolen table is nearly useless:
+
+- **Hash, don't encrypt.** You never need the password back, only to check it.
+- **Salt each password** with random bytes stored next to the hash, so equal passwords get different hashes and precomputed tables don't work.
+- **Use a deliberately slow algorithm**, so each guess costs the attacker real time. Fast hashes such as SHA-256 or MD5 allow billions of guesses per second on a GPU.
+- **Compare in constant time**, so response time doesn't reveal how much matched.
+
+OWASP's current minimums:
+
+| Algorithm | Minimum settings | Notes |
+|---|---|---|
+| **Argon2id** | 19 MiB memory, 2 iterations, parallelism 1 | First choice |
+| scrypt | N = 2¹⁷, r = 8, p = 1 | When Argon2id isn't available |
+| bcrypt | Work factor 10 or more | Legacy systems; only the first 72 bytes of the password count |
+| PBKDF2-HMAC-SHA256 | 600,000 iterations | When FIPS-140 compliance is required |
+
+<CodeTabs id="password-hash" title="PBKDF2-SHA256 with a salt and constant-time verification (hashes made in any one language verify in the others)" />
+
+The example uses PBKDF2 because all three languages ship it; in production prefer an Argon2id library. Store the algorithm and parameters with the hash, as here, so you can raise them later: rehash a user's password with the new settings when they next log in. A **pepper**, a secret added before hashing and kept outside the database (for example in a secrets manager), means a database dump alone isn't enough to start guessing.
+
+## The rest, briefly
+
+- **Misconfiguration (A02):** no default credentials; production errors show an id, not a stack trace; storage buckets private by default; CORS limited to known origins; security headers set.
+- **Supply chain (A03):** pin versions with lockfiles, scan dependencies in CI, review new dependencies, keep an inventory (SBOM), and sign and verify build artifacts.
+- **Logging (A09):** log logins, permission denials and admin actions with who and when, never passwords or tokens, and alert on spikes.
+- **Exceptional conditions (A10):** when an authorization service times out, **deny** rather than allow; catch errors at the edge and return a generic message with an id you can look up in the logs.
+
+<Pitfalls>
+
+- **Checking login but not ownership**, so any user can read any order by id.
+- **Access rules enforced only in the frontend.**
+- **Fast hashes for passwords** (SHA-256, MD5), with or without salt.
+- **Comparing secrets with `==`**, which can leak timing.
+- **Failing open** when an auth dependency errors.
+- **Stack traces and SQL errors returned to clients.**
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- Broken access control tops the list: check every request, server-side, against the specific object.
+- Scope data queries by the caller so a forgotten check can't leak other users' data.
+- Store passwords with a salted, slow hash such as Argon2id; never with a fast hash.
+- Treat errors as "deny", and keep secrets and stack traces out of responses and logs.
+
+</KeyTakeaways>
