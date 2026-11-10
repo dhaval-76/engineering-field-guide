@@ -1,0 +1,26 @@
+title: Upgrading HTTP to a WebSocket
+legend:
+  accent: 'sent in this step'
+  ok: 'accepted'
+  plum: 'frames on the open connection'
+frames:
+  - caption: 'The browser opens a normal HTTP/1.1 connection and asks to switch protocols. `Sec-WebSocket-Key` is a random value; `Origin` lets the server reject pages it doesn''t trust.'
+    panels:
+      - kind: flow
+        label: Client → Server
+        items: [{ v: 'GET /ws/chat HTTP/1.1', tone: accent }, 'Upgrade: websocket', 'Connection: Upgrade', 'Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==', 'Origin: https://shop.example']
+  - caption: 'The server appends a fixed GUID to the key, hashes it with SHA-1 and returns the Base64 result. That proves it really speaks WebSocket, rather than being a cache replaying an old response.'
+    panels:
+      - kind: flow
+        label: Server → Client
+        items: [{ v: 'HTTP/1.1 101 Switching Protocols', tone: ok }, 'Upgrade: websocket', 'Connection: Upgrade', 'Sec-WebSocket-Accept: s3pPLMBiTxaQ9kYGzzhZRbK+xOo=']
+  - caption: 'From now on the TCP connection carries **frames**, not HTTP. A text frame starts with `0x81` (final fragment, text) and the length. Client frames are masked with 4 random bytes.'
+    panels:
+      - kind: array
+        label: Client text frame "Hello"
+        items: [{ v: '81', tone: plum, tag: 'FIN+text' }, { v: '85', tone: plum, tag: 'mask+len 5' }, { v: '37 fa 21 3d', tag: mask }, { v: '7f 9f 4d 51 58', tag: masked data }]
+  - caption: 'Either side can send at any time. Ping and pong frames check the connection is alive, and a close frame ends it cleanly with a status code.'
+    panels:
+      - kind: rows
+        label: Later on the same connection
+        items: [{ v: 'server → client: text "order shipped"', tone: plum }, { v: 'server → client: ping', tone: plum }, { v: 'client → server: pong', tone: plum }]

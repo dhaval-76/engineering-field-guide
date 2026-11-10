@@ -1,0 +1,85 @@
+questions:
+  - q: 'What is the difference between TCP and UDP, and when would you use each?'
+    think: Reliability and order versus timeliness. Then give real uses for each.
+    answer: |
+      TCP sets up a connection with a handshake and gives a reliable, ordered byte stream: lost data is resent, duplicates are dropped, and flow and congestion control stop it overwhelming the receiver or the network. The cost is a round trip to start, head-of-line blocking after a loss, and no message boundaries.
+
+      UDP sends independent datagrams with no handshake, no retransmission and no ordering, and keeps message boundaries. It suits cases where late data is useless or the application handles reliability itself: voice and video calls, games, DNS lookups, metrics, and QUIC, which builds reliable streams on UDP for HTTP/3.
+
+      Most APIs and databases use TCP. I would choose UDP only when timeliness matters more than completeness, or when I need a custom transport.
+    askedAt:
+      - company: Swiggy
+        year: 2025
+        round: Technical
+        source: https://leetcode.com/discuss/post/6256994/swiggy-asde-online-interviews-december-2-8l2y/
+      - company: Oracle
+        year: 2026
+        round: Hiring manager
+        source: https://leetcode.com/discuss/post/8477884/interview-summary-of-last-6-months-micro-y7a7/
+      - company: Goldman Sachs
+        year: 2025
+        round: Technical
+        source: https://leetcode.com/discuss/post/6221534/goldman-sachs-associate-bangalore-dec-20-7qcs/
+      - company: Meesho
+        year: 2025
+        round: Hiring manager
+        source: https://leetcode.com/discuss/post/6834461/meesho-sde-1-by-anonymous_user-9iuh/
+  - q: 'Explain the TCP three-way handshake, then continue into the TLS handshake.'
+    think: What does each side need to learn, and how many round trips does it all cost?
+    answer: |
+      The client sends SYN with a random starting sequence number. The server replies SYN-ACK with its own number and an acknowledgement of the client's. The client sends ACK. Three messages are the minimum for both sides to announce their number and confirm the other's. That costs one round trip, and the client may send data with the final ACK.
+
+      TLS 1.3 then takes one more round trip: the ClientHello carries supported ciphers and a key share; the server answers with its key share, certificate, a signature proving it owns the certificate's key, and Finished. Both sides derive the same keys and the client checks the certificate chain and host name. So a new HTTPS request waits about two round trips before the request goes out, which is why connections are reused.
+    askedAt:
+      - company: Zscaler
+        year: 2024
+        round: Technical
+        source: https://leetcode.com/discuss/post/5801403/zscaler-intern-fte-oncampus-2023-by-anon-m8ao/
+  - q: 'A service that calls another service over HTTP starts failing with "cannot assign requested address" under load. What is happening?'
+    think: Which resource runs out when connections are opened and closed quickly?
+    answer: |
+      The caller is running out of ephemeral ports. It probably opens a new connection per request and closes it. The side that closes first keeps each connection in TIME_WAIT (60 seconds on Linux), and with one destination address and port only about 28,000 source ports exist. At a few hundred new connections per second, the range fills.
+
+      Fix the cause: reuse connections with keep-alive and a connection pool, or HTTP/2. Short-term relief: widen `ip_local_port_range`, enable `tcp_tw_reuse` for outgoing connections, or spread across more destination addresses. Don't shorten TIME_WAIT itself; it protects new connections from stray old packets.
+  - q: 'Every call from your service to a key-value store takes about 40 ms more than expected, even though the store says it answers in 1 ms. What would you check?'
+    think: Small writes, waiting for ACKs.
+    answer: |
+      I'd suspect Nagle's algorithm meeting delayed ACKs. If the client writes a request in two small pieces, Nagle holds the second until the first is acknowledged, and the server delays that ACK by about 40 ms hoping to combine it with a response. Measured on Linux loopback, this pattern took 42 ms per exchange, against 0.1 ms with `TCP_NODELAY`.
+
+      Check whether the client sets `TCP_NODELAY` and whether it writes each request in one call. Confirm it with a packet capture: a 40 ms gap before the second segment. Most database and RPC clients already disable Nagle, so a custom client or an odd configuration is the usual cause.
+followUps:
+  - q: What is the difference between flow control and congestion control?
+    intuition: Who is being protected?
+    approach: |
+      Flow control protects the receiver: it advertises a receive window, how much it can buffer, and the sender never exceeds it. Congestion control protects the network: the sender keeps its own congestion window, grows it while data flows (doubling per round trip in slow start) and cuts it when it sees loss. The sender's limit is the smaller of the two.
+  - q: What is head-of-line blocking in TCP, and how does QUIC avoid it?
+    intuition: TCP delivers bytes in order. What happens when one is missing?
+    approach: |
+      TCP gives the application bytes strictly in order, so after a lost segment, later segments wait in the buffer until the retransmission arrives. With HTTP/2, many requests share one connection, so one loss stalls all of them. QUIC runs over UDP and keeps ordering per stream, so a loss only stalls the stream it belongs to.
+  - q: Why does TCP need a message framing layer?
+    intuition: Does one write become one read?
+    approach: |
+      TCP is a byte stream and does not keep write boundaries: two writes can arrive in one read, or one write in several. Protocols add framing, such as a length prefix, a delimiter, or headers with `Content-Length`, and the receiver buffers bytes until a complete message is there.
+practice:
+  - task: Implement length-prefixed message framing over TCP, with a decoder that works however the bytes are split.
+    hint: Prefix each message with its byte length; buffer input and only cut out a message once its whole body has arrived.
+    solution: |
+      Encode each message as a 4-byte big-endian length followed by the UTF-8 bytes. The decoder appends every chunk to a buffer, then loops: if at least 4 bytes are there, peek at the length; if the full body is there, take the message and continue, otherwise stop and wait for more. Keep the leftover bytes for the next chunk. Test it by splitting the encoded stream at random points, including one byte at a time.
+    solutionCode: tcp-framing
+quiz:
+  - q: How many duplicate ACKs trigger a fast retransmit?
+    options: ['1', '2', '3', '10']
+    correct: 2
+    why: Three duplicate ACKs mean later segments arrived, so one segment is almost certainly lost.
+  - q: Which side of a TCP connection ends up in TIME_WAIT?
+    options: [The side that closes first, The side that closes second, Both sides, Neither side on Linux]
+    correct: 0
+    why: The side that sends the first FIN waits in TIME_WAIT, so it can resend the last ACK and block stray old packets.
+  - q: A connection is stuck in CLOSE_WAIT on your server. What does it usually mean?
+    options: [The network is congested, The other side closed and your code never called close, TIME_WAIT is too long, The handshake failed]
+    correct: 1
+    why: CLOSE_WAIT means the peer sent FIN and the local application hasn't closed its socket, which is usually a leak.
+  - q: Why do voice calls usually run over UDP?
+    options: [UDP is encrypted, A late packet is useless, so resending it only adds delay, UDP has larger packets, TCP can't carry audio]
+    correct: 1
+    why: Real-time media would rather skip a lost packet than wait for it.

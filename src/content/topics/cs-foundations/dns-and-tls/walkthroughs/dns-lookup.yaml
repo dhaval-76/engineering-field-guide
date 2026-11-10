@@ -1,0 +1,31 @@
+title: Resolving api.shop.example with an empty cache
+legend:
+  accent: 'asked in this step'
+  info: 'referral to the next server'
+  ok: 'answer, now cached'
+frames:
+  - caption: 'The application asks the operating system, whose stub resolver forwards the question to a **recursive resolver**. Nothing is cached anywhere yet.'
+    panels:
+      - kind: flow
+        label: Who asks whom
+        items: ['App', 'OS stub resolver', { v: 'Recursive resolver', tone: accent }]
+  - caption: 'The resolver asks a **root server**. Root servers don''t know the answer, but they know who runs `.example`: a **referral** to the TLD servers, cached for two days.'
+    panels:
+      - kind: kv
+        label: Root server
+        pairs: [[question, 'api.shop.example A?'], [reply, { v: 'ask the .example servers', tone: info }], [cached for, '2 days']]
+  - caption: 'The **TLD server** for `.example` doesn''t know either, but it knows the domain''s own name servers.'
+    panels:
+      - kind: kv
+        label: .example TLD server
+        pairs: [[question, 'api.shop.example A?'], [reply, { v: 'ask ns1.shop.example', tone: info }], [cached for, '1 day']]
+  - caption: 'The domain''s **authoritative** server has the record: an address, with a TTL of 300 seconds.'
+    panels:
+      - kind: kv
+        label: Authoritative server
+        pairs: [[question, 'api.shop.example A?'], [reply, { v: '203.0.113.10', tone: ok }], [TTL, '300 s']]
+  - caption: 'The resolver returns the address and caches every step. For the next five minutes, anyone using this resolver gets the answer at once; for two days it can skip the root. That cache is why DNS is fast, and why changes take a TTL to be seen.'
+    panels:
+      - kind: rows
+        label: Resolver cache
+        items: [{ v: 'api.shop.example → 203.0.113.10 (300 s)', tone: ok }, '.example name servers (1 day)', 'root referral (2 days)']

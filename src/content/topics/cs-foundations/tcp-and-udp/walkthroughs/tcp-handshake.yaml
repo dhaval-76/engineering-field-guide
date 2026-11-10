@@ -1,0 +1,33 @@
+title: Opening a TCP connection
+legend:
+  accent: 'sent in this step'
+  ok: 'connection open'
+frames:
+  - caption: 'The client picks a random starting sequence number, say **1000**, and sends a **SYN** (synchronise). It is now in SYN_SENT.'
+    panels:
+      - kind: flow
+        label: Packets
+        items: [{ v: 'Client → SYN, seq 1000', tone: accent }]
+      - kind: kv
+        label: State
+        pairs: [[client, SYN_SENT], [server, LISTEN]]
+  - caption: 'The server picks its own random number, **5000**, and replies **SYN-ACK**: "my sequence starts at 5000, and I expect your byte 1001 next".'
+    panels:
+      - kind: flow
+        label: Packets
+        items: ['Client → SYN, seq 1000', { v: 'Server → SYN-ACK, seq 5000, ack 1001', tone: accent }]
+      - kind: kv
+        label: State
+        pairs: [[client, SYN_SENT], [server, SYN_RECEIVED]]
+  - caption: 'The client acknowledges the server''s number with **ACK 5001**. Both sides now know both starting numbers. One round trip has passed, and the client can send data in this same packet.'
+    panels:
+      - kind: flow
+        label: Packets
+        items: ['Client → SYN, seq 1000', 'Server → SYN-ACK, seq 5000, ack 1001', { v: 'Client → ACK 5001 (+ data)', tone: accent }]
+      - kind: kv
+        label: State
+        pairs: [[client, { v: ESTABLISHED, tone: ok }], [server, { v: ESTABLISHED, tone: ok }]]
+  - caption: 'Why not two messages? Each side must announce its own starting number **and** hear that the other side received it. Two messages would leave the server unsure whether its number arrived. With TLS on top, another round trip follows before the HTTP request.'
+    panels:
+      - kind: note
+        text: 'One round trip before any data. Reusing connections avoids paying it again.'

@@ -1,37 +1,82 @@
 questions:
   - q: 'What happens when you type a URL into the browser and press Enter?'
-    think: Go layer by layer, and count round trips.
+    think: Go layer by layer, count the round trips, and say where caching cuts them.
     answer: |
-      The browser parses the URL, checks caches (HSTS may force HTTPS), and resolves the host name via DNS (browser, OS and resolver caches, else root → TLD → authoritative, cached by TTL). It opens a TCP connection to port 443 (SYN, SYN-ACK, ACK — one round trip), performs a TLS 1.3 handshake (one more; verifies the certificate chain and host name), then sends the HTTP request (HTTP/2 or HTTP/3 if negotiated via ALPN). A CDN or load balancer may terminate TLS and forward to an application server, which reads cookies, queries caches and databases and responds. The browser parses HTML, discovers CSS/JS/images and fetches them over the same (multiplexed) connection, then renders. Mention where caching and connection reuse cut the cost.
-  - q: 'Users far from your region report slow API calls, but server-side latency metrics look fine. What might be happening?'
+      The browser parses the URL and checks its caches; HSTS may force HTTPS, and a cached response or service worker can answer without the network. The host name is resolved through DNS: browser, OS and resolver caches, or root, TLD and authoritative servers, cached for the record's TTL.
+
+      It opens a TCP connection to port 443 (one round trip) and runs the TLS 1.3 handshake (one more): keys are agreed, the certificate chain and host name are checked, and ALPN picks HTTP/2 or HTTP/1.1. Then it sends the HTTP request. A CDN or load balancer often ends TLS and forwards to an application server, which reads cookies, caches and databases and responds.
+
+      The browser parses the HTML, finds CSS, scripts and images, fetches them over the same connection where possible, and renders. Mention the cost: about three round trips before the first byte on a new connection, one on a reused one, and HTTP/3 merging the transport and TLS handshakes.
+    askedAt:
+      - company: Zomato
+        year: 2025
+        round: Technical
+        source: https://leetcode.com/discuss/post/6994052/eternal-ltdzomato-sde-1-interview-experi-fbnm/
+      - company: Paytm
+        year: 2026
+        round: Technical
+        source: https://leetcode.com/discuss/post/8548376/paytm-interview-experience-oncampus-by-b-m141/
+      - company: Google
+        year: 2026
+        round: Technical
+        source: https://leetcode.com/discuss/post/7624355/interview-experience-google-l3-web-solut-ger7/
+      - company: Flipkart
+        year: 2025
+        round: Technical
+        source: https://leetcode.com/discuss/post/6909362/flipkart-ui-engineer-2-bangalore-july-20-6rlz/
+      - company: Zeta
+        year: 2025
+        round: Technical
+        source: https://leetcode.com/discuss/post/6357165/zeta-directi-interview-experience-for-sd-zne2/
+  - q: 'Users far from your region report slow API calls, but server-side latency looks fine. What might be happening?'
     think: What isn't counted in server-side timing?
     answer: |
-      Server metrics start when the request arrives; the user also pays DNS, TCP and TLS handshakes and every round trip at, say, 150 ms. Likely culprits: new connections per request (no keep-alive), chatty APIs needing many sequential calls, large uncompressed payloads, or TLS without session resumption. Fixes: connection reuse, HTTP/2 or HTTP/3, a CDN/edge to terminate TLS near users, batching or aggregating calls (BFF), compression, caching, and regional deployments. Confirm with client-side timings (curl `-w`, RUM).
+      Server metrics start when the request arrives. The user also pays DNS, the TCP and TLS handshakes, and every round trip, which can be 150 ms or more across continents. Likely causes: a new connection per request, chatty APIs that need many sequential calls, large uncompressed payloads, or TLS without session resumption.
+
+      Fixes: reuse connections, use HTTP/2 or HTTP/3, end TLS near users with a CDN or edge, batch or aggregate calls (a backend for frontend), compress, cache, and deploy closer to users. Confirm it with client-side timings such as `curl -w` or real-user monitoring, not server logs.
+  - q: 'You send a message to a friend on a chat app. Walk through what happens on the network.'
+    think: Same layers as a URL, but the connection is already open and long-lived.
+    answer: |
+      The app usually holds a long-lived encrypted connection to the chat servers (a WebSocket or a custom protocol over TCP or QUIC), opened when it started. Sending a message writes a small frame on that connection: no DNS or handshake is needed. The server stores the message, then pushes it down the friend's open connection, or sends a push notification if they are offline. Acknowledgements flow back the same way, which is how the app shows "delivered". Explain NAT and keep-alive pings: without them, idle mappings expire and the connection dies silently.
+    askedAt:
+      - company: Walmart
+        year: 2024
+        round: Technical
+        source: https://leetcode.com/discuss/post/5751077/walmart-sde-ii-bengaluru-september-2024-hx68m/
 followUps:
-  - q: TCP or UDP — when would you use UDP?
-    intuition: Is late data still useful?
-    approach: |
-      UDP when timeliness beats reliability or the application handles reliability itself: live voice/video and games (a late packet is useless), DNS queries (tiny, retried by the client), metrics shipping where loss is tolerable, and QUIC/HTTP/3, which implements its own reliable streams on top of UDP to avoid TCP's head-of-line blocking and handshake costs.
-  - q: What does HTTP/2 improve over HTTP/1.1, and what does HTTP/3 add?
-    intuition: Requests per connection and the effect of a lost packet.
-    approach: |
-      HTTP/2 multiplexes many concurrent requests over one TCP connection with compressed headers, removing HTTP/1.1's one-at-a-time limitation. But a single lost TCP packet stalls every stream until it's retransmitted. HTTP/3 runs over QUIC on UDP: streams are independent (no cross-stream head-of-line blocking), transport and TLS handshakes are combined, and connections survive network changes (Wi-Fi to mobile).
-  - q: L4 vs L7 load balancing?
+  - q: L4 or L7 load balancing?
     intuition: What can the balancer see?
     approach: |
-      L4 balances TCP/UDP connections by IP and port — very fast and protocol-agnostic, but can't route by URL or see individual HTTP requests on a reused connection. L7 terminates HTTP (and usually TLS): path/host/header routing, per-request balancing, retries, header injection, WAF — at higher CPU cost. Long-lived gRPC/WebSocket connections need L7 or client-side balancing to spread load.
+      L4 balances TCP or UDP connections by address and port. It is very fast and protocol-agnostic, but it decides once per connection and can't route by URL. L7 ends HTTP (and usually TLS), so it can route each request by path, host or header, retry, and add headers, at a higher CPU cost. Long-lived gRPC and WebSocket connections need L7 or client-side balancing to spread load.
+  - q: Why can't a client open more than about 28,000 connections to one server port?
+    intuition: What identifies a TCP connection?
+    approach: |
+      A connection is identified by source IP, source port, destination IP and destination port. With the destination fixed, only the source port varies, and Linux's default ephemeral range is 32768 to 60999, about 28,000 ports. Closed connections also hold their port in TIME_WAIT for a while. Fixes: reuse connections, widen the port range, or add source or destination addresses.
 practice:
-  - task: Break down where time goes in a single HTTPS request and show how to inspect each layer from the command line.
+  - task: Break down where the time goes in a single HTTPS request, and show how to inspect each layer from the command line.
     hint: dig for DNS, curl -w for timings, openssl s_client for TLS, ss for connection states.
     solution: |
-      `dig` shows the resolved addresses and remaining TTL; `curl -w` with `time_namelookup`, `time_connect`, `time_appconnect`, `time_starttransfer` and `time_total` splits DNS, TCP, TLS, server time and transfer; `curl --http2/--http3` checks protocol support; `openssl s_client` shows the certificate chain and expiry; `ss` counts established and TIME_WAIT connections to spot connection churn. Compare a first request with a repeated one on a reused connection.
+      `dig` shows the resolved addresses and remaining TTL. `curl -w` with `time_namelookup`, `time_connect`, `time_appconnect`, `time_starttransfer` and `time_total` splits DNS, TCP, TLS, server time and transfer. `curl --http2` or `--http3` checks protocol support. `openssl s_client` shows the certificate chain and expiry. `ss` counts established and TIME_WAIT connections, which reveals connection churn. Compare a first request with a second one on a reused connection.
     solutionCode: net-debugging
+  - task: Send an HTTP request over a raw TCP socket and print the status line.
+    hint: HTTP/1.1 is text. Send the request line, a Host header and a blank line.
+    solution: |
+      Open a socket to the host and port, write `GET /path HTTP/1.1`, `Host: …` and `Connection: close`, each ending in `\r\n`, then an empty line. Read until the first `\r\n` to get the status line. Without `Host`, HTTP/1.1 servers reply 400; without `Connection: close`, the server keeps the connection open and you must parse `Content-Length` to know when the response ends.
+    solutionCode: net-raw-http
 quiz:
   - q: How many round trips does a new HTTPS connection over TCP with TLS 1.3 need before the request can be sent?
     options: ['0', '1', '2', '4']
     correct: 2
-    why: One for the TCP handshake, one for TLS 1.3 (DNS extra if not cached).
-  - q: Which protocol does HTTP/3 run on?
-    options: [TCP, UDP via QUIC, SCTP, WebSocket]
+    why: One for the TCP handshake and one for TLS 1.3. DNS adds more if the name isn't cached.
+  - q: Roughly how much round-trip time does each 100 km of fibre add?
+    options: ['0.01 ms', '1 ms', '10 ms', '100 ms']
     correct: 1
-    why: QUIC provides reliable, multiplexed streams over UDP.
+    why: Light in fibre covers about 200 km per millisecond, and a round trip crosses the distance twice.
+  - q: A user's bandwidth doubles. What happens to the time for 20 small sequential API calls?
+    options: [It halves, It barely changes, It doubles, It drops to zero]
+    correct: 1
+    why: Small calls are limited by round trips, which bandwidth doesn't shorten.
+  - q: Which device lets many private addresses share one public IP address?
+    options: [A DNS resolver, NAT, An L7 load balancer, A switch]
+    correct: 1
+    why: NAT rewrites addresses and ports on the way out and remembers the mapping.

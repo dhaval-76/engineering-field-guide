@@ -1,0 +1,37 @@
+title: The TLS 1.3 handshake
+legend:
+  accent: 'sent in this step'
+  ok: 'verified'
+  plum: 'secret derived'
+frames:
+  - caption: 'The TCP connection is open. The client sends **ClientHello**: the TLS versions and ciphers it supports, SNI (the host it wants), ALPN (HTTP/2 or HTTP/1.1), and a guessed **key share** for the key exchange.'
+    panels:
+      - kind: flow
+        label: Client → Server
+        items: [{ v: 'ClientHello: versions, ciphers, SNI api.shop.example, ALPN h2, key share', tone: accent }]
+  - caption: 'The server picks a cipher and sends **ServerHello** with its own key share. Both sides can now compute the same shared secret, without it ever crossing the network. Everything after this point is encrypted.'
+    panels:
+      - kind: flow
+        label: Server → Client
+        items: [{ v: 'ServerHello: cipher, key share', tone: accent }]
+      - kind: kv
+        label: Both sides
+        pairs: [[handshake keys, { v: 'derived from both key shares', tone: plum }]]
+  - caption: 'In the same flight, encrypted, the server sends its **certificate chain**, a **CertificateVerify** signature over the handshake made with its private key, and **Finished**.'
+    panels:
+      - kind: flow
+        label: Server → Client (encrypted)
+        items: [{ v: 'Certificate: leaf + intermediate', tone: accent }, { v: 'CertificateVerify: signature', tone: accent }, { v: 'Finished', tone: accent }]
+  - caption: 'The client checks the chain up to a root it trusts, that the leaf names `api.shop.example`, the dates, and the signature, which proves the server holds the private key.'
+    panels:
+      - kind: rows
+        label: Client checks
+        items: [{ v: 'chain ends at a trusted root', tone: ok }, { v: 'name matches', tone: ok }, { v: 'not expired', tone: ok }, { v: 'signature valid: server owns the key', tone: ok }]
+  - caption: 'The client sends **Finished** and, in the same packet, its first HTTP request. One round trip after TCP. TLS 1.2 needed two, because the key exchange was only chosen after the first exchange.'
+    panels:
+      - kind: flow
+        label: Client → Server (encrypted)
+        items: [{ v: 'Finished + GET /orders', tone: accent }]
+      - kind: kv
+        label: Both sides
+        pairs: [[application keys, { v: 'ready', tone: plum }]]

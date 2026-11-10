@@ -1,0 +1,78 @@
+questions:
+  - q: 'How does HTTPS work?'
+    think: TCP first, then what TLS must achieve, then how the certificate is trusted.
+    answer: |
+      HTTPS is HTTP inside TLS. After the TCP handshake, the client sends a ClientHello with its supported versions and ciphers, the host name (SNI), the protocols it can speak (ALPN), and a key share. The server answers with its own key share, and both derive the same secret without sending it, using an ephemeral Diffie-Hellman exchange, which gives forward secrecy. The server then sends its certificate chain and signs the handshake with its private key.
+
+      The client checks that the chain ends at a root in its trust store, that the certificate names the host, that it hasn't expired, and that the signature is valid, so the server really holds the key. Both sides then use symmetric keys for the rest of the connection. TLS 1.3 does all of this in one round trip; HTTP requests follow encrypted, with integrity checks so tampering is detected.
+    askedAt:
+      - company: Oracle
+        year: 2025
+        round: Technical
+        source: https://leetcode.com/discuss/post/6555411/oracle-oci-ic2-interview-experience-by-a-v1lf/
+      - company: Atlassian
+        year: 2024
+        round: Technical
+        source: https://leetcode.com/discuss/post/5677733/atlassian-virtual-onsite-2-rounds-p60-cl-ea8x/
+      - company: Zscaler
+        year: 2024
+        round: Technical
+        source: https://leetcode.com/discuss/post/5801403/zscaler-intern-fte-oncampus-2023-by-anon-m8ao/
+  - q: 'How does DNS resolution work, and how would you find out which server and IP a request actually went to?'
+    think: Stub, recursive resolver, root, TLD, authoritative. Then the tools.
+    answer: |
+      The OS stub resolver asks a recursive resolver. With an empty cache, the resolver asks a root server, which refers it to the TLD servers; the TLD refers it to the domain's authoritative name servers; those return the record. Every answer is cached for its TTL, so most lookups come straight from a cache.
+
+      To see what happened: `dig name` shows the answer, the resolver used and the remaining TTL; `dig +trace name` walks root, TLD and authoritative yourself; `curl -v` prints the address it connected to; and server logs or `ss` show which backend received the connection. Remember caches at every level, including the JVM and long-lived connections, can still point at an old address.
+    askedAt:
+      - company: Salesforce
+        year: 2026
+        round: Technical
+        source: https://leetcode.com/discuss/post/8204135/salesforce-amts-interview-should-i-move-wkg4g/
+  - q: 'You moved a service to a new IP address and updated DNS, but traffic keeps arriving at the old servers for hours. Why, and how should you have done it?'
+    think: Who cached the old answer, and for how long?
+    answer: |
+      Resolvers and clients cached the old record for its TTL, which was probably hours. Some clients cache longer than the TTL, and long-lived connections never look the name up again.
+
+      Plan it: lower the TTL to something like 60 seconds a full old-TTL in advance, keep the old servers running and forwarding until traffic stops, then switch, watch traffic drain, and raise the TTL again. For fast failover without DNS, put a load balancer with a stable address in front, or use anycast.
+followUps:
+  - q: What is mTLS and when would you use it?
+    intuition: In ordinary TLS, only one side proves who it is.
+    approach: |
+      In mutual TLS the server also requests a client certificate and checks it against a CA it trusts, so both sides authenticate. It suits service-to-service traffic: each service gets a certificate as its identity, and authorization can use it. The work is issuing, rotating and revoking many certificates, which service meshes and internal CAs automate.
+  - q: Why is TLS 1.3 faster than TLS 1.2?
+    intuition: When does the client send its part of the key exchange?
+    approach: |
+      In TLS 1.3 the client guesses the key exchange group and sends its key share in the first message, so keys exist after one round trip. TLS 1.2 first agreed on a cipher, then exchanged keys, taking two. TLS 1.3 also removed old, weak options and always uses ephemeral keys, giving forward secrecy.
+  - q: A certificate works in your browser but a Java service gets "unable to find valid certification path". What is likely wrong?
+    intuition: What does the server send, and what does each client already have?
+    approach: |
+      The server probably isn't sending its intermediate certificate. Browsers often have it cached or fetch it, but most server-side clients don't, so the chain can't reach a trusted root. Fix the server to send the full chain. Less often, the root or a private CA is missing from the Java trust store.
+practice:
+  - task: Build a DNS query by hand, send it to a resolver over UDP, and print the addresses and TTLs.
+    hint: A 12-byte header, the name as length-prefixed labels, type A and class IN. In the reply, skip the question and read each answer; names can be compressed pointers.
+    solution: |
+      The header holds an id, flags with "recursion desired", and one question. Encode `example.com` as `7example3com0`, then type 1 and class 1. In the reply, read the answer count, skip the header and the echoed question, then for each answer skip its name (labels, or a 2-byte pointer starting with bits 11), read type, class, TTL and data length, and keep the 4-byte address of each type 1 record. CNAME records (type 5) appear first for aliased names.
+    solutionCode: dns-query
+  - task: Write a check that connects to a host over TLS, verifies it, and reports days until the certificate expires.
+    hint: Use the default trust store and turn on host name verification; read notAfter from the leaf certificate.
+    solution: |
+      Open a TLS connection with SNI set to the host and host name checking on, which a library's default context does in JavaScript and Python and Java does once you set the endpoint identification algorithm. After the handshake, read the leaf certificate's expiry and subtract the current time. Run it daily and alert at about 20 days left, and sooner as lifetimes shrink.
+    solutionCode: tls-expiry
+quiz:
+  - q: Which server holds the actual DNS record for api.shop.example?
+    options: [The root server, The .example TLD server, The domain's authoritative name server, The browser]
+    correct: 2
+    why: Root and TLD servers only refer the resolver onward; the authoritative server has the answer.
+  - q: When should you lower a DNS TTL before moving a service?
+    options: [At the moment you switch, At least one old TTL before switching, After the switch, Never]
+    correct: 1
+    why: Caches already holding the old record keep it for the old TTL, so lower it in advance.
+  - q: How many round trips does a TLS 1.3 handshake take on a new connection?
+    options: ['0', '1', '2', '3']
+    correct: 1
+    why: The client sends its key share in the first message, so one round trip is enough.
+  - q: What does mTLS add to ordinary TLS?
+    options: [Faster handshakes, The client also proves its identity with a certificate, Compression, DNS encryption]
+    correct: 1
+    why: Both sides present and verify certificates.

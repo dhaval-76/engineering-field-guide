@@ -1,0 +1,150 @@
+---
+title: HTTP/1.1, HTTP/2 and HTTP/3
+summary: How each HTTP version moves requests, why HTTP/3 left TCP for QUIC, and the parts of HTTP every backend engineer uses daily, including caching with Cache-Control and ETags, status codes, cookies and CORS.
+track: cs-foundations
+order: 22
+tags: [cs-foundations, networking, http, caching, cors]
+aliases: [http, http 1.1, http2, http 2, http3, http 3, quic, multiplexing, hpack, qpack, head of line blocking, alpn, 0-rtt, connection migration, cache-control, max-age, no-cache, no-store, stale-while-revalidate, etag, if-none-match, 304 not modified, last-modified, status codes, 401 vs 403, 502 503 504, cookies, samesite, httponly, secure cookie, cors, preflight, options request, same origin policy, access-control-allow-origin, access-control-max-age]
+prerequisites: [cs-foundations/networking, cs-foundations/tcp-and-udp]
+related: [cs-foundations/dns-and-tls, backend/rest-api-design, backend/api-styles, distributed-systems/cdn, distributed-systems/caching-strategies]
+quickRef:
+  points:
+    - '**HTTP/1.1**: one request at a time per connection, so browsers open about six per host.'
+    - '**HTTP/2**: many requests multiplexed on one TCP connection, with compressed headers. One lost packet still stalls them all.'
+    - '**HTTP/3**: HTTP over **QUIC** on UDP. Streams are independent, the handshake is one round trip, and connections survive a network change.'
+    - '`Cache-Control: no-cache` means **check before reuse**; `no-store` means **never store**. An **ETag** lets a client revalidate and get a bodyless **304**.'
+    - '**401** = who are you? **403** = I know you, and no. **502/504** come from a proxy whose backend failed or was too slow.'
+    - '**CORS** is the browser asking the server for permission. Non-simple requests (JSON bodies, custom headers, PUT and DELETE) send an **OPTIONS preflight** first.'
+  useWhen: Choosing protocols, setting caching headers, debugging status codes or CORS errors, and answering "HTTP/1.1 vs HTTP/2 vs HTTP/3".
+askedAt:
+  - company: Razorpay
+    year: 2025
+    round: Technical
+    source: https://leetcode.com/discuss/post/6273899/razorpay-frontend-interview-experience-b-yvc8/
+  - company: Oracle
+    year: 2025
+    round: Phone screen
+    source: https://leetcode.com/discuss/post/6912254/oracle-l4-phone-screen-experience-by-ano-0dcx/
+  - company: Apple
+    year: 2025
+    round: Technical
+    source: https://leetcode.com/discuss/post/6979238/my-apple-ic3-frontend-interview-experien-k4jt/
+  - company: Walmart
+    year: 2024
+    round: Technical
+    source: https://leetcode.com/discuss/post/5505527/walmart-sde-3-bangalore-by-anonymous_use-9nwa/
+lastReviewed: 2026-11-10
+---
+
+## Why it matters
+
+HTTP is the protocol most backend code speaks, and the details decide real outcomes. The version affects how many connections a page needs and how badly a lossy mobile network hurts. Caching headers decide whether a CDN absorbs your traffic or forwards all of it. A missing CORS header turns a working API into a mysterious browser error. Status codes tell clients, proxies and monitoring what went wrong.
+
+<Callout type="analogy">
+A shop counter. HTTP/1.1 is one queue per counter: each customer is served in turn, so the shop opens six counters. HTTP/2 is one counter serving many customers at once, but if the delivery van breaks down, every order at that counter waits. HTTP/3 gives each order its own van, so one breakdown delays only that order.
+</Callout>
+
+## Three versions
+
+| | HTTP/1.1 | HTTP/2 | HTTP/3 |
+|---|---|---|---|
+| Transport | TCP | TCP | QUIC over UDP |
+| Requests per connection | One at a time | Many, multiplexed as streams | Many, as independent streams |
+| Headers | Plain text, repeated on every request | Compressed (HPACK) | Compressed (QPACK) |
+| Head-of-line blocking | Per connection | At the TCP level: a loss stalls every stream | Only the stream that lost data |
+| Handshake | TCP, then TLS | TCP, then TLS | Combined: one round trip, or 0-RTT on resumption |
+| Change of network | Connection breaks | Connection breaks | Survives, using connection IDs |
+
+**HTTP/1.1** can only have one request outstanding per connection. Pipelining (sending several without waiting) exists in the spec but was never usable in practice, so browsers open about six connections per host instead.
+
+**HTTP/2** splits each request and response into frames tagged with a stream ID and interleaves them on one connection. That removes the six-connection limit and per-request handshakes. The browser and server agree on HTTP/2 during the TLS handshake, through ALPN.
+
+**HTTP/3** runs over **QUIC**, a transport built on UDP that includes TLS 1.3. QUIC tracks loss per stream, so one lost packet only delays its own stream. Its connections are identified by a connection ID rather than by addresses, so moving from Wi-Fi to mobile data keeps the connection alive. Resumed connections can send **0-RTT** data with the first packet, but that data can be replayed by an attacker, so it is only safe for requests that are safe to repeat, such as GETs.
+
+<Walkthrough id="http-hol-blocking" />
+
+In practice CDNs and browsers support HTTP/3 widely, origin servers much less often, and clients fall back to HTTP/2 when UDP is blocked. Inside a data centre, where loss is rare, HTTP/2 over TCP is usually fine.
+
+## Status codes worth knowing exactly
+
+| Code | Meaning | Common confusion |
+|---|---|---|
+| 200, 201, 204 | OK, created, OK with no body | Return 201 with a `Location` for a created resource |
+| 301, 308 | Moved permanently | 301 may turn a POST into a GET; 308 never changes the method |
+| 302, 307 | Moved temporarily | Same split: 307 keeps the method |
+| 304 | Not modified: use your cached copy | Only sent in reply to a conditional request |
+| 400 | The request is malformed | Not for business-rule failures; 409 or 422 fit better |
+| **401** | Not authenticated: who are you? | Send credentials and try again |
+| **403** | Authenticated, but not allowed | Credentials won't help |
+| 404 | Not found | Also used to hide that a resource exists |
+| 409 | Conflict with the current state | Version mismatch, duplicate |
+| 429 | Too many requests | Include `Retry-After` |
+| 500 | The server failed | A bug, usually |
+| **502** | A proxy got a bad response from upstream | The backend crashed or closed the connection |
+| **503** | Unavailable for now | Overload or maintenance; include `Retry-After` |
+| **504** | A proxy timed out waiting for upstream | The backend was too slow |
+
+## Caching
+
+`Cache-Control` decides who may store a response and for how long:
+
+- `max-age=60`: fresh for 60 seconds; caches may reuse it without asking.
+- `no-cache`: may be stored, but **must be revalidated** with the server before each reuse. It does not mean "don't cache".
+- `no-store`: no cache, private or shared, may store it. Use it for sensitive data.
+- `private`: only the user's browser may store it, not a CDN. `public` allows shared caches.
+- `stale-while-revalidate=86400`: after `max-age` runs out, serve the stale copy for up to a day while fetching a fresh one in the background.
+
+**Revalidation** avoids sending a body the client already has. The server labels each version with an `ETag`. The client later sends `If-None-Match` with that tag, and if nothing changed the server answers **304 Not Modified** with no body. `Last-Modified` and `If-Modified-Since` do the same with timestamps, which are coarser.
+
+<CodeTabs id="http-conditional" title="ETag revalidation: 200 with a tag, then 304 while it matches" />
+
+Static assets with a content hash in their file name can use `max-age=31536000, immutable`: a new version gets a new name, so the old one never needs revalidating.
+
+## Cookies
+
+A cookie is a header the server sets and the browser sends back. Its attributes decide where it goes:
+
+| Attribute | Effect |
+|---|---|
+| `Secure` | Only sent over HTTPS |
+| `HttpOnly` | Invisible to JavaScript, which limits damage from XSS |
+| `SameSite=Strict` | Never sent on cross-site requests |
+| `SameSite=Lax` | Sent on top-level navigation from other sites, not on cross-site POSTs or embedded requests |
+| `SameSite=None` | Always sent; requires `Secure` |
+| `Domain`, `Path` | Which hosts and paths receive it |
+| `Max-Age` or `Expires` | Without them it is a session cookie |
+
+Some browsers, including Chrome, treat a cookie with no `SameSite` attribute as `Lax`, which blocks most cross-site request forgery by default. Set the attribute explicitly rather than relying on that.
+
+## CORS
+
+Browsers apply the **same-origin policy**: a script from one origin (scheme, host and port) can't read responses from another. CORS is how a server says "this other origin may read my responses". It protects users of the browser; it does not stop curl, servers or attackers from calling your API directly.
+
+A cross-origin request is **simple**, and goes straight to the server, only if it uses GET, HEAD or POST, sets no headers beyond a short safelist (`Accept`, `Accept-Language`, `Content-Language`, `Content-Type`, a single `Range`), and any `Content-Type` is `application/x-www-form-urlencoded`, `multipart/form-data` or `text/plain`. Anything else, such as a JSON body, an `Authorization` header or a DELETE, first sends an **OPTIONS preflight**.
+
+<Walkthrough id="cors-preflight-flow" />
+
+<CodeTabs id="cors-preflight" title="Will the browser send a preflight? Checked against real Chromium on 15 cases" />
+
+The server's answer must include `Access-Control-Allow-Origin`, plus the allowed methods and headers for a preflight. To send cookies, the client sets `credentials: 'include'` and the server must name the exact origin (not `*`) and send `Access-Control-Allow-Credentials: true`. `Access-Control-Max-Age` lets the browser cache the preflight result: the default is 5 seconds, Chromium caps it at 2 hours and Firefox at 24 hours.
+
+<Pitfalls>
+
+- **`no-cache` used to mean "don't store".** Use `no-store` for sensitive responses.
+- **Personalised pages marked `public`**, so a CDN serves one user's page to another.
+- **401 and 403 swapped**, so clients retry login when they never had permission.
+- **`Access-Control-Allow-Origin: *` with credentials**, which browsers reject.
+- **Treating CORS as API security.** It only governs what browsers let scripts read.
+- **Ignoring preflights in rate limits and auth**: the OPTIONS request carries no credentials and must succeed.
+- **Turning on 0-RTT for requests that change data.**
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- HTTP/2 multiplexes requests on one TCP connection; HTTP/3 moves to QUIC so a loss only stalls one stream.
+- `no-cache` means revalidate, `no-store` means never store; ETags turn repeat downloads into empty 304s.
+- 401 is unauthenticated, 403 is forbidden; 502 and 504 come from a proxy whose backend failed or was slow.
+- CORS lets a server allow other origins to read its responses; non-simple requests send an OPTIONS preflight first.
+
+</KeyTakeaways>

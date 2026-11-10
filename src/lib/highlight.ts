@@ -18,6 +18,7 @@ const langs = [
   'xml',
   'proto',
   'graphql',
+  'nginx',
 ];
 let highlighter: Promise<Highlighter> | undefined;
 

@@ -1,0 +1,54 @@
+questions:
+  - q: 'Polling or WebSockets for a dashboard that must show updates in real time? Walk through the trade-offs.'
+    think: How often does data change, who sends, and what sits between the client and the server?
+    answer: |
+      Polling is simple, cacheable and works through every proxy, but it is late by up to the interval and wastes requests when nothing changed. Long polling is near-instant and still plain HTTP, at the cost of one held request per client. If updates only flow from server to client, which is typical for a dashboard, server-sent events give a single long response with automatic reconnect and resume from the last event id. WebSockets add two-way messaging, which a dashboard rarely needs.
+
+      Then the infrastructure: every option except short polling holds connections, so every proxy and load balancer needs longer idle timeouts or regular heartbeats, SSE needs buffering turned off, and deploys must drain connections. For most dashboards I'd pick SSE, and fall back to polling for clients behind proxies that break streams.
+    askedAt:
+      - company: Adobe
+        year: 2025
+        round: Frontend system design
+        source: https://leetcode.com/discuss/post/6938276/adobe-mts-2-interview-experience-fe-by-a-5h33/
+  - q: 'WebSocket connections in production close after exactly 60 seconds of inactivity. What is happening and how do you fix it?'
+    think: What has a 60-second default in the path?
+    answer: |
+      Something in the path has a 60-second idle timeout: nginx's `proxy_read_timeout` and an AWS Application Load Balancer both default to 60 seconds. With no data flowing, they close the connection.
+
+      Fix it at both ends: have the server send a heartbeat (a ping frame or a small message) every 20 to 30 seconds, which is below every idle timeout in the path, including NAT mappings you don't control, and raise the timeouts you do control. Make clients reconnect with backoff and jitter and resume where they left off, because connections will still drop sometimes.
+  - q: 'You put an SSE endpoint behind nginx and events arrive in bursts, or only when the stream ends. Why?'
+    think: What does a reverse proxy do with a response by default?
+    answer: |
+      nginx buffers proxied responses by default (`proxy_buffering on`), collecting data before sending it on, so small events sit in the buffer. Turn buffering off for that location, or have the application send `X-Accel-Buffering: no` on the response. Also use HTTP/1.1 to the upstream, raise `proxy_read_timeout`, and send comment heartbeats. Compression or a CDN in the path can buffer in the same way.
+followUps:
+  - q: Why are WebSocket frames from the client masked?
+    intuition: What could a malicious page make a naive proxy see?
+    approach: |
+      Without masking, a script could choose exact bytes on the wire and make them look like an HTTP request to an intermediary that doesn't understand WebSockets, poisoning its cache. XORing every client frame with a random 4-byte key makes the bytes unpredictable to the script. Servers must reject unmasked client frames; server frames are not masked.
+  - q: How do you deploy a new version of a service holding 100,000 WebSocket connections?
+    intuition: What happens if every connection closes at once?
+    approach: |
+      Drain gradually: take one instance out of the load balancer so it gets no new connections, ask its clients to reconnect (a close frame, or a reconnect message), and let them move over a few minutes before stopping it. Clients reconnect with exponential backoff and jitter and resume from their last message id. Roll through instances one at a time, and keep capacity for the reconnecting clients.
+practice:
+  - task: Compute the Sec-WebSocket-Accept value for a key, and encode a text frame with and without a mask.
+    hint: SHA-1 of the key plus the fixed GUID, then Base64. A frame is 0x81, then the length with the mask bit, then the mask and the XORed payload.
+    solution: |
+      Append `258EAFA5-E914-47DA-95CA-C5AB0DC85B11` to the key, hash with SHA-1 and Base64-encode it; RFC 6455's example key `dGhlIHNhbXBsZSBub25jZQ==` gives `s3pPLMBiTxaQ9kYGzzhZRbK+xOo=`. For a frame, write 0x81, then the length (one byte under 126, else 126 plus 2 bytes, or 127 plus 8 bytes) with 0x80 added when masking, then the 4-byte mask and the payload XORed with it. "Hello" unmasked is `81 05 48 65 6c 6c 6f`.
+    solutionCode: ws-protocol
+quiz:
+  - q: What is nginx's default proxy_read_timeout?
+    options: [10 seconds, 60 seconds, 1 hour, None]
+    correct: 1
+    why: A proxied connection with no data for 60 seconds is closed unless you raise it or send heartbeats.
+  - q: Which headers must nginx be told to pass for a WebSocket upgrade?
+    options: [Host and Origin, Upgrade and Connection, Cookie and Authorization, Accept and Content-Type]
+    correct: 1
+    why: Upgrade and Connection are hop-by-hop, so proxies don't forward them by default.
+  - q: How should you choose a heartbeat interval?
+    options: [Once an hour, Shorter than the shortest idle timeout on the path, Exactly 60 seconds, Only when the user types]
+    correct: 1
+    why: Every hop resets its timer on traffic, so the shortest timeout decides.
+  - q: After you add servers, existing WebSocket clients stay on the old ones. Why?
+    options: [DNS caching, The balancer chose a server when each connection opened, Masking, HTTP/2]
+    correct: 1
+    why: Connection-level balancing decides once per connection; only new connections reach new servers.

@@ -1,0 +1,31 @@
+title: A cross-origin JSON request and its preflight
+legend:
+  accent: 'request in this step'
+  ok: 'allowed'
+  bad: 'blocked by the browser'
+frames:
+  - caption: 'A page on `https://shop.example` calls `fetch(''https://api.example/orders'', { method: ''POST'', headers: { ''Content-Type'': ''application/json'' } })`. A JSON content type is not one of the three simple types, so this is **not a simple request**.'
+    panels:
+      - kind: kv
+        label: Request
+        pairs: [[from, 'https://shop.example'], [to, 'https://api.example'], [method, POST], [Content-Type, application/json]]
+  - caption: 'Before sending it, the browser asks permission with an **OPTIONS preflight**. It carries no body and no cookies, only what it intends to send.'
+    panels:
+      - kind: flow
+        label: Browser → API
+        items: [{ v: 'OPTIONS /orders', tone: accent }, 'Origin: https://shop.example', 'Access-Control-Request-Method: POST', 'Access-Control-Request-Headers: content-type']
+  - caption: 'The API answers with what it allows, and may let the browser cache this answer with `Access-Control-Max-Age`.'
+    panels:
+      - kind: flow
+        label: API → Browser
+        items: ['204 No Content', { v: 'Access-Control-Allow-Origin: https://shop.example', tone: ok }, { v: 'Access-Control-Allow-Methods: POST', tone: ok }, { v: 'Access-Control-Allow-Headers: content-type', tone: ok }, 'Access-Control-Max-Age: 600']
+  - caption: 'Permission matches, so the browser sends the real POST. The response must again carry `Access-Control-Allow-Origin`, or the script can''t read it.'
+    panels:
+      - kind: flow
+        label: Browser → API
+        items: [{ v: 'POST /orders (with the JSON body)', tone: accent }, { v: '201 Created + Access-Control-Allow-Origin', tone: ok }]
+  - caption: 'Had the preflight lacked the header, the browser would **block the call and never send the POST**. The console shows a CORS error, and the server logs only an OPTIONS request. Tools like curl ignore all of this: CORS is enforced by browsers, not servers.'
+    panels:
+      - kind: rows
+        label: Without permission
+        items: [{ v: 'POST never sent; script sees a network error', tone: bad }]

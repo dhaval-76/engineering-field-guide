@@ -1,0 +1,167 @@
+---
+title: TCP and UDP
+summary: How TCP turns lost, reordered packets into a reliable stream, from the handshake and retransmission to flow and congestion control, TIME_WAIT and Nagle's delay, and when UDP's plain datagrams are the better choice.
+track: cs-foundations
+order: 21
+tags: [cs-foundations, networking, tcp, udp]
+aliases: [tcp, udp, tcp vs udp, three way handshake, 3 way handshake, syn ack, four way termination, fin, retransmission, rto, fast retransmit, duplicate ack, sliding window, flow control, congestion control, slow start, cwnd, aimd, head of line blocking, time_wait, close_wait, tcp keepalive, nagle, tcp_nodelay, delayed ack, message framing, length prefix, datagram, mtu]
+prerequisites: [cs-foundations/networking]
+related: [cs-foundations/http-versions, cs-foundations/realtime-connections, backend/connection-pooling, cs-foundations/files-and-io]
+quickRef:
+  points:
+    - '**TCP**: a handshake, then a reliable, ordered **byte stream**. Lost data is resent; the app never sees gaps.'
+    - 'The handshake is SYN, SYN-ACK, ACK: **one round trip** before data. Each side learns the other''s starting sequence number.'
+    - '**Flow control** protects the receiver (its window); **congestion control** protects the network (the sender''s window grows until loss).'
+    - 'One lost segment stalls everything behind it: **head-of-line blocking**.'
+    - 'The side that closes first holds the port in **TIME_WAIT** (60 s on Linux). Churning connections runs out of ports; reuse them.'
+    - 'Small writes can wait about **40 ms** for Nagle plus delayed ACK. Set `TCP_NODELAY` for request-response protocols.'
+    - '**UDP**: independent datagrams, no handshake, no retransmission. Used where late data is useless (calls, games) and by DNS and QUIC.'
+  useWhen: Choosing a transport, explaining latency spikes or connection errors, or answering "TCP vs UDP".
+askedAt:
+  - company: Swiggy
+    year: 2025
+    round: Technical
+    source: https://leetcode.com/discuss/post/6256994/swiggy-asde-online-interviews-december-2-8l2y/
+  - company: Oracle
+    year: 2026
+    round: Hiring manager
+    source: https://leetcode.com/discuss/post/8477884/interview-summary-of-last-6-months-micro-y7a7/
+  - company: Goldman Sachs
+    year: 2025
+    round: Technical
+    source: https://leetcode.com/discuss/post/6221534/goldman-sachs-associate-bangalore-dec-20-7qcs/
+  - company: Meesho
+    year: 2025
+    round: Hiring manager
+    source: https://leetcode.com/discuss/post/6834461/meesho-sde-1-by-anonymous_user-9iuh/
+  - company: Zscaler
+    year: 2024
+    round: Technical
+    source: https://leetcode.com/discuss/post/5801403/zscaler-intern-fte-oncampus-2023-by-anon-m8ao/
+lastReviewed: 2026-11-10
+---
+
+## Why it matters
+
+IP delivers packets on a best-effort basis: they can be lost, duplicated or arrive out of order. Almost everything you build assumes the opposite: that bytes you write arrive, once, in order. TCP is what closes that gap, and its mechanisms explain many puzzling symptoms. A request that always takes an extra 40 ms. A client that suddenly can't open connections. A stream that freezes after one lost packet. UDP skips all of it, which is exactly why some applications choose it.
+
+<Callout type="analogy">
+TCP is sending a long letter as numbered postcards by registered post. The receiver confirms which numbers arrived, asks again for missing ones, and reads them in order, even if card 7 turns up after card 9. UDP is dropping postcards in a postbox: cheap and fast, and some may never arrive.
+</Callout>
+
+## The handshake
+
+<Walkthrough id="tcp-handshake" />
+
+Three messages are the minimum for both sides to announce their own starting sequence number and confirm they received the other's. Starting numbers are random, which stops an old, delayed packet or an attacker from slipping data into a new connection.
+
+The handshake also explains a classic attack. A **SYN flood** sends many SYNs and never completes them, filling the server's queue of half-open connections. SYN cookies let the server avoid storing anything until the final ACK arrives.
+
+## Reliability: sequence numbers and retransmission
+
+Every byte has a sequence number. The receiver sends **cumulative acknowledgements**: "ACK 3001" means "I have everything before byte 3001". Two mechanisms resend lost data:
+
+- **Retransmission timeout (RTO):** if nothing is acknowledged in time, resend. The timeout adapts to measured round-trip times; RFC 6298 starts it at 1 second before the first measurement.
+- **Fast retransmit:** if three duplicate ACKs arrive for the same number, a segment is almost certainly lost while later ones got through, so resend it at once instead of waiting.
+
+<Walkthrough id="tcp-lost-packet" />
+
+**Head-of-line blocking** is the cost of in-order delivery. Segments after the lost one may already be at the receiver, but the application can't read them until the gap is filled. HTTP/2 runs many requests over one TCP connection, so one lost packet stalls all of them; this is the main reason HTTP/3 moved to QUIC. See [HTTP versions](../http-versions/).
+
+## Flow control and congestion control
+
+| | Flow control | Congestion control |
+|---|---|---|
+| Protects | The receiver | The network between the two |
+| Signal | The receive window the receiver advertises | Loss (and sometimes delay) the sender observes |
+| Who limits | Receiver tells the sender how much it can buffer | Sender limits itself with its congestion window |
+| Symptom when it bites | A slow reader makes the sender pause | Throughput drops after loss, then climbs again |
+
+The sender may have at most `min(receive window, congestion window)` bytes unacknowledged. A new connection starts small (10 segments is common, per RFC 6928) and doubles each round trip in **slow start**, then grows more carefully and backs off when it sees loss.
+
+<Chart
+  type="line"
+  title="Congestion window of a new connection (model)"
+  x={['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12']}
+  series={[{ name: 'segments in flight', values: [10, 20, 40, 80, 160, 80, 81, 82, 83, 84, 85, 86], tone: 'info' }]}
+  caption="A classic Reno-style sender: slow start doubles the window every round trip, a loss after round 5 halves it, then it grows by one segment per round trip. Linux uses CUBIC, which recovers faster, but the shape is the same. This is why a brand new connection can't use a fast link fully at first."
+/>
+
+This is also why connection reuse helps beyond saving handshakes: a warm connection has already grown its window.
+
+## Closing a connection and TIME_WAIT
+
+Each side sends FIN to say it is done sending, and the other acknowledges it, so a full close takes four messages (often three, when one ACK and FIN travel together). The side that **closes first** then waits in **TIME_WAIT** before the port can be reused for the same connection:
+
+- It may need to resend the final ACK if it was lost.
+- It stops a delayed packet from the old connection being taken as part of a new one with the same addresses and ports.
+
+RFC 9293 sets the wait at twice the maximum segment lifetime, with an MSL of 2 minutes. Linux uses a fixed 60 seconds. A client that opens and closes thousands of connections per second to one server fills the ephemeral port range with TIME_WAIT sockets and starts failing with "cannot assign requested address". The fix is to **reuse connections** with keep-alive and pools, not to shorten the timer. `tcp_tw_reuse` can help outgoing connections; `tcp_tw_recycle` was removed from Linux because it broke clients behind NAT.
+
+The opposite state, **CLOSE_WAIT**, means the other side has closed and your code never called `close()`: a socket leak in your application.
+
+## Keep-alive means two different things
+
+- **HTTP keep-alive** reuses one connection for many requests. This is what saves handshakes, and it is on by default in HTTP/1.1.
+- **TCP keepalive** sends empty probes on an idle connection to detect a dead peer. Linux waits 2 hours by default before the first probe, far longer than most NAT and load balancer idle timeouts, so long-lived connections usually add application-level pings instead.
+
+## Nagle's algorithm and the 40 ms delay
+
+Nagle's algorithm holds back a small write while earlier data is still unacknowledged, to avoid sending many tiny packets. The receiver, meanwhile, delays its ACK in the hope of sending it with a reply. Together they deadlock briefly when a client writes a request in two small pieces and waits for the answer.
+
+<Chart
+  type="bar"
+  title="Write, write, read on Linux loopback (measured)"
+  bars={[
+    ['Nagle on (default)', 42, 'bad'],
+    ['TCP_NODELAY set', 0.1, 'ok'],
+  ]}
+  unit=" ms"
+  caption="Median of 50 exchanges where the client sends 1 byte, then another, then waits for a 1-byte reply. Measured in a Linux container on a laptop. The second write waits for the first one's ACK, which the receiver delays by about 40 ms."
+/>
+
+Request-response protocols (databases, Redis, RPC) set `TCP_NODELAY`, and most client libraries already do. Better still, write a whole message in one call.
+
+## TCP is a byte stream, not messages
+
+TCP does not keep your write boundaries. Two writes can arrive in one read, and one write can arrive split across several reads. Every protocol on top of TCP therefore defines its own **framing**: HTTP/1.1 uses headers and `Content-Length`, HTTP/2 and gRPC use length-prefixed frames, Redis uses line-based markers.
+
+<CodeTabs id="tcp-framing" title="Length-prefixed framing: messages survive however TCP splits the bytes" />
+
+## UDP
+
+UDP sends independent **datagrams**: each `send` arrives as one whole message or not at all. There is no handshake, no retransmission, no ordering and no congestion control. The application decides what to do about loss.
+
+| | TCP | UDP |
+|---|---|---|
+| Setup | Handshake (one round trip) | None |
+| Delivery | Reliable, ordered byte stream | Independent datagrams, may be lost or reordered |
+| Message boundaries | Not kept; you add framing | Kept |
+| Congestion control | Built in | None; the app must be careful |
+| Head-of-line blocking | Yes | No |
+| Typical uses | HTTP/1.1 and 2, databases, most APIs | DNS, voice and video, games, metrics, QUIC (HTTP/3) |
+
+**Why calls and games use UDP:** a voice packet that arrives 300 ms late is useless, so resending it only delays newer audio. These applications prefer to skip a lost packet and carry on. **QUIC** builds reliable, encrypted, independent streams on top of UDP, getting TCP's reliability without its head-of-line blocking and with a faster handshake.
+
+Keep UDP payloads small, about 1,200 bytes, so a datagram fits in one packet on almost any path; larger ones get fragmented, and losing any fragment loses the whole datagram.
+
+<Pitfalls>
+
+- **Assuming one `read` returns one message.** Always frame messages on TCP.
+- **Opening a connection per request**, which wastes handshakes, starts cold windows and fills ports with TIME_WAIT.
+- **Small writes without `TCP_NODELAY`** in a request-response protocol: a mysterious 40 ms per call.
+- **CLOSE_WAIT piling up**: your code isn't closing sockets.
+- **Relying on TCP keepalive's defaults** to detect a dead peer in time.
+- **Large UDP datagrams** that fragment and get lost as a whole.
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- TCP turns unreliable packets into a reliable, ordered byte stream using sequence numbers, acknowledgements and retransmission.
+- Flow control protects the receiver; congestion control protects the network and makes new connections start slowly.
+- In-order delivery means one loss stalls everything behind it.
+- Reuse connections to avoid handshakes, cold windows and TIME_WAIT port exhaustion.
+- UDP keeps message boundaries and skips reliability, which suits real-time media, DNS and QUIC.
+
+</KeyTakeaways>

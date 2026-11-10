@@ -1,0 +1,37 @@
+title: A lost segment and fast retransmit
+legend:
+  ok: 'received and acknowledged'
+  bad: 'lost'
+  warn: 'arrived, waiting behind the gap'
+  accent: 'resent'
+frames:
+  - caption: 'The sender sends five segments of 1,000 bytes each, starting at byte 1. Segment 2 (bytes 1001 to 2000) is lost on the way.'
+    panels:
+      - kind: array
+        label: Segments sent
+        items: [{ v: '1', tone: ok }, { v: '2', tone: bad }, '3', '4', '5']
+  - caption: 'Segment 1 arrives and is acknowledged with **ACK 1001**: "I have everything before byte 1001". Segments 3, 4 and 5 arrive too, but there is a gap, so each one is acknowledged with the same **ACK 1001** again.'
+    panels:
+      - kind: array
+        label: Receiver buffer
+        items: [{ v: '1', tone: ok }, { v: '2', tone: bad }, { v: '3', tone: warn }, { v: '4', tone: warn }, { v: '5', tone: warn }]
+      - kind: list
+        label: ACKs sent
+        items: ['ACK 1001', 'ACK 1001 (duplicate)', 'ACK 1001 (duplicate)', 'ACK 1001 (duplicate)']
+  - caption: 'Three duplicate ACKs tell the sender that later data got through, so segment 2 alone is missing. It **resends segment 2 at once** instead of waiting for the retransmission timeout, which starts at a full second.'
+    panels:
+      - kind: array
+        label: Segments sent
+        items: [{ v: '1', tone: ok }, { v: '2 again', tone: accent }, '3', '4', '5']
+  - caption: 'Segment 2 fills the gap. One cumulative **ACK 5001** acknowledges everything, and the application can finally read segments 2 to 5. Until now they sat in the buffer: that wait is **head-of-line blocking**.'
+    panels:
+      - kind: array
+        label: Receiver buffer
+        items: [{ v: '1', tone: ok }, { v: '2', tone: ok }, { v: '3', tone: ok }, { v: '4', tone: ok }, { v: '5', tone: ok }]
+      - kind: list
+        label: ACKs sent
+        items: ['ACK 5001']
+  - caption: 'The sender also treats the loss as a sign of congestion and halves its sending window. A single loss therefore costs both a stall and a slower rate for a while.'
+    panels:
+      - kind: note
+        text: 'Ordered delivery is TCP''s promise, and head-of-line blocking is its price.'

@@ -1,0 +1,25 @@
+title: Why connections drop after exactly a minute
+legend:
+  info: 'open and quiet'
+  bad: 'closed by a middlebox'
+  ok: 'kept alive'
+frames:
+  - caption: 'A chat client connects through a load balancer and nginx to the app server. All three hops are open. Nobody says anything for a while.'
+    panels:
+      - kind: flow
+        label: Path
+        items: [{ v: 'Browser', tone: info }, { v: 'Load balancer (idle 60 s)', tone: info }, { v: 'nginx (read timeout 60 s)', tone: info }, { v: 'App server', tone: info }]
+  - caption: 'At 60 seconds of silence, nginx gives up on the upstream connection and closes it. The load balancer does the same. The browser and server may not notice until they next try to send.'
+    panels:
+      - kind: flow
+        label: Path
+        items: ['Browser', { v: 'Load balancer: closed', tone: bad }, { v: 'nginx: closed', tone: bad }, 'App server']
+  - caption: 'The fix: the server sends a tiny heartbeat every 25 seconds, such as a ping frame or an SSE comment. Every hop sees traffic and resets its timer, and a dead peer is noticed within one interval.'
+    panels:
+      - kind: rows
+        label: Heartbeat every 25 s
+        items: [{ v: '0 s: message', tone: ok }, { v: '25 s: heartbeat', tone: ok }, { v: '50 s: heartbeat', tone: ok }, { v: '75 s: heartbeat', tone: ok }]
+  - caption: 'Raising the timeouts helps too, but you rarely control every hop: home routers and mobile networks forget idle NAT mappings on their own schedule. The heartbeat interval must be shorter than the shortest timeout anywhere on the path.'
+    panels:
+      - kind: note
+        text: 'Heartbeat below the smallest idle timeout; raise the ones you control.'

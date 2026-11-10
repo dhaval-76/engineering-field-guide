@@ -1,0 +1,105 @@
+---
+title: Real-Time Connections
+summary: What polling, long polling, server-sent events and WebSockets look like on the wire, how a WebSocket upgrade and its frames work, and what proxies, load balancers and NAT do to long-lived connections, with the settings that keep them alive.
+track: cs-foundations
+order: 24
+tags: [cs-foundations, networking, websockets, sse, load-balancing]
+aliases: [websocket handshake, upgrade header, 101 switching protocols, sec-websocket-key, sec-websocket-accept, websocket frame, masking, ping pong, server sent events wire format, text/event-stream, long polling, short polling, idle timeout, proxy_read_timeout, proxy_buffering, x-accel-buffering, alb idle timeout, nlb idle timeout, sticky sessions, connection draining, nat timeout, heartbeat, hop by hop headers]
+prerequisites: [cs-foundations/http-versions]
+related: [backend/realtime-communication, cs-foundations/tcp-and-udp, distributed-systems/load-balancing, system-design/chat]
+quickRef:
+  points:
+    - '**Polling** = many short requests; **long polling** = one held request at a time; **SSE** = one response that never ends; **WebSocket** = an HTTP connection upgraded into two-way frames.'
+    - 'Every proxy, load balancer and NAT on the path has an **idle timeout**: 60 s is a common default. Send a **heartbeat** more often than the shortest one.'
+    - 'nginx must be told to pass `Upgrade` and `Connection`, which are hop-by-hop headers it otherwise drops.'
+    - 'Proxies **buffer** responses by default, which holds SSE events back. Turn buffering off for event streams.'
+    - 'An L4 balancer picks a backend once per connection, so long-lived connections stay where they landed. Plan for rebalancing and **draining** on deploys.'
+  useWhen: Putting SSE or WebSockets behind nginx, a cloud load balancer or a CDN, or debugging connections that drop after exactly a minute.
+askedAt:
+  - company: Adobe
+    year: 2025
+    round: Frontend system design
+    source: https://leetcode.com/discuss/post/6938276/adobe-mts-2-interview-experience-fe-by-a-5h33/
+lastReviewed: 2026-11-10
+---
+
+## Why it matters
+
+[Real-time communication](../../backend/realtime-communication/) covers choosing between polling, SSE and WebSockets and scaling them out. This page is about the connection itself: what actually crosses the wire, and what every box in between does to it. Most production problems with real-time features are not in the application. They are a proxy that buffers events, a load balancer that cuts idle connections after 60 seconds, or a deploy that drops ten thousand sockets at once.
+
+<Callout type="analogy">
+A phone call routed through several switchboards. Each operator hangs up a line that has been silent for a minute, and some operators write down what you say and pass it on in batches. To keep the call working, someone has to say something regularly, and the operators must be told not to batch.
+</Callout>
+
+## What each option looks like on the wire
+
+| Option | On the wire | Who can send | Connection held? |
+|---|---|---|---|
+| Short polling | A new request every few seconds; most return "nothing new" | Client asks | No |
+| Long polling | A request the server holds open until there is news, then a new one | Client asks, server answers late | One request at a time |
+| Server-sent events | One HTTP response with `Content-Type: text/event-stream` that never ends | Server only | Yes |
+| WebSocket | An HTTP request upgraded with `101 Switching Protocols`, then binary frames | Both, at any time | Yes |
+
+An SSE stream is plain text: each event is a few `field: value` lines and a blank line. Lines starting with a colon are comments, which make cheap heartbeats.
+
+```text
+id: 1042
+event: order-update
+data: {"order":"A17","status":"shipped"}
+
+: keep-alive comment, ignored by the browser
+```
+
+## The WebSocket upgrade
+
+<Walkthrough id="ws-upgrade" />
+
+The **accept key** proves the server understood a WebSocket request rather than returning something a cache stored. **Masking**, where every client-to-server frame is XORed with 4 random bytes, exists so that a browser script can't send bytes that look like an HTTP request to a naive proxy and poison its cache. Servers reject unmasked client frames.
+
+<CodeTabs id="ws-protocol" title="The accept key and a text frame, checked against the examples in RFC 6455" />
+
+Frames can be text, binary, ping, pong or close. Pings and pongs are built-in heartbeats, but browsers can't send pings from JavaScript, so many applications also send their own small heartbeat messages.
+
+## What sits in the path
+
+<Walkthrough id="ws-idle-timeout" />
+
+| Component | What it does to long-lived connections | What to set |
+|---|---|---|
+| **nginx** | Closes a proxied connection after 60 s with no data (`proxy_read_timeout`). Drops `Upgrade` and `Connection` unless passed. Buffers responses (`proxy_buffering on`). | Pass the upgrade headers, raise the read timeout, turn buffering off for SSE |
+| **AWS Application Load Balancer** | Idle timeout 60 s by default, configurable from 1 to 4,000 s. HTTP/2 PING frames don't reset it. | Raise it and send data-carrying heartbeats |
+| **AWS Network Load Balancer** | TCP idle timeout 350 s by default, configurable from 60 to 6,000 s. Routes connections, not requests. | Heartbeat below 350 s |
+| **NAT gateways and home routers** | Forget idle mappings, often after a few minutes, without telling either side | Heartbeat every 20 to 30 s |
+| **CDNs and corporate proxies** | May buffer, time out or not support WebSockets | Check the provider's limits; SSE falls back more gracefully |
+
+**The rule:** send a heartbeat more often than the **shortest** idle timeout anywhere on the path. 20 to 30 seconds is a common, safe choice. Heartbeats also detect dead peers, which TCP alone notices only after hours.
+
+<CodeTabs id="ws-proxy" title="nginx in front of a WebSocket and an SSE endpoint (validated with nginx -t)" />
+
+## Load balancing long-lived connections
+
+- **An L4 balancer decides once**, when the connection opens. Ten minutes later the connection is still on the same server, however busy it has become. New servers only get new connections.
+- **Sticky sessions** keep a client on one backend across requests. Long polling needs them only if state lives in server memory; with shared pub/sub, any server can answer.
+- **Deploys and scale-in** must **drain**: stop accepting new connections, tell clients to reconnect (a WebSocket close frame or an SSE retry hint), and give them time. Closing everything at once makes every client reconnect at the same moment.
+- **Clients reconnect with exponential backoff and jitter**, and resume from the last event id, so a deploy doesn't become a reconnect storm.
+- **Capacity is connections, not requests.** Each open connection is a file descriptor and some memory. Raise descriptor limits and watch connection counts per server. See [files and I/O](../files-and-io/).
+
+<Pitfalls>
+
+- **Connections that die after exactly 60 seconds of silence**: an idle timeout with no heartbeat.
+- **SSE events arriving in bursts or only at the end**: a proxy buffering the response.
+- **WebSocket upgrades failing behind nginx** because `Upgrade` and `Connection` weren't passed.
+- **Relying on TCP keepalive**, whose Linux default first probe comes after 2 hours.
+- **All servers restarting at once**, so every client reconnects at the same moment.
+- **New servers that receive no traffic** because existing connections never move.
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- Polling and long polling are ordinary requests; SSE is one endless response; WebSocket upgrades the connection into frames.
+- Every hop has an idle timeout: heartbeat more often than the shortest one.
+- Proxies drop upgrade headers and buffer responses unless configured otherwise.
+- Long-lived connections are balanced once; drain them on deploys and let clients reconnect with jitter.
+
+</KeyTakeaways>

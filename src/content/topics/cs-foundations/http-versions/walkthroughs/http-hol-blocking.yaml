@@ -1,0 +1,27 @@
+title: One lost packet with HTTP/2 and with HTTP/3
+legend:
+  ok: 'delivered to the page'
+  bad: 'lost'
+  warn: 'arrived but held back'
+  info: 'unaffected stream'
+frames:
+  - caption: 'A page loads three files at once: `app.js`, `style.css` and `logo.png`. With **HTTP/2** they are interleaved as frames on **one TCP connection**. The packet carrying part of `app.js` is lost.'
+    panels:
+      - kind: array
+        label: HTTP/2 packets on one TCP stream
+        items: [{ v: 'js 1', tone: ok }, { v: 'css 1', tone: ok }, { v: 'js 2', tone: bad }, 'png 1', 'css 2', 'png 2']
+  - caption: 'TCP delivers bytes strictly in order. The CSS and PNG packets after the gap have arrived, but TCP can''t hand them over until `js 2` is resent. **All three files stall**, not just the one that lost data.'
+    panels:
+      - kind: array
+        label: HTTP/2 packets on one TCP stream
+        items: [{ v: 'js 1', tone: ok }, { v: 'css 1', tone: ok }, { v: 'js 2', tone: bad }, { v: 'png 1', tone: warn }, { v: 'css 2', tone: warn }, { v: 'png 2', tone: warn }]
+  - caption: 'With **HTTP/3**, each file is its own QUIC stream, and QUIC tracks order per stream. The same loss happens.'
+    panels:
+      - kind: rows
+        label: QUIC streams
+        items: [{ v: 'app.js: js 1, [js 2 lost]', tone: bad }, { v: 'style.css: css 1, css 2', tone: info }, { v: 'logo.png: png 1, png 2', tone: info }]
+  - caption: 'Only `app.js` waits for the resend. The CSS and the logo are delivered at once. On a lossy mobile network, this is the main practical gain of HTTP/3.'
+    panels:
+      - kind: rows
+        label: QUIC streams
+        items: [{ v: 'app.js: waiting for js 2', tone: warn }, { v: 'style.css: delivered', tone: ok }, { v: 'logo.png: delivered', tone: ok }]

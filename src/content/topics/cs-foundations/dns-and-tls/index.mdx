@@ -1,0 +1,127 @@
+---
+title: DNS and TLS
+summary: How a name becomes an address, step by step, with record types, TTLs and caching, then how TLS 1.3 sets up an encrypted, authenticated connection in one round trip, how certificate chains are checked, and how mutual TLS works.
+track: cs-foundations
+order: 23
+tags: [cs-foundations, networking, dns, tls, security]
+aliases: [dns, dns resolution, how dns works, recursive resolver, authoritative name server, root server, tld, a record, aaaa, cname, mx, txt, ns, srv, caa, ttl, dns propagation, negative caching, dig, tls, ssl, https, how https works, tls handshake, tls 1.3, tls 1.2, certificate chain, certificate authority, intermediate certificate, sni, alpn, forward secrecy, ecdhe, mtls, mutual tls, client certificate, tls termination, certificate expiry, acme, lets encrypt, 0-rtt]
+prerequisites: [cs-foundations/networking, cs-foundations/tcp-and-udp]
+related: [cs-foundations/http-versions, distributed-systems/load-balancing, distributed-systems/cdn, backend/authn-authz]
+quickRef:
+  points:
+    - '**DNS** turns a name into an address: your resolver asks the root, then the TLD, then the domain''s **authoritative** server, and caches each answer for its **TTL**.'
+    - 'A change "propagates" only as caches expire, so **lower the TTL before a migration**, not during it.'
+    - '**TLS** gives encryption, integrity and the server''s identity. **TLS 1.3** needs **one round trip**; TLS 1.2 needed two.'
+    - 'A certificate is trusted through a **chain**: leaf, then intermediate, then a root the client already trusts. The **host name** must match too.'
+    - '**mTLS**: the client also presents a certificate, so both sides prove who they are. Common between services.'
+    - 'Certificate lifetimes are shrinking toward **47 days by March 2029**, so renewal must be automated.'
+  useWhen: 'Debugging "works by IP but not by name", planning a migration, explaining "how does HTTPS work", or setting up service-to-service security.'
+askedAt:
+  - company: Oracle
+    year: 2025
+    round: Technical
+    source: https://leetcode.com/discuss/post/6555411/oracle-oci-ic2-interview-experience-by-a-v1lf/
+  - company: Atlassian
+    year: 2024
+    round: Technical
+    source: https://leetcode.com/discuss/post/5677733/atlassian-virtual-onsite-2-rounds-p60-cl-ea8x/
+  - company: Salesforce
+    year: 2026
+    round: Technical
+    source: https://leetcode.com/discuss/post/8204135/salesforce-amts-interview-should-i-move-wkg4g/
+  - company: Zscaler
+    year: 2024
+    round: Technical
+    source: https://leetcode.com/discuss/post/5801403/zscaler-intern-fte-oncampus-2023-by-anon-m8ao/
+lastReviewed: 2026-11-10
+---
+
+## Why it matters
+
+Before a request can go anywhere, DNS has to find the server, and before it can carry anything private, TLS has to prove the server is genuine and agree on keys. Both run on every new connection, both add round trips, and both cause outages: a migration that doesn't take effect for hours, a certificate that expired at 3 a.m., a missing intermediate certificate that breaks only some clients.
+
+<Callout type="analogy">
+DNS is directory enquiries with a very good memory: each operator remembers answers for as long as you said they were valid. TLS is meeting a stranger who shows a passport. You trust it because a government you already trust issued it, and the photo matches the face. Then you agree on a private language nobody else can follow.
+</Callout>
+
+## How a DNS lookup works
+
+<Walkthrough id="dns-lookup" />
+
+Your machine's **stub resolver** asks a **recursive resolver** (your ISP's, your cloud's, or a public one such as 8.8.8.8). The resolver does the walking: root servers, which know the TLD servers; TLD servers, which know each domain's name servers; and the domain's **authoritative** server, which has the actual answer. Every answer is cached for its TTL at every level, so most lookups are answered from a cache in a millisecond or two.
+
+DNS normally uses **UDP on port 53**: one small packet each way, no handshake. Large answers fall back to TCP. Newer options encrypt it: DNS over HTTPS or over TLS.
+
+<CodeTabs id="dns-query" title="A DNS query built by hand: one UDP packet out, one back" />
+
+### Record types you'll use
+
+| Type | Holds | Example use |
+|---|---|---|
+| A, AAAA | IPv4 or IPv6 address | `api.example.com → 203.0.113.10` |
+| CNAME | Another name to look up instead | `www → example.com`, or a CDN host name |
+| MX | Mail servers, with priorities | Email delivery |
+| TXT | Free text | Domain ownership checks, SPF and DMARC |
+| NS | The domain's name servers | Delegation from the TLD |
+| SRV | Host and port of a service | Some service discovery systems |
+| CAA | Which CAs may issue certificates | Stops other CAs issuing for your domain |
+
+A CNAME can't sit at the bare domain (`example.com`) alongside other records, which is why DNS providers offer "ALIAS" or "flattening" for pointing the apex at a load balancer.
+
+### TTLs and caching
+
+- A TTL of 300 means any cache may reuse the answer for five minutes. "Propagation" is just caches expiring.
+- **Before a migration, lower the TTL** and wait for the old TTL to pass. Lowering it at the moment of the switch does nothing for answers already cached.
+- **Negative answers** ("no such name") are cached too, so a typo'd record created late can stay missing for a while.
+- Clients cache as well. The JVM caches successful lookups for 30 seconds by default (`networkaddress.cache.ttl`), and some HTTP clients pin a connection to an old address for its whole life.
+- DNS-based failover is only as fast as the TTLs allow, which is why load balancers with a stable address are preferred for fast failover.
+
+## How TLS works
+
+TLS gives three guarantees: **confidentiality** (nobody can read the traffic), **integrity** (nobody can change it unnoticed) and **authentication** (you are talking to the real server). Public-key cryptography proves identity and agrees on keys; fast symmetric encryption then protects the data.
+
+<Walkthrough id="tls13-handshake" />
+
+**TLS 1.3** finishes in **one round trip** because the client guesses the key exchange and sends its key share in the first message. TLS 1.2 needed two. Every TLS 1.3 key exchange is ephemeral, which gives **forward secrecy**: stealing the server's private key later doesn't decrypt recorded traffic. A resumed connection can send **0-RTT** data with the very first packet, but that data can be replayed, so it is only for requests that are safe to repeat.
+
+Two extensions travel in the ClientHello: **SNI** names the host the client wants, so one IP address can serve many certificates, and **ALPN** agrees the application protocol, such as HTTP/2.
+
+### Certificates and the chain of trust
+
+The server sends its **leaf** certificate and the **intermediate** certificates that signed it. The client checks that:
+
+1. Each certificate is signed by the next one up, ending at a **root** in its own trust store.
+2. The leaf's names (the Subject Alternative Name list) include the host it asked for.
+3. Every certificate is within its validity dates and not revoked.
+4. The server proved it holds the leaf's private key, by signing the handshake.
+
+A server that forgets to send its intermediate certificate works in browsers that happen to have it cached and fails in fresh clients and servers: a classic "works on my machine" outage.
+
+<CodeTabs id="tls-expiry" title="Connect, verify, and report how many days the certificate has left" />
+
+Certificate lifetimes are shrinking. The CA/Browser Forum's ballot SC-081v3 cuts the maximum from 398 days, in steps starting in March 2026, to **47 days by March 2029**. Manual renewal stops being realistic; use ACME automation (such as Let's Encrypt or your cloud's certificate manager) and alert on days remaining.
+
+## Where TLS ends, and mutual TLS
+
+- **TLS termination**: a load balancer or CDN often ends TLS, inspects HTTP, and forwards to the application, either in plain text on a private network or re-encrypted. Terminating at the edge also puts the handshake round trip close to the user.
+- **Mutual TLS (mTLS)**: the server also asks for a client certificate and checks it against its own CA. Both sides prove their identity, which is how many service meshes authenticate services to each other without passwords or tokens. The cost is issuing, rotating and revoking a certificate for every service, which meshes automate.
+
+<Pitfalls>
+
+- **Lowering a TTL at the moment of a migration**, after caches already hold the old answer for hours.
+- **Long-lived connections or JVM caches** that keep using an old address after a DNS change.
+- **Expired certificates** because renewal was manual. Alert well before expiry.
+- **Missing intermediate certificates**, which break only some clients.
+- **Turning off certificate checks** in code ("trust all") to fix an error, which removes all protection against impersonation.
+- **Enabling 0-RTT** for requests that change data.
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- DNS walks root, TLD and authoritative servers, and caches every answer for its TTL; plan TTL changes before migrations.
+- TLS provides confidentiality, integrity and authentication; TLS 1.3 needs one round trip.
+- Trust comes from a chain ending at a root the client already has, plus a host name match.
+- mTLS authenticates both sides; automate certificate issuance and renewal, because lifetimes are shrinking.
+
+</KeyTakeaways>

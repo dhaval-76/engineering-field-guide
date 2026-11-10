@@ -1,0 +1,90 @@
+questions:
+  - q: 'What is CORS, and why does the browser send an OPTIONS request before some calls?'
+    think: Whose protection is it, and which requests count as simple?
+    answer: |
+      Browsers apply the same-origin policy: a script from one origin can't read responses from another. CORS lets a server opt in by naming origins it trusts, through `Access-Control-Allow-Origin` and related headers.
+
+      Simple requests (GET, HEAD or POST with only safelisted headers and a form or plain-text content type) go straight through, and the browser checks the response header before letting the script read it. Anything else, such as a JSON body, an `Authorization` header or a PUT or DELETE, first sends an OPTIONS **preflight** describing the method and headers it wants to use. Only if the server allows them does the browser send the real request. The result can be cached with `Access-Control-Max-Age`.
+
+      CORS protects browser users. It is not access control for an API: curl and other servers ignore it. With cookies, the server must name the exact origin and send `Access-Control-Allow-Credentials: true`.
+    askedAt:
+      - company: Razorpay
+        year: 2025
+        round: Technical
+        source: https://leetcode.com/discuss/post/6273899/razorpay-frontend-interview-experience-b-yvc8/
+      - company: Oracle
+        year: 2025
+        round: Phone screen
+        source: https://leetcode.com/discuss/post/6912254/oracle-l4-phone-screen-experience-by-ano-0dcx/
+      - company: TikTok
+        year: 2024
+        round: Online assessment
+        source: https://leetcode.com/discuss/post/5739388/tiktok-oa-by-anonymous_user-nq1i/
+      - company: Walmart
+        year: 2024
+        round: Technical
+        source: https://leetcode.com/discuss/post/5505527/walmart-sde-3-bangalore-by-anonymous_use-9nwa/
+  - q: 'What changed from HTTP/1.1 to HTTP/2 to HTTP/3, and when does each matter?'
+    think: Requests per connection, and what a single lost packet does.
+    answer: |
+      HTTP/1.1 allows one outstanding request per connection, so browsers open about six per host and headers are repeated as text. HTTP/2 multiplexes many requests as streams on one TCP connection with compressed headers, which removes the connection limit and extra handshakes. But TCP delivers in order, so one lost packet stalls every stream.
+
+      HTTP/3 runs over QUIC on UDP: streams are independent, so a loss only stalls its own stream; the transport and TLS handshakes are combined into one round trip; and connections survive a network change. It matters most for mobile and lossy networks. Inside a data centre, HTTP/2 is usually enough, and HTTP/1.1 is still fine for simple service calls with a connection pool.
+  - q: 'How would you make a frequently read API response cheap to serve while keeping it correct?'
+    think: Freshness, revalidation, and who may store it.
+    answer: |
+      Decide how stale it may be, then set `Cache-Control` accordingly: `public, max-age=60` lets a CDN serve it for a minute; add `stale-while-revalidate` to hide refresh latency. Add an `ETag` so clients and CDNs revalidate with `If-None-Match` and get a 304 with no body when nothing changed.
+
+      For per-user data use `private` so shared caches never store it, and `no-store` for anything sensitive. Version static assets by content hash and give them a year with `immutable`. Finally, plan invalidation: short TTLs, or a CDN purge when the data changes.
+  - q: 'What is the difference between 401 and 403, and between 502, 503 and 504?'
+    think: Who is answering, and would retrying or logging in help?
+    answer: |
+      401 means the request isn't authenticated: send valid credentials and it may work. 403 means the server knows who you are and still refuses; logging in again won't help.
+
+      502 Bad Gateway comes from a proxy that got an invalid response or a dropped connection from its backend, often a crash. 503 Service Unavailable means the service is temporarily unable to handle the request, such as overload or maintenance, ideally with `Retry-After`. 504 Gateway Timeout comes from a proxy whose backend didn't answer in time: look at slow queries and timeouts, and check that the proxy's timeout is longer than the backend's.
+    askedAt:
+      - company: PayPal
+        year: 2025
+        round: Online assessment
+        source: https://leetcode.com/discuss/post/7295033/sde-3python-paypal-interview-experience-xvp23/
+followUps:
+  - q: What is the difference between no-cache and no-store?
+    intuition: One of them still caches.
+    approach: |
+      `no-cache` lets caches store the response but requires them to revalidate with the server before every reuse, which is cheap with an ETag and a 304. `no-store` forbids storing it anywhere. Use `no-store` for sensitive data such as account pages.
+  - q: How do cookies' SameSite values protect against CSRF?
+    intuition: When does the browser attach the cookie to a request started by another site?
+    approach: |
+      `Strict` never sends the cookie on cross-site requests. `Lax` sends it on top-level navigation such as following a link, but not on cross-site POSTs or embedded requests, which stops most CSRF. `None` always sends it and requires `Secure`. Some browsers default to Lax when the attribute is missing, but set it explicitly, and keep CSRF tokens for sensitive forms.
+  - q: Why is 0-RTT in HTTP/3 and TLS 1.3 only safe for some requests?
+    intuition: What stops an attacker from sending the same first packet again?
+    approach: |
+      0-RTT data is sent before the handshake completes, using keys from an earlier session, and TLS gives no protection against it being replayed on a new connection. A replayed payment or "delete" would run twice. So servers accept early data only for requests that are safe to repeat, such as GETs, or reject it.
+practice:
+  - task: Implement conditional GET on the server, returning 304 when the client's ETag still matches.
+    hint: Hash the body to get a tag. Compare it with every tag in If-None-Match, ignoring a W/ prefix, and treat "*" as a match.
+    solution: |
+      Compute a strong ETag from the content, for example the first bytes of its SHA-256, in quotes. Always send `ETag` and a `Cache-Control`. If `If-None-Match` is present, split it on commas, strip `W/` (If-None-Match uses weak comparison), and answer 304 with no body when any tag equals the current one or the value is `*`. Otherwise answer 200 with the body.
+    solutionCode: http-conditional
+  - task: Write a function that predicts whether a browser will send a CORS preflight for a fetch.
+    hint: Check the method, then each header name, the Content-Type value and the Range value.
+    solution: |
+      Methods other than GET, HEAD and POST need a preflight. So does any header outside Accept, Accept-Language, Content-Language, Content-Type and Range, a Content-Type whose media type isn't form-encoded, multipart or plain text, and a Range that isn't one `bytes=start-[end]` range. Otherwise the request is simple. Testing it against a real browser on 15 cases, including a suffix range like `bytes=-100`, gave identical results.
+    solutionCode: cors-preflight
+quiz:
+  - q: 'What does `Cache-Control: no-cache` mean?'
+    options: [Never store the response, Store it but revalidate before each reuse, Cache it for one hour, Only browsers may cache it]
+    correct: 1
+    why: no-cache allows storing but requires revalidation; no-store forbids storing.
+  - q: Which fetch sends a CORS preflight?
+    options: ['GET with Accept-Language', 'POST with Content-Type text/plain', 'POST with Content-Type application/json', 'HEAD with no headers']
+    correct: 2
+    why: application/json is not one of the three simple content types.
+  - q: Why can one lost packet slow every request on an HTTP/2 connection?
+    options: [HTTP/2 resends all streams, TCP delivers bytes in order, so later data waits for the gap, Header compression breaks, The server closes the connection]
+    correct: 1
+    why: All streams share one TCP byte stream, and TCP won't deliver past a gap.
+  - q: A proxy returns 504. Where should you look first?
+    options: [The client's credentials, The backend's response time, The DNS records, The cookie attributes]
+    correct: 1
+    why: 504 means the proxy gave up waiting for the backend.
