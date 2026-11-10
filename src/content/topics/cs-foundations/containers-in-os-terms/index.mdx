@@ -1,0 +1,140 @@
+---
+title: Containers in OS Terms
+summary: A container is a Linux process with namespaces for its view and cgroups for its limits. How CPU limits throttle, how memory limits kill, what the JVM sees inside, and why PID 1 matters, with measured results.
+track: cs-foundations
+order: 33
+tags: [cs-foundations, operating-systems, containers, linux, jvm]
+aliases: [container, containers vs virtual machines, container vs vm, namespaces, pid namespace, network namespace, mount namespace, cgroups, cgroup v2, cpu.max, cpu quota, cfs quota, cpu throttling, cpu shares, cpu.weight, memory.max, memory.high, oom killed, exit code 137, oomkilled, kubernetes requests and limits, jvm in docker, usecontainersupport, maxrampercentage, activeprocessorcount, pid 1, tini, docker init, exec form, seccomp, capabilities]
+prerequisites: [cs-foundations/operating-systems, cs-foundations/memory-management]
+related: [devops/docker-kubernetes, cs-foundations/files-and-io, java-runtime/garbage-collection, concurrency/executors-thread-pools]
+quickRef:
+  points:
+    - 'A container is a **process**. **Namespaces** change what it can see; **cgroups** limit what it can use. It shares the host''s kernel, unlike a VM.'
+    - 'A CPU limit is a **quota per 100 ms period**. Busy threads can use it up early and are then **paused** until the next period: latency spikes.'
+    - 'Measured: with a 1-CPU limit, 4 busy threads stalled about **75 ms in every 100 ms**.'
+    - 'Over **memory.max**, the kernel''s OOM killer sends SIGKILL: exit code **137**, with no error from your program.'
+    - 'The JVM reads cgroup limits, but by default uses only **25%** of the memory limit for heap. Measured: a 1 GB limit gave a 247 MB heap.'
+    - '**PID 1** ignores signals it has no handler for. Run your program directly (exec form) or under a small init, so SIGTERM reaches it.'
+  useWhen: Sizing CPU and memory for containers, explaining OOMKilled or latency spikes, running the JVM in Docker or Kubernetes, or answering "container vs VM".
+askedAt:
+  - company: D. E. Shaw
+    year: 2025
+    round: Technical
+    source: https://leetcode.com/discuss/post/6686275/de-shaw-smts-application-engineer-by-ano-frwl/
+  - company: Salesforce
+    year: 2026
+    round: Technical
+    source: https://leetcode.com/discuss/post/8204135/salesforce-amts-interview-should-i-move-wkg4g/
+lastReviewed: 2026-11-10
+---
+
+## Why it matters
+
+"The pod was OOMKilled, but the heap was only half used." "p99 latency doubled after we set CPU limits." "Requests are dropped on every deploy." "The JVM only uses a quarter of the memory we gave it." None of these is about Docker or Kubernetes as such. They are Linux features, namespaces and cgroups, plus a few rules about PID 1, behaving exactly as designed. [Docker and Kubernetes](../../devops/docker-kubernetes/) covers how to use the tools; this page covers what they ask the kernel to do.
+
+<Callout type="analogy">
+A container is a flat in an apartment block. Namespaces are the walls and the flat's own front door and number: you see only your rooms. Cgroups are the meters and fuses: water and power are rationed, and a tripped fuse cuts you off. The building's foundation, the kernel, is shared by every flat. A virtual machine is a separate house with its own foundation.
+</Callout>
+
+## A container is a process
+
+There is no "container" object in the Linux kernel. A container runtime starts an ordinary process and asks the kernel for:
+
+| Mechanism | What it gives the process |
+|---|---|
+| **PID namespace** | Its own process numbers; it sees itself as PID 1 and can't see the host's processes |
+| **Network namespace** | Its own interfaces, IP addresses, ports and routing table |
+| **Mount namespace** | Its own file system tree, built from image layers (overlay file system) |
+| **UTS, IPC, user namespaces** | Its own host name, IPC objects, and optionally its own user ids |
+| **cgroups** | Limits and accounting for CPU, memory, I/O and number of processes |
+| **seccomp, capabilities** | Fewer allowed system calls and privileges |
+
+### Containers or virtual machines?
+
+| | Container | Virtual machine |
+|---|---|---|
+| Kernel | Shares the host's | Has its own, on a hypervisor |
+| Starts in | Milliseconds (it's a process) | Seconds to minutes |
+| Overhead | Close to none | A whole guest OS per VM |
+| Isolation | Good, but a kernel bug can cross it | Stronger: the hypervisor boundary |
+| Runs | Linux programs on a Linux host | Any OS |
+
+That is why untrusted workloads often run in containers inside VMs, or in lightweight VMs such as Firecracker and gVisor.
+
+## CPU limits: a quota per period
+
+cgroup v2 limits CPU with `cpu.max`, written as **quota period** in microseconds. The default is `max 100000`: no limit, 100 ms periods. A limit of 1 CPU is `100000 100000`: 100 ms of CPU time per 100 ms of wall time, **counted across all threads**.
+
+<Walkthrough id="cpu-throttle" />
+
+We measured it with busy threads that record any gap over 1 ms in their own progress, for 3 seconds:
+
+| Limit | Busy threads | Pauses | Typical pause | Longest |
+|---|---|---|---|---|
+| None | 1 | 0 | | |
+| 1 CPU | 1 | 9 | 4 ms | 6.5 ms |
+| 0.5 CPU | 1 | 30 | 50 ms | 60 ms |
+| 1 CPU | 4 | 121 | **75 ms** | 84 ms |
+
+Java 21 in a Linux container on a laptop. The last row is the important one: a limit of "1 CPU" does not mean one thread at a time. Four threads burn the quota in 25 ms, then all four are paused for the remaining 75 ms. A request that arrives during the pause waits. GC threads and JIT compilers count against the same quota, which is why JVMs with tight CPU limits show surprising latency spikes. `cpu.stat` reports `nr_throttled` and `throttled_usec`: watch them.
+
+**Kubernetes:** a CPU **request** sets `cpu.weight`, a relative share used only when CPUs are contended. A CPU **limit** sets `cpu.max`, a hard quota enforced even when the node is idle. Many teams set requests from measurements and leave CPU limits generous or unset for latency-sensitive services.
+
+## Memory limits: reclaim, then kill
+
+- **memory.max** is the hard limit. If usage reaches it and the kernel can't reclaim enough (by dropping page cache), the OOM killer runs **inside the cgroup** and sends SIGKILL, even when the host has plenty of free memory.
+- **memory.high** is a soft limit: above it the cgroup is throttled and reclaimed hard, but it never invokes the OOM killer.
+- The process gets no warning and no error. It exits with code **137** (128 + 9) and Kubernetes reports `OOMKilled`.
+
+<CodeTabs id="container-limits" title="Read the container's CPU and memory limits from cgroup files" />
+
+## The JVM inside a container
+
+Since JDK 10 (and 8u191), the JVM reads cgroup limits instead of the host's totals (`UseContainerSupport` is on by default); cgroup v2 support arrived in JDK 15, 11.0.16 and 8u372. What it then chooses:
+
+| Container limits | Processors the JVM sees | Default max heap |
+|---|---|---|
+| None (the whole 3.9 GB Linux VM) | 8 | 980 MB |
+| 1 GB memory, 2 CPUs | 2 | 247 MB |
+| 1 GB memory, 0.5 CPU | 1 | 247 MB |
+| 1 GB memory, CPU shares only | 8 | 247 MB |
+
+Measured with Java 21. Notes:
+
+- **The default heap is 25% of the limit** (`MaxRAMPercentage=25`). Set it explicitly, typically 70 to 75%, and leave the rest for metaspace, thread stacks, direct buffers and the JIT.
+- **A fractional CPU limit rounds up** to a whole processor, and CPU shares (Kubernetes requests) are ignored since JDK 19. Thread pools, GC threads and `ForkJoinPool` are sized from this number; override it with `-XX:ActiveProcessorCount` if needed.
+- With 1 GB the JVM picked the **Serial GC**, because it doesn't treat a machine with under about 2 GB or under 2 CPUs as a "server". Choose the collector explicitly in small containers.
+- **Two different failures:** heap exhaustion is a Java `OutOfMemoryError`, which the program can log and survive. Exceeding the container limit is a kernel SIGKILL. With a 512 MB limit we measured both: default heap ended in `OutOfMemoryError` after 122 MB; `-Xmx1g` was killed outright with exit code 137.
+
+## PID 1 and signals
+
+The first process in a PID namespace is PID 1, and the kernel treats PID 1 specially: signals whose default action would end the process are **ignored unless the process installed a handler**. PID 1 is also expected to reap orphaned zombie processes.
+
+- With the **shell form** of `CMD` (`CMD java -jar app.jar`), Docker runs `/bin/sh -c "…"` as PID 1. The shell doesn't pass SIGTERM on, so the application never hears it and is SIGKILLed when the stop timeout runs out.
+- A program running as PID 1 without its own SIGTERM handler ignores it too.
+- Measured with `docker stop`: a shell wrapper waited out the full stop timeout and was killed with exit code 137; the same program under `--init` (tini as PID 1, forwarding signals) stopped in 0.1 seconds.
+
+Use the **exec form** (`CMD ["java", "-jar", "app.jar"]`) or `exec` in an entry script, handle SIGTERM in the application ([processes and threads](../operating-systems/)), and add a small init such as tini if the container starts child processes.
+
+Containers also run with a default **seccomp** profile that blocks risky system calls. Docker's default blocks, among others, the io_uring calls, so a runtime that relies on io_uring falls back or fails. See [files and I/O](../files-and-io/).
+
+<Pitfalls>
+
+- **Tight CPU limits on multi-threaded services**, causing throttling pauses of tens of milliseconds.
+- **Sizing memory by heap alone**, then getting SIGKILLed by the rest of the JVM's memory.
+- **Leaving the JVM's 25% default heap** in a container sized for the application.
+- **Shell-form `CMD`** or an entry script without `exec`, so SIGTERM never reaches the app.
+- **Reading `/proc/meminfo` or the CPU count from the host** in tools that predate container support.
+- **Treating containers as a strong security boundary** for untrusted code.
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- A container is a process with namespaces (its own view) and cgroups (its limits), sharing the host kernel.
+- CPU limits are a quota per 100 ms period across all threads; busy threads get paused.
+- Exceeding memory.max means SIGKILL and exit 137, without any error from your program.
+- Tell the JVM its heap size, check its processor count, and choose its GC in small containers.
+- Make sure SIGTERM reaches your process: exec form, or a small init as PID 1.
+
+</KeyTakeaways>

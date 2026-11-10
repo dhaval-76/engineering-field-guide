@@ -1,0 +1,60 @@
+questions:
+  - q: 'A service that ran fine for days starts failing with "too many open files". How do you investigate?'
+    think: Is it a leak or a real need?
+    answer: |
+      Count the process's descriptors over time (`ls /proc/PID/fd | wc -l`) and compare them with its limit (`/proc/PID/limits`). A count that only grows points to a leak: look at what the descriptors are (`ls -l /proc/PID/fd`, `lsof -p PID`, `ss -tanp`). Many sockets in CLOSE_WAIT mean the peer closed and our code never closed its side; many open HTTP connections often mean response bodies that were never consumed or closed.
+
+      Fix the leak with try-with-resources or equivalent, connection pools with limits, and timeouts. If the count is stable but simply high, as for a server holding many connections, raise the limit in the service's configuration (systemd `LimitNOFILE`, the container runtime or the pod spec).
+  - q: 'Your service writes an order to a file and returns success. After a power cut, the order is gone. Why, and how do you fix it?'
+    think: What did write() actually promise?
+    answer: |
+      `write()` returning only means the data reached the kernel's page cache; the kernel writes dirty pages to disk later. A power cut before that loses it. Durability needs `fsync` (or `fdatasync`) before reporting success.
+
+      To update a file without ever leaving it half-written, write a temp file, fsync it, rename it over the original (rename is atomic), then fsync the directory so the rename itself is durable. For a stream of writes, use an append-only log and group commits so one fsync covers many records, since each fsync costs real time: about 744 µs per 4 KB write here, against 23 µs without it.
+  - q: 'How can a single-threaded server like Node.js or Redis handle thousands of connections?'
+    think: Who does the waiting?
+    answer: |
+      Its sockets are non-blocking, and it uses the kernel's readiness notification, epoll on Linux, to wait on all of them at once. `epoll_wait` returns only the sockets that are ready; the thread reads, does a small amount of work and queues writes, then waits again. Idle connections cost a descriptor and a little memory, not a thread.
+
+      The limit is that work inside the loop must be short and must never block. Slow CPU work or blocking calls go to worker threads or separate processes; otherwise one slow request stalls every client.
+  - q: 'Why is Kafka fast at serving consumers?'
+    think: Follow the bytes from disk to the network.
+    answer: |
+      Kafka writes messages sequentially to append-only log files, which disks and the page cache handle well. Consumers usually read recent data that is still in the page cache, so there is little disk I/O. And the broker sends log data to consumers with `sendfile` (Java `transferTo`), moving bytes from the page cache to the socket inside the kernel without copying them into the JVM; measured here, that sent 1 GB over loopback in about 49 ms against 231 ms with a copy. Batching and compression reduce per-message overhead further. Enabling TLS removes the zero-copy path, because data must be encrypted in user space.
+followUps:
+  - q: What is the difference between level-triggered and edge-triggered epoll?
+    intuition: Is a socket reported again if you didn't drain it?
+    approach: |
+      Level-triggered, the default, reports a descriptor on every wait while it stays ready, so reading only part of the data is safe. Edge-triggered reports it once per change in readiness, so you must use non-blocking descriptors and read or write until `EAGAIN`; otherwise remaining data is never reported again.
+  - q: What is io_uring, and why isn't it used everywhere?
+    intuition: Readiness versus completion.
+    approach: |
+      io_uring lets a process submit I/O operations to a ring buffer shared with the kernel and collect completions from another, batching many operations without a system call each, for files as well as sockets. It has had a long series of security vulnerabilities, so Docker's default seccomp profile blocks it and some operators disable it, which limits where you can rely on it.
+practice:
+  - task: Write a function that replaces a file so a crash never leaves it half-written.
+    hint: Temp file, fsync, atomic rename, then fsync the directory.
+    solution: |
+      Write the new contents to a temporary file in the same directory, handling partial writes, and fsync it. Rename it over the target, which is atomic within a file system, so readers see either the old or the new file. Finally open the directory and fsync it so the rename is recorded durably. The temp file must be on the same file system, or the rename becomes a copy.
+    solutionCode: durable-write
+  - task: Send a file to a socket without copying it through your program, and compare with the copying version.
+    hint: Java FileChannel.transferTo, Python os.sendfile; both may send fewer bytes than asked.
+    solution: |
+      Loop calling `transferTo(position, remaining, socket)` (or `os.sendfile`) and advance by the bytes it returns until the whole file is sent. The copying version reads into a buffer and writes it out. Verify the receiver gets identical bytes, then time both with the file already cached.
+    solutionCode: zero-copy
+quiz:
+  - q: 'What does write() returning successfully guarantee on Linux?'
+    options: [The data is on disk, The data is in the kernel's page cache, The data is replicated, Nothing at all]
+    correct: 1
+    why: The kernel writes dirty pages later; fsync is what waits for the disk.
+  - q: After renaming a temp file over the original, what else is needed for the rename to survive a crash?
+    options: [Nothing, An fsync of the directory, Closing the terminal, A second rename]
+    correct: 1
+    why: fsync on the file doesn't guarantee the directory entry reached disk.
+  - q: Which mechanism lets one thread wait on thousands of sockets on Linux?
+    options: [fork, epoll, mmap, swap]
+    correct: 1
+    why: epoll returns only the descriptors that are ready.
+  - q: What does sendfile avoid?
+    options: [Disk reads, Copying the data through the program's own memory, TCP handshakes, Encryption]
+    correct: 1
+    why: The kernel moves data from the page cache to the socket directly.

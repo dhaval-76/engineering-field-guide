@@ -1,8 +1,9 @@
 # CS Foundations research notes (2026-11-09)
 
-Research for backlog item 1: splitting Networking and Operating Systems into 9 full pages. **Paused
-at the research stage at the owner's request.** No topic has been written and nothing under
-`src/content` has changed. Start here when the item resumes.
+Research for backlog item 1: splitting Networking and Operating Systems into 9 full pages.
+**Written on 2026-11-10.** The plan below was followed; the official docs check was completed (see
+"Official docs, checked 2026-11-10"), and the TIME_WAIT number was never measured, so the TCP page
+quotes RFC 9293 and Linux's fixed 60 seconds instead.
 
 ## Where this stands
 
@@ -255,7 +256,30 @@ OPTIONS request with `Access-Control-Request-Method` and `Access-Control-Request
 ([MDN](https://developer.mozilla.org/en-US/docs/Glossary/preflight_request),
 [HTTP Toolkit](https://httptoolkit.tech/blog/cache-your-cors))
 
-## Still to check against official docs
+## Official docs, checked 2026-11-10
+
+Confirmed from the primary pages: nginx `proxy_read_timeout` 60 s, `proxy_buffering on`, and
+`proxy_http_version` 1.1 by default since nginx 1.29.7 (1.0 before); nginx WebSocket needs
+`Upgrade` and `Connection` passed. AWS ALB idle timeout 60 s, range 1 to 4,000 s, and HTTP/2 PINGs
+don't reset it; NLB TCP idle timeout 350 s, range 60 to 6,000 s. `Access-Control-Max-Age` defaults
+to 5 s, capped at 2 hours by Chromium and 24 hours by Firefox. The CORS simple-request conditions.
+Docker's default seccomp profile blocks `io_uring_setup`, `io_uring_enter` and
+`io_uring_register`. RFC 8446: 0-RTT has no replay protection between connections. CA/B SC-081v3:
+398 days falling to 47 days, starting March 2026 and ending March 2029 (the page doesn't list the
+intermediate dates). RFC 6298 initial RTO 1 s; RFC 6928 initial window 10 segments. fsync(2): the
+directory needs its own fsync. cgroup v2: `cpu.max` default `max 100000`; `memory.high` throttles
+and never invokes the OOM killer; `memory.max` does. RFC 6455's accept-key example. RFC 9293: MSL
+of 2 minutes, TIME-WAIT 2 × MSL. Cache-Control `no-cache` versus `no-store`.
+
+Not confirmed: the Kafka documentation page returned only a redirect, so zero-copy over TLS is
+cited from KAFKA-2517 instead. The kernel's EEVDF page doesn't state the release that made it the
+default.
+
+Also measured on 2026-11-10: the CORS preflight rule against real Chromium (15 cases, all equal);
+`docker stop` with a shell as PID 1 waited out the stop timeout and exited 137, while `--init`
+stopped in 0.1 s.
+
+## Still to check against official docs (superseded by the section above)
 
 This check was stopped before it returned anything. Nothing here has been confirmed.
 

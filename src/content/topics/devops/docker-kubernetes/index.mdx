@@ -6,7 +6,7 @@ order: 20
 tags: [devops, docker, containers, kubernetes, deployment, jvm]
 aliases: [docker, dockerfile, container, image, layer, multi-stage build, distroless, buildpacks, jib, docker compose, kubernetes, k8s, pod, deployment, replicaset, service, ingress, gateway api, configmap, secret, liveness probe, readiness probe, startup probe, requests and limits, oomkilled, crashloopbackoff, hpa, rolling update, rollback, graceful shutdown, kubectl, maxrampercentage]
 prerequisites: [distributed-systems/resilience-patterns]
-related: [devops/ci-cd-and-cloud, distributed-systems/microservices, java-runtime/garbage-collection]
+related: [cs-foundations/containers-in-os-terms, devops/ci-cd-and-cloud, distributed-systems/microservices, java-runtime/garbage-collection]
 quickRef:
   points:
     - 'A container is a **process** with its own filesystem view, isolated by namespaces and limited by cgroups — not a VM.'
@@ -38,6 +38,8 @@ Shipping containers: whatever is inside, the box has a standard shape, so any sh
 | Registry | stores and serves images (Docker Hub, ECR, GCR, GHCR) |
 
 Because containers share the host kernel, they start in milliseconds and add almost no overhead — and they're a weaker isolation boundary than VMs.
+
+For what the kernel actually does with these (CPU throttling per period, OOM kills, what the JVM sees, PID 1 and signals), see [containers in OS terms](../../cs-foundations/containers-in-os-terms/).
 
 ## Good images
 

@@ -6,7 +6,7 @@ order: 60
 tags: [system-design, case-study, messaging, distributed-systems, storage]
 aliases: [design kafka, design a message queue, distributed log, commit log, append only log, segment, offset index, page cache, zero copy, sendfile, leader follower replication, isr, high watermark, log end offset, controller, raft, consumer group coordinator, offset storage, retention, design a message broker]
 prerequisites: [distributed-systems/kafka-deep-dive, databases/replication]
-related: [distributed-systems/kafka-vs-rabbitmq, databases/cap-and-consistency, databases/sharding]
+related: [distributed-systems/kafka-vs-rabbitmq, databases/cap-and-consistency, databases/sharding, cs-foundations/files-and-io]
 quickRef:
   points:
     - 'Core abstraction: a **partitioned, replicated, append-only log**; consumers read by **offset**.'
@@ -62,7 +62,7 @@ joinGroup(group, topics) / heartbeat       → assigned partitions
 
 - Each partition is a directory of **segments** (e.g. 1 GB files named by their base offset). Appends go to the active segment; old segments are immutable and deleted (or compacted) wholesale by retention — no per-message deletes.
 - A **sparse index** maps every Nth offset to a byte position; finding offset X = <Term id="binary-search">binary search</Term> in the index + short scan.
-- **Sequential writes** run at disk bandwidth; the OS **page cache** serves recent data to consumers from memory; **zero-copy** (`sendfile`) streams bytes from the page cache to the socket without copying through the JVM.
+- **Sequential writes** run at disk bandwidth; the OS **page cache** serves recent data to consumers from memory; **zero-copy** (`sendfile`) streams bytes from the page cache to the socket without copying through the JVM ([files and I/O](../../cs-foundations/files-and-io/) measures both).
 - **Batching and compression** at the producer amortise per-message costs; the broker stores batches as-is.
 
 ## Replication

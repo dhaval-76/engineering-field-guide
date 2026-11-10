@@ -1,0 +1,132 @@
+---
+title: Files and I/O
+summary: File descriptors and their limits, the page cache and why fsync decides durability, how to replace a file safely, blocking versus non-blocking I/O with epoll and io_uring, and zero-copy transfer with sendfile, with measured costs.
+track: cs-foundations
+order: 32
+tags: [cs-foundations, operating-systems, io, linux, performance]
+aliases: [file descriptor, fd, too many open files, ulimit, emfile, page cache, buffer cache, dirty pages, fsync, fdatasync, durability, atomic rename, write ahead log, blocking io, non blocking io, select, poll, epoll, kqueue, edge triggered, level triggered, eagain, io_uring, event loop, reactor, netty, nio selector, zero copy, sendfile, transferTo, kafka zero copy, mmap, direct io, o_direct]
+prerequisites: [cs-foundations/operating-systems, cs-foundations/memory-management]
+related: [concurrency/event-loop-and-async, databases/transactions-isolation, system-design/messaging-system, cs-foundations/realtime-connections, cs-foundations/tcp-and-udp]
+quickRef:
+  points:
+    - 'Everything I/O is a **file descriptor**: files, sockets, pipes. Each process has a limit (`ulimit -n`); "too many open files" means a leak or a low limit.'
+    - 'Reads and writes go through the **page cache**. A write returns once the data is in memory; only **fsync** makes it survive a power cut.'
+    - 'To replace a file safely: write a temp file, **fsync** it, **rename** it over the old one, then **fsync the directory**.'
+    - '**Blocking I/O** parks a thread per connection. **epoll** lets one thread wait on thousands of sockets and handle whichever are ready.'
+    - '**io_uring** submits I/O and collects completions through shared rings; Docker''s default seccomp profile blocks it.'
+    - '**Zero-copy** (`sendfile`, Java `transferTo`) moves file data to a socket inside the kernel. It is one reason Kafka is fast, and TLS disables it.'
+  useWhen: Building anything that must not lose data, sizing servers for many connections, or explaining why an event loop or Kafka is fast.
+lastReviewed: 2026-11-10
+---
+
+## Why it matters
+
+A database promises your write is safe; a message broker serves gigabytes a second; a Node.js server holds 50,000 connections on one thread; another service dies with "too many open files". Each of these comes down to how the operating system does I/O: descriptors, the page cache, fsync, readiness notification and copying, or not copying, bytes.
+
+<Callout type="analogy">
+A restaurant. A **blocking** waiter stands at one table until the diners order. An **event-loop** waiter walks the floor and serves only tables that raise a hand (epoll). Writing down an order on a notepad is the page cache; it isn't safe until it is pinned on the kitchen board (fsync). **Zero-copy** is passing a dish straight from the kitchen to the table without the waiter replating it.
+</Callout>
+
+## File descriptors
+
+Every open file, socket, pipe and epoll instance is a small integer, a **file descriptor**, indexing the process's table of open resources. A server holding 20,000 connections holds 20,000 descriptors.
+
+- Each process has a limit (`ulimit -n`, often 1024 by default for interactive shells; services usually raise it). Hitting it gives `EMFILE`, "too many open files".
+- When it happens, first look for a **leak**: sockets or files never closed, visible as a count that only grows in `/proc/PID/fd`, or many sockets stuck in CLOSE_WAIT. Then raise the limit to match the real need.
+- Descriptors are inherited across fork and exec unless marked close-on-exec, which is how a shell connects a command's output to a file.
+
+## The page cache and durability
+
+Reads and writes normally go through the kernel's **page cache**, which keeps file data in RAM:
+
+- A **read** of data already cached costs no disk access. That is why the second run of anything is faster, and why Linux's "free" memory is low on a healthy server: spare RAM is used as cache and given back on demand.
+- A **write** copies data into the cache, marks it dirty and returns. The kernel writes it to disk later. If the machine loses power first, the write is gone, even though `write()` succeeded.
+- **fsync** blocks until the file's data and metadata reach stable storage. Databases call it when they commit, which is what "durable" means.
+
+<Chart
+  type="bar"
+  title="Reading a 1 GB file (measured)"
+  bars={[
+    ['Cold: caches dropped first', 720, 'bad'],
+    ['Warm: from the page cache', 227, 'ok'],
+  ]}
+  unit=" ms"
+  caption="Java reading in 1 MB chunks, in a Linux container on a laptop with an SSD; median of three runs. Warm reads varied from 88 to 277 ms. The difference is disk I/O the page cache avoided."
+/>
+
+<Chart
+  type="bar"
+  title="4 KB writes per second (measured)"
+  bars={[
+    ['write() only', 42968, 'ok'],
+    ['write() + fsync each time', 1345, 'bad'],
+  ]}
+  caption="The same Linux container, 2,000 writes each. Without fsync a write is a memory copy; with it, every write waits for the device. This is why databases group commits so that one fsync covers many transactions."
+/>
+
+### Replacing a file safely
+
+Overwriting a file in place can leave it half-written after a crash. The safe pattern has four steps, and the last one is the one people forget: `fsync` on a file doesn't guarantee its directory entry reached disk, so the directory needs its own fsync.
+
+<CodeTabs id="durable-write" title="Write a temp file, fsync, rename over the original, fsync the directory" />
+
+On macOS, `fsync` doesn't force the drive's own cache to flush (that needs `F_FULLFSYNC`), which is one reason databases treat platforms differently.
+
+## Blocking and non-blocking I/O
+
+A blocking `read` on a socket parks the calling thread until data arrives. With one thread per connection, 10,000 mostly idle connections need 10,000 threads. The alternative is **non-blocking** sockets with **readiness notification**: ask the kernel which of thousands of sockets can be read or written right now, and only touch those.
+
+<Walkthrough id="epoll-loop" />
+
+- `select` and `poll` take the whole list of descriptors on every call, so they slow down as connections grow. **epoll** (Linux) and **kqueue** (BSD and macOS) register descriptors once and return only the ready ones.
+- epoll is **level-triggered** by default: a socket with unread data is reported again on every wait. In **edge-triggered** mode it is reported once per change, so you must use non-blocking sockets and read until `EAGAIN`, or the rest of the data is stranded.
+- **io_uring** works the other way round: you submit operations (read this, write that) to a ring shared with the kernel and collect completions from another, avoiding a system call per operation. It is fast but has had many security bugs; Docker's default seccomp profile blocks its system calls and Google restricted it on its servers.
+
+| Model | How a server waits for 10,000 clients | Examples |
+|---|---|---|
+| Blocking, thread per connection | 10,000 OS threads, each blocked in `read` | Classic servlet containers, JDBC |
+| Non-blocking + readiness (epoll, kqueue) | A few threads ask "which sockets are ready?" | Netty, Node.js, nginx, Redis |
+| Completion-based (io_uring, IOCP) | Submit operations, collect completions | Newer runtimes and databases |
+| Virtual or green threads | Blocking-style code; the runtime parks threads cheaply | Java 21 virtual threads, Go goroutines |
+
+<CodeTabs id="os-io-models" title="Blocking threads, an event loop with non-blocking sockets, and virtual threads" />
+
+## Zero-copy
+
+Sending a file over a socket the usual way copies every byte from the page cache into your program's buffer, then back into the kernel's socket buffer: two copies and two system calls per chunk. `sendfile` (Java `FileChannel.transferTo`, Python `os.sendfile`) asks the kernel to move the data from the page cache to the socket directly, never through user space.
+
+<CodeTabs id="zero-copy" title="transferTo and sendfile, with the copying version for comparison" />
+
+<Chart
+  type="bar"
+  title="Sending a 1 GB file over loopback (measured)"
+  bars={[
+    ['Read into a buffer, then write', 231, 'warn'],
+    ['transferTo (sendfile)', 49, 'ok'],
+  ]}
+  unit=" ms"
+  caption="Java in a Linux container on a laptop, the file already in the page cache, average of the last two of four runs. Over a real network the link is usually the limit, so the saving shows up as less CPU rather than faster transfers."
+/>
+
+This is a large part of why **Kafka** is fast: consumers read data that is usually still in the page cache, and the broker hands it to the socket with sendfile, without copying it through the JVM. Encryption breaks this, because TLS must read and transform every byte in user space, so Kafka over TLS loses zero-copy.
+
+<Pitfalls>
+
+- **Leaking descriptors** (unclosed sockets, files or HTTP responses) until `EMFILE`.
+- **Treating `write()` returning as "saved"**, without fsync.
+- **Renaming without fsyncing the file first**, or forgetting the directory fsync.
+- **fsync on every small write** with no batching, capping throughput at the device's sync rate.
+- **Blocking calls inside an event loop**, which stall every connection it serves.
+- **Edge-triggered epoll without reading until `EAGAIN`.**
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- Every file and socket is a descriptor, and descriptors are limited; leaks show up as EMFILE.
+- Writes land in the page cache; fsync is what makes them durable, and it costs real time.
+- Replace files with temp file, fsync, rename and directory fsync.
+- epoll lets a few threads serve thousands of sockets; io_uring submits work and collects completions.
+- sendfile moves file data to a socket without copying it through your program.
+
+</KeyTakeaways>

@@ -1,0 +1,31 @@
+title: Two counters, one cache line
+legend:
+  ok: 'line held, ready to write'
+  bad: 'copy invalidated'
+  accent: 'write in this step'
+frames:
+  - caption: 'Thread 1 on core 1 increments `a`; thread 2 on core 2 increments `b`. They never touch each other''s variable, but `a` and `b` are 8 bytes apart, inside the same 64-byte cache line.'
+    panels:
+      - kind: array
+        label: One cache line
+        items: [{ v: a, tag: 'thread 1' }, { v: b, tag: 'thread 2' }, '', '', '', '', '', '']
+  - caption: 'Core 1 writes `a`. To write, it needs the line exclusively, so core 2''s copy of the **whole line** is invalidated.'
+    panels:
+      - kind: kv
+        label: Cache line state
+        pairs: [[core 1, { v: 'writes a: owns the line', tone: accent }], [core 2, { v: 'copy invalidated', tone: bad }]]
+  - caption: 'Core 2 now writes `b`. Its copy is gone, so it must fetch the line back from core 1, and core 1''s copy is invalidated in turn.'
+    panels:
+      - kind: kv
+        label: Cache line state
+        pairs: [[core 1, { v: 'copy invalidated', tone: bad }], [core 2, { v: 'writes b: owns the line', tone: accent }]]
+  - caption: 'This repeats on nearly every increment. The line bounces between cores at the cost of a cache-to-cache transfer each time. Measured here, it made the loop about **6 times slower**.'
+    panels:
+      - kind: rows
+        label: Every increment
+        items: [{ v: 'core 1 takes the line', tone: bad }, { v: 'core 2 takes it back', tone: bad }, { v: 'core 1 takes it again…', tone: bad }]
+  - caption: 'Put 120 bytes of padding between the counters and they land in different lines. Each core keeps its own line, and both run at full speed.'
+    panels:
+      - kind: kv
+        label: Cache line state
+        pairs: [[core 1, { v: 'owns line with a', tone: ok }], [core 2, { v: 'owns line with b', tone: ok }]]

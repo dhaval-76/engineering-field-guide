@@ -1,5 +1,5 @@
 title: CS Foundations
 short: Foundations
-blurb: Complexity, networking and operating-system ideas that everything else builds on.
+blurb: Complexity, how networks carry a request (TCP, HTTP, DNS, TLS, real-time connections) and how the operating system runs it (processes, memory, I/O, containers).
 order: 1
 icon: foundations

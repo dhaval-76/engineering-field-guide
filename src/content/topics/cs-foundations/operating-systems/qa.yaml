@@ -1,37 +1,96 @@
 questions:
-  - q: 'A service handling 10,000 mostly idle WebSocket connections runs out of memory with a thread-per-connection design. What are your options?'
-    think: What does each blocked connection cost in that design?
+  - q: 'What is the difference between a process and a thread? Why do we need both?'
+    think: What does each own, what do they share, and what happens when one fails?
     answer: |
-      Each platform thread reserves stack memory (~1 MB virtual by default) and adds scheduler overhead, so 10,000 threads mostly waiting on idle sockets waste resources. Options: (1) **non-blocking I/O with an event loop** (Netty/Spring WebFlux, Node.js) — a few threads monitor all sockets via epoll and run handlers when data arrives; (2) **virtual threads** (Java 21) — keep blocking-style code while blocked virtual threads cost only a small heap object; (3) reduce per-thread stack size as a stopgap. Also raise the file-descriptor limit, since each socket is a descriptor.
-  - q: 'The host shows almost no free memory, but the application isn''t under pressure. Is something wrong?'
-    think: Where does Linux put unused RAM?
+      A process has its own address space, open files, PID and environment. Threads live inside a process and share all of that; each thread has only its own stack, registers and thread-local storage.
+
+      That gives the trade-off. Processes are isolated: a crash or memory corruption stays inside one, which is why Chrome runs tabs as separate processes. But they are heavier to create and talk to each other through pipes, sockets or shared memory. Threads are cheap and communicate through shared memory, but they need locks or atomics, and one bad thread can bring down the whole process. A typical service is one process with many threads, and services are isolated from each other as separate processes or containers.
+    askedAt:
+      - company: Microsoft
+        year: 2026
+        round: Technical
+        source: https://leetcode.com/discuss/post/7636712/selected-microsoft-sde2l61-interview-exp-qekl/
+      - company: LinkedIn
+        year: 2026
+        round: Phone screen
+        source: https://leetcode.com/discuss/post/7551445/linkedin-swe-ic2-infra-phone-screening-b-z2zw/
+      - company: Swiggy
+        year: 2025
+        round: Technical
+        source: https://leetcode.com/discuss/post/6256994/swiggy-asde-online-interviews-december-2-8l2y/
+      - company: Paytm
+        year: 2026
+        round: Technical
+        source: https://leetcode.com/discuss/post/8548376/paytm-interview-experience-oncampus-by-b-m141/
+      - company: LinkedIn
+        year: 2025
+        round: Phone screen
+        source: https://leetcode.com/discuss/post/6284165/linked-interview-experience-swe-systems-qvesb/
+  - q: 'Why doesn''t the whole of Chrome crash when one tab crashes?'
+    think: Processes or threads?
     answer: |
-      Probably not. Linux uses otherwise idle RAM as **page cache** for file data and reclaims it instantly when applications need memory; tools show it as "buff/cache". Look at "available" memory, swap activity, major page faults and OOM events instead. In containers, compare the process's RSS (and the cgroup's usage) with its memory limit.
+      Chrome runs each site in its own renderer process. Processes don't share memory, so a crash, or an exploited bug, in one tab's process can't corrupt another's; the browser process notices the child died and shows the "aw, snap" page for that tab only. With threads in one process, a bad pointer in one tab could bring everything down. The cost is memory, since each process carries its own copy of the renderer's data.
+    askedAt:
+      - company: Intuit
+        year: 2026
+        round: Technical
+        source: https://leetcode.com/discuss/post/8502025/intuit-swe-intern-2026-oncampus-intervie-keaj/
+  - q: 'How many threads should a service run on an 8-core machine?'
+    think: Does the work compute or wait?
+    answer: |
+      It depends on what the threads do. For CPU-bound work, about 8: more threads can't run at once and only add context switches. For work that mostly waits on I/O, more threads keep the cores busy while others wait; a rough starting point is cores × (1 + wait time ÷ compute time), so threads that wait 90% of the time suggest about 80.
+
+      Then measure: raise the pool until throughput stops rising or latency starts climbing, and remember the downstream limits (database connections, rate limits) that a bigger pool will hit first. With Java 21 virtual threads, blocking I/O no longer needs a big platform-thread pool at all; the limit moves to the resources you call.
+    askedAt:
+      - company: LinkedIn
+        year: 2026
+        round: Technical
+        source: https://leetcode.com/discuss/post/7571938/interview-experience-linkedin-swe-apps-2-pguc/
+  - q: 'What is a context switch, and why is it expensive?'
+    think: What gets saved, and what gets lost?
+    answer: |
+      The kernel stops one thread, saves its registers and state, and loads another's; between processes it also switches the address space. The direct cost is microseconds. The indirect cost is bigger: the new thread finds the CPU caches and TLB full of the previous thread's data and runs slowly until they warm up again.
+
+      Switches happen when a thread blocks (voluntary) or its time slice ends (involuntary). Many runnable threads per core means much of the CPU goes on switching, which is why CPU-bound pools are sized near the core count.
+    askedAt:
+      - company: NVIDIA
+        year: 2026
+        round: Technical
+        source: https://leetcode.com/discuss/post/8510550/nvidia-interview-experience-senior-syste-vr87/
 followUps:
-  - q: Process vs thread?
-    intuition: What do they share?
+  - q: What happens when you run a command in the shell?
+    intuition: Two system calls, then a wait.
     approach: |
-      A process has its own address space, file descriptors and resources; isolation means one crashing doesn't corrupt another, at the cost of heavier creation and IPC. Threads within a process share memory and descriptors, so they communicate cheaply but need synchronisation, and a bug in one can corrupt all. Services typically run one process with many threads; isolation between services comes from processes and containers.
-  - q: What is a context switch and why does it matter?
-    intuition: Saving and restoring a cook's workspace.
+      The shell calls fork, creating a copy of itself whose memory is shared copy-on-write. The child sets up redirection, then calls exec, which replaces its program with the command while keeping its PID and open files. The shell waits for the child and collects its exit code. Unwaited children become zombies.
+  - q: What is the difference between SIGTERM and SIGKILL?
+    intuition: Which one can the process see?
     approach: |
-      The kernel saves one thread's registers and state and loads another's, possibly switching address spaces (between processes) and invalidating cached data. Each costs microseconds plus cache misses afterwards. Too many runnable threads cause thrashing — more time switching than working — which is why CPU-bound pools are sized near the core count.
-  - q: What do cgroups and namespaces do for containers?
-    intuition: Limits vs views.
-    approach: |
-      Namespaces give a process its own view of the system — PIDs, network interfaces, mount points, hostname — so it looks isolated. Cgroups limit and account resources — CPU time, memory, I/O. Together they make a container: a regular Linux process that sees its own world and can't use more than its share. CPU limits throttle; memory limits trigger the OOM killer.
+      SIGTERM asks the process to stop and can be caught, so it can finish requests and clean up. SIGKILL can't be caught or ignored: the kernel ends the process at once. Kubernetes sends SIGTERM, waits the grace period, then SIGKILL. Exit code 143 means terminated by SIGTERM and 137 by SIGKILL.
 practice:
-  - task: Inspect a running service's threads, memory, file descriptors and container limits from a shell.
-    hint: /proc/<pid>/status, /proc/<pid>/fd, /proc/<pid>/limits, ps, free, /sys/fs/cgroup.
+  - task: Make a worker process shut down cleanly on SIGTERM, finishing jobs already running.
+    hint: Register a handler, stop taking new work, wait for in-flight work with a deadline, then exit.
     solution: |
-      Thread count from `/proc/PID/task` or `Threads:` in `/proc/PID/status`; RSS vs virtual size and page faults via `ps -o rss,vsz,maj_flt,min_flt`; descriptor count from `/proc/PID/fd` against the `open files` limit; context switches in `/proc/PID/status`; and inside a container, `/sys/fs/cgroup/memory.max`, `cpu.max` and `cpu.stat` (throttling). Compare with what the JVM thinks (heap, threads) to find mismatches.
+      In Java, a shutdown hook calls `pool.shutdown()` and `awaitTermination` with a deadline shorter than the orchestrator's grace period, then `shutdownNow()` if it runs out. In Node, `process.on('SIGTERM')` stops accepting work (and calls `server.close()`), waits for in-flight promises, then exits. In Python, `signal.signal(SIGTERM, …)` sets a flag, and the main thread shuts the pool down with `wait=True`. Test it by sending a real SIGTERM while jobs are running.
+    solutionCode: graceful-shutdown
+  - task: Inspect a running service's threads, memory, file descriptors and limits from a shell.
+    hint: /proc/<pid>/status, /proc/<pid>/fd, /proc/<pid>/limits, ps.
+    solution: |
+      Count threads in `/proc/PID/task` or read `Threads:` in `/proc/PID/status`; compare RSS with virtual size and page faults through `ps -o rss,vsz,maj_flt,min_flt`; count descriptors in `/proc/PID/fd` against the `open files` limit; read voluntary and involuntary context switches from `/proc/PID/status`; and inside a container, check `/sys/fs/cgroup/memory.max`, `cpu.max` and `cpu.stat`.
     solutionCode: os-inspect
 quiz:
-  - q: 'An application first reads a large file slowly, then quickly the second time. Why?'
-    options: [JIT compilation, The page cache holds the file in RAM, The disk got faster, TCP keep-alive]
+  - q: What do threads of the same process share?
+    options: [Nothing, Only the stack, The address space and open files, Only the PID]
+    correct: 2
+    why: Threads share their process's memory and resources; each has its own stack and registers.
+  - q: Which signal can a process not catch?
+    options: [SIGTERM, SIGINT, SIGHUP, SIGKILL]
+    correct: 3
+    why: SIGKILL is handled by the kernel and ends the process at once.
+  - q: What does fork's copy-on-write mean?
+    options: [Memory is copied immediately, Parent and child share pages until one of them writes, The child can't write memory, Files are copied]
     correct: 1
-    why: The first read populates the page cache; later reads are served from memory.
-  - q: Which mechanism lets one thread wait on thousands of sockets at once on Linux?
-    options: [fork, epoll, mmap, swap]
+    why: Pages are copied only when written, so fork is fast even for large processes.
+  - q: A container exits with code 137. What usually happened?
+    options: [It finished normally, It was killed with SIGKILL, often by the OOM killer, It received SIGTERM, It failed to start]
     correct: 1
-    why: epoll reports which file descriptors are ready, so a few threads can serve many connections.
+    why: 137 is 128 + 9, the SIGKILL signal number.

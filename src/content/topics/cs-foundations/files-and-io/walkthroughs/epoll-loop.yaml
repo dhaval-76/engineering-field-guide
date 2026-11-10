@@ -1,0 +1,30 @@
+title: One thread serving many sockets with epoll
+legend:
+  accent: 'handled in this step'
+  info: 'ready'
+  muted: 'idle, costs nothing'
+frames:
+  - caption: 'The server creates an epoll instance and registers its listening socket. Every socket is set to **non-blocking**, so no call can ever park the thread.'
+    panels:
+      - kind: rows
+        label: Registered with epoll
+        items: [{ v: 'listen socket :8080', tone: accent }]
+  - caption: 'The thread calls `epoll_wait` and sleeps. Three clients connect, so the listening socket becomes ready. The thread accepts all three and registers them too.'
+    panels:
+      - kind: rows
+        label: Registered with epoll
+        items: [{ v: 'listen socket: 3 pending connections', tone: info }, { v: 'client A', tone: accent }, { v: 'client B', tone: accent }, { v: 'client C', tone: accent }]
+  - caption: '`epoll_wait` returns only the sockets with data: here B and C. A is connected but quiet, and costs nothing while it waits. The thread reads from B and C until the kernel says `EAGAIN` ("nothing more for now").'
+    panels:
+      - kind: rows
+        label: Returned by epoll_wait
+        items: [{ v: 'client A: idle', tone: muted }, { v: 'client B: read, handle, queue reply', tone: accent }, { v: 'client C: read, handle, queue reply', tone: accent }]
+  - caption: 'Replies are written without blocking. If a socket''s send buffer is full, the thread asks to be told when it becomes writable and moves on, rather than waiting.'
+    panels:
+      - kind: kv
+        label: Writes
+        pairs: [[B, 'reply sent'], [C, { v: 'buffer full: watch for writable', tone: info }]]
+  - caption: 'Back to `epoll_wait`. The loop never blocks on one client, so one thread can serve thousands of mostly idle connections. The catch: any slow work inside the loop, such as a blocking database call or heavy CPU, stalls **every** client, so it must go to a worker pool.'
+    panels:
+      - kind: note
+        text: 'Wait for readiness, do a little work per ready socket, never block.'

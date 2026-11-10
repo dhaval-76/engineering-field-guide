@@ -1,0 +1,30 @@
+title: A 1-CPU limit with 4 busy threads
+legend:
+  ok: 'running'
+  bad: 'paused by the quota'
+  warn: 'quota running out'
+frames:
+  - caption: 'The container has `cpu.max = 100000 100000`: 100 ms of CPU time in every 100 ms period, shared by **all** its threads. The host has 8 idle cores. A new period starts and 4 threads have work.'
+    panels:
+      - kind: kv
+        label: Period 1, at 0 ms
+        pairs: [[quota left, '100 ms'], [threads running, { v: '4 on 4 cores', tone: ok }]]
+  - caption: 'Four threads running in parallel use 4 ms of quota for every 1 ms of wall time. After **25 ms** of wall time the 100 ms quota is gone.'
+    panels:
+      - kind: kv
+        label: Period 1, at 25 ms
+        pairs: [[quota left, { v: '0 ms', tone: warn }], [CPU used, '4 threads × 25 ms = 100 ms']]
+  - caption: 'The kernel **throttles** the cgroup: every thread is paused until the period ends, although the host''s cores are idle. A request that arrives now waits up to 75 ms before any of its code runs.'
+    panels:
+      - kind: kv
+        label: Period 1, 25 to 100 ms
+        pairs: [[threads, { v: 'all paused', tone: bad }], [pause, '75 ms']]
+  - caption: 'At 100 ms the quota refills and the cycle repeats. Measured in a container: pauses of about **75 ms** in every period. With one thread, the same limit caused only short pauses, because one thread can''t use more than 100 ms per 100 ms.'
+    panels:
+      - kind: rows
+        label: Every 100 ms period
+        items: [{ v: '0 to 25 ms: all 4 threads run', tone: ok }, { v: '25 to 100 ms: all paused', tone: bad }]
+  - caption: 'GC and JIT threads count against the same quota. Fixes: give the container more CPU or no CPU limit (rely on requests), use fewer busy threads, or a shorter period so each pause is shorter. Watch `nr_throttled` in `cpu.stat`.'
+    panels:
+      - kind: note
+        text: 'A CPU limit is a budget per period, not a number of threads.'

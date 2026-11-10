@@ -1,0 +1,101 @@
+questions:
+  - q: 'What is virtual memory, and how does paging work?'
+    think: Each process's view, the translation, and what happens on a miss.
+    answer: |
+      Each process gets its own virtual address space, as if it had the machine to itself. Memory is split into fixed-size pages, usually 4 KB, and the CPU's memory management unit translates each virtual page to a physical frame using per-process page tables. Recent translations are cached in the TLB.
+
+      Pages are assigned lazily: the first touch causes a minor page fault, and the kernel maps a frame. If the page's data is on disk (a memory-mapped file, or swapped out), it is a major fault that waits for I/O. This isolates processes, lets programs use more address space than RAM, and lets the kernel share pages such as libraries and fork's copy-on-write pages. The cost is translation overhead, and thrashing if the working set doesn't fit in RAM.
+    askedAt:
+      - company: Google
+        year: 2026
+        round: Technical
+        source: https://leetcode.com/discuss/post/7611418/google-web-solutions-engineer-l3-by-anon-fo7v/
+      - company: Microsoft
+        year: 2026
+        round: Technical
+        source: https://leetcode.com/discuss/post/8477884/interview-summary-of-last-6-months-micro-y7a7/
+      - company: Adobe
+        year: 2025
+        round: Technical
+        source: https://leetcode.com/discuss/post/6722120/adobe-computer-scientist-1-round-1-inter-xjos/
+      - company: LinkedIn
+        year: 2025
+        round: Technical
+        source: https://leetcode.com/discuss/post/6713433/sse-infrastructure-linkedin-april-2025-b-itjf/
+  - q: 'What is the difference between a variable on the heap and one created inside a function? If several threads run the same function, is it safe?'
+    think: Whose stack, and what is shared?
+    answer: |
+      A local variable lives in the calling thread's stack frame and disappears when the function returns. Every thread has its own stack, so several threads running the same function each get their own copy of its locals, which is safe without locks.
+
+      Objects are allocated on the heap, which all threads share, and live as long as something references them. A local variable holding a reference is private, but the object it points to is not: if another thread can reach that object, through a field, a static, a shared collection or a captured lambda, access needs synchronisation. Objects created inside the function and never shared are safe.
+    askedAt:
+      - company: Microsoft
+        year: 2026
+        round: Technical
+        source: https://leetcode.com/discuss/post/7636712/selected-microsoft-sde2l61-interview-exp-qekl/
+      - company: LinkedIn
+        year: 2025
+        round: Phone screen
+        source: https://leetcode.com/discuss/post/7346832/linkedin-swe-infra-track-interviews-reje-nh70/
+      - company: Meesho
+        year: 2025
+        round: Technical
+        source: https://leetcode.com/discuss/post/6630553/meesho-sde-1-interview-experience-by-ano-26t3/
+  - q: 'What is thrashing, and how would you recognise and fix it?'
+    think: What happens when the working set doesn't fit?
+    answer: |
+      Thrashing is when the pages a system actively needs don't fit in RAM, so it keeps evicting pages it will need again soon, and spends its time on page faults and disk I/O instead of work. You see a high rate of major page faults, heavy swap traffic, high I/O wait and CPU mostly idle while everything is slow.
+
+      Fixes: reduce the working set (fewer processes, smaller caches or heaps), add memory, or limit concurrency so the active set fits. On servers, running with little or no swap turns slow thrashing into a quick, visible OOM kill, which is often preferable.
+    askedAt:
+      - company: LinkedIn
+        year: 2025
+        round: Technical
+        source: https://leetcode.com/discuss/post/6487244/linkedin-sse-bangalore-rejected-by-anony-dlq3/
+  - q: 'Two threads each increment their own counter, with no shared data, yet adding the second thread made the program slower. Why?'
+    think: How do caches keep cores consistent?
+    answer: |
+      Probably false sharing: the two counters sit in the same cache line. Caches track ownership per line, so each write by one core invalidates the other core's copy of the whole line, and the line bounces between cores on nearly every increment. Measured here, two threads with counters in one line took about 5.8 seconds against 0.9 seconds with the counters padded 128 bytes apart.
+
+      Fix it by separating the hot fields: padding, `@Contended` inside the JDK, a per-thread accumulator such as `LongAdder`, or simply keeping per-thread state in per-thread objects.
+followUps:
+  - q: What is the difference between a minor and a major page fault?
+    intuition: Is the data already in memory somewhere?
+    approach: |
+      A minor fault is resolved without disk I/O: the page is newly allocated and just needs a frame, or it is already in memory (in the page cache, or shared) and only needs mapping. A major fault needs to read the page from disk, such as a memory-mapped file or swapped-out page, and takes thousands of times longer.
+  - q: Why can a JVM be OOM-killed in a container while its heap is only half full?
+    intuition: What does the container limit count?
+    approach: |
+      The cgroup limit counts the whole process's resident memory: heap, metaspace, thread stacks, code cache, direct buffers, GC structures and native libraries. If the heap is sized close to the limit, the rest pushes the total over and the kernel's OOM killer sends SIGKILL, with no Java error. Leave headroom, for example a heap of about 70 to 75% of the limit, and watch RSS rather than heap usage.
+  - q: Why is iterating an array faster than a linked list with the same elements?
+    intuition: What arrives with each memory read?
+    approach: |
+      Array elements are contiguous, so each 64-byte cache line brings several elements, and the prefetcher streams the next lines ahead. Linked-list nodes are scattered on the heap, so each step may be a cache miss costing around 100 ns. Measured here, in-order reads took 0.63 ns each and shuffled reads 3.9 ns.
+practice:
+  - task: Show false sharing with two threads, then remove it.
+    hint: Two volatile long fields next to each other, then the same with padding between them.
+    solution: |
+      Give two threads one counter each and increment them many times. With both counters as adjacent fields of one object they share a cache line and the run is several times slower. Put at least a cache line of unused fields between them (128 bytes covers Apple Silicon too) and time it again. Use `volatile` so the JIT can't keep the counters in registers and hide the effect.
+    solutionCode: false-sharing
+  - task: Measure the cost of cache misses by reading the same array in order and in shuffled order.
+    hint: Make the array much larger than the CPU caches, and keep the sum so the loop isn't optimised away.
+    solution: |
+      Fill a large array (256 MB), build an index array in order and a shuffled copy, and time a loop summing `data[index[i]]` for each. Both do the same number of reads and give the same sum, so the difference is purely the access pattern: in-order reads reuse each cache line and let the prefetcher work.
+    solutionCode: access-pattern
+quiz:
+  - q: What does the TLB cache?
+    options: [File contents, Recent virtual-to-physical address translations, Network packets, Stack frames]
+    correct: 1
+    why: The TLB holds recent page translations so most accesses skip the page-table walk.
+  - q: Several threads call the same method. Which data is private to each thread?
+    options: [Static fields, Objects created earlier and shared, Its local variables, Everything on the heap]
+    correct: 2
+    why: Each thread has its own stack, which holds its local variables.
+  - q: The host shows almost no free memory but nothing is slow. What is the likely explanation?
+    options: [A memory leak, The page cache is using spare RAM, Swap is full, The TLB is full]
+    correct: 1
+    why: Linux uses idle RAM to cache files and frees it instantly when programs need it.
+  - q: What causes false sharing?
+    options: [Two threads sharing a lock, Two threads writing different variables in the same cache line, Using volatile, Garbage collection]
+    correct: 1
+    why: Cache coherence works per line, so writes to neighbouring variables invalidate each other's copies.

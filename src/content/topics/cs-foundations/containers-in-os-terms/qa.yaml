@@ -1,0 +1,64 @@
+questions:
+  - q: 'What is the difference between a container and a virtual machine?'
+    think: Who owns the kernel?
+    answer: |
+      A container is an ordinary process on the host's kernel. Namespaces give it its own view of process ids, network, file system and host name, and cgroups limit its CPU, memory and I/O. A virtual machine runs its own complete kernel on virtual hardware provided by a hypervisor.
+
+      So containers start in milliseconds, add almost no overhead and pack densely, but every container shares the host kernel, and a kernel vulnerability can cross the boundary. VMs are heavier and slower to start, but isolate more strongly and can run a different OS. Untrusted workloads therefore often run as containers inside VMs, or in lightweight VMs such as Firecracker.
+    askedAt:
+      - company: D. E. Shaw
+        year: 2025
+        round: Technical
+        source: https://leetcode.com/discuss/post/6686275/de-shaw-smts-application-engineer-by-ano-frwl/
+      - company: Salesforce
+        year: 2026
+        round: Technical
+        source: https://leetcode.com/discuss/post/8204135/salesforce-amts-interview-should-i-move-wkg4g/
+  - q: 'A Java service in Kubernetes is OOMKilled, but its heap metrics never went above 60%. Why?'
+    think: What does the container limit count, and who enforces it?
+    answer: |
+      The memory limit is enforced by the kernel on the whole process, not on the Java heap. Besides the heap, the JVM uses metaspace, thread stacks (about 1 MB each), the code cache, GC structures, direct and mapped buffers, and native libraries. If the heap is sized close to the limit, those push total usage over it and the kernel's OOM killer sends SIGKILL; the pod exits with code 137 and Java logs nothing.
+
+      Fix: leave headroom (a heap around 70 to 75% of the limit, set with `-XX:MaxRAMPercentage` or `-Xmx`), watch the container's RSS rather than heap usage, use Native Memory Tracking to see where the rest goes, and cap thread counts and direct buffers.
+  - q: 'After adding a CPU limit of 1 to a busy service, p99 latency jumped although average CPU use is well under one core. What is happening?'
+    think: Quota per period, counted across threads.
+    answer: |
+      CPU limits are a quota per period, 100 ms of CPU per 100 ms by default for a limit of 1, counted across all threads. During a burst, several threads, plus GC and JIT threads, can use the whole quota in a fraction of the period; the kernel then pauses every thread until the next period. Measured with four busy threads under a 1-CPU limit, the pauses were about 75 ms in every 100 ms. Average utilisation stays low while requests caught in a pause wait tens of milliseconds.
+
+      Confirm with `nr_throttled` and `throttled_usec` in `cpu.stat` (or the container_cpu_cfs_throttled metrics). Fixes: raise or remove the CPU limit and rely on requests for scheduling, reduce parallel busy threads (GC threads, pool sizes), or shorten the period.
+followUps:
+  - q: Why doesn't my application get SIGTERM when the container stops?
+    intuition: Who is PID 1?
+    approach: |
+      With a shell-form `CMD` or an entry script, a shell is PID 1 and doesn't forward signals, so the application is killed with SIGKILL when the stop timeout runs out. A program that is PID 1 itself ignores SIGTERM unless it installed a handler. Use the exec form or `exec` in the script, handle SIGTERM, or run a small init such as tini that forwards signals.
+  - q: What do Kubernetes CPU requests and limits turn into on the node?
+    intuition: Shares versus a hard quota.
+    approach: |
+      A request becomes a relative weight (`cpu.weight`, formerly shares), which only matters when CPUs are contended, and is used by the scheduler to place pods. A limit becomes `cpu.max`, a hard quota per period enforced even when the node is idle, which causes throttling. Memory limits become `memory.max`, enforced by the OOM killer.
+  - q: How does the JVM decide its heap size and thread counts in a container?
+    intuition: It reads the cgroup.
+    approach: |
+      With container support on (the default since JDK 10), it reads the memory limit and the CPU quota from the cgroup. The default maximum heap is 25% of the memory limit, and processors are the quota rounded up; CPU shares are ignored since JDK 19. Small containers may also get the Serial GC by default. Set `MaxRAMPercentage`, and `ActiveProcessorCount` or the GC explicitly when the defaults don't fit.
+practice:
+  - task: Read a container's CPU limit, memory limit and throttling count from inside it.
+    hint: cgroup v2 files under /sys/fs/cgroup - cpu.max, memory.max and cpu.stat.
+    solution: |
+      `cpu.max` holds "quota period" in microseconds, or "max" for no limit, so CPUs = quota ÷ period. `memory.max` holds bytes or "max". `cpu.stat` has `nr_throttled`, the number of periods in which the quota ran out. Tested inside a container started with `--cpus=1.5 --memory=512m`, it reads 1.5 CPUs and 536,870,912 bytes.
+    solutionCode: container-limits
+quiz:
+  - q: What does a container share with the host that a VM does not?
+    options: [The file system, The kernel, The IP address, Nothing]
+    correct: 1
+    why: Containers are processes on the host kernel; VMs run their own.
+  - q: 'A container has cpu.max = "100000 100000" and four busy threads. Roughly how long are they paused each period?'
+    options: ['0 ms', '25 ms', '75 ms', '100 ms']
+    correct: 2
+    why: Four threads use the 100 ms quota in 25 ms of wall time, then wait 75 ms for the next period.
+  - q: What happens when a container exceeds memory.max and memory can't be reclaimed?
+    options: [It slows down, The OOM killer sends SIGKILL, Java throws OutOfMemoryError, Swap is added]
+    correct: 1
+    why: The kernel kills a process in the cgroup; exit code 137.
+  - q: By default, how much of a container's memory limit does the JVM use as maximum heap?
+    options: ['25%', '50%', '75%', '100%']
+    correct: 0
+    why: MaxRAMPercentage defaults to 25, so a 1 GB limit gave a 247 MB heap.

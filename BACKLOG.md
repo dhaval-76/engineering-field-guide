@@ -15,9 +15,21 @@ the owner says to or after a large batch, never per finished item. No AI attribu
 
 ## Content
 
-### 1. CS Foundations: split Networking and Operating Systems into full pages
+### 1. CS Foundations: split Networking and Operating Systems into full pages (done 2026-11-10)
 
-**Status (2026-11-09): paused at the research stage at the owner's request; no pages written.** Reports, measurements, sources and what is left to check are in `research/cs-foundations-2026-11.md`. Start there.
+Done: Networking is now five pages (`networking` rewritten as "How a Network Request Travels",
+`tcp-and-udp`, `http-versions`, `dns-and-tls`, `realtime-connections`) and Operating Systems four
+(`operating-systems` rewritten as "Processes and Threads", `memory-management`, `files-and-io`,
+`containers-in-os-terms`). Each has walkthroughs, code in Java, JavaScript and Python where it
+helps, interview questions and a quiz. Charts use numbers measured on Linux. The containers page
+stays in CS Foundations and DevOps links to it; the real-time page covers the connection and
+what proxies do to it, leaving the comparison and scaling to `backend/realtime-communication`.
+Research and measurements are in `research/cs-foundations-2026-11.md`.
+
+Not covered by a test: the UDP send in `dns-query` (the sandbox blocks outbound UDP); its query
+building and reply parsing were tested against a real resolver over TCP.
+
+Original scope:
 
 Today `cs-foundations/networking` and `cs-foundations/operating-systems` are about 1,000 words each,
 much thinner than the rest of the site. Turn them into 9 fully written pages, each with

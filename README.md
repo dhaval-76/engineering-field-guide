@@ -9,7 +9,7 @@ and its order are in [`BACKLOG.md`](BACKLOG.md).
 
 ## What's in it
 
-- **13 tracks, 173 topics:** CS foundations, DSA, Java and runtimes, concurrency, OOP and design
+- **13 tracks, 180 topics:** CS foundations, DSA, Java and runtimes, concurrency, OOP and design
   patterns, low-level design, backend, databases, system design, distributed systems, DevOps,
   AI engineering, interviews and career.
 - **Every topic** opens with a Quick Reference card, then explains the idea with an analogy,

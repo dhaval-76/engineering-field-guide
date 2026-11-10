@@ -1,93 +1,131 @@
 ---
-title: Operating Systems Essentials
-summary: The OS ideas that explain backend behaviour — processes vs threads, scheduling and context switches, virtual memory and paging, the page cache, file descriptors, blocking vs non-blocking I/O and epoll, and the limits containers impose.
+title: Processes and Threads
+summary: What a process owns and what its threads share, how fork and exec start programs, how the scheduler shares CPUs, what a context switch costs, how many threads to run, and how signals let a service shut down cleanly.
 track: cs-foundations
 order: 30
-tags: [cs-foundations, operating-systems, linux, memory, io, concurrency]
-aliases: [operating system, process vs thread, context switch, scheduler, virtual memory, paging, page fault, swap, page cache, file descriptor, ulimit, blocking io, non blocking io, epoll, kqueue, io_uring, select, system call, user space kernel space, cgroups, namespaces, oom killer, signals, sigterm, virtual threads]
+tags: [cs-foundations, operating-systems, linux, concurrency, processes, threads]
+aliases: [operating system, os, process vs thread, difference between process and thread, fork, exec, fork exec, copy on write, zombie process, orphan process, pid, scheduler, cfs, eevdf, time slice, context switch, context switching cost, how many threads, thread pool size, cpu bound, io bound, signals, sigterm, sigkill, sigint, graceful shutdown, exit code 143, exit code 137, why chrome uses processes per tab, user space kernel space, system call, virtual threads]
 prerequisites: [cs-foundations/complexity]
-related: [concurrency/threads-and-race-conditions, concurrency/event-loop-and-async, devops/docker-kubernetes]
+related: [cs-foundations/memory-management, cs-foundations/files-and-io, cs-foundations/containers-in-os-terms, concurrency/threads-and-race-conditions, concurrency/executors-thread-pools, concurrency/event-loop-and-async]
 quickRef:
   points:
-    - '**Process** = isolated address space; **thread** = a schedulable execution path sharing its process''s memory.'
-    - 'The scheduler time-slices runnable threads over cores; **context switches** cost microseconds and cache warmth.'
-    - '**Virtual memory**: each process sees its own address space, mapped to physical pages on demand; **page faults** load pages; swapping is slow.'
-    - 'The **page cache** keeps file data in RAM — why repeated reads are fast and why "free" memory is mostly cache.'
-    - 'Everything I/O is a **file descriptor**; servers handle thousands of sockets with **non-blocking I/O + epoll** (or many cheap virtual threads).'
-    - 'Containers are processes limited by **cgroups** (CPU, memory) and isolated by **namespaces**.'
-  useWhen: Reasoning about performance, memory, concurrency models, container limits, or why a service runs out of threads, files or memory.
-lastReviewed: 2026-10-30
+    - 'A **process** owns an address space, open files and a PID. Its **threads** share all of that and each has its own stack and registers.'
+    - 'Processes isolate failures (a crashed tab doesn''t kill the browser); threads share memory cheaply but need synchronisation.'
+    - '`fork` copies a process (lazily, copy-on-write); `exec` replaces its program. Together they start every command you run.'
+    - 'The scheduler time-slices runnable threads over cores. A **context switch** costs microseconds directly and more in cold caches.'
+    - 'Size pools by the work: about one thread per core for CPU-bound work, more for work that waits on I/O.'
+    - '**SIGTERM** asks a process to stop and can be handled; **SIGKILL** can''t. Orchestrators send SIGTERM, wait, then SIGKILL.'
+  useWhen: 'Answering "process vs thread", sizing thread pools, explaining context switches, or making a service shut down cleanly.'
+askedAt:
+  - company: Microsoft
+    year: 2026
+    round: Technical
+    source: https://leetcode.com/discuss/post/7636712/selected-microsoft-sde2l61-interview-exp-qekl/
+  - company: LinkedIn
+    year: 2026
+    round: Phone screen
+    source: https://leetcode.com/discuss/post/7551445/linkedin-swe-ic2-infra-phone-screening-b-z2zw/
+  - company: Intuit
+    year: 2026
+    round: Technical
+    source: https://leetcode.com/discuss/post/8502025/intuit-swe-intern-2026-oncampus-intervie-keaj/
+  - company: Paytm
+    year: 2026
+    round: Technical
+    source: https://leetcode.com/discuss/post/8548376/paytm-interview-experience-oncampus-by-b-m141/
+  - company: Swiggy
+    year: 2025
+    round: Technical
+    source: https://leetcode.com/discuss/post/6256994/swiggy-asde-online-interviews-december-2-8l2y/
+  - company: NVIDIA
+    year: 2026
+    round: Technical
+    source: https://leetcode.com/discuss/post/8510550/nvidia-interview-experience-senior-syste-vr87/
+lastReviewed: 2026-11-10
 ---
 
 ## Why it matters
 
-Thread pools, connection limits, OOM kills, "too many open files", GC pauses that look like CPU starvation, slow first requests after a deploy — all are operating-system behaviours showing through your application. A working model of processes, memory and I/O turns these from mysteries into predictable trade-offs.
+Thread pools, OOM kills, "too many open files", requests dropped on every deploy, a server whose CPU is busy but whose throughput won't grow: these are operating-system behaviours showing through your application. This group of pages builds the model behind them. This page covers processes, threads, scheduling and signals. [Memory](../memory-management/), [files and I/O](../files-and-io/) and [containers](../containers-in-os-terms/) follow.
 
 <Callout type="analogy">
-A shared kitchen (the CPU) with a few stoves (cores). Each recipe being cooked is a thread; the head chef (scheduler) rotates cooks between stoves so everyone progresses. Each restaurant (process) has its own pantry (address space); cooks in the same restaurant share it. Swapping a cook out mid-recipe costs time — they must put away their tools and the next one must set up (a context switch).
+A shared kitchen. Each restaurant (process) has its own locked pantry (address space); cooks in the same restaurant (threads) share the pantry and must not grab the same pan at once. A few stoves (CPU cores) are shared by everyone, and the head chef (the scheduler) rotates cooks between them. Swapping one cook for another means putting away tools and setting up new ones: a context switch.
 </Callout>
 
 ## Processes and threads
 
-| Aspect | Process | Thread |
+| | Process | Thread |
 |---|---|---|
-| Memory | own address space | shares the process's heap |
-| Creation cost | higher (fork/exec) | lower |
-| Isolation | a crash doesn't affect others | a crash (or corrupt state) affects the whole process |
-| Communication | pipes, sockets, shared memory | shared variables (needs synchronisation) |
+| Owns | Address space, open files, PID, environment | Its own stack, registers and thread-local storage |
+| Shares | Nothing by default | Everything its process owns |
+| Creating one | Heavier: new address space and kernel structures | Lighter: a new stack and a scheduler entry |
+| A crash or memory bug | Stays inside that process | Can take down every thread in the process |
+| Talking to others | Pipes, sockets, shared memory, files | Shared variables, with locks or atomics |
 
-JVM platform threads map 1:1 to OS threads (~1 MB stack reserved each, scheduler cost); Java 21 **<Term id="virtual-thread">virtual threads</Term>** are scheduled by the JVM onto a few carrier threads, so a blocked virtual thread doesn't hold an OS thread ([Threads](../../concurrency/threads-and-race-conditions/)).
+This is why **Chrome runs each tab (roughly, each site) in its own process**: a tab that crashes or gets compromised can't corrupt the others, at the cost of more memory. A Java service is usually one process with many threads, and isolation between services comes from separate processes and [containers](../containers-in-os-terms/).
+
+Programs run in **user space** and ask the kernel for anything privileged, such as reading a file or opening a socket, through a **system call**. A system call costs far more than a function call, which is why buffered I/O batches them.
+
+## Starting a program: fork and exec
+
+<Walkthrough id="fork-exec" />
+
+Java hides this behind `ProcessBuilder`, Node behind `child_process.spawn`, and Python behind `subprocess`, but each one ends in the same system calls.
 
 ## Scheduling and context switches
 
-The scheduler gives each runnable thread a time slice on a core. Switching between threads saves and restores registers and disturbs CPU caches — microseconds each. Thousands of runnable threads mean more switching than work; a CPU-bound pool sized near the core count avoids it, while I/O-bound work tolerates more threads (they're mostly waiting).
+The scheduler decides which runnable thread runs on each core and for how long. Threads that are waiting (for I/O, a lock or a sleep) don't compete. Linux used the Completely Fair Scheduler for years; Linux 6.6 replaced it with EEVDF, which also aims for fairness but handles latency-sensitive tasks better.
 
-## Virtual memory
+A **context switch** saves one thread's registers and loads another's. When the two threads belong to different processes, the address space changes too. The direct cost is microseconds; the indirect cost is that the new thread finds the CPU caches full of someone else's data.
 
-<Walkthrough id="virtual-memory" />
+<Chart
+  type="bar"
+  title="Thread costs on a laptop's Linux container (measured)"
+  bars={[
+    ['Start 10,000 platform threads', 987, 'bad'],
+    ['Start 10,000 virtual threads', 2, 'ok'],
+  ]}
+  unit=" ms"
+  caption="Java 21, second of two runs. Handing a value from one platform thread to another and waking it took about 15 µs one way. A platform thread is an OS thread with its own scheduler entry and stack; a virtual thread is scheduled by the JVM onto a few OS threads."
+/>
 
-- Each process sees a private virtual address space; the MMU translates pages (typically 4 KB) to physical frames via page tables (cached in the TLB).
-- Memory is allocated lazily: touching a page for the first time causes a **minor page fault**; reading a page of a file not in RAM causes a **major fault** (disk I/O).
-- When RAM runs out, the kernel evicts page cache, then swaps anonymous memory (slow), and finally the **OOM killer** terminates a process. In <Term id="container">containers</Term>, exceeding the cgroup memory limit kills the container ([Docker and Kubernetes](../../devops/docker-kubernetes/)).
+**How many threads?** For CPU-bound work, about one per core: more threads only add switching. For work that mostly waits on I/O, more threads keep the cores busy: roughly cores × (1 + wait time ÷ compute time). The honest answer is to measure throughput and latency as you change the pool size. Java 21 virtual threads remove much of the question for blocking I/O, because a blocked virtual thread doesn't hold an OS thread. See [executors and thread pools](../../concurrency/executors-thread-pools/).
 
-## Files, the page cache and descriptors
+## Signals and graceful shutdown
 
-- Reads go through the **page cache**: the first read hits disk, later reads come from RAM; writes land in cache and are flushed later unless you `fsync` — which is what databases do for durability.
-- Every open file and socket is a **file descriptor**; per-process limits (`ulimit -n`) cap connections — "too many open files" usually means leaked connections or a too-low limit.
+A signal is a small asynchronous notification from the kernel or another process.
 
-## I/O models
-
-<CodeTabs id="os-io-models" title="Blocking threads, an event loop with non-blocking sockets, and virtual threads" />
-
-| Model | How a server waits for 10,000 clients | Examples |
+| Signal | Sent when | Can the process handle it? |
 |---|---|---|
-| Blocking I/O, thread per connection | 10,000 OS threads, each blocked in `read` | classic Tomcat, JDBC |
-| Non-blocking I/O + readiness (epoll/kqueue) | a few threads ask "which sockets are ready?" | Netty, Node.js, nginx, Redis |
-| Completion-based (io_uring, IOCP) | submit operations, collect completions | newer runtimes, databases |
-| Virtual threads / green threads | blocking-style code; runtime parks threads cheaply | Java 21 virtual threads, Go goroutines |
+| SIGINT | Ctrl+C in a terminal | Yes |
+| SIGTERM | "Please stop": `kill`, Kubernetes, systemd, Docker | Yes |
+| SIGKILL | "Stop now": `kill -9`, the OOM killer, a timeout after SIGTERM | **No** |
+| SIGHUP | Terminal closed; often reused to mean "reload config" | Yes |
+| SIGCHLD | A child process exited | Yes |
 
-## Containers in OS terms
+On a deploy, Kubernetes sends SIGTERM, waits for the grace period (30 seconds by default), then sends SIGKILL. A service that ignores SIGTERM drops every in-flight request on every deploy. The right response: stop accepting new work, finish what's running, close connections, then exit.
 
-A container is a normal process with **namespaces** (its own view of PIDs, network, mounts, hostname) and **cgroups** (limits on CPU time, memory, I/O). CPU limits are enforced by throttling within each scheduling period, which can add latency spikes; memory limits are hard and enforced by the OOM killer. Signals matter: orchestrators send SIGTERM and later SIGKILL — the application must handle SIGTERM to shut down gracefully.
+<CodeTabs id="graceful-shutdown" title="Finish in-flight work on SIGTERM, tested by sending real signals" />
+
+A process killed by a signal exits with code **128 + the signal number**: 143 for SIGTERM (the JVM exits with 143 after its shutdown hooks run) and **137 for SIGKILL**, which in a container usually means the OOM killer. See [containers](../containers-in-os-terms/).
 
 <CodeTabs id="os-inspect" title="Inspecting a process: threads, memory, descriptors, limits" />
 
 <Pitfalls>
 
-- **Thousands of platform threads** for I/O-bound work — memory and context switches; use pools, async I/O or virtual threads.
-- **Assuming free memory is wasted** — Linux uses spare RAM as page cache.
-- **Swap on latency-sensitive servers** — usually disabled or minimised.
-- **Leaking file descriptors** (unclosed sockets/files) until the process hits its limit.
-- **Blocking calls inside an <Term id="event-loop">event loop</Term>.**
-- **Ignoring SIGTERM** — killed mid-request on every deploy.
+- **Thousands of platform threads** for I/O-bound work: memory for stacks and time lost to switching. Use pools, async I/O or virtual threads.
+- **CPU-bound pools far larger than the core count.**
+- **Ignoring SIGTERM**, so every deploy drops requests.
+- **A shell script as PID 1 in a container** that doesn't pass SIGTERM on to the application.
+- **Child processes never waited for**, which pile up as zombies.
 
 </Pitfalls>
 
 <KeyTakeaways>
 
-- Processes isolate, threads share; context switches are real costs.
-- Virtual memory, page faults, page cache and the OOM killer explain most memory behaviour.
-- Sockets are file descriptors; scale connections with non-blocking I/O or virtual threads.
-- Containers are processes with namespaces and cgroup limits — handle SIGTERM.
+- Processes isolate; threads share memory and need synchronisation.
+- fork copies (copy-on-write) and exec replaces; together they start programs.
+- Context switches cost microseconds plus cold caches, so match thread counts to the work.
+- Handle SIGTERM by draining; SIGKILL can't be handled, and exit code 137 means you were killed.
 
 </KeyTakeaways>

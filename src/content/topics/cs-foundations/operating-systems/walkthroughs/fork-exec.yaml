@@ -1,0 +1,34 @@
+title: How a shell runs a command
+legend:
+  accent: 'acted on in this step'
+  info: 'shared, not yet copied'
+  plum: 'the new program'
+  muted: 'gone'
+frames:
+  - caption: 'You type `ls` in a shell (PID 100). To run it, the shell first calls **fork**, creating a child process (PID 101).'
+    panels:
+      - kind: rows
+        label: Processes
+        items: [{ v: 'shell, PID 100', tone: accent }]
+  - caption: 'The child is an almost exact copy: same code, same open files, same memory contents. Memory is **copy-on-write**: both point at the same physical pages until one of them writes, so fork is fast even for a large process.'
+    panels:
+      - kind: rows
+        label: Processes
+        items: ['shell, PID 100', 'shell copy, PID 101']
+      - kind: kv
+        label: Memory pages
+        pairs: [[shell, { v: 'shared', tone: info }], [child, { v: 'shared', tone: info }]]
+  - caption: 'The child calls **exec("ls")**. The kernel throws away its copy of the shell''s program and memory and loads `ls` in its place. The PID stays 101, and open files it didn''t mark close-on-exec stay open, which is how `>` redirection works.'
+    panels:
+      - kind: rows
+        label: Processes
+        items: ['shell, PID 100', { v: 'ls, PID 101', tone: plum }]
+  - caption: 'The shell calls **wait** and sleeps until the child exits. `ls` finishes with exit code 0, and the shell collects it. A child that exits and is never waited for stays as a **zombie**: a table entry holding its exit code.'
+    panels:
+      - kind: rows
+        label: Processes
+        items: [{ v: 'shell, PID 100: got exit code 0', tone: accent }, { v: 'ls, PID 101: exited', tone: muted }]
+  - caption: 'Splitting it in two lets the child set things up between fork and exec, such as redirecting output or changing directory, without the new program knowing. Java''s ProcessBuilder, Node''s spawn and Python''s subprocess all do this for you.'
+    panels:
+      - kind: note
+        text: 'fork copies (lazily), exec replaces, wait collects the exit code.'

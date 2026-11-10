@@ -1,0 +1,150 @@
+---
+title: Memory
+summary: How virtual memory, pages, the TLB and page faults work, what lives on the stack and what on the heap, what happens when memory runs out, and why CPU caches make access order and false sharing matter, with measured examples.
+track: cs-foundations
+order: 31
+tags: [cs-foundations, operating-systems, memory, performance]
+aliases: [virtual memory, paging, page table, page fault, minor page fault, major page fault, tlb, translation lookaside buffer, thrashing, swap, segmentation, stack vs heap, stack overflow, heap, rss, vsz, resident set size, oom killer, overcommit, out of memory, cpu cache, l1 l2 l3, cache line, cache miss, locality, false sharing, contended, memory hierarchy, latency numbers]
+prerequisites: [cs-foundations/operating-systems]
+related: [cs-foundations/files-and-io, cs-foundations/containers-in-os-terms, java-runtime/garbage-collection, concurrency/volatile-and-synchronized]
+quickRef:
+  points:
+    - 'Each process sees its own **virtual** address space, split into **pages** (usually 4 KB) that the MMU maps to physical memory through page tables, cached in the **TLB**.'
+    - 'Memory is given out lazily: the first touch of a page is a **minor fault**; reading a page from disk is a **major fault**, thousands of times slower.'
+    - 'The **stack** holds each thread''s calls and local variables; the **heap** holds objects shared by every thread.'
+    - 'When RAM runs out, Linux drops cache, then swaps, then the **OOM killer** ends a process. In a container, the cgroup limit triggers it.'
+    - 'CPUs read memory in **cache lines** (64 bytes on most chips). In-order access was about **6 times** faster per read than random access here.'
+    - '**False sharing**: two threads writing different variables in one cache line ran about **6 times** slower than with the variables apart.'
+  useWhen: Explaining memory use and OOM kills, answering "stack vs heap" or "what is virtual memory", or making hot loops and counters fast.
+askedAt:
+  - company: Google
+    year: 2026
+    round: Technical
+    source: https://leetcode.com/discuss/post/7611418/google-web-solutions-engineer-l3-by-anon-fo7v/
+  - company: Microsoft
+    year: 2026
+    round: Technical
+    source: https://leetcode.com/discuss/post/8477884/interview-summary-of-last-6-months-micro-y7a7/
+  - company: LinkedIn
+    year: 2025
+    round: Technical
+    source: https://leetcode.com/discuss/post/6487244/linkedin-sse-bangalore-rejected-by-anony-dlq3/
+  - company: Adobe
+    year: 2025
+    round: Technical
+    source: https://leetcode.com/discuss/post/6722120/adobe-computer-scientist-1-round-1-inter-xjos/
+  - company: Meesho
+    year: 2025
+    round: Technical
+    source: https://leetcode.com/discuss/post/6630553/meesho-sde-1-interview-experience-by-ano-26t3/
+lastReviewed: 2026-11-10
+---
+
+## Why it matters
+
+"The host has no free memory." "The pod was OOM-killed but the heap was only half full." "This loop is ten times slower on real data than in the benchmark." "Adding a second thread made it slower." Each of these is explained by how memory works below your language: virtual memory and paging, the stack and the heap, and the CPU caches that sit between the processor and RAM.
+
+<Callout type="analogy">
+A library. Every reader gets their own catalogue with shelf numbers starting at 1 (virtual addresses), and the librarian maps those to real shelves (physical memory), fetching books from the basement store (disk) when needed. The desk in front of you is the CPU cache: books already on it are instant, and you never fetch one page, you fetch the whole book (a cache line).
+</Callout>
+
+## Virtual memory
+
+<Walkthrough id="virtual-memory" />
+
+- **Every process sees its own address space**, so one process can't read another's memory, and each program can be laid out as if it had the machine to itself.
+- Memory is divided into **pages**, usually 4 KB. The CPU's MMU translates virtual pages to physical frames using **page tables**, and caches recent translations in the **TLB**. A TLB miss means walking the page tables, which costs extra memory reads. Huge pages (2 MB) cut TLB misses for large heaps.
+- Allocation is **lazy**. Asking for 1 GB reserves addresses; a physical page is only assigned when it is first touched (a **minor fault**, microseconds). Reading a file page that isn't in memory is a **major fault** that waits for the disk.
+- That is why a process's **virtual size (VSZ)** can be huge while its **resident set (RSS)**, the memory it actually holds, is small. Watch RSS.
+- **Thrashing** is when the working set doesn't fit in RAM, so the system spends its time moving pages to and from disk instead of working.
+
+## The stack and the heap
+
+| | Stack | Heap |
+|---|---|---|
+| Holds | Each call's local variables, arguments and return address | Objects and arrays, anything that outlives a call |
+| Owned by | One thread; every thread has its own | The process; every thread shares it |
+| Allocation | Moving a pointer on call and return: very cheap | An allocator or garbage collector |
+| Size | Small and fixed (1 MB per Java thread by default) | Large, grows to a limit (for Java, `-Xmx`) |
+| Typical failure | `StackOverflowError` from deep recursion | `OutOfMemoryError`, GC pauses, leaks |
+
+So when several threads run the same method, each has its **own copies of the local variables** on its own stack, and those are safe. The objects they point to live on the shared heap, and if more than one thread can reach an object, access needs synchronisation. In Java, local primitives and references are on the stack and objects are on the heap (the JIT may avoid heap allocation for objects that never escape a method).
+
+## When memory runs out
+
+Linux lets processes reserve more memory than exists (**overcommit**), betting they won't touch it all. When physical memory runs low it frees memory in order:
+
+1. Drop clean **page cache** (file data it can reread). This is why "free" memory near zero is normal: see [files and I/O](../files-and-io/).
+2. **Swap** out rarely used anonymous pages, if swap exists. Latency-sensitive servers usually run with little or no swap.
+3. Call the **OOM killer**, which picks a process (largest, adjusted by `oom_score_adj`) and sends it SIGKILL.
+
+In a container the cgroup's memory limit triggers the OOM killer even when the host has plenty free, and the process exits with code 137. A JVM can be killed this way with a half-empty heap, because the limit counts all of its memory: heap, metaspace, thread stacks, direct buffers and the JIT. See [containers](../containers-in-os-terms/).
+
+## CPU caches
+
+The CPU can't wait 100 ns for RAM on every access, so small, fast caches sit in between.
+
+| Where | Rough access time |
+|---|---|
+| L1 cache (per core) | about 1 ns |
+| L2 cache (per core) | a few ns |
+| L3 cache (shared) | 10 to 40 ns |
+| Main memory | about 100 ns |
+| NVMe SSD read | tens of µs |
+
+These are orders of magnitude, not exact figures; they vary by chip. Data moves in **cache lines** of 64 bytes on most x86 chips (128 bytes on Apple Silicon). Reading one element brings its neighbours along, and hardware **prefetching** fetches ahead when it sees a sequential pattern.
+
+<CodeTabs id="access-pattern" title="Reading the same array in order and in shuffled order" />
+
+<Chart
+  type="bar"
+  title="Reading 64 million ints (256 MB), per read (measured)"
+  bars={[
+    ['In order', 0.63, 'ok'],
+    ['Shuffled order', 3.9, 'bad'],
+  ]}
+  unit=" ns"
+  caption="Java 21 on an Apple Silicon laptop, best of three runs. A Linux container on the same machine gave 0.6 and 4.0 ns. Same number of reads and the same sum: only the order changes. In-order reads use every byte of each cache line and let the prefetcher run ahead."
+/>
+
+This is why arrays beat linked lists for iteration, why column stores scan fast, and why a hash map with many small objects is slower than its big-O suggests.
+
+## False sharing
+
+Caches keep cores consistent per **line**. When one core writes a line, other cores' copies of that line are invalidated. If two threads write two different variables that happen to share a line, the line bounces between cores on every write, although the threads share no data.
+
+<Walkthrough id="false-sharing" />
+
+<CodeTabs id="false-sharing" title="Two threads, two counters: same cache line versus padded apart" />
+
+<Chart
+  type="bar"
+  title="200 million increments per thread, two threads (measured)"
+  bars={[
+    ['Counters in the same cache line', 5830, 'bad'],
+    ['Counters padded 128 bytes apart', 909, 'ok'],
+  ]}
+  unit=" ms"
+  caption="Java 21 on an Apple Silicon laptop, median of three runs; a Linux container on the same machine gave 5.8 and 0.9 seconds. The only difference is 120 bytes of unused fields between the two counters."
+/>
+
+Hot per-thread counters, queue head and tail indexes, and arrays of per-thread slots are the usual victims. Java's `LongAdder`, the `@Contended` annotation used inside the JDK, and padded fields in libraries such as the LMAX Disruptor all exist to avoid it. See [volatile and synchronized](../../concurrency/volatile-and-synchronized/).
+
+<Pitfalls>
+
+- **Watching virtual size instead of RSS**, or treating page cache as used memory.
+- **Sizing a container by the Java heap alone**, then getting OOM-killed by everything else the JVM uses.
+- **Deep recursion** on large inputs, overflowing a thread's small stack.
+- **Benchmarks on small, sequential data** that hide cache misses real data will have.
+- **Per-thread counters packed side by side** in an array or object: false sharing.
+
+</Pitfalls>
+
+<KeyTakeaways>
+
+- Virtual memory gives each process its own address space; pages are mapped lazily and faults load them.
+- Locals live on each thread's stack; objects live on the shared heap.
+- Out of memory means cache drop, swap, then the OOM killer; containers hit their own limit first.
+- Memory moves in cache lines: access in order, and keep different threads' hot data on different lines.
+
+</KeyTakeaways>
