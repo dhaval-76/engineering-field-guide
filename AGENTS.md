@@ -254,6 +254,9 @@ topics appear in the same sections. The solution sits in its own fold so readers
 - Write `problem` the way an interviewer would give it, in your own words: the task, then any
   follow-up the reports mention. DSA questions get `examples` and `constraints`; design questions
   list requirements and likely follow-ups instead.
+- Low-level design solutions follow the order of a strong interview answer: **Clarify first**, the
+  core classes (with a tested Java `code` snippet), key flows and concurrency, answers to the
+  reported follow-ups, and **What a strong answer shows**.
 - Keep hints out of everything shown before the solution: no pattern names in the title or
   statement, and no "this is like X" notes. Those go in `solution`.
 - Use your own example inputs, not LeetCode's, and get every expected output by running the

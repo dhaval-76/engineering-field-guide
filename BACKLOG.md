@@ -297,6 +297,11 @@ community copy `liquidslr/leetcode-company-wise-problems` (55 of Amazon's 56 rep
 appear on it). The most frequent list problems with no report were added with solutions: 15 for
 Amazon (last 3 months) and the 4 Cashfree has. They are labelled and sort after reported ones.
 
+Then (2026-11-11): Amazon's low-level design questions were rewritten as interview prompts with
+full model answers (clarifying questions, classes as tested Java code, concurrency, follow-ups),
+and the combined delivery entry was split into its three real questions (package delivery, return
+drop-off booking, delivery estimation), 14 in all.
+
 Follow-ups, not done:
 
 - 50 new DSA solutions are Java only, so they need JavaScript and Python versions.

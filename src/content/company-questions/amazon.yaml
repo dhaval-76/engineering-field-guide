@@ -1434,15 +1434,40 @@ questions:
     title: 'File Search Utility (Unix find)'
     topic: low-level-design/file-system
     problem: |-
-      Design the search part of a Unix `find`-like utility.
+      "Design the search part of a command-line tool like Unix `find`. Users search a directory tree for files by attributes and combine conditions."
 
       **Requirements**
-      - Search a directory tree for files by name, size, extension and similar attributes.
-      - Combine conditions, such as "larger than 5 MB **and** extension `.xml`".
-      - Adding a new filter should not change existing code.
+      - Filter by name, size, extension and type (file or directory), with room for more attributes later.
+      - Combine conditions with **AND** and **OR**, for example "larger than 5 MB and extension `.xml`, or any `.log`".
+      - Return matching paths.
+      - Adding a new filter must not change existing classes.
 
-      **Expect follow-ups on:** combining with OR and NOT, very large directory trees, and how you would test it.
-    solution: 'Model filters as a Specification interface with `And`, `Or` and `Not` composites, and walk the tree separately from matching. New filters then need no change to the walker.'
+      The report says the focus was clean, extensible object-oriented design. Expect to write the core classes in about 45 minutes.
+
+      **Expect follow-ups on:** NOT, very deep or very large trees, symbolic links, and how you would test it.
+    solution: |-
+      **Clarify first**
+      - Which attributes, and how is the query given: built in code, or parsed from a string like `-size +5M -o -name '*.log'`? (Assume built in code; parsing comes later.)
+      - Files only, or directories too? Follow symbolic links? (Assume no.)
+      - How big are the trees? (Large enough that recursion depth and memory matter.)
+
+      **Core design: Specification + Composite**
+      - `FileFilter` has one method, `matches(file)`. Each condition (`extension`, `largerThan`, `nameContains`) is one small filter.
+      - `and`, `or` and `negate` build **new filters from filters**, so any query is a tree of filters. That is the Composite pattern applied to the Specification pattern, and it is exactly what the report asked for.
+      - `FileSearcher` only walks the tree and asks the filter. Walking and matching are separate, so a new filter (modified date, owner) is one new class, and the walker never changes (open/closed principle).
+
+      **Walking the tree**
+      - Use an explicit stack rather than recursion: a deep tree can't overflow the call stack.
+      - In real code, `Files.walk` streams entries lazily, so a million files don't sit in memory at once.
+      - Symbolic links: don't follow by default, or track visited real paths to avoid cycles.
+
+      **Follow-ups**
+      - **Parsing a query string:** a small parser builds the same filter tree; the searcher is unchanged.
+      - **Speed:** evaluate cheap checks first (name before reading size), and stop early when only the first N results are needed.
+      - **Testing:** filters are pure functions, so each is unit tested alone; the searcher is tested on an in-memory tree, as in the code.
+
+      **What a strong answer shows:** the composite of filters, separation of walking from matching, and an answer for deep trees.
+    code: cq-lld-file-search
     reports:
       - year: 2026
         source: https://leetcode.com/discuss/post/8591208/amazon-sde2-interview-onsite-experience-n8bnl/
@@ -1450,18 +1475,43 @@ questions:
         source: https://leetcode.com/discuss/post/8522985/amazon-sde-2-interview-experience-select-e2d9/
   - id: lld-logging
     section: lld
-    title: 'Logging Framework'
+    title: 'Logging Framework (log4j)'
     topic: low-level-design/logging-framework
     problem: |-
-      Design a logging library such as log4j.
+      "Design a logging library like log4j." One report says it came with **no explicit requirements**, so gathering them was part of the test.
 
-      **Requirements**
-      - Log levels (DEBUG, INFO, WARN, ERROR) with a configurable minimum level.
-      - Several destinations: console, file, and possibly a remote service.
+      **Requirements you should arrive at**
+      - Levels DEBUG, INFO, WARN and ERROR, with a minimum level per logger, changeable at runtime.
+      - Several destinations (appenders): console, file, a remote collector.
       - A configurable message format.
+      - Safe to call from many threads, and cheap when a message is filtered out.
 
-      **Expect follow-ups on:** thread safety, logging without slowing the caller, and adding a new destination.
-    solution: 'Loggers, levels, appenders and formatters behind interfaces. Discuss chain of responsibility for levels, and asynchronous writes with a bounded queue.'
+      **Expect follow-ups on:** logging without slowing the caller, what happens when a destination is slow or down, and adding a new destination.
+    solution: |-
+      **Clarify first** (the report's interviewer expected this)
+      - Who uses it: application code across many threads.
+      - Must logging ever block or crash the application? (No: losing a log line beats a stuck request.)
+      - Which destinations, which formats, configured how? (Code or a config file.)
+
+      **Core classes**
+      - `Level` enum, compared by order.
+      - `LogEvent`: level, logger name, message, time, thread. Immutable.
+      - `Logger`: has a name, a threshold and a list of `Appender`s. `log(level, Supplier<String>)` returns at once when the level is below the threshold, so building the message costs nothing then.
+      - `Appender` interface (console, file, network) and `Formatter` interface: each concern can vary independently (Strategy).
+      - `LoggerFactory`: a registry that returns the same `Logger` per name. That registry is the only singleton.
+
+      **Not slowing the caller**
+      - `AsyncAppender` is a Decorator around any appender: callers put the event on a **bounded queue** and return; one background thread writes.
+      - When the queue is full, **drop and count** (or drop only DEBUG) instead of blocking requests. Expose the dropped count as a metric.
+      - Flush on shutdown so the last lines aren't lost.
+
+      **Follow-ups**
+      - **New destination:** implement `Appender`, register it; nothing else changes.
+      - **Hierarchy:** `com.shop.orders` inherits its level and appenders from `com.shop` unless set; look up the parent chain.
+      - **Thread safety:** appenders kept in a copy-on-write list, the threshold `volatile`, file writes from a single thread.
+
+      **What a strong answer shows:** requirement gathering before classes, interfaces for appenders and formatters, lazy messages, and a non-blocking path with a clear overflow policy.
+    code: cq-lld-logging
     reports:
       - year: 2026
         source: https://leetcode.com/discuss/post/8523912/amazon-sde-2-interview-experience-by-ano-2sxp/
@@ -1472,14 +1522,36 @@ questions:
     title: 'Publisher-Subscriber System'
     topic: low-level-design/pub-sub
     problem: |-
-      Design an in-process publish-subscribe system.
+      "Design an in-process publish-subscribe system. A publisher sends events of a particular type, and every subscriber subscribed to that type receives them. Subscribers can subscribe and unsubscribe."
 
       **Requirements**
-      - Publishers send events of a given type.
-      - Subscribers subscribe to and unsubscribe from event types, and receive every event of those types.
+      - `subscribe(type, subscriber)`, `unsubscribe(type, subscriber)`, `publish(event)`.
+      - Every current subscriber of the type gets each event.
+      - Safe with many publishing and subscribing threads.
 
-      **Expect follow-ups on:** a slow or failing subscriber, delivery order, and concurrency.
-    solution: 'Observer pattern with a map from topic to subscribers. Use a concurrent collection and decide what a slow subscriber does to delivery.'
+      **Expect follow-ups on:** a slow or failing subscriber, ordering, and delivery guarantees.
+    solution: |-
+      **Clarify first**
+      - In one process or across services? (One process here; across services this becomes Kafka or SNS.)
+      - Synchronous delivery or asynchronous? Must one subscriber's slowness affect others? (No.)
+      - Ordering: per subscriber, in publish order? (Yes.) Guarantees if a subscriber throws? (Isolate it; optionally retry.)
+
+      **Core classes**
+      - `Event(type, payload)` and a `Subscriber` interface with `onEvent(event)`: the Observer pattern.
+      - `EventBus` holds a `ConcurrentHashMap<type, Set<Subscriber>>` with copy-on-write sets, so publishing iterates safely while others subscribe or unsubscribe.
+
+      **Delivery**
+      - Calling subscribers on the publisher's thread is simplest, but one slow subscriber then stalls the publisher and everyone after it.
+      - Better: each subscriber gets its **own single-thread mailbox**. Publishing just enqueues, a slow subscriber only delays itself, and each subscriber still sees events in publish order.
+      - Wrap every call in try/catch: count failures, retry with a limit, or move the event to a dead-letter list. One subscriber throwing must not stop the others.
+
+      **Follow-ups**
+      - **Back-pressure:** bound each mailbox; when full, drop the oldest, block the publisher, or disconnect the subscriber, depending on the use.
+      - **Wildcards** (`order.*`): match by prefix at publish time, or keep a trie of topics.
+      - **Durability:** in memory, events are lost on restart; for "at least once", persist first, keep per-subscriber offsets and redeliver, which is what a log like Kafka does.
+
+      **What a strong answer shows:** thread-safe registration, isolation between subscribers, a clear ordering guarantee and a stated delivery guarantee.
+    code: cq-lld-pubsub
     reports:
       - year: 2026
         source: https://leetcode.com/discuss/post/8513742/amazon-sde-2-l5-spain-by-anonymous_user-vs2p/
@@ -1488,15 +1560,40 @@ questions:
     title: 'Notification System'
     topic: system-design/notification-system
     problem: |-
-      Design a notification system.
+      "Design a notification system. It sends messages over several channels such as SMS and email, and each user has configured which channels they want."
 
       **Requirements**
-      - Several channels, such as SMS and email, with more to come.
-      - Each user has configured channels and preferences.
-      - Failures are handled and retried.
+      - Channels: SMS and email now, more later (push, WhatsApp).
+      - Users choose their channels.
+      - Handle failures: retry what can succeed, report what can't.
 
-      The report expected Factory, Strategy and Singleton to come up, with attention to error handling.
-    solution: 'Factory to build a channel, Strategy for delivery, and clear retry and error handling. The report named these patterns specifically.'
+      The report expected the **Factory, Strategy and Singleton** patterns to come up, with attention to **error handling and extensibility**.
+
+      **Expect follow-ups on:** adding a channel, retries and their limits, and sending to many users.
+    solution: |-
+      **Clarify first**
+      - Transactional (order shipped) or bulk marketing? (Transactional: each must arrive, quickly.)
+      - Per-user preferences, quiet hours, templates? (Preferences yes; templates as an extension.)
+      - What does "sent" mean for each channel, and which failures are worth retrying?
+
+      **Patterns the interviewer named, and where they fit**
+      - **Strategy:** `NotificationSender` interface with `send(user, message)`; one class per channel.
+      - **Factory:** `SenderFactory` returns the sender for a channel. Adding WhatsApp is a new class plus one registration, nothing else changes.
+      - **Singleton:** the `NotificationService` exists once, but create it once at startup and inject it rather than using a static `getInstance()`, which makes testing hard. Say this trade-off out loud.
+
+      **Error handling**
+      - A `DeliveryException` carries whether it is **retryable**: a timeout is, an invalid number isn't.
+      - Retry retryable failures with exponential backoff, up to a limit; give up at once on permanent ones.
+      - Each channel is independent: email failing must not stop SMS.
+      - Return a result per channel (delivered, attempts, error) so callers and logs can see what happened.
+
+      **Follow-ups**
+      - **Scale:** put notifications on a queue and let workers send them; retries become delayed re-queues, and exhausted ones go to a dead-letter queue.
+      - **Idempotency:** give each notification an id so a retried send isn't delivered twice.
+      - **Rate limits per provider and per user**, and quiet hours checked before sending.
+
+      **What a strong answer shows:** each named pattern used for a reason, failures classified as retryable or not, and channels isolated from each other.
+    code: cq-lld-notification
     reports:
       - year: 2026
         source: https://leetcode.com/discuss/post/8584198/amazon-l5-interview-experience-offer-by-thbff/
@@ -1505,14 +1602,38 @@ questions:
     title: 'Elevator System'
     topic: low-level-design/elevator
     problem: |-
-      Design an elevator system for a building.
+      "Design the control system for the elevators in a building."
 
       **Requirements**
-      - Several elevators, with requests from floors (up or down) and from inside a car.
-      - A dispatcher decides which elevator serves each request.
+      - Several elevators serve several floors.
+      - People press **up** or **down** on a floor (hall call), and a floor number inside a car (car call).
+      - A dispatcher chooses which elevator answers each hall call.
+      - Elevators move, stop at requested floors and open doors.
 
-      **Expect follow-ups on:** changing the scheduling policy, and the states of an elevator.
-    solution: 'Separate state (Elevator) from the scheduling policy so policies can be swapped. Use the State pattern for moving, stopped and idle.'
+      **Expect follow-ups on:** a different scheduling policy, the states of an elevator, and peak traffic.
+    solution: |-
+      **Clarify first**
+      - How many floors and elevators? Capacity limits? Emergency or maintenance modes? (Mention them; design for normal operation first.)
+      - Should a simulation tick, or should it react to events? (A tick-based model is easiest to explain and test.)
+
+      **Core classes**
+      - `Direction` (UP, DOWN, IDLE).
+      - `Elevator`: current floor, direction, and a sorted set of stops. `step()` moves one floor; it keeps going in the same direction while stops remain ahead and reverses only when none are (the SCAN, or "elevator", algorithm), so it doesn't zig-zag.
+      - `DispatchStrategy` interface: given all elevators and a hall call, choose one. `NearestSuitable` prefers an idle elevator, or one already moving towards the floor in the requested direction.
+      - `ElevatorController`: takes hall calls (through the strategy) and car calls (straight to that car), and ticks all elevators.
+
+      **Why these choices**
+      - The scheduling policy changes most (peak mornings, energy saving), so it sits behind an interface.
+      - Each elevator owns its state; the controller never edits it directly.
+      - Stops in a `TreeSet` give the next stop in either direction in O(log n).
+
+      **Follow-ups**
+      - **State pattern:** moving, doors open, idle and maintenance as state objects, if behaviour per state grows.
+      - **Peak traffic:** a zoning strategy (some cars serve only high floors in the morning), switched by time of day.
+      - **Concurrency:** requests arrive from many buttons at once; serialise them through the controller (a queue or a lock) so two hall calls don't both pick a car using stale state.
+
+      **What a strong answer shows:** a policy behind an interface, a sensible movement rule, and a model you can step through to prove it works.
+    code: cq-lld-elevator
     reports:
       - year: 2026
         source: https://leetcode.com/discuss/post/8110671/amazon-sde-2-interview-by-anonymous_user-eu5j/
@@ -1521,14 +1642,38 @@ questions:
     title: 'E-commerce Platform'
     topic: low-level-design/shopping-cart
     problem: |-
-      Design the classes of an e-commerce platform.
+      "Design the classes of an e-commerce platform, then walk me through some scenarios."
 
       **Requirements**
-      - Products and inventory, a cart, orders and payment.
-      - Walk through scenarios such as adding to the cart, checking out and cancelling.
+      - Products and stock, a cart, checkout, orders and payment.
+      - Scenarios to walk through: add to cart, check out, payment fails, cancel an order.
 
-      **Expect follow-ups on:** two buyers ordering the last unit at the same time.
-    solution: 'Separate Cart, Order, Inventory and Payment, and handle the last-unit race when placing an order.'
+      **Expect follow-ups on:** two buyers ordering the last unit at the same moment, and partial failures during checkout.
+    solution: |-
+      **Clarify first**
+      - Single seller or a marketplace? Coupons, taxes, shipping? (Single seller; mention the rest as extensions.)
+      - When is stock taken: when added to the cart, or at checkout? (At checkout. Adding to a cart reserves nothing.)
+
+      **Core classes**
+      - `Product` (sku, name, price in the smallest currency unit: paise, so no floating-point money).
+      - `Inventory`: available units per sku, with an **atomic** `reserve(sku, qty)` and `release`.
+      - `Cart`: items and quantities; computes the total.
+      - `Order`: items, amount and a status with legal transitions (CREATED, PAID, SHIPPED, CANCELLED).
+      - `PaymentGateway` interface: the real provider stays behind it, and tests use a fake.
+      - `CheckoutService`: the workflow.
+
+      **The scenarios**
+      - **Checkout is all or nothing.** Reserve every line; if any line is out of stock, release what was reserved and fail. Then charge; if payment fails, release everything and cancel the order.
+      - **Last unit, two buyers.** `reserve` is a compare-and-set loop (in a database, `UPDATE … SET qty = qty - 1 WHERE sku = ? AND qty >= 1`), so exactly one succeeds. The test runs eight buyers at once.
+      - **Cancel** only from PAID: release stock and refund.
+
+      **Follow-ups**
+      - **Payment timeouts:** the charge may have succeeded. Use an idempotency key so a retry can't charge twice, and reconcile with the provider.
+      - **Reservation expiry** when payment never completes: see the inventory question.
+      - **Extensibility:** pricing rules (coupons, sales) as a chain of strategies applied to the cart.
+
+      **What a strong answer shows:** clear class responsibilities, money as integers, atomic stock handling and a rollback path for every failure.
+    code: cq-lld-ecommerce
     reports:
       - year: 2026
         source: https://leetcode.com/discuss/post/8074897/amazon-sde-2-interview-exp-blr-by-anonym-wddt/
@@ -1537,15 +1682,40 @@ questions:
     title: 'Pizza Ordering System'
     topic: oop-patterns/decorator-adapter-facade-proxy
     problem: |-
-      Design a pizza ordering system.
+      "Design a pizza ordering system. A pizza has a base and any combination of toppings; its price and description depend on what is on it."
 
       **Requirements**
-      - A pizza has a base and any combination of toppings.
-      - Price and description depend on the toppings chosen.
-      - New toppings should be easy to add.
+      - Several bases with their own prices.
+      - Any number of toppings, including the same one twice.
+      - Price and description computed from the choices.
+      - New toppings easy to add.
 
-      The report expected a decorator-style approach.
-    solution: 'Each topping wraps a pizza and adds to its cost and description, so new toppings need no new classes.'
+      The report says the round was built around a **decorator-style** approach.
+
+      **Expect follow-ups on:** why a decorator here, and what you would do differently for a real menu.
+    solution: |-
+      **Clarify first**
+      - Sizes, combos, discounts? (Mention them; start with base plus toppings.)
+      - Can a topping appear twice? (Yes: double cheese.)
+
+      **Decorator design**
+      - `Pizza` interface: `description()` and `price()`.
+      - `Base` implements it directly.
+      - `Topping` is an abstract class that **is a** `Pizza` and **wraps** a `Pizza`. Each topping adds its own price and words to the wrapped pizza's.
+      - Toppings stack in any order and any number: `new Cheese(new Olives(new Cheese(base)))`.
+      - A small `PizzaBuilder` keeps the wrapping out of calling code.
+
+      **Trade-off worth saying**
+      - The decorator shows the pattern and lets a topping change behaviour as well as price (a "gluten-free" wrapper could change the base).
+      - For a real menu where toppings only add a price, **data beats classes**: a `Pizza` with a base and a list of `Topping(name, price)` loaded from a database needs no code change for a new topping. Offer both; interviewers like hearing when not to use a pattern.
+
+      **Follow-ups**
+      - **Sizes:** price per size on the base and each topping, or a size multiplier.
+      - **Discounts:** a separate pricing strategy applied to the finished pizza or the order.
+      - **Order:** a list of pizzas plus drinks, each priced by the same interface.
+
+      **What a strong answer shows:** a correct decorator, and judgment about when a list of data is simpler.
+    code: cq-lld-pizza
     reports:
       - year: 2026
         source: https://leetcode.com/discuss/post/8096099/amazon-sde2-l5-interview-experience-by-a-665g/
@@ -1554,12 +1724,41 @@ questions:
     title: 'Inventory Management'
     topic: low-level-design/inventory-management
     problem: |-
-      Design an inventory management system for an online store.
+      "Design inventory management for an online store." The interviewer went deep on concurrency: **one unit of a product is left, and two users place an order at the same moment. How do you make sure only one succeeds?**
 
-      The report's focus: only one unit of a product is left and two users order it at the same moment. How do you make sure only one order succeeds?
+      **Requirements**
+      - Track stock per product.
+      - Reserve stock when an order is placed; confirm it when payment succeeds; give it back if payment fails or never completes.
+      - Never sell more than exists.
 
-      **Expect follow-ups on:** race conditions, locking or transaction choices, and preventing overselling.
-    solution: 'Reserve stock atomically: a conditional update (`stock > 0`), or row locks in a transaction. Then cover reservation expiry.'
+      Taken from a public compilation of recent questions.
+
+      **Expect follow-ups on:** race conditions, locking versus atomic updates, transactions, and preventing overselling across several servers.
+    solution: |-
+      **Clarify first**
+      - One warehouse or several? Backorders allowed? (One; no backorders.)
+      - How long may a reservation be held while the customer pays? (A few minutes.)
+      - One application server or many? (Many: in-memory locks aren't enough on their own.)
+
+      **Model**
+      - Per sku: **available** units, plus a set of **reservations** (id, sku, quantity, expiry).
+      - `reserve` takes units from available and creates a reservation; `confirm` turns it into a sale; `release` or expiry returns the units.
+
+      **Preventing overselling**
+      - The check and the decrement must be **one atomic step**. In code: a lock or compare-and-set (the test runs 100 buyers for 10 units and exactly 10 succeed). In a database, one statement: `UPDATE stock SET available = available - ? WHERE sku = ? AND available >= ?`. One row updated means you got it; zero means sold out. This works across many servers because the database does the check.
+      - Alternatives: `SELECT … FOR UPDATE` in a transaction (pessimistic, simple, holds a lock), or a version column with retry (optimistic, better when conflicts are rare).
+
+      **Reservations that never complete**
+      - Each has an expiry; a sweeper (or a check on every operation, as in the code) returns expired units.
+      - Confirming an expired reservation fails, so a very late payment must be refunded or re-reserved.
+
+      **Follow-ups**
+      - **Hot products** (a flash sale): split one sku's stock into several counters, or queue orders for that sku and process them in sequence.
+      - **Several warehouses:** reserve in the nearest one that has stock, inside the same atomic step.
+      - **Audit:** every change recorded as an event, so stock can be reconciled.
+
+      **What a strong answer shows:** naming the race exactly, an atomic fix that also works across servers, and handling of abandoned reservations.
+    code: cq-lld-inventory
     reports:
       - year: 2026
         source: https://leetcode.com/discuss/post/8519174/questions-asked-by-amazon-in-past-6-mont-zxfk/
@@ -1568,36 +1767,162 @@ questions:
     title: 'Rate Limiter'
     topic: low-level-design/rate-limiter
     problem: |-
-      Design a rate limiter.
+      "Design a rate limiter that allows each client N requests per time window."
 
       **Requirements**
-      - Limit each client to N requests per time window.
-      - Compare fixed window, sliding window and token bucket.
-      - Then make it work across several application instances.
+      - Per-client limits, checked on every request: allow or reject.
+      - Discuss fixed window, sliding window and token bucket, and choose.
+      - Then make it work when the service runs on several instances.
 
-      **Expect follow-ups on:** using Redis, locking, and consistency trade-offs.
-    solution: 'Token bucket per key behind a strategy interface. Go distributed with an atomic Redis script.'
+      Taken from a public compilation of recent questions.
+
+      **Expect follow-ups on:** Redis, locking, and consistency trade-offs in the distributed version.
+    solution: |-
+      **Clarify first**
+      - Limit by user, API key or IP? Same limit for every endpoint? (Per API key; per-endpoint limits as config.)
+      - Are short bursts acceptable? (Usually yes, which favours a token bucket.)
+      - What happens when rejected: 429 with `Retry-After`.
+
+      **Algorithms**
+      - **Fixed window:** count per minute. Simple, but allows twice the limit across a window boundary.
+      - **Sliding window log:** store each request's time and count the last minute. Exact, but memory grows with the limit.
+      - **Sliding window counter:** weight the previous window's count. A good, cheap approximation.
+      - **Token bucket:** a bucket of up to *capacity* tokens refilled at a steady rate; each request takes one. Allows bursts up to capacity and a steady average. A common default.
+
+      **Design**
+      - `RateLimiter` interface with `tryAcquire(clientId)`, so algorithms are interchangeable (Strategy).
+      - State per client in a concurrent map. Refill lazily: compute the tokens earned since the last call instead of running a timer per client.
+      - Lock per client, not globally, so clients don't block each other.
+      - Inject the clock, so tests can move time forward exactly, as in the code.
+
+      **Distributed**
+      - Keep each client's bucket in **Redis**, and do refill-and-take in **one Lua script**, which Redis runs atomically, so two instances can't both take the last token.
+      - Trade-offs: a Redis call per request (latency), and what to do when Redis is down: fail open (allow) for availability or fail closed for protection. Local pre-limits per instance reduce load.
+
+      **What a strong answer shows:** the algorithms compared honestly, a testable design with an injected clock, and an atomic distributed version with a stated failure mode.
+    code: cq-lld-rate-limiter
     reports:
       - year: 2026
         source: https://leetcode.com/discuss/post/8519174/questions-asked-by-amazon-in-past-6-mont-zxfk/
-  - id: lld-delivery
+  - id: lld-package-delivery
     section: lld
-    title: 'Package Delivery, Lockers and Delivery Estimates'
+    title: 'Package Delivery System'
     topic: low-level-design/lld-method
     problem: |-
-      Several reports use Amazon's own logistics:
+      "Design a package delivery system for an e-commerce company like Amazon. The system gets orders, packages are created for shipment, delivery agents deliver packages to customers, and the system tracks delivery status. Support assigning packages to agents, updating delivery status, and handling unsuccessful delivery attempts."
 
-      - **Package delivery:** orders arrive, packages are created for shipment and delivered.
-      - **Return drop-off:** a reversed Amazon Locker, where the customer books a slot at the nearest drop-off store and brings the package.
-      - **Delivery estimates:** a service that predicts when an order will arrive.
+      That is the wording the candidate reported, from a 60-minute whiteboard round.
 
-      In one report the interviewer changed the requirements midway.
-    solution: 'No single page covers these. Use the method: list requirements, find the entities and their states, then isolate the parts that will change behind interfaces. Slot booking has the same race as seat booking.'
+      **Expect follow-ups on:** priority for **Prime** orders, and assigning the **highest-rated agent** to Prime customers.
+    solution: |-
+      No single page covers this design; the [LLD method](../../low-level-design/lld-method/) gives the approach.
+
+      **Clarify first**
+      - One hub or many? Does an agent carry one package or a route of many? (One hub; one package at a time to keep it simple, mention routes as an extension.)
+      - How many attempts before returning to the seller? (Three.)
+      - Who updates status: the agent's app.
+
+      **Core classes**
+      - `Shipment`: id, Prime flag, status, assigned agent, failed attempts and a **history** of status changes (tracking).
+      - `Status` with an explicit **state machine**: CREATED → ASSIGNED → OUT_FOR_DELIVERY → DELIVERED, or → ATTEMPT_FAILED → back to ASSIGNED, or → RETURNED after the last attempt. Every update is checked against the allowed transitions, so an app bug can't mark an unassigned package delivered.
+      - `Agent`: id and rating.
+      - `AssignmentStrategy` interface: chooses an agent for a shipment.
+      - `DeliveryService`: a waiting queue, free agents, `assignAll()` and `move(shipment, status)`.
+
+      **The follow-ups, without rewriting**
+      - **Prime first:** the waiting queue is a priority queue ordered by Prime, then by age, so Prime packages are assigned first and normal ones still progress.
+      - **Best agent for Prime:** a new `AssignmentStrategy` (`PrimeGetsBestRated`) picks the highest-rated free agent for Prime and the lowest-rated for the rest. Nothing else changes: this is why the strategy is an interface from the start.
+      - **Failed attempts:** the agent is freed, the package is queued again, and after three failures it is returned.
+
+      **More follow-ups**
+      - **Concurrency:** two dispatchers must not assign one agent twice; assignment runs in one place, or uses an atomic "claim agent" step.
+      - **Notifications** on every status change: observers on `move`.
+
+      **What a strong answer shows:** a validated status machine, assignment as a swappable strategy, and handling of failed attempts.
+    code: cq-lld-package-delivery
     reports:
       - year: 2026
         source: https://leetcode.com/discuss/post/8575909/amazon-sde-2-india-oct-2026-dsa-lld-roun-vk9s/
+  - id: lld-return-dropoff
+    section: lld
+    title: 'Return Drop-off Booking (a Reverse Amazon Locker)'
+    topic: system-design/proximity-service
+    problem: |-
+      "Customers return packages by dropping them at a store. A customer books a time slot at a nearby drop-off store, goes there, and hands the package over."
+
+      **Requirements**
+      - Find drop-off stores near the customer.
+      - Each store accepts a limited number of drop-offs per time slot.
+      - Book, cancel, and complete a drop-off at the store with a code.
+
+      In the report, the interviewer interrupted the coding to ask **"How will you find the nearest drop store from the customer's location?"** and hinted "think about how Uber does it".
+    solution: |-
+      **Clarify first**
+      - How is a slot defined: an hour window per store, with a capacity? (Yes.)
+      - Package size limits per store? (Mention it; skip at first.)
+      - What proves the drop-off: a booking code shown at the store.
+
+      **Core classes**
+      - `Store` (id, location, slots per window), `Booking` (code, customer, store, window).
+      - `DropOffService`: `book`, `cancel`, `dropOff`.
+      - `StoreLocator`: nearest stores to a location.
+
+      **Booking without overbooking**
+      - Count bookings per (store, window) with an atomic counter: increment, and if it goes over capacity, decrement and refuse. Two customers can never both get the last slot (the test runs six at once for two slots). In a database this is the same conditional update as seat booking.
+      - `dropOff` checks the code belongs to this store and removes it atomically, so a code can't be used twice.
+
+      **The follow-up: finding the nearest store**
+      - Scanning every store and computing distances is fine for a few hundred; it is too slow for tens of thousands per query.
+      - Bucket stores into a **grid** of cells by latitude and longitude (the same idea as geohashes, which Uber-style systems use). Look in the customer's cell and its neighbours, widen the ring until enough stores are found, then sort those few by distance. That is what `StoreLocator` does.
+      - At larger scale: geohash prefixes in a database index, a quadtree, or a database's geospatial index. Distance on a map isn't travel time; a routing service can re-rank the top few.
+
+      **Time management**
+      - The candidate spent 35 minutes coding and ran out of time. State the design and the race first, then code the booking path, then the locator.
+
+      **What a strong answer shows:** an atomic booking step, single-use codes and a spatial index for "nearest".
+    code: cq-lld-return-dropoff
+    reports:
       - year: 2026
         source: https://leetcode.com/discuss/post/8499681/amazon-sde-2-selected-blr-aug-2026-by-dh-61y7/
+  - id: lld-delivery-estimate
+    section: lld
+    title: 'Delivery Estimation Service'
+    topic: low-level-design/lld-method
+    problem: |-
+      "Design Amazon's delivery estimation service: the "arrives by Thursday" promise shown on a product page and at checkout."
+
+      In the report, the interviewer first asked the candidate to identify the **functional and non-functional requirements**, and the round was decided largely on that part.
+
+      **Expect follow-ups on:** which inputs change the estimate, how to keep it fast on every product page, and what happens when the promise is missed.
+    solution: |-
+      No single page covers this design; the [LLD method](../../low-level-design/lld-method/) gives the approach. Start with requirements, out loud.
+
+      **Functional requirements**
+      - Given a product, a destination (pincode) and a shipping speed, return an estimated delivery date or range.
+      - Account for which warehouses have the item, transit time from each to the destination, the order cut-off time, and days without deliveries (Sundays, holidays).
+      - Say when an item can't be delivered to that pincode.
+
+      **Non-functional requirements**
+      - **Fast:** shown on every product page, so tens of milliseconds, under very high read traffic.
+      - **Accurate and conservative:** a missed promise costs more than a slightly later one; show a range.
+      - **Fresh enough:** stock changes constantly, transit tables rarely.
+
+      **Design**
+      - Each input behind an interface: `WarehouseLocator` (who has stock), `TransitTimes` (warehouse, pincode, speed → days), `Calendar` (delivery days). They change independently and are cached differently.
+      - `DeliveryEstimator`: work out the ship date (today if before the cut-off, else tomorrow), then for each warehouse with stock add its transit days, counting only delivery days, and keep the earliest. Return a range: earliest plus one day of buffer.
+      - The tests cover the cut-off, a holiday, a Sunday and "no warehouse can reach this pincode".
+
+      **Making it fast**
+      - Precompute transit days per (warehouse, pincode region, speed) offline; it changes rarely.
+      - Cache estimates per (product's warehouses, pincode, speed) for minutes; recompute on stock changes.
+
+      **Follow-ups**
+      - **Missed promises:** compare promised with actual dates, feed the error back into the buffer per lane, and alert on lanes that slip.
+      - **Checkout versus product page:** checkout recomputes with live stock and reserves; the product page may use a cached value.
+
+      **What a strong answer shows:** clear functional and non-functional requirements first, then inputs separated behind interfaces and a conservative, cacheable estimate.
+    code: cq-lld-delivery-estimate
+    reports:
       - year: 2026
         source: https://leetcode.com/discuss/post/8554896/amazon-sde-2-banaglore-alexa-devices-28-x49pi/
   - id: lld-playlist
@@ -1605,15 +1930,39 @@ questions:
     title: 'Playlist Mixing Two Song Sources'
     topic: low-level-design/lld-method
     problem: |-
-      Design a playlist that mixes songs from two services: a DJ service and a recommendation service.
+      "Design a playlist that mixes songs from two services: a DJ service and a recommendation service."
 
-      **Requirements**
-      - Mix them in a given proportion, or equally.
-      - Apply filters based on user preferences.
+      **Requirements** (the report had about ten, printed on paper)
+      - Mix the two sources in a custom proportion, such as 2 DJ songs then 1 recommended, or equally.
+      - Apply filters based on the user's preferences.
       - Write production-ready classes, on paper, with correct syntax.
 
-      The report had about ten printed requirements.
-    solution: 'An iterator that merges two source iterators by a ratio Strategy, with filters as a chain of predicates.'
+      **Expect follow-ups on:** a source running out, duplicates across sources, and adding a third source or a new filter.
+    solution: |-
+      No single page covers this design; the [LLD method](../../low-level-design/lld-method/) gives the approach.
+
+      **Clarify first**
+      - Are the sources finite lists or endless streams? (Treat both as "give me the next song, if any".)
+      - Does a filtered-out song use up its slot? (No: the next song from the same source takes the slot.)
+      - Duplicates across sources? (Skip songs already played.)
+      - When one source runs dry? (Continue with the other.)
+
+      **Core classes**
+      - `Song` (id, title, genre, explicit) and `SongSource` with `Optional<Song> next()`. The DJ service and the recommender are adapters behind this interface.
+      - Filters are `Predicate<Song>` (no explicit songs, excluded genres), combined into one with `and`. New preferences are new predicates.
+      - `Mixer implements Iterator<Song>`: it decides which source owns the next slot from the ratio (`position % (a + b) < a`), skips songs that fail the filter or were already played, and switches to the other source when one is exhausted.
+
+      **Why an iterator**
+      - The caller just loops; songs are pulled one at a time, so endless sources work and nothing is fetched early.
+      - The ratio, filters and sources are independent: a new mixing rule (time of day, mood) is a new strategy for choosing the source, without touching sources or filters.
+
+      **Production details the round asked for**
+      - Validate the ratio (`a + b > 0`).
+      - `next()` throws `NoSuchElementException` when there is nothing left, as `Iterator` requires.
+      - Never loop forever when both sources keep returning filtered songs: track exhaustion per source.
+
+      **What a strong answer shows:** clean interfaces for sources and filters, correct iterator behaviour, and the edge cases stated before coding.
+    code: cq-lld-playlist
     reports:
       - year: 2026
         source: https://leetcode.com/discuss/post/8443351/amazon-sde-2-interview-experience-onsite-k126/
@@ -1622,10 +1971,37 @@ questions:
     title: 'Agentic Chatbot'
     topic: ai-engineering/agents-and-tool-calling
     problem: |-
-      Design an agentic chatbot that accepts user queries and generates responses, calling tools when it needs to.
+      "Design a chatbot that accepts user queries and generates responses. It can call tools, such as looking up an order or the weather, when it needs information."
 
-      **Expect follow-ups on:** adding a tool, conversation memory, and stopping a loop that never ends.
-    solution: 'An agent loop around a model client, with tools behind one interface, conversation memory, and limits on iterations and cost.'
+      The candidate reported finishing the basic flow and running out of time for more, so plan the core loop first.
+
+      **Expect follow-ups on:** adding a tool, conversation memory, a tool that fails, and stopping a loop that never ends.
+    solution: |-
+      **Clarify first**
+      - Which model, and does it support tool calling? (Assume a client that returns either an answer or a tool call.)
+      - Which tools, and are any dangerous (refunds, deletes)? (Read-only tools first; confirmations for actions.)
+      - How long a conversation must it remember?
+
+      **Core classes**
+      - `ModelClient` interface: send the conversation and the available tools, get back a `ModelReply` that is either an answer or a `ToolCall`. Real providers are adapters; tests use a scripted fake, as in the code.
+      - `Tool` interface: `name()` and `run(argument)`. Tools live in a registry, so a new tool is one class plus registration.
+      - `Agent`: holds the model, the tools and the conversation memory.
+
+      **The loop**
+      - Add the user message to memory. Ask the model. If it answers, return the answer. If it asks for a tool, run it, add the result to memory as a tool message, and ask again.
+      - **A hard step limit** stops a model that keeps calling tools forever, with a polite fallback answer.
+      - **Tool errors become tool results** ("error: timeout"), so the model can retry or explain, instead of the whole request failing. An unknown tool name is handled the same way.
+
+      **Memory**
+      - Keep the last N messages, or summarise older turns, to stay within the model's context window and cost.
+
+      **Follow-ups**
+      - **Safety:** validate tool arguments, allow-list tools per user, confirm before actions with side effects, and treat tool output as untrusted (prompt injection). See [guardrails](../../ai-engineering/guardrails-prompt-injection/).
+      - **Cost and latency:** limit tokens and steps per request, stream the answer, cache tool results.
+      - **Observability:** log every step with a trace id so a bad answer can be replayed.
+
+      **What a strong answer shows:** a bounded agent loop, tools behind one interface, failures fed back to the model and memory kept within limits.
+    code: cq-lld-agent
     reports:
       - year: 2026
         source: https://leetcode.com/discuss/post/8585902/amazon-sde2-interview-experience-by-anon-o9t8/
